@@ -123,6 +123,13 @@ Format
 | sl       | ✅                                                                                                                        | ❌           | ❌                    | ❌               |
 | uk       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
 
+## Related Projects
+
+- [ovos-mumber-parser](https://github.com/OpenVoiceOS/ovos-number-parser) - for handling numbers
+- [ovos-lang-parser](https://github.com/OVOSHatchery/ovos-lang-parser) - for handling languages
+- [ovos-color-parser](https://github.com/OVOSHatchery/ovos-color-parser) - for handling colors
+
+
 ## License
 
 This project is licensed under the Apache 2.0 License

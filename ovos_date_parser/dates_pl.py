@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
-from ovos_number_parser.numbers_pl import pronounce_number_pl, extract_number_pl, _convert_words_to_numbers_pl
+from ovos_number_parser.numbers_pl import pronounce_number_pl, extract_number_pl, numbers_to_digits_pl
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
 
@@ -396,7 +396,7 @@ def extract_duration_pl(text):
     }
 
     pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[ayeę]?"
-    text = _convert_words_to_numbers_pl(text)
+    text = numbers_to_digits_pl(text)
 
     for unit in _TIME_UNITS_CONVERSION:
         unit_pattern = pattern.format(unit=unit)

@@ -22,40 +22,6 @@ from ovos_date_parser import (
     nice_time
 )
 
-# fractions are not capitalized for now
-NUMBERS_FIXTURE_da = {
-    1.435634: '1,436',
-    2: '2',
-    5.0: '5',
-    1234567890: '1234567890',
-    12345.67890: '12345,679',
-    0.027: '0,027',
-    0.5: '1 halv',
-    1.333: '1 og 1 trediedel',
-    2.666: '2 og 2 trediedele',
-    0.25: '1 fjerdedel',
-    1.25: '1 og 1 fjerdedel',
-    0.75: '3 fjerdedele',
-    1.75: '1 og 3 fjerdedele',
-    3.4: '3 og 2 femtedele',
-    16.8333: '16 og 5 sjettedele',
-    12.5714: '12 og 4 syvendedele',
-    9.625: '9 og 5 ottendedele',
-    6.777: '6 og 7 niendedele',
-    3.1: '3 og 1 tiendedel',
-    2.272: '2 og 3 elftedele',
-    5.583: '5 og 7 tolvtedele',
-    8.384: '8 og 5 trettendedele',
-    0.071: '1 fjortendedel',
-    6.466: '6 og 7 femtendedele',
-    8.312: '8 og 5 sejstendedele',
-    2.176: '2 og 3 syttendedele',
-    200.722: '200 og 13 attendedele',
-    7.421: '7 og 8 nittendedele',
-    0.05: '1 tyvendedel'
-}
-
-
 class TestNiceDateFormat_da(unittest.TestCase):
     def test_convert_times_da(self):
         dt = datetime.datetime(2017, 1, 31, 13, 22, 3, tzinfo=default_timezone())

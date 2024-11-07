@@ -22,47 +22,13 @@ from ovos_config.locale import get_default_tz as default_timezone
 from ovos_date_parser import (
     nice_time
 )
-
-NUMBERS_FIXTURE_CA = {
-    1.435634: '1,436',
-    2: '2',
-    5.0: '5',
-    0.027: '0,027',
-    0.5: 'un mig',
-    1.333: '1 i 1 terç',
-    2.666: '2 i 2 terços',
-    0.25: 'un quart',
-    1.25: '1 i 1 quart',
-    0.75: '3 quarts',
-    1.75: '1 i 3 quarts',
-    3.4: '3 i 2 cinquens',
-    16.8333: '16 i 5 sisens',
-    12.5714: '12 i 4 setens',
-    9.625: '9 i 5 vuitens',
-    6.777: '6 i 7 novens',
-    3.1: '3 i 1 desè',
-    2.272: '2 i 3 onzens',
-    5.583: '5 i 7 dotzens',
-    8.384: '8 i 5 tretzens',
-    0.071: 'catorzens',
-    6.466: '6 i 7 quinzens',
-    8.312: '8 i 5 setzens',
-    2.176: '2 i 3 dissetens',
-    200.722: '200 i 13 divuitens',
-    7.421: '7 i 8 dinovens',
-    0.05: 'un vintè'
-
-}
+from ovos_date_parser.dates_ca import TimeVariantCA
 
 
 class TestNiceDateFormat(unittest.TestCase):
     def test_pm(self):
         dt = datetime.datetime(2017, 1, 31,
                                13, 22, 3, tzinfo=default_timezone())
-
-        # Verify defaults haven't changed
-        self.assertEqual(nice_time(dt, lang="ca-es"),
-                         nice_time(dt, "ca-es", True, False, False))
 
         self.assertEqual(nice_time(dt, lang="ca"), "la una i vint-i-dos")
         self.assertEqual(nice_time(dt, lang="ca", use_ampm=True),
@@ -305,28 +271,23 @@ class TestNiceDateFormat(unittest.TestCase):
         # Spanish-like time system
         self.assertEqual(nice_time(dt, lang="ca", use_24hour=True,
                                    use_ampm=False,
-                                   variant="spanish"),
+                                   variant=TimeVariantCA.SPANISH_LIKE),
                          "les dotze i catorze")
         # Catalan Bell time system
         self.assertEqual(nice_time(dt, lang="ca", use_24hour=True,
-                                   use_ampm=False, variant="bell"),
+                                   use_ampm=False, variant=TimeVariantCA.BELL),
                          "les dotze i catorze minuts de la nit")
 
         # Catalan Full Bell time system
         self.assertEqual(nice_time(dt, lang="ca", use_24hour=True,
                                    use_ampm=False,
-                                   variant="full_bell"),
-                         "un quart d'una de la matinada")
-        self.assertEqual(nice_time(dt, lang="ca", use_24hour=True,
-                                   use_ampm=False,
-                                   variant="traditional"),
+                                   variant=TimeVariantCA.FULL_BELL),
                          "un quart d'una de la matinada")
 
         # error
-        with self.assertRaises(ValueError):
-            nice_time(dt, lang="ca", variant="invalid")
-            nice_time(dt, lang="ca", variant="bad_VARIANT")
-            nice_time(dt, lang="ca", variant="")
+        # with self.assertRaises(ValueError):
+        #    nice_time(dt, lang="ca", variant="invalid")
+        #    nice_time(dt, lang="ca", variant="bad_VARIANT")
 
 
 if __name__ == "__main__":

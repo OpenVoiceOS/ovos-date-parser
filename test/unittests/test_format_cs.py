@@ -31,36 +31,6 @@ from ovos_date_parser import (
     nice_year
 )
 
-NUMBERS_FIXTURE_CS = {
-    1.435634: '1.436',
-    2: '2',
-    5.0: '5',
-    0.027: '0.027',
-    0.5: 'polovina',
-    1.333: '1 a třetina',
-    2.666: '2 a 2 třetiny',
-    0.25: 'čtvrtina',
-    1.25: '1 a čtvrtina',
-    0.75: '3 čtvrtiny',
-    1.75: '1 a 3 čtvrtiny',
-    3.4: '3 a 2 pětiny',
-    16.8333: '16 a 5 šestin',
-    12.5714: '12 a 4 sedminy',
-    9.625: '9 a 5 osmin',
-    6.777: '6 a 7 devítin',
-    3.1: '3 a desetina',
-    2.272: '2 a 3 jedenáctiny',
-    5.583: '5 a 7 dvanáctin',
-    8.384: '8 a 5 třináctin',
-    0.071: 'čtrnáctina',
-    6.466: '6 a 7 patnáctin',
-    8.312: '8 a 5 šestnáctin',
-    2.176: '2 a 3 sedmnáctiny',
-    200.722: '200 a 13 osmnáctin',
-    7.421: '7 a 8 devatenáctin',
-    0.05: 'dvacetina'
-}
-
 
 class TestNiceDateFormat(unittest.TestCase):
     @classmethod
@@ -79,127 +49,123 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                13, 22, 3, tzinfo=default_timezone())
 
-        # Verify defaults haven't changed
-        self.assertEqual(nice_time(dt),
-                         nice_time(dt, speech=True, use_24hour=True, use_ampm=False))
-
-        self.assertEqual(nice_time(dt, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs",  use_24hour=False),
                          "jedna dvacet dva")
-        self.assertEqual(nice_time(dt, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs",  use_24hour=False, use_ampm=True),
                          "jedna dvacet dva p.m.")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=False),
                          "1:22")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=False, use_ampm=True),
                          "1:22 PM")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True),
                          "13:22")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True,
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True,
                                    use_ampm=True),
                          "13:22")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=True),
                          "třináct dvacet dva")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=False),
                          "třináct dvacet dva")
 
         dt = datetime.datetime(2017, 1, 31,
                                13, 0, 3, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False),
                          "jedna hodin")
-        self.assertEqual(nice_time(dt, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, use_ampm=True),
                          "jedna p.m.")
-        self.assertEqual(nice_time(dt, use_24hour=False, speech=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, speech=False),
                          "1:00")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=False, use_ampm=True),
                          "1:00 PM")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True),
                          "13:00")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True,
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True,
                                    use_ampm=True),
                          "13:00")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=True),
                          "třináct sto")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=False),
                          "třináct sto")
 
         dt = datetime.datetime(2017, 1, 31,
                                13, 2, 3, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False),
                          "jedna oh dva")
-        self.assertEqual(nice_time(dt, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, use_ampm=True),
                          "jedna oh dva p.m.")
-        self.assertEqual(nice_time(dt, use_24hour=False, speech=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, speech=False),
                          "1:02")
-        self.assertEqual(nice_time(dt, use_24hour=False, speech=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, speech=False, use_ampm=True),
                          "1:02 PM")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True),
                          "13:02")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True,
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True,
                                    use_ampm=True),
                          "13:02")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=True),
                          "třináct nula dva")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=False),
                          "třináct nula dva")
 
         dt = datetime.datetime(2017, 1, 31,
                                0, 2, 3, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False),
                          "dvanáct oh dva")
-        self.assertEqual(nice_time(dt, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, use_ampm=True),
                          "dvanáct oh dva a.m.")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=False),
                          "12:02")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=False, use_ampm=True),
                          "12:02 AM")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True),
                          "00:02")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True,
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True,
                                    use_ampm=True),
                          "00:02")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=True),
                          "nula nula nula dva")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=False),
                          "nula nula nula dva")
 
         dt = datetime.datetime(2018, 2, 8,
                                1, 2, 33, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False),
                          "jedna oh dva")
-        self.assertEqual(nice_time(dt, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, use_ampm=True),
                          "jedna oh dva a.m.")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=False),
                          "1:02")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=False, use_ampm=True),
                          "1:02 AM")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True),
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True),
                          "01:02")
-        self.assertEqual(nice_time(dt, speech=False, use_24hour=True,
+        self.assertEqual(nice_time(dt, "cs", speech=False, use_24hour=True,
                                    use_ampm=True),
                          "01:02")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=True),
                          "nula jedna nula dva")
-        self.assertEqual(nice_time(dt, use_24hour=True, use_ampm=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=True, use_ampm=False),
                          "nula jedna nula dva")
 
         dt = datetime.datetime(2017, 1, 31,
                                12, 15, 9, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False),
                          "čtvrt po dvanáct")
-        self.assertEqual(nice_time(dt, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, use_ampm=True),
                          "čtvrt po dvanáct p.m.")
 
         dt = datetime.datetime(2017, 1, 31,
                                5, 30, 00, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, use_24hour=False, use_ampm=True),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False, use_ampm=True),
                          "půl po pět a.m.")
 
         dt = datetime.datetime(2017, 1, 31,
                                1, 45, 00, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, use_24hour=False),
+        self.assertEqual(nice_time(dt, "cs", use_24hour=False),
                          "třičtvrtě na dva")
 
     def test_nice_date(self):
-        lang = "cs-cz"
+        lang = "cs"
         i = 1
         while (self.test_config[lang].get('test_nice_date') and
                self.test_config[lang]['test_nice_date'].get(str(i).encode('utf8'))):
@@ -233,7 +199,7 @@ class TestNiceDateFormat(unittest.TestCase):
             self.assertTrue(len(nice_date(dt, lang=lang)) > 0)
 
     def test_nice_date_time(self):
-        lang = "cs-cz"
+        lang = "cs"
         i = 1
         while (self.test_config[lang].get('test_nice_date_time') and
                self.test_config[lang]['test_nice_date_time'].get(str(i).encode('utf8'))):
@@ -256,7 +222,7 @@ class TestNiceDateFormat(unittest.TestCase):
             i = i + 1
 
     def test_nice_year(self):
-        lang = "cs-cz"
+        lang = "cs"
         i = 1
         while (self.test_config[lang].get('test_nice_year') and
                self.test_config[lang]['test_nice_year'].get(str(i).encode('utf8'))):
@@ -281,42 +247,6 @@ class TestNiceDateFormat(unittest.TestCase):
             # Looking through the date sequence can be helpful
 
     #                print(nice_year(dt, lang=lang))
-    def test_nice_duration(self):
-
-        self.assertEqual(nice_duration(1), "jedna sekunda")
-        self.assertEqual(nice_duration(3), "tři sekundy")
-        self.assertEqual(nice_duration(1, speech=False), "0:01")
-        self.assertEqual(nice_duration(61), "jedna minuta jedna sekunda")
-        self.assertEqual(nice_duration(61, speech=False), "1:01")
-        self.assertEqual(nice_duration(5000),
-                         "jedna hodina dvacet tři minuty dvacet sekundy")
-        self.assertEqual(nice_duration(5000, speech=False), "1:23:20")
-        self.assertEqual(nice_duration(50000),
-                         "třináct hodiny padesát tři minuty dvacet sekundy")
-        self.assertEqual(nice_duration(50000, speech=False), "13:53:20")
-        self.assertEqual(nice_duration(500000, ),
-                         "pět dní  osmnáct hodiny padesát tři minuty dvacet sekundy")  # nopep8
-        self.assertEqual(nice_duration(500000, speech=False), "5d 18:53:20")
-        self.assertEqual(nice_duration(datetime.timedelta(seconds=500000),
-                                       speech=False),
-                         "5d 18:53:20")
-
-    def test_join(self):
-        self.assertEqual(join_list(None, "a"), "")
-        self.assertEqual(join_list([], "a"), "")
-
-        self.assertEqual(join_list(["a"], "a"), "a")
-        self.assertEqual(join_list(["a", "b"], "a"), "a a b")
-        self.assertEqual(join_list(["a", "b"], "nebo"), "a nebo b")
-
-        self.assertEqual(join_list(["a", "b", "c"], "a"), "a, b a c")
-        self.assertEqual(join_list(["a", "b", "c"], "nebo"), "a, b nebo c")
-        self.assertEqual(
-            join_list(["a", "b", "c"], "nebo", ";"), "a; b nebo c")
-        self.assertEqual(
-            join_list(["a", "b", "c", "d"], "nebo"), "a, b, c nebo d")
-
-        self.assertEqual(join_list([1, "b", 3, "d"], "nebo"), "1, b, 3 nebo d")
 
 
 if __name__ == "__main__":

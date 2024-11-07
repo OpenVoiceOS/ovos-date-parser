@@ -1,0 +1,103 @@
+# ovos-date-parser
+
+`ovos-date-parser` is a comprehensive library for multilingual date and time parsing, extraction, and formatting,
+designed to handle a range of human-readable date, time, and duration expressions. 
+
+## Features
+
+- **Date and Time Extraction**: Extract specific dates and times from natural language phrases in various languages.
+- **Duration Parsing**: Parse phrases that indicate a span of time, such as "two hours and fifteen minutes."
+- **Friendly Time Formatting**: Format time for human-friendly output, supporting both 12-hour and 24-hour formats.
+- **Relative Time Descriptions**: Generate relative descriptions (e.g., "tomorrow," "in three days") for given dates.
+- **Multilingual Support**: Includes extraction and formatting methods for multiple languages, such as English, Spanish,
+  French, German, and more.
+
+## Installation
+
+```bash
+pip install ovos-date-parser
+```
+
+## Usage
+
+### Date and Time Extraction
+
+Extract specific dates and times from a phrase. This function identifies date-related terms in natural language and
+returns both the datetime object and any remaining text.
+
+```python
+from ovos_date_parser import extract_datetime
+
+result = extract_datetime("Meet me next Friday at 3pm", lang="en")
+print(result)  # (datetime object, "at 3pm")
+```
+
+### Duration Extraction
+
+Identify duration phrases in text and convert them into a `timedelta` object. This can parse common human-friendly
+duration expressions like "30 minutes" or "two and a half hours."
+
+```python
+from ovos_date_parser import extract_duration
+
+duration, remainder = extract_duration("It will take about 2 hours and 30 minutes", lang="en")
+print(duration)  # timedelta object
+print(remainder)  # "about"
+```
+
+### Formatting Time
+
+Generate a natural-sounding time format suitable for voice or display in different languages, allowing customization for
+speech or written text.
+
+```python
+from ovos_date_parser import nice_time
+from datetime import datetime
+
+dt = datetime.now()
+formatted_time = nice_time(dt, lang="en", speech=True, use_24hour=False)
+print(formatted_time)  # "three o'clock"
+```
+
+### Relative Time Descriptions
+
+Create relative phrases for describing dates and times in relation to the current moment or a reference datetime.
+
+```python
+from ovos_date_parser import nice_relative_time
+from datetime import datetime, timedelta
+
+relative_time = nice_relative_time(datetime.now() + timedelta(days=1), datetime.now(), lang="en")
+print(relative_time)  # "tomorrow"
+```
+
+### Languages Supported
+
+`ovos-date-parser` supports a wide array of languages, each with its own set of methods for handling natural language
+time expressions. Available methods include `extract_datetime`, `extract_duration`, `nice_time`, and `nice_duration` for
+the following languages:
+
+| Language | `nice_time` | `nice_relative_time` | `nice_duration` | `extract_duration` | `extract_datetime` |
+|----------|-------------|----------------------|-----------------|--------------------|--------------------|
+| az       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
+| ca       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
+| cs       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| da       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
+| de       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| en       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| es       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| eu       | ✅           | ✅                   | ❌               | ❌                 | ✅                 |
+| fa       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| fr       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
+| hu       | ✅           | ❌                   | ❌               | ❌                 | ❌                 |
+| it       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
+| nl       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| pl       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
+| pt       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| ru       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
+| sv       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
+| uk       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
+
+## License
+
+This project is licensed under the Apache 2.0 License

@@ -1,0 +1,3 @@
+python-dateutil~=2.6
+quebra_frases>=0.3.7
+ovos-number-parser

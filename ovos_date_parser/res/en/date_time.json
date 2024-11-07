@@ -28,7 +28,7 @@
     "7": {"match": "^\\d{4}$", "format": "{formatted_thousand} {formatted_decade} {bc}"},
     "default": "{year} {bc}",
     "bc": "b.c.",
-    "ad": "e.kr."
+    "ad": "a.d."
   },
     "date_format": {
     "date_full": "{weekday}, {month} {day}, {formatted_year}",

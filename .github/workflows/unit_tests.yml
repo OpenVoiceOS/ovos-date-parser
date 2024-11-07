@@ -58,6 +58,7 @@ jobs:
           pip install pytest pytest-timeout pytest-cov
       - name: Install repo
         run: |
+          pip install git+https://github.com/OpenVoiceOS/ovos-number-parser
           pip install -e .
       - name: Run parse unittests
         run: |

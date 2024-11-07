@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_ru import pronounce_number_ru, _ORDINAL_BASE_RU, extract_number_ru, \
-    _convert_words_to_numbers_ru
+    numbers_to_digits_ru
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
 
@@ -270,7 +270,7 @@ def extract_duration_ru(text):
     }
 
     pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}(?:а|ов|у|ут|уту)?"
-    text = _convert_words_to_numbers_ru(text)
+    text = numbers_to_digits_ru(text)
 
     for (unit_ru, unit_en) in _TIME_UNITS_CONVERSION.items():
         unit_pattern = pattern.format(unit=unit_ru)

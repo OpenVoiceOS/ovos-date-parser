@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
-from ovos_number_parser.numbers_az import pronounce_number_az, extract_number_az, _convert_words_to_numbers_az
+from ovos_number_parser.numbers_az import pronounce_number_az, extract_number_az, numbers_to_digits_az
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
 
@@ -263,7 +263,7 @@ def extract_duration_az(text):
     }
 
     pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}?(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?"
-    text = _convert_words_to_numbers_az(text)
+    text = numbers_to_digits_az(text)
     for unit_az in time_units_az:
         unit_pattern = pattern.format(unit=unit_az)
 
@@ -312,7 +312,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
 
     def clean_string(s, word_list):
         # normalize and lowercase utt  (replaces words with numbers)
-        s = _convert_words_to_numbers_az(s, ordinals=None)
+        s = numbers_to_digits_az(s, ordinals=None)
         # clean unneeded punctuation and capitalization among other things.
         s = s.lower().replace('?', '').replace('.', '').replace(',', '')
 

@@ -1,7 +1,7 @@
 # ovos-date-parser
 
 `ovos-date-parser` is a comprehensive library for multilingual date and time parsing, extraction, and formatting,
-designed to handle a range of human-readable date, time, and duration expressions. 
+designed to handle a range of human-readable date, time, and duration expressions.
 
 ## Features
 
@@ -74,29 +74,54 @@ print(relative_time)  # "tomorrow"
 ### Languages Supported
 
 `ovos-date-parser` supports a wide array of languages, each with its own set of methods for handling natural language
-time expressions. Available methods include `extract_datetime`, `extract_duration`, `nice_time`, and `nice_duration` for
-the following languages:
+time expressions.
 
-| Language | `nice_time` | `nice_relative_time` | `nice_duration` | `extract_duration` | `extract_datetime` |
-|----------|-------------|----------------------|-----------------|--------------------|--------------------|
-| az       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
-| ca       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
-| cs       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| da       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
-| de       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| en       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| es       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| eu       | ✅           | ✅                   | ❌               | ❌                 | ✅                 |
-| fa       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| fr       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
-| hu       | ✅           | ❌                   | ❌               | ❌                 | ❌                 |
-| it       | ✅           | ❌                   | ❌               | ❌                 | ✅                 |
-| nl       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| pl       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
-| pt       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| ru       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
-| sv       | ✅           | ❌                   | ❌               | ✅                 | ✅                 |
-| uk       | ✅           | ❌                   | ✅               | ✅                 | ✅                 |
+Parse
+
+| Language | `extract_duration` | `extract_datetime` |
+|----------|--------------------|--------------------|
+| az       | ✅                  | ✅                  |
+| ca       | ❌                  | ✅                  |
+| cs       | ✅                  | ✅                  |
+| da       | ❌                  | ✅                  |
+| de       | ✅                  | ✅                  |
+| en       | ✅                  | ✅                  |
+| es       | ✅                  | ✅                  |
+| eu       | ❌                  | ✅                  |
+| fa       | ✅                  | ✅                  |
+| fr       | ❌                  | ✅                  |
+| hu       | ❌                  | ❌                  |
+| it       | ❌                  | ✅                  |
+| nl       | ✅                  | ✅                  |
+| pl       | ✅                  | ✅                  |
+| pt       | ✅                  | ✅                  |
+| ru       | ✅                  | ✅                  |
+| sv       | ✅                  | ✅                  |
+| uk       | ✅                  | ✅                  |
+
+Format
+
+| Language | `nice_date`<br>`nice_date_time`<br>`nice_day` <br>`nice_weekday` <br>`nice_month` <br>`nice_year` <br>`get_date_strings` | `nice_time` | `nice_relative_time` | `nice_duration` |
+|----------|--------------------------------------------------------------------------------------------------------------------------|-------------|----------------------|-----------------|
+| az       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| ca       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| cs       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| da       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| de       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| en       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| es       | ❌                                                                                                                        | ✅           | ❌                    | ❌               | 
+| eu       | ✅                                                                                                                        | ✅           | ✅                    | ❌               | 
+| fa       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| fr       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| hu       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| it       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| nl       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| pl       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| pt       | ❌                                                                                                                        | ✅           | ❌                    | ❌               | 
+| ru       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| sv       | ✅                                                                                                                        | ✅           | ❌                    | ❌               |
+| sl       | ✅                                                                                                                        | ❌           | ❌                    | ❌               |
+| uk       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
 
 ## License
 

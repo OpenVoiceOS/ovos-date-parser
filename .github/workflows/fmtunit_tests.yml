@@ -58,7 +58,7 @@ jobs:
           pip install pytest pytest-timeout pytest-cov
       - name: Install repo
         run: |
-          pip install -e .
+          pip install -e . ovos-config
       - name: Run parse unittests
         run: |
           pytest --cov=ovos_date_parser --cov-report xml test/format_tests

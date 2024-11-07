@@ -55,8 +55,8 @@ jobs:
       - name: Install test dependencies
         run: |
           sudo apt install libssl-dev
-          pip install -r requirements/test.txt
-      - name: Install ovos workshop
+          pip install pytest pytest-timeout pytest-cov
+      - name: Install repo
         run: |
           pip install -e .
       - name: Run parse unittests

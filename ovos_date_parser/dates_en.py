@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta, time
 
 from dateutil.relativedelta import relativedelta
-from ovos_number_parser.numbers_en import extract_number_en, _convert_words_to_numbers_en, pronounce_number_en
+from ovos_number_parser.numbers_en import extract_number_en, numbers_to_digits_en, pronounce_number_en
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 
@@ -134,7 +134,7 @@ def extract_duration_en(text):
             list(time_units.keys())
 
     pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}s?"
-    text = _convert_words_to_numbers_en(text)
+    text = numbers_to_digits_en(text)
     text = text.replace("centuries", "century").replace("millenia", "millennium")
     for word in ('day', 'month', 'year', 'decade', 'century', 'millennium'):
         text = text.replace(f'a {word}', f'1 {word}')
@@ -205,7 +205,7 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
 
     def clean_string(s):
         # normalize and lowercase utt  (replaces words with numbers)
-        s = _convert_words_to_numbers_en(s, ordinals=None)
+        s = numbers_to_digits_en(s, ordinals=None)
         # clean unneeded punctuation and capitalization among other things.
         s = s.lower().replace('?', '').replace(',', '') \
             .replace(' the ', ' ').replace(' a ', ' ').replace(' an ', ' ') \

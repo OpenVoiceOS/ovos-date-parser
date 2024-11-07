@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_de import pronounce_number_de, _get_ordinal_index, is_number_de, is_numeric_de, \
-    _convert_words_to_numbers_de
+    numbers_to_digits_de
 from ovos_utils.time import now_local
 
 
@@ -110,7 +110,7 @@ def extract_duration_de(text):
     # Einzahl und Mehrzahl
     pattern = r"(?:^|\s)(?P<value>\d+(?:[.,]?\d+)?\b)(?:\s+|\-)(?P<unit>{unit}[nes]?[sn]?\b)"
 
-    text = _convert_words_to_numbers_de(text)
+    text = numbers_to_digits_de(text)
 
     for (unit_en, unit_de) in time_units.items():
         unit_pattern = pattern.format(
@@ -140,7 +140,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
             for 12 hour date format
         """
 
-        s = _convert_words_to_numbers_de(s)
+        s = numbers_to_digits_de(s)
         s = s.lower().replace('?', '').replace(' der ', ' ').replace(' den ', ' ') \
             .replace(' an ', ' ').replace(' am ', ' ').replace(' auf ', ' ') \
             .replace(' um ', ' ')

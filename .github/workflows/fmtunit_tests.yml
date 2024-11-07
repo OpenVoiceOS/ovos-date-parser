@@ -63,7 +63,14 @@ jobs:
         run: |
           pytest --cov=ovos_date_parser --cov-report xml test/format_tests
       - name: Upload coverage
-        if: "${{ matrix.python-version == '3.9' }}"
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          fail_ci_if_error: true
+          files: ./coverage.xml,!./cache
+          flags: fmttests
+          name: codecov-unittests
+          verbose: true

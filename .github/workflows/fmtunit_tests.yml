@@ -1,4 +1,4 @@
-name: Run Parser UnitTests
+name: Run Formatter UnitTests
 on:
   pull_request:
     branches:
@@ -61,7 +61,7 @@ jobs:
           pip install -e .
       - name: Run parse unittests
         run: |
-          pytest --cov=ovos_date_parser --cov-report xml test/parse_tests
+          pytest --cov=ovos_date_parser --cov-report xml test/format_tests
       - name: Upload coverage
         if: "${{ matrix.python-version == '3.9' }}"
         env:

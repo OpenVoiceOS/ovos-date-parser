@@ -21,7 +21,7 @@ from ovos_date_parser.dates_ca import (
 from ovos_date_parser.dates_cs import (
     extract_duration_cs,
     extract_datetime_cs,
-    nice_time_cs,
+    nice_time_cs
 )
 from ovos_date_parser.dates_da import (
     extract_datetime_da,
@@ -35,7 +35,7 @@ from ovos_date_parser.dates_de import (
 from ovos_date_parser.dates_en import (
     extract_datetime_en,
     extract_duration_en,
-    nice_time_en,
+    nice_time_en
 )
 from ovos_date_parser.dates_es import (
     extract_datetime_es,
@@ -88,6 +88,9 @@ from ovos_date_parser.dates_sv import (
     extract_datetime_sv,
     extract_duration_sv,
     nice_time_sv
+)
+from ovos_date_parser.dates_sl import (
+    nice_time_sl
 )
 from ovos_date_parser.dates_uk import (
     extract_datetime_uk,
@@ -153,6 +156,8 @@ def nice_time(
         return nice_time_ru(dt, speech, use_24hour, use_ampm)
     if lang.startswith("sv"):
         return nice_time_sv(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("sl"):
+        return nice_time_sl(dt, speech, use_24hour, use_ampm)
     if lang.startswith("uk"):
         return nice_time_uk(dt, speech, use_24hour, use_ampm)
     raise NotImplementedError(f"Unsupported language: {lang}")
@@ -306,20 +311,13 @@ class DateTimeFormat:
         self.config_path = config_path
 
     def cache(self, lang):
+        lang = lang.split("-")[0]
         # TODO - find closest lang code
         if lang not in self.lang_config:
-            try:
-                # Attempt to load the language-specific formatting data
-                with open(self.config_path + '/' + lang + '/date_time.json',
-                          'r', encoding='utf8') as lang_config_file:
-                    self.lang_config[lang] = json.loads(
-                        lang_config_file.read())
-            except FileNotFoundError:
-                # Fallback to English formatting
-                with open(self.config_path + '/en-us/date_time.json',
-                          'r') as lang_config_file:
-                    self.lang_config[lang] = json.loads(
-                        lang_config_file.read())
+            with open(self.config_path + '/' + lang + '/date_time.json',
+                      'r', encoding='utf8') as lang_config_file:
+                self.lang_config[lang] = json.loads(
+                    lang_config_file.read())
 
             for x in ['decade_format', 'hundreds_format', 'thousand_format',
                       'year_format']:
@@ -419,8 +417,8 @@ class DateTimeFormat:
                 if dt.month == now.month and dt.day > now.day:
                     format_str = 'date_full_no_year_month'
 
-            tomorrow = now + datetime.timedelta(days=1)
-            yesterday = now - datetime.timedelta(days=1)
+            tomorrow = now + timedelta(days=1)
+            yesterday = now - timedelta(days=1)
             if tomorrow.date() == dt.date():
                 format_str = 'tomorrow'
             elif now.date() == dt.date():
@@ -522,7 +520,7 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
     if include_month:
-        month = nice_month(dt, date_format, lang)
+        month = nice_month(dt, lang, date_format)
         if date_format == 'MDY':
             return "{} {}".format(month, dt.strftime("%d"))
         else:
@@ -577,13 +575,13 @@ def nice_year(dt, lang, bc=False):
 
 
 def get_date_strings(dt, lang, date_format='MDY', time_format="full"):
-    lang = standardize_lang_tag(lang)
+    lang = standardize_lang_tag(lang).split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
                         use_24hour=time_format == "full")
-    monthstr = nice_month(dt, date_format, lang)
+    monthstr = nice_month(dt, lang, date_format)
     weekdaystr = nice_weekday(dt, lang)
     yearstr = dt.strftime("%Y")
-    daystr = nice_day(dt, date_format, include_month=False, lang=lang)
+    daystr = nice_day(dt, date_format=date_format, include_month=False, lang=lang)
     if date_format == 'MDY':
         dtstr = dt.strftime("%-m/%-d/%Y")
     elif date_format == 'DMY':

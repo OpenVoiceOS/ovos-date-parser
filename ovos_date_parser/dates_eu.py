@@ -2,7 +2,6 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_eu import pronounce_number_eu
-from ovos_utils.time import now_local, to_local
 
 HOUR_STRING_EU = {
     1: 'ordubata',
@@ -119,23 +118,18 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
     # return str(dt.hour) + ":" + str(dt.minute)
 
 
-def nice_relative_time_eu(when, relative_to=None):
+def nice_relative_time_eu(when, relative_to):
     """Create a relative phrase to roughly describe a datetime
 
     Examples are "25 seconds", "tomorrow", "7 days".
 
     Args:
         when (datetime): Local timezone
-        relative_to (datetime): Baseline for relative time, default is now()
-        lang (str, optional): Defaults to "en-us".
+        relative_to (datetime): Baseline for relative time
     Returns:
         str: Relative description of the given time
     """
-    if relative_to:
-        now = relative_to
-    else:
-        now = now_local()
-    delta = to_local(when) - now
+    delta = when - relative_to
 
     if delta.total_seconds() < 1:
         return "0 segundo"

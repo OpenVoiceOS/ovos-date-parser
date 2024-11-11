@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.0.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.2a1) (2024-11-11)
+## [0.0.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.3a1) (2024-11-11)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.0.1...0.0.2a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.0.2...0.0.3a1)
 
 **Merged pull requests:**
 
-- fix:lang code handling [\#64](https://github.com/OpenVoiceOS/ovos-date-parser/pull/64) ([JarbasAl](https://github.com/JarbasAl))
+- fix:nice\_duration [\#67](https://github.com/OpenVoiceOS/ovos-date-parser/pull/67) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

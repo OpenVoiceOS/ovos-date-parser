@@ -5,7 +5,6 @@ from collections import namedtuple
 from datetime import datetime, timedelta, time
 from typing import Optional, Tuple, Union
 
-from ovos_utils.lang import standardize_lang_tag
 from ovos_date_parser.common import nice_duration_generic
 from ovos_date_parser.dates_az import (
     extract_datetime_az,
@@ -35,7 +34,7 @@ from ovos_date_parser.dates_de import (
 from ovos_date_parser.dates_en import (
     extract_datetime_en,
     extract_duration_en,
-nice_relative_time_en,
+    nice_relative_time_en,
     nice_time_en
 )
 from ovos_date_parser.dates_es import (
@@ -381,9 +380,6 @@ class DateTimeFormat:
 
     def _decade_format(self, number, number_tuple, lang):
         s = self._format_string(number % 100, 'decade_format', lang)
-        decade = s.format(x=number_tuple.x, xx=number_tuple.xx,
-                          x0=number_tuple.x0, x_in_x0=number_tuple.x_in_x0,
-                          number=str(number % 100))
         return s.format(x=number_tuple.x, xx=number_tuple.xx,
                         x0=number_tuple.x0, x_in_x0=number_tuple.x_in_x0,
                         number=str(number % 100))
@@ -391,10 +387,6 @@ class DateTimeFormat:
     def _number_format_hundreds(self, number, number_tuple, lang,
                                 formatted_decade):
         s = self._format_string(number % 1000, 'hundreds_format', lang)
-        hundreds = s.format(xxx=number_tuple.xxx, x00=number_tuple.x00,
-                            x_in_x00=number_tuple.x_in_x00,
-                            formatted_decade=formatted_decade,
-                            number=str(number % 1000))
         return s.format(xxx=number_tuple.xxx, x00=number_tuple.x00,
                         x_in_x00=number_tuple.x_in_x00,
                         formatted_decade=formatted_decade,
@@ -491,10 +483,9 @@ def nice_date(dt, lang, now=None):
     Returns:
         (str): The formatted date string
     """
-    full_code = standardize_lang_tag(lang)
-    date_time_format.cache(full_code)
-
-    return date_time_format.date_format(dt, full_code, now)
+    lang = lang.lower().split("-")[0]
+    date_time_format.cache(lang)
+    return date_time_format.date_format(dt, lang, now)
 
 
 def nice_date_time(dt, lang, now=None, use_24hour=False,
@@ -518,12 +509,9 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         Returns:
             (str): The formatted date time string
     """
-
-    full_code = standardize_lang_tag(lang)
-    date_time_format.cache(full_code)
-
-    return date_time_format.date_time_format(dt, full_code, now, use_24hour,
-                                             use_ampm)
+    lang = lang.lower().split("-")[0]
+    date_time_format.cache(lang)
+    return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
@@ -537,10 +525,10 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
 
 
 def nice_weekday(dt, lang):
-    full_code = standardize_lang_tag(lang)
-    date_time_format.cache(full_code)
+    lang = lang.lower().split("-")[0]
+    date_time_format.cache(lang)
 
-    if full_code in date_time_format.lang_config.keys():
+    if lang in date_time_format.lang_config.keys():
         localized_day_names = list(
             date_time_format.lang_config[lang]['weekday'].values())
         weekday = localized_day_names[dt.weekday()]
@@ -550,10 +538,9 @@ def nice_weekday(dt, lang):
 
 
 def nice_month(dt, lang, date_format='MDY'):
-    full_code = standardize_lang_tag(lang)
-    date_time_format.cache(full_code)
-
-    if full_code in date_time_format.lang_config.keys():
+    lang = lang.lower().split("-")[0]
+    date_time_format.cache(lang)
+    if lang in date_time_format.lang_config.keys():
         localized_month_names = date_time_format.lang_config[lang]['month']
         month = localized_month_names[str(int(dt.strftime("%m")))]
     else:
@@ -576,14 +563,13 @@ def nice_year(dt, lang, bc=False):
         Returns:
             (str): The formatted year string
     """
-
-    full_code = standardize_lang_tag(lang)
-    date_time_format.cache(full_code)
-    return date_time_format.year_format(dt, full_code, bc)
+    lang = lang.lower().split("-")[0]
+    date_time_format.cache(lang)
+    return date_time_format.year_format(dt, lang, bc)
 
 
 def get_date_strings(dt, lang, date_format='MDY', time_format="full"):
-    lang = standardize_lang_tag(lang).split("-")[0]
+    lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
                         use_24hour=time_format == "full")
     monthstr = nice_month(dt, lang, date_format)

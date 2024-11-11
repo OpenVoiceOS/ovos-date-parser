@@ -291,11 +291,11 @@ def extract_datetime(
     if lang.startswith("pt"):
         return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ru"):
-        return extract_datetime_ru(text, anchorDate=anchorDate, default_time=default_time)
+        return extract_datetime_ru(text, anchor_date=anchorDate, default_time=default_time)
     if lang.startswith("sv"):
         return extract_datetime_sv(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("uk"):
-        return extract_datetime_uk(text, anchorDate=anchorDate, default_time=default_time)
+        return extract_datetime_uk(text, anchor_date=anchorDate, default_time=default_time)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 
@@ -329,6 +329,7 @@ class DateTimeFormat:
                     i = i + 1
 
     def _number_strings(self, number, lang):
+        lang = lang.split("-")[0]
         x = (self.lang_config[lang]['number'].get(str(number % 10)) or
              str(number % 10))
         xx = (self.lang_config[lang]['number'].get(str(number % 100)) or
@@ -365,6 +366,7 @@ class DateTimeFormat:
             x_in_x000, x0_in_x000, x_in_0x00)
 
     def _format_string(self, number, format_section, lang):
+        lang = lang.split("-")[0]
         s = self.lang_config[lang][format_section]['default']
         i = 1
         while self.lang_config[lang][format_section].get(str(i)):
@@ -411,6 +413,7 @@ class DateTimeFormat:
 
     def date_format(self, dt, lang, now):
         format_str = 'date_full'
+        lang = lang.split("-")[0]
         if now:
             if dt.year == now.year:
                 format_str = 'date_full_no_year'
@@ -433,6 +436,7 @@ class DateTimeFormat:
             formatted_year=self.year_format(dt, lang, False))
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
+        lang = lang.split("-")[0]
         date_str = self.date_format(dt, lang, now)
         time_str = nice_time(dt, lang, use_24hour=use_24hour,
                              use_ampm=use_ampm)
@@ -440,6 +444,7 @@ class DateTimeFormat:
             formatted_date=date_str, formatted_time=time_str)
 
     def year_format(self, dt, lang, bc):
+        lang = lang.split("-")[0]
         number_tuple = self._number_strings(dt.year, lang)
         formatted_bc = (
             self.lang_config[lang]['year_format']['bc'] if bc else '')

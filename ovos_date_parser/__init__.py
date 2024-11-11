@@ -5,7 +5,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta, time
 from typing import Optional, Tuple, Union
 
-from ovos_date_parser.common import nice_duration_generic
+from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
 from ovos_date_parser.dates_az import (
     extract_datetime_az,
     extract_duration_az,
@@ -34,7 +34,6 @@ from ovos_date_parser.dates_de import (
 from ovos_date_parser.dates_en import (
     extract_datetime_en,
     extract_duration_en,
-    nice_relative_time_en,
     nice_time_en
 )
 from ovos_date_parser.dates_es import (
@@ -175,11 +174,9 @@ def nice_relative_time(when, relative_to, lang):
     Returns:
         str: Relative description of the given time
     """
-    if lang.startswith("en"):
-        return nice_relative_time_en(when, relative_to)
     if lang.startswith("eu"):
         return nice_relative_time_eu(when, relative_to)
-    raise NotImplementedError(f"Unsupported language: {lang}")
+    return nice_relative_time_generic(lang, when, relative_to)
 
 
 def nice_duration(

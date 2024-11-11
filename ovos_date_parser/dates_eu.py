@@ -2,6 +2,7 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_eu import pronounce_number_eu
+from ovos_date_parser.common import _translate_word
 
 HOUR_STRING_EU = {
     1: 'ordubata',
@@ -131,35 +132,48 @@ def nice_relative_time_eu(when, relative_to):
     """
     delta = when - relative_to
 
-    if delta.total_seconds() < 1:
-        return "0 segundo"
+    seconds = delta.total_seconds()
+    if seconds < 1:
+        try:
+            return _translate_word("now", "eu")
+        except NotImplementedError:
+            nice = pronounce_number_eu(0)
+            return f"{nice} " + _translate_word("seconds", "eu")
 
-    if delta.total_seconds() < 90:
-        if delta.total_seconds() == 1:
-            return "segundo bat"
+    if seconds < 90:
+        nice = pronounce_number_eu(seconds)
+        s = _translate_word("second", "eu")
+        if seconds == 1:
+            return f"{s} bat"
         else:
-            return "{} segundo".format(int(delta.total_seconds()))
+            return f"{nice} {s}"
 
     minutes = int((delta.total_seconds() + 30) // 60)  # +30 to round minutes
     if minutes < 90:
+        nice = pronounce_number_eu(minutes)
+        s = _translate_word("minute", "eu")
         if minutes == 1:
-            return "minutu bat"
+            return f"{s} bat"
         else:
-            return "{} minutu".format(minutes)
+            return f"{nice} {s}"
 
     hours = int((minutes + 30) // 60)  # +30 to round hours
     if hours < 36:
+        nice = pronounce_number_eu(hours)
+        s = _translate_word("hour", "eu")
         if hours == 1:
-            return "ordu bat"
+            return f"{s} bat"
         else:
-            return "{} ordu".format(hours)
+            return f"{nice} {s}"
 
     # TODO: "2 weeks", "3 months", "4 years", etc
     days = int((hours + 12) // 24)  # +12 to round days
+    nice = pronounce_number_eu(days)
+    s = _translate_word("day", "eu")
     if days == 1:
-        return "egun bat"
+        return f"{s} bat"
     else:
-        return "{} egun".format(days)
+        return f"{nice} {s}"
 
 
 def extract_datetime_eu(input_str, anchorDate=None, default_time=None):

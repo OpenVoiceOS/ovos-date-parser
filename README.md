@@ -104,23 +104,23 @@ Format
 | Language | `nice_date`<br>`nice_date_time`<br>`nice_day` <br>`nice_weekday` <br>`nice_month` <br>`nice_year` <br>`get_date_strings` | `nice_time` | `nice_relative_time` | `nice_duration` |
 |----------|--------------------------------------------------------------------------------------------------------------------------|-------------|----------------------|-----------------|
 | az       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
-| ca       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| cs       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| da       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| de       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| en       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| es       | ❌                                                                                                                        | ✅           | ❌                    | ❌               | 
-| eu       | ✅                                                                                                                        | ✅           | ✅                    | ❌               | 
-| fa       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| fr       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| hu       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| it       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
-| nl       | ✅                                                                                                                        | ✅           | ❌                    | ❌               | 
+| ca       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| cs       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| da       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| de       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| en       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| es       | ❌                                                                                                                        | ✅           | ❌                    | ✅               | 
+| eu       | ✅                                                                                                                        | ✅           | ✅                    | ✅               | 
+| fa       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| fr       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| hu       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| it       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
+| nl       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
 | pl       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
-| pt       | ❌                                                                                                                        | ✅           | ❌                    | ❌               | 
+| pt       | ❌                                                                                                                        | ✅           | ❌                    | ✅               | 
 | ru       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
-| sv       | ✅                                                                                                                        | ✅           | ❌                    | ❌               |
-| sl       | ✅                                                                                                                        | ❌           | ❌                    | ❌               |
+| sv       | ✅                                                                                                                        | ✅           | ❌                    | ✅               |
+| sl       | ✅                                                                                                                        | ❌           | ❌                    | ✅               |
 | uk       | ✅                                                                                                                        | ✅           | ❌                    | ✅               | 
 
 ## Related Projects
@@ -128,7 +128,6 @@ Format
 - [ovos-number-parser](https://github.com/OpenVoiceOS/ovos-number-parser) - for handling numbers
 - [ovos-lang-parser](https://github.com/OVOSHatchery/ovos-lang-parser) - for handling languages
 - [ovos-color-parser](https://github.com/OVOSHatchery/ovos-color-parser) - for handling colors
-
 
 ## License
 

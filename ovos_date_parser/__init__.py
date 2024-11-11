@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, time
 from typing import Optional, Tuple, Union
 
 from ovos_utils.lang import standardize_lang_tag
-
+from ovos_date_parser.common import nice_duration_generic
 from ovos_date_parser.dates_az import (
     extract_datetime_az,
     extract_duration_az,
@@ -202,7 +202,7 @@ def nice_duration(
         return nice_duration_ru(duration, speech)
     if lang.startswith("uk"):
         return nice_duration_uk(duration, speech)
-    raise NotImplementedError(f"Unsupported language: {lang}")
+    return nice_duration_generic(lang, duration, speech)
 
 
 def extract_duration(

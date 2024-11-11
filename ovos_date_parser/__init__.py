@@ -34,7 +34,6 @@ from ovos_date_parser.dates_de import (
 from ovos_date_parser.dates_en import (
     extract_datetime_en,
     extract_duration_en,
-    nice_relative_time_en,
     nice_time_en
 )
 from ovos_date_parser.dates_es import (

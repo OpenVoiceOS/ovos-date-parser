@@ -15,6 +15,60 @@ def _translate_word(keyword: str, lang: str) -> str:
     return words[keyword]
 
 
+def nice_relative_time_generic(lang, when, relative_to):
+    """Create a relative phrase to roughly describe a datetime
+
+    Examples are "25 seconds", "tomorrow", "7 days".
+
+    Args:
+        lang (str): BCP-47 language code
+        when (datetime): Local timezone
+        relative_to (datetime): Baseline for relative time
+    Returns:
+        str: Relative description of the given time
+    """
+    delta = when - relative_to
+
+    seconds = delta.total_seconds()
+    if seconds < 1:
+        try:
+            return _translate_word("now", lang)
+        except NotImplementedError:
+            nice = pronounce_number(0, lang=lang)
+            return f"{nice} " + _translate_word("seconds", lang)
+
+    if seconds < 90:
+        nice = pronounce_number(seconds, lang=lang)
+        if seconds == 1:
+            return f"{nice} " + _translate_word("second", lang)
+        else:
+            return f"{nice} " + _translate_word("seconds", lang)
+
+    minutes = int((delta.total_seconds() + 30) // 60)  # +30 to round minutes
+    if minutes < 90:
+        nice = pronounce_number(minutes, lang=lang)
+        if minutes == 1:
+            return f"{nice} " + _translate_word("minute", lang)
+        else:
+            return f"{nice} " + _translate_word("minutes", lang)
+
+    hours = int((minutes + 30) // 60)  # +30 to round hours
+    if hours < 36:
+        nice = pronounce_number(hours, lang=lang)
+        if hours == 1:
+            return f"{nice} " + _translate_word("hour", lang)
+        else:
+            return f"{nice} " + _translate_word("hours", lang)
+
+    # TODO: "2 weeks", "3 months", "4 years", etc
+    days = int((hours + 12) // 24)  # +12 to round days
+    nice = pronounce_number(days, lang=lang)
+    if days == 1:
+        return f"{nice} " + _translate_word("day", lang)
+    else:
+        return f"{nice} " + _translate_word("days", lang)
+
+
 def nice_duration_generic(lang, duration, speech=True):
     """ Convert duration in seconds to a nice spoken timespan
 
@@ -23,9 +77,8 @@ def nice_duration_generic(lang, duration, speech=True):
        duration = 163  ->  "2:43" or "two minutes forty three seconds"
 
     Args:
+        lang (str): BCP-47 language code
         duration: time, in seconds
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
         speech (bool): format for speech (True) or display (False)
 
     Returns:

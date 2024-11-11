@@ -91,6 +91,50 @@ def nice_time_en(dt, speech=True, use_24hour=False, use_ampm=False):
         return speak
 
 
+def nice_relative_time_en(when, relative_to):
+    """Create a relative phrase to roughly describe a datetime
+
+    Examples are "25 seconds", "tomorrow", "7 days".
+
+    Args:
+        when (datetime): Local timezone
+        relative_to (datetime): Baseline for relative time
+    Returns:
+        str: Relative description of the given time
+    """
+    delta = when - relative_to
+
+    if delta.total_seconds() < 1:
+        return "now"
+
+    if delta.total_seconds() < 90:
+        if delta.total_seconds() == 1:
+            return "one second"
+        else:
+            return "{} seconds".format(int(delta.total_seconds()))
+
+    minutes = int((delta.total_seconds() + 30) // 60)  # +30 to round minutes
+    if minutes < 90:
+        if minutes == 1:
+            return "one minute"
+        else:
+            return "{} minutes".format(minutes)
+
+    hours = int((minutes + 30) // 60)  # +30 to round hours
+    if hours < 36:
+        if hours == 1:
+            return "one hour"
+        else:
+            return "{} hours".format(hours)
+
+    # TODO: "2 weeks", "3 months", "4 years", etc
+    days = int((hours + 12) // 24)  # +12 to round days
+    if days == 1:
+        return "1 day"
+    else:
+        return "{} days".format(days)
+
+
 def extract_duration_en(text):
     """
     Convert an english phrase into a number of seconds

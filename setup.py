@@ -57,7 +57,6 @@ setup(
     version=get_version(),
     packages=['ovos_date_parser'],
     url='https://github.com/OpenVoiceOS/ovos-date-parser',
-    obsoletes=['ovos_date_parser'],
     license='Apache2.0',
     package_data={'': extra_files},
     include_package_data=True,

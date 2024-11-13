@@ -5,97 +5,64 @@ from collections import namedtuple
 from datetime import datetime, timedelta, time
 from typing import Optional, Tuple, Union
 
+from ovos_utils.time import now_local
+
 from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
 from ovos_date_parser.dates_az import (
-    extract_datetime_az,
-    extract_duration_az,
-    nice_duration_az,
-    nice_time_az,
+    extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
 )
 from ovos_date_parser.dates_ca import (
-    TimeVariantCA,
-    extract_datetime_ca,
-    nice_time_ca,
+    TimeVariantCA, extract_datetime_ca, nice_time_ca,
 )
 from ovos_date_parser.dates_cs import (
-    extract_duration_cs,
-    extract_datetime_cs,
-    nice_time_cs
+    extract_duration_cs, extract_datetime_cs, nice_time_cs
 )
 from ovos_date_parser.dates_da import (
-    extract_datetime_da,
-    nice_time_da,
+    extract_datetime_da, nice_time_da,
 )
 from ovos_date_parser.dates_de import (
-    extract_datetime_de,
-    extract_duration_de,
-    nice_time_de,
+    extract_datetime_de, extract_duration_de, nice_time_de,
 )
 from ovos_date_parser.dates_en import (
-    extract_datetime_en,
-    extract_duration_en,
-    nice_time_en
+    extract_datetime_en, extract_duration_en, nice_time_en
 )
 from ovos_date_parser.dates_es import (
-    extract_datetime_es,
-    extract_duration_es,
-    nice_time_es,
+    extract_datetime_es, extract_duration_es, nice_time_es,
 )
 from ovos_date_parser.dates_eu import (
-    extract_datetime_eu,
-    nice_time_eu,
-    nice_relative_time_eu,
+    extract_datetime_eu, nice_time_eu, nice_relative_time_eu,
 )
 from ovos_date_parser.dates_fa import (
-    extract_datetime_fa,
-    nice_time_fa,
-    extract_duration_fa,
+    extract_datetime_fa, nice_time_fa, extract_duration_fa,
 )
 from ovos_date_parser.dates_fr import (
-    extract_datetime_fr,
-    nice_time_fr
+    extract_datetime_fr, nice_time_fr
 )
 from ovos_date_parser.dates_hu import nice_time_hu
 from ovos_date_parser.dates_it import (
-    extract_datetime_it,
-    nice_time_it
+    extract_datetime_it, nice_time_it
 )
 from ovos_date_parser.dates_nl import (
-    extract_datetime_nl,
-    nice_part_of_day_nl,
-    extract_duration_nl,
-    nice_time_nl
+    extract_datetime_nl, nice_part_of_day_nl, extract_duration_nl, nice_time_nl
 )
 from ovos_date_parser.dates_pl import (
-    extract_datetime_pl,
-    extract_duration_pl,
-    nice_time_pl,
-    nice_duration_pl
+    extract_datetime_pl, extract_duration_pl, nice_time_pl, nice_duration_pl
 )
 from ovos_date_parser.dates_pt import (
-    extract_datetime_pt,
-    extract_duration_pt,
-    nice_time_pt
+    extract_datetime_pt, extract_duration_pt, nice_time_pt, nice_date_pt, nice_year_pt, nice_date_time_pt,
+    nice_month_pt, nice_weekday_pt, nice_day_pt
 )
 from ovos_date_parser.dates_ru import (
-    extract_datetime_ru,
-    extract_duration_ru,
-    nice_time_ru,
-    nice_duration_ru
-)
-from ovos_date_parser.dates_sv import (
-    extract_datetime_sv,
-    extract_duration_sv,
-    nice_time_sv
+    extract_datetime_ru, extract_duration_ru, nice_time_ru, nice_duration_ru
 )
 from ovos_date_parser.dates_sl import (
     nice_time_sl
 )
+from ovos_date_parser.dates_sv import (
+    extract_datetime_sv, extract_duration_sv, nice_time_sv
+)
 from ovos_date_parser.dates_uk import (
-    extract_datetime_uk,
-    extract_duration_uk,
-    nice_time_uk,
-    nice_duration_uk
+    extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
 )
 
 
@@ -305,6 +272,8 @@ NUMBER_TUPLE = namedtuple(
 
 
 class DateTimeFormat:
+    """resource file based regex date formatter
+    NOTE: this is optional, can be implemented as code if desired"""
     def __init__(self, config_path):
         self.lang_config = {}
         self.config_path = config_path
@@ -480,7 +449,10 @@ def nice_date(dt, lang, now=None):
     Returns:
         (str): The formatted date string
     """
+    now = now or now_local()
     lang = lang.lower().split("-")[0]
+    if lang.startswith("pt"):
+        return nice_date_pt(dt, now)
     date_time_format.cache(lang)
     return date_time_format.date_format(dt, lang, now)
 
@@ -507,11 +479,15 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
             (str): The formatted date time string
     """
     lang = lang.lower().split("-")[0]
+    if lang.startswith("pt"):
+        return nice_date_time_pt(dt, now, use_24hour, use_ampm)
     date_time_format.cache(lang)
     return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
+    if lang.startswith("pt"):
+        return nice_day_pt(dt, date_format, include_month)
     if include_month:
         month = nice_month(dt, lang, date_format)
         if date_format == 'MDY':
@@ -523,6 +499,8 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
 
 def nice_weekday(dt, lang):
     lang = lang.lower().split("-")[0]
+    if lang.startswith("pt"):
+        return nice_weekday_pt(dt)
     date_time_format.cache(lang)
 
     if lang in date_time_format.lang_config.keys():
@@ -536,6 +514,8 @@ def nice_weekday(dt, lang):
 
 def nice_month(dt, lang, date_format='MDY'):
     lang = lang.lower().split("-")[0]
+    if lang.startswith("pt"):
+        return nice_month_pt(dt)
     date_time_format.cache(lang)
     if lang in date_time_format.lang_config.keys():
         localized_month_names = date_time_format.lang_config[lang]['month']
@@ -561,11 +541,13 @@ def nice_year(dt, lang, bc=False):
             (str): The formatted year string
     """
     lang = lang.lower().split("-")[0]
+    if lang.startswith("pt"):
+        return nice_year_pt(dt, bc)
     date_time_format.cache(lang)
     return date_time_format.year_format(dt, lang, bc)
 
 
-def get_date_strings(dt, lang, date_format='MDY', time_format="full"):
+def get_date_strings(dt, lang, date_format='DMY', time_format="full"):
     lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
                         use_24hour=time_format == "full")

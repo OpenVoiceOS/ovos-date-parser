@@ -5,6 +5,127 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pt import pronounce_number_pt, numbers_to_digits_pt, _pt_pruning
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 
+WEEKDAYS_PT = {
+    0: "segunda-feira",
+    1: "terça-feira",
+    2: "quarta-feira",
+    3: "quinta-feira",
+    4: "sexta-feira",
+    5: "sábado",
+    6: "domingo"
+}
+MONTHS_PT = {
+    1: "janeiro",
+    2: "fevereiro",
+    3: "março",
+    4: "abril",
+    5: "maio",
+    6: "junho",
+    7: "julho",
+    8: "agosto",
+    9: "setembro",
+    10: "outubro",
+    11: "novembro",
+    12: "dezembro"
+}
+
+
+def nice_year_pt(dt, bc=False):
+    """
+        Format a datetime to a pronounceable year
+
+        For example, generate 'nineteen-hundred and eighty-four' for year 1984
+
+        Args:
+            dt (datetime): date to format (assumes already in local timezone)
+            bc (bool) pust B.C. after the year (python does not support dates
+                B.C. in datetime)
+        Returns:
+            (str): The formatted year string
+    """
+    year = pronounce_number_pt(dt.year)  # TODO - not pronouncing large numbers
+    if bc:
+        return f"{year} a.C."
+    return year
+
+
+def nice_weekday_pt(dt):
+    weekday = WEEKDAYS_PT[dt.weekday()]
+    return weekday.capitalize()
+
+
+def nice_month_pt(dt):
+    month = MONTHS_PT[dt.month]
+    return month.capitalize()
+
+
+def nice_day_pt(dt, date_format='DMY', include_month=True):
+    if include_month:
+        month = nice_month_pt(dt)
+        if date_format == 'MDY':
+            return "{} {}".format(month, dt.strftime("%d"))
+        else:
+            return "{} {}".format(dt.strftime("%d"), month)
+    return dt.strftime("%d")
+
+
+def nice_date_time_pt(dt, now=None, use_24hour=False,
+                      use_ampm=False):
+    """
+        Format a datetime to a pronounceable date and time
+
+        For example, generate 'tuesday, june the fifth, 2018 at five thirty'
+
+        Args:
+            dt (datetime): date to format (assumes already in local timezone)
+            now (datetime): Current date. If provided, the returned date for
+                speech will be shortened accordingly: No year is returned if
+                now is in the same year as td, no month is returned if now is
+                in the same month as td. If now and td is the same day, 'today'
+                is returned.
+            use_24hour (bool): output in 24-hour/military or 12-hour format
+            use_ampm (bool): include the am/pm for 12-hour format
+        Returns:
+            (str): The formatted date time string
+    """
+    now = now or now_local()
+    return f"{nice_date_pt(dt, now)} ás {nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
+
+
+def nice_date_pt(dt: datetime, now: datetime = None):
+    """
+    Format a datetime to a pronounceable date
+
+    For example, generates 'tuesday, june the fifth, 2018'
+
+    Args:
+        dt (datetime): date to format (assumes already in local timezone)
+        now (datetime): Current date. If provided, the returned date for speech
+            will be shortened accordingly: No year is returned if now is in the
+            same year as td, no month is returned if now is in the same month
+            as td. If now and td is the same day, 'today' is returned.
+
+    Returns:
+        (str): The formatted date string
+    """
+    now = now or now_local()
+
+    if dt.day == now.day:
+        return "hoje"
+    if dt.day == now.day + 1:
+        return "amanhã"
+    if dt.day == now.day - 1:
+        return "ontem"
+
+    weekday = nice_weekday_pt(dt)
+    day = pronounce_number_pt(dt.day)
+    nice = f"{weekday}, {day}"
+    if dt.month != now.month:
+        nice = nice + " de " + nice_month_pt(dt)
+    if dt.year != now.year:
+        nice = nice + ", " + nice_year_pt(dt)
+    return nice
+
 
 def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
     """
@@ -987,4 +1108,3 @@ def extract_duration_pt(text):
     duration = timedelta(**time_units) if any(time_units.values()) else None
 
     return (duration, text)
-

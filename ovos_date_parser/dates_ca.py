@@ -41,7 +41,7 @@ def extract_duration_ca(text):
     text = text.lower().replace("í", "i")
     time_units = {
         'microseconds': 'microsegons',
-        'milliseconds': 'milisegons',
+        'milliseconds': 'mil·lisegons',
         'seconds': 'segons',
         'minutes': 'minuts',
         'hours': 'hores',
@@ -54,7 +54,7 @@ def extract_duration_ca(text):
         "years": "anys",
         'decades': "dècades",
         'centurys': "segles",
-        'millenniums': "milenis"
+        'millenniums': "mil·lenis"
     }
 
     pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[s]?"

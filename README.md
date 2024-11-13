@@ -81,7 +81,7 @@ Parse
 | Language | `extract_duration` | `extract_datetime` |
 |----------|--------------------|--------------------|
 | az       | ✅                  | ✅                  |
-| ca       | ❌                  | ✅                  |
+| ca       | ✅                  | ✅                  |
 | cs       | ✅                  | ✅                  |
 | da       | ❌                  | ✅                  |
 | de       | ✅                  | ✅                  |

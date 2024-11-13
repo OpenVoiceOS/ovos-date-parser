@@ -12,7 +12,7 @@ from ovos_date_parser.dates_az import (
     extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
 )
 from ovos_date_parser.dates_ca import (
-    TimeVariantCA, extract_datetime_ca, nice_time_ca,
+    TimeVariantCA, extract_datetime_ca, nice_time_ca, extract_duration_ca
 )
 from ovos_date_parser.dates_cs import (
     extract_duration_cs, extract_datetime_cs, nice_time_cs
@@ -186,6 +186,8 @@ def extract_duration(
     """
     if lang.startswith("az"):
         return extract_duration_az(text)
+    if lang.startswith("ca"):
+        return extract_duration_ca(text)
     if lang.startswith("cs"):
         return extract_duration_cs(text)
     if lang.startswith("de"):

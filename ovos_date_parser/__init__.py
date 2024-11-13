@@ -449,7 +449,6 @@ def nice_date(dt, lang, now=None):
     Returns:
         (str): The formatted date string
     """
-    now = now or now_local()
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_pt(dt, now)

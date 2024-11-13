@@ -108,22 +108,22 @@ def nice_date_pt(dt: datetime, now: datetime = None):
     Returns:
         (str): The formatted date string
     """
-    now = now or now_local()
-
-    if dt.day == now.day:
-        return "hoje"
-    if dt.day == now.day + 1:
-        return "amanhã"
-    if dt.day == now.day - 1:
-        return "ontem"
-
     weekday = nice_weekday_pt(dt)
     day = pronounce_number_pt(dt.day)
-    nice = f"{weekday}, {day}"
-    if dt.month != now.month:
-        nice = nice + " de " + nice_month_pt(dt)
-    if dt.year != now.year:
-        nice = nice + ", " + nice_year_pt(dt)
+    if now is not None:
+        nice = f"{weekday}, {day}"
+        if dt.day == now.day:
+            return "hoje"
+        if dt.day == now.day + 1:
+            return "amanhã"
+        if dt.day == now.day - 1:
+            return "ontem"
+        if dt.month != now.month:
+            nice = nice + " de " + nice_month_pt(dt)
+        if dt.year != now.year:
+            nice = nice + ", " + nice_year_pt(dt)
+    else:
+        nice = f"{weekday}, {day} de {nice_month_pt(dt)}, {nice_year_pt(dt)}"
     return nice
 
 

@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.2.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.2.0a1) (2024-11-13)
+## [0.2.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.2.1a1) (2024-11-13)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.1.0...0.2.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.2.0...0.2.1a1)
 
 **Merged pull requests:**
 
-- feat: pt support for date format [\#73](https://github.com/OpenVoiceOS/ovos-date-parser/pull/73) ([JarbasAl](https://github.com/JarbasAl))
+- fix:nice\_date [\#77](https://github.com/OpenVoiceOS/ovos-date-parser/pull/77) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

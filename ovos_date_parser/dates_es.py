@@ -5,6 +5,123 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_es import pronounce_number_es, numbers_to_digits_es
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 
+WEEKDAYS_ES = {
+    0: "lunes",
+    1: "martes",
+    2: "miércoles",
+    3: "jueves",
+    4: "viernes",
+    5: "sábado",
+    6: "domingo"
+}
+MONTHS_ES = {
+    1: "enero",
+    2: "febrero",
+    3: "marzo",
+    4: "abril",
+    5: "mayo",
+    6: "junio",
+    7: "julio",
+    8: "agosto",
+    9: "septiembre",
+    10: "octubre",
+    11: "noviembre",
+    12: "diciembre"
+}
+
+
+def nice_year_es(dt, bc=False):
+    """
+        Formatea un año en una forma pronunciable.
+
+        Por ejemplo, genera 'mil novecientos ochenta y cuatro' para el año 1984.
+
+        Args:
+            dt (datetime): fecha a formatear (se supone que ya está en la zona horaria local)
+            bc (bool): añade a.C. después del año (Python no soporta fechas a.C. en datetime)
+        Returns:
+            (str): El año formateado como cadena
+    """
+    year = pronounce_number_es(dt.year)
+    if bc:
+        return f"{year} a.C."
+    return year
+
+
+def nice_weekday_es(dt):
+    weekday = WEEKDAYS_ES[dt.weekday()]
+    return weekday.capitalize()
+
+
+def nice_month_es(dt):
+    month = MONTHS_ES[dt.month]
+    return month.capitalize()
+
+
+def nice_day_es(dt, date_format='DMY', include_month=True):
+    if include_month:
+        month = nice_month_es(dt)
+        if date_format == 'MDY':
+            return "{} {}".format(month, dt.strftime("%d"))
+        else:
+            return "{} {}".format(dt.strftime("%d"), month)
+    return dt.strftime("%d")
+
+
+def nice_date_time_es(dt, now=None, use_24hour=False,
+                      use_ampm=False):
+    """
+        Formatea una fecha y hora de manera pronunciable.
+
+        Por ejemplo, genera 'martes, cinco de junio de 2018 a las cinco y media'.
+
+        Args:
+            dt (datetime): fecha a formatear (se supone que ya está en la zona horaria local)
+            now (datetime): Fecha actual. Si se proporciona, la fecha devuelta se acortará en consecuencia:
+                No se devuelve el año si ahora está en el mismo año que `dt`, no se devuelve el mes
+                si ahora está en el mismo mes que `dt`. Si `now` y `dt` son el mismo día, se devuelve 'hoy'.
+            use_24hour (bool): salida en formato de 24 horas/militar o 12 horas
+            use_ampm (bool): incluir el am/pm en formato de 12 horas
+        Returns:
+            (str): La cadena de fecha y hora formateada
+    """
+    now = now or now_local()
+    return f"{nice_date_es(dt, now)} a las {nice_time_es(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
+
+
+def nice_date_es(dt: datetime, now: datetime = None):
+    """
+    Formatea una fecha en una forma pronunciable.
+
+    Por ejemplo, genera 'martes, cinco de junio de 2018'.
+
+    Args:
+        dt (datetime): fecha a formatear (se supone que ya está en la zona horaria local)
+        now (datetime): Fecha actual. Si se proporciona, la fecha devuelta se acortará en consecuencia:
+            No se devuelve el año si ahora está en el mismo año que `dt`, no se devuelve el mes
+            si ahora está en el mismo mes que `dt`. Si `now` y `dt` son el mismo día, se devuelve 'hoy'.
+
+    Returns:
+        (str): La cadena de fecha formateada
+    """
+    now = now or now_local()
+
+    if dt.day == now.day:
+        return "hoy"
+    if dt.day == now.day + 1:
+        return "mañana"
+    if dt.day == now.day - 1:
+        return "ayer"
+
+    weekday = nice_weekday_es(dt)
+    day = pronounce_number_es(dt.day)
+    nice = f"{weekday}, {day}"
+    if dt.month != now.month:
+        nice = nice + " de " + nice_month_es(dt)
+    if dt.year != now.year:
+        nice = nice + ", " + nice_year_es(dt)
+    return nice
+
 
 def nice_time_es(dt, speech=True, use_24hour=False, use_ampm=False):
     """

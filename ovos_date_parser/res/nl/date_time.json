@@ -57,7 +57,7 @@
     "6": "zondag"
   },
   "date": {
-      "1": "een",
+      "1": "één",
       "2": "twee",
       "3": "drie",
       "4": "vier",
@@ -71,7 +71,7 @@
       "12": "twaalf",
       "13": "dertien",
       "14": "veertien",
-      "15": "vijtien",
+      "15": "vijftien",
       "16": "zestien",
       "17": "zeventien",
       "18": "achttien",
@@ -105,7 +105,7 @@
   },
   "number": {
     "0": "nul",
-    "1": "een",
+    "1": "één",
     "2": "twee",
     "3": "drie",
     "4": "vier",

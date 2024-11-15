@@ -104,22 +104,22 @@ def nice_date_es(dt: datetime, now: datetime = None):
     Returns:
         (str): La cadena de fecha formateada
     """
-    now = now or now_local()
-
-    if dt.day == now.day:
-        return "hoy"
-    if dt.day == now.day + 1:
-        return "mañana"
-    if dt.day == now.day - 1:
-        return "ayer"
-
     weekday = nice_weekday_es(dt)
     day = pronounce_number_es(dt.day)
-    nice = f"{weekday}, {day}"
-    if dt.month != now.month:
-        nice = nice + " de " + nice_month_es(dt)
-    if dt.year != now.year:
-        nice = nice + ", " + nice_year_es(dt)
+    if now is not None:
+        nice = f"{weekday}, {day}"
+        if dt.day == now.day:
+            return "hoy"
+        if dt.day == now.day + 1:
+            return "mañana"
+        if dt.day == now.day - 1:
+            return "ayer"
+        if dt.month != now.month:
+            nice = nice + " de " + nice_month_es(dt)
+        if dt.year != now.year:
+            nice = nice + ", " + nice_year_es(dt)
+    else:
+        nice = f"{weekday}, {day} de {nice_month_es(dt)}, {nice_year_es(dt)}"
     return nice
 
 

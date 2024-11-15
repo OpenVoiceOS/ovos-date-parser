@@ -1,13 +1,12 @@
 # Changelog
 
-## [0.3.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.3.0a1) (2024-11-14)
+## [0.4.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.4.0a1) (2024-11-15)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.2.1...0.3.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.3.0...0.4.0a1)
 
 **Merged pull requests:**
 
-- Update date\_time.json Nl-nl [\#79](https://github.com/OpenVoiceOS/ovos-date-parser/pull/79) ([timonvanhasselt](https://github.com/timonvanhasselt))
-- feat: catalan extract\_duration [\#76](https://github.com/OpenVoiceOS/ovos-date-parser/pull/76) ([JarbasAl](https://github.com/JarbasAl))
+- feat: es support for date format [\#75](https://github.com/OpenVoiceOS/ovos-date-parser/pull/75) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

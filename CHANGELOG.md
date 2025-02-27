@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.5.0a1) (2025-02-27)
+## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.0a1) (2025-02-27)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.4.0...0.5.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.5.0...0.6.0a1)
 
 **Merged pull requests:**
 
-- feat: fallback parser [\#82](https://github.com/OpenVoiceOS/ovos-date-parser/pull/82) ([JarbasAl](https://github.com/JarbasAl))
+- feat: galician [\#84](https://github.com/OpenVoiceOS/ovos-date-parser/pull/84) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

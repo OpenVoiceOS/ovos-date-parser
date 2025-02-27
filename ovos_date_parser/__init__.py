@@ -5,6 +5,11 @@ from collections import namedtuple
 from datetime import datetime, timedelta, time
 from typing import Optional, Tuple, Union
 
+import dateparser
+# fallback parser
+from dateparser.search import search_dates
+from ovos_config import Configuration
+from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
 from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
@@ -265,6 +270,38 @@ def extract_datetime(
         return extract_datetime_sv(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("uk"):
         return extract_datetime_uk(text, anchor_date=anchorDate, default_time=default_time)
+
+    # fallback parser
+    LOG.warning(f"{lang} is not implemented! attempting to use fallback date parser")
+
+    tzstr = Configuration()["location"]["timezone"]["code"]
+    fmt = Configuration().get("date_format", 'DMY')
+    settings = {'RELATIVE_BASE': anchorDate or now_local(),
+                'TIMEZONE': tzstr,
+                'RETURN_AS_TIMEZONE_AWARE': True,
+                'TO_TIMEZONE': tzstr,
+                'DATE_ORDER': fmt}
+
+    try:  # assume full text is a date with no leftover
+        date = dateparser.parse(text,
+                                languages=[lang.split("-")[0]],
+                                settings=settings)
+        if date:
+            return date, ""
+    except Exception as e:
+        pass
+
+    # less accurate substring search
+    try:
+        dates = search_dates(text,
+                             languages=[lang.split("-")[0]],
+                             settings=settings)
+        if dates:
+            date_txt, date = dates[0]
+            return date, text.replace(date_txt, "")
+    except:
+        pass
+
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 
@@ -277,6 +314,7 @@ NUMBER_TUPLE = namedtuple(
 class DateTimeFormat:
     """resource file based regex date formatter
     NOTE: this is optional, can be implemented as code if desired"""
+
     def __init__(self, config_path):
         self.lang_config = {}
         self.config_path = config_path

@@ -1,9 +1,11 @@
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_da import pronounce_ordinal_da, pronounce_number_da, is_ordinal_da, numbers_to_digits_da
 from ovos_number_parser.util import is_numeric
-from ovos_utils.time import now_local
+from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+
 
 _MONTHS_DA = ['januar', 'februar', 'marts', 'april', 'maj', 'juni',
               'juli', 'august', 'september', 'oktober', 'november',
@@ -808,7 +810,7 @@ def extract_duration_da(text):
                     will have whitespace stripped from the ends.
     """
     if not text:
-        return None
+        return None, ''
 
     time_units = {
         'microseconds': 0,
@@ -834,14 +836,44 @@ def extract_duration_da(text):
     text = numbers_to_digits_da(text)
 
     for unit in time_units:
-        unit_nl_words = da_translations[unit]
-        unit_nl_words.sort(key=len, reverse=True)
-        for unit_nl in unit_nl_words:
-            unit_pattern = pattern.format(unit=unit_nl)
+        unit_da_words = da_translations[unit]
+        unit_da_words.sort(key=len, reverse=True)
+        for unit_da in unit_da_words:
+            unit_pattern = pattern.format(unit=unit_da)
             matches = re.findall(unit_pattern, text)
             value = sum(map(float, matches))
             time_units[unit] = time_units[unit] + value
             text = re.sub(unit_pattern, '', text)
+
+    # Non-standard time units
+    non_std_unit = {
+        'months': ["måned", "måneder", "måneds", "måneders"],
+        'decades': ["årti", "årtier", "årtis"],
+        'centuries': ["århundrede", "århundreder", "århundredes"],
+        'millennia': ["årtusinde", "årtusinder", "årtusindes"],
+        'years': ["år", "års"]  # must be last to avoid matching on centuries and millennia
+    }
+
+    for unit in non_std_unit.keys():
+        unit_da_words = non_std_unit[unit]
+        unit_da_words.sort(key=len, reverse=True)
+        for unit_da in unit_da_words:
+            unit_pattern = pattern.format(unit=unit_da)
+            matches = re.findall(unit_pattern, text)
+            val = sum(map(float, matches))
+            if unit == "months":
+                val = DAYS_IN_1_MONTH * val
+            if unit == "years":
+                val = DAYS_IN_1_YEAR * val
+            if unit == "decades":
+                val = 10 * DAYS_IN_1_YEAR * val
+            if unit == "centuries":
+                val = 100 * DAYS_IN_1_YEAR * val
+            if unit == "millennia":
+                val = 1000 * DAYS_IN_1_YEAR * val
+            time_units["days"] += val
+            text = re.sub(unit_pattern, '', text)
+    print(time_units)
 
     text = text.strip()
     duration = timedelta(**time_units) if any(time_units.values()) else None

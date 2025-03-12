@@ -34,7 +34,7 @@ time expressions.
 | az       | ✅                  | ✅                  |
 | ca       | ✅                  | ✅                  |
 | cs       | ✅                  | ✅                  |
-| da       | ❌                  | ✅                  |
+| da       | ✅                  | ✅                  |
 | de       | ✅                  | ✅                  |
 | en       | ✅                  | ✅                  |
 | es       | ✅                  | ✅                  |

@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.0a1) (2025-02-27)
+## [0.6.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.2a1) (2025-03-27)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.5.0...0.6.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.1...0.6.2a1)
 
 **Merged pull requests:**
 
-- feat: galician [\#84](https://github.com/OpenVoiceOS/ovos-date-parser/pull/84) ([JarbasAl](https://github.com/JarbasAl))
+- Implement extract\_duration\_da [\#86](https://github.com/OpenVoiceOS/ovos-date-parser/pull/86) ([tgc-dk](https://github.com/tgc-dk))
 
 
 

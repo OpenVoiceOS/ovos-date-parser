@@ -873,7 +873,6 @@ def extract_duration_da(text):
                 val = 1000 * DAYS_IN_1_YEAR * val
             time_units["days"] += val
             text = re.sub(unit_pattern, '', text)
-    print(time_units)
 
     text = text.strip()
     duration = timedelta(**time_units) if any(time_units.values()) else None

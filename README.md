@@ -18,6 +18,67 @@ designed to handle a range of human-readable date, time, and duration expression
 pip install ovos-date-parser
 ```
 
+### Languages Supported
+
+`ovos-date-parser` supports a wide array of languages, each with its own set of methods for handling natural language
+time expressions.
+
+- ✅ - supported
+- ❌ - not supported
+- 🚧 - imperfect placeholder, usually a language agnostic implementation or external library
+
+**Parse**
+
+| Language | `extract_duration` | `extract_datetime` |
+|----------|--------------------|--------------------|
+| az       | ✅                  | ✅                  |
+| ca       | ✅                  | ✅                  |
+| cs       | ✅                  | ✅                  |
+| da       | ✅                  | ✅                  |
+| de       | ✅                  | ✅                  |
+| en       | ✅                  | ✅                  |
+| es       | ✅                  | ✅                  |
+| gl       | ✅                  | 🚧                 |
+| eu       | ❌                  | ✅                  |
+| fa       | ✅                  | ✅                  |
+| fr       | ❌                  | ✅                  |
+| hu       | ❌                  | 🚧                 |
+| it       | ❌                  | ✅                  |
+| nl       | ✅                  | ✅                  |
+| pl       | ✅                  | ✅                  |
+| pt       | ✅                  | ✅                  |
+| ru       | ✅                  | ✅                  |
+| sv       | ✅                  | ✅                  |
+| uk       | ✅                  | ✅                  |
+
+
+> 💡 If a language is not implemented for `extract_datetime` then [dateparser](https://dateparser.readthedocs.io/en/latest/) will be used as a fallback
+
+**Format**
+
+| Language | `nice_date`<br>`nice_date_time`<br>`nice_day` <br>`nice_weekday` <br>`nice_month` <br>`nice_year` <br>`get_date_strings` | `nice_time` | `nice_relative_time` | `nice_duration` |
+|----------|--------------------------------------------------------------------------------------------------------------------------|-------------|----------------------|-----------------|
+| az       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| ca       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| cs       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| da       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| de       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| en       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| es       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| gl       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| eu       | ✅                                                                                                                        | ✅           | ✅                    | ✅               | 
+| fa       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| fr       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| hu       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| it       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| nl       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| pl       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| pt       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| ru       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+| sv       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               |
+| sl       | ✅                                                                                                                        | ❌           | 🚧                   | ✅               |
+| uk       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
+
 ## Usage
 
 ### Date and Time Extraction
@@ -70,64 +131,6 @@ from datetime import datetime, timedelta
 relative_time = nice_relative_time(datetime.now() + timedelta(days=1), datetime.now(), lang="en")
 print(relative_time)  # "tomorrow"
 ```
-
-### Languages Supported
-
-`ovos-date-parser` supports a wide array of languages, each with its own set of methods for handling natural language
-time expressions.
-
-✅ - supported
-❌ - not supported
-🚧 - imperfect placeholder, usually a language agnostic implementation
-
-Parse
-
-| Language | `extract_duration` | `extract_datetime` |
-|----------|--------------------|--------------------|
-| az       | ✅                  | ✅                  |
-| ca       | ✅                  | ✅                  |
-| cs       | ✅                  | ✅                  |
-| da       | ❌                  | ✅                  |
-| de       | ✅                  | ✅                  |
-| en       | ✅                  | ✅                  |
-| es       | ✅                  | ✅                  |
-| gl       | ✅                  | 🚧                 |
-| eu       | ❌                  | ✅                  |
-| fa       | ✅                  | ✅                  |
-| fr       | ❌                  | ✅                  |
-| hu       | ❌                  | 🚧                 |
-| it       | ❌                  | ✅                  |
-| nl       | ✅                  | ✅                  |
-| pl       | ✅                  | ✅                  |
-| pt       | ✅                  | ✅                  |
-| ru       | ✅                  | ✅                  |
-| sv       | ✅                  | ✅                  |
-| uk       | ✅                  | ✅                  |
-
-Format
-
-| Language | `nice_date`<br>`nice_date_time`<br>`nice_day` <br>`nice_weekday` <br>`nice_month` <br>`nice_year` <br>`get_date_strings` | `nice_time` | `nice_relative_time` | `nice_duration` |
-|----------|--------------------------------------------------------------------------------------------------------------------------|-------------|----------------------|-----------------|
-| az       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| ca       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| cs       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| da       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| de       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| en       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| es       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| gl       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| eu       | ✅                                                                                                                        | ✅           | ✅                    | ✅               | 
-| fa       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| fr       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| hu       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| it       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| nl       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| pl       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| pt       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| ru       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
-| sv       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               |
-| sl       | ✅                                                                                                                        | ❌           | 🚧                   | ✅               |
-| uk       | ✅                                                                                                                        | ✅           | 🚧                   | ✅               | 
 
 ## Related Projects
 

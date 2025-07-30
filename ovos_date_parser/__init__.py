@@ -22,7 +22,7 @@ from ovos_date_parser.dates_cs import (
     extract_duration_cs, extract_datetime_cs, nice_time_cs
 )
 from ovos_date_parser.dates_da import (
-    extract_datetime_da, nice_time_da,
+    extract_datetime_da, extract_duration_da, nice_time_da,
 )
 from ovos_date_parser.dates_de import (
     extract_datetime_de, extract_duration_de, nice_time_de,
@@ -201,6 +201,8 @@ def extract_duration(
         return extract_duration_ca(text)
     if lang.startswith("cs"):
         return extract_duration_cs(text)
+    if lang.startswith("da"):
+        return extract_duration_da(text)
     if lang.startswith("de"):
         return extract_duration_de(text)
     if lang.startswith("en"):
@@ -270,7 +272,7 @@ def extract_datetime(
     if lang.startswith("pl"):
         return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("pt"):
-        return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
+        return extract_datetime_pt(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ru"):
         return extract_datetime_ru(text, anchor_date=anchorDate, default_time=default_time)
     if lang.startswith("sv"):
@@ -330,6 +332,10 @@ class DateTimeFormat:
         lang = lang.split("-")[0]
         # TODO - find closest lang code
         if lang not in self.lang_config:
+            path = self.config_path + '/' + lang + '/date_time.json'
+            if not os.path.isfile(path):
+                LOG.warning(f"could not find '{path}'")
+                return
             with open(self.config_path + '/' + lang + '/date_time.json',
                       'r', encoding='utf8') as lang_config_file:
                 self.lang_config[lang] = json.loads(

@@ -272,7 +272,7 @@ def extract_datetime(
     if lang.startswith("pl"):
         return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("pt"):
-        return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
+        return extract_datetime_pt(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ru"):
         return extract_datetime_ru(text, anchor_date=anchorDate, default_time=default_time)
     if lang.startswith("sv"):
@@ -332,6 +332,10 @@ class DateTimeFormat:
         lang = lang.split("-")[0]
         # TODO - find closest lang code
         if lang not in self.lang_config:
+            path = self.config_path + '/' + lang + '/date_time.json'
+            if not os.path.isfile(path):
+                LOG.warning(f"could not find '{path}'")
+                return
             with open(self.config_path + '/' + lang + '/date_time.json',
                       'r', encoding='utf8') as lang_config_file:
                 self.lang_config[lang] = json.loads(

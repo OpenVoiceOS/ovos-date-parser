@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
-from ovos_number_parser.numbers_pt import pronounce_number_pt, numbers_to_digits_pt, _pt_pruning
+from ovos_number_parser.numbers_pt import pronounce_number_pt, numbers_to_digits_pt
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 
 WEEKDAYS_PT = {
@@ -1019,7 +1019,6 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
 
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
-    resultStr = _pt_pruning(resultStr)
     return [extractedDate, resultStr]
 
 

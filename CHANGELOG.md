@@ -1,13 +1,12 @@
 # Changelog
 
-## [0.6.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.3a1) (2025-07-30)
+## [0.6.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.4a1) (2025-08-03)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.2...0.6.3a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.3...0.6.4a1)
 
 **Merged pull requests:**
 
-- fix: pt parser [\#90](https://github.com/OpenVoiceOS/ovos-date-parser/pull/90) ([JarbasAl](https://github.com/JarbasAl))
-- Actually use the new extract\_duration\_da [\#88](https://github.com/OpenVoiceOS/ovos-date-parser/pull/88) ([tgc-dk](https://github.com/tgc-dk))
+- fix: dont use private method from number\_parser [\#92](https://github.com/OpenVoiceOS/ovos-date-parser/pull/92) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

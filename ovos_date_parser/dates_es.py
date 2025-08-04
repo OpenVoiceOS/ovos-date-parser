@@ -71,38 +71,36 @@ def nice_day_es(dt, date_format='DMY', include_month=True):
 def nice_date_time_es(dt, now=None, use_24hour=False,
                       use_ampm=False):
     """
-        Formatea una fecha y hora de manera pronunciable.
-
-        Por ejemplo, genera 'martes, cinco de junio de 2018 a las cinco y media'.
-
-        Args:
-            dt (datetime): fecha a formatear (se supone que ya está en la zona horaria local)
-            now (datetime): Fecha actual. Si se proporciona, la fecha devuelta se acortará en consecuencia:
-                No se devuelve el año si ahora está en el mismo año que `dt`, no se devuelve el mes
-                si ahora está en el mismo mes que `dt`. Si `now` y `dt` son el mismo día, se devuelve 'hoy'.
-            use_24hour (bool): salida en formato de 24 horas/militar o 12 horas
-            use_ampm (bool): incluir el am/pm en formato de 12 horas
-        Returns:
-            (str): La cadena de fecha y hora formateada
-    """
+                      Format a datetime object as a pronounceable Spanish date and time string.
+                      
+                      Combines a human-friendly Spanish date (e.g., "martes, cinco de junio de 2018" or "hoy") with a time phrase (e.g., "a las cinco y media"), using 24-hour or 12-hour format as specified.
+                      
+                      Parameters:
+                          dt (datetime): The datetime to format.
+                          now (datetime, optional): Reference date for relative formatting. If provided, omits the year or month if they match, or returns "hoy" if the same day.
+                          use_24hour (bool, optional): If True, formats time in 24-hour style; otherwise, uses 12-hour style.
+                          use_ampm (bool, optional): If True and using 12-hour format, includes AM/PM.
+                      
+                      Returns:
+                          str: The formatted Spanish date and time string.
+                      """
     now = now or now_local()
     return f"{nice_date_es(dt, now)} a las {nice_time_es(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
 def nice_date_es(dt: datetime, now: datetime = None, include_weekday=True):
     """
-    Formatea una fecha en una forma pronunciable.
-
-    Por ejemplo, genera 'martes, cinco de junio de 2018'.
-
-    Args:
-        dt (datetime): fecha a formatear (se supone que ya está en la zona horaria local)
-        now (datetime): Fecha actual. Si se proporciona, la fecha devuelta se acortará en consecuencia:
-            No se devuelve el año si ahora está en el mismo año que `dt`, no se devuelve el mes
-            si ahora está en el mismo mes que `dt`. Si `now` y `dt` son el mismo día, se devuelve 'hoy'.
-
+    Format a date as a pronounceable Spanish string, optionally including the weekday.
+    
+    If `now` is provided, the output is shortened by omitting the year or month if they match `now`, and returns "hoy", "mañana", or "ayer" for today, tomorrow, or yesterday. The weekday is prepended if `include_weekday` is True.
+    
+    Parameters:
+        dt (datetime): The date to format.
+        now (datetime, optional): Reference date for relative formatting and shortening.
+        include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
+    
     Returns:
-        (str): La cadena de fecha formateada
+        str: The formatted date string in Spanish.
     """
     day = pronounce_number_es(dt.day)
     if now is not None:

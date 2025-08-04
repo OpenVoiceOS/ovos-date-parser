@@ -70,19 +70,18 @@ def nice_day_gl(dt, date_format='DMY', include_month=True):
 
 def nice_date_time_gl(dt, now=None, use_24hour=False, use_ampm=False):
     """
-        Formatea unha data e hora de maneira pronunciable.
-
-        Por exemplo, xera 'martes, cinco de xuño de 2018 ás cinco e media'.
-
-        Args:
-            dt (datetime): data a formatar (asúmise que xa está na zona horaria local)
-            now (datetime): Data actual. Se se proporciona, a data devolta acurtarase en consecuencia:
-                Non se devolve o ano se now está no mesmo ano que `dt`, non se devolve o mes
-                se now está no mesmo mes que `dt`. Se `now` e `dt` son o mesmo día, devélvese 'hoxe'.
-            use_24hour (bool): saída en formato de 24 horas/militar ou 12 horas
-            use_ampm (bool): incluír o am/pm en formato de 12 horas
-        Returns:
-            (str): A cadea de data e hora formatada
+    Return a formatted Galician string representing the given date and time.
+    
+    Combines a spoken-form date (using `nice_date_gl`) and time (using `nice_time_gl`) for the provided datetime. If `now` is given, the date part may be shortened (e.g., omitting the year or month, or using "hoxe" for today) based on proximity to `now`. Time formatting respects 24-hour or 12-hour format and optional AM/PM markers.
+    
+    Parameters:
+        dt (datetime): The datetime to format.
+        now (datetime, optional): Reference datetime for relative date expressions and abbreviated output.
+        use_24hour (bool, optional): If True, use 24-hour time format; otherwise, use 12-hour format.
+        use_ampm (bool, optional): If True and using 12-hour format, include AM/PM markers.
+    
+    Returns:
+        str: The formatted date and time string in Galician.
     """
     now = now or now_local()
     return f"{nice_date_gl(dt, now)} ás {nice_time_gl(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
@@ -90,18 +89,17 @@ def nice_date_time_gl(dt, now=None, use_24hour=False, use_ampm=False):
 
 def nice_date_gl(dt: datetime, now: datetime = None, include_weekday=True):
     """
-    Formatea unha data nunha forma pronunciable.
-
-    Por exemplo, xera 'martes, cinco de xuño de 2018'.
-
-    Args:
-        dt (datetime): data a formatar (asúmise que xa está na zona horaria local)
-        now (datetime): Data actual. Se se proporciona, a data devolta acurtarase en consecuencia:
-            Non se devolve o ano se now está no mesmo ano que `dt`, non se devolve o mes
-            se now está no mesmo mes que `dt`. Se `now` e `dt` son o mesmo día, devélvese 'hoxe'.
-
+    Format a date as a spoken Galician string, optionally including the weekday.
+    
+    If `now` is provided, returns "hoxe" (today), "mañá" (tomorrow), or "onte" (yesterday) when applicable. Otherwise, constructs a date string with the day, month, and year, and prepends the weekday if `include_weekday` is True.
+    
+    Parameters:
+        dt (datetime): The date to format (assumed to be in local timezone).
+        now (datetime, optional): Reference date for relative expressions and for omitting redundant year or month.
+        include_weekday (bool, optional): Whether to prepend the weekday name to the formatted date. Defaults to True.
+    
     Returns:
-        (str): A cadea de data formatada
+        str: The formatted date string in Galician.
     """
     day = pronounce_number_gl(dt.day)
     if now is not None:

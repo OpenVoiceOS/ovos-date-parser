@@ -73,41 +73,36 @@ def nice_day_pt(dt, date_format='DMY', include_month=True):
 def nice_date_time_pt(dt, now=None, use_24hour=False,
                       use_ampm=False):
     """
-        Format a datetime to a pronounceable date and time
-
-        For example, generate 'tuesday, june the fifth, 2018 at five thirty'
-
-        Args:
-            dt (datetime): date to format (assumes already in local timezone)
-            now (datetime): Current date. If provided, the returned date for
-                speech will be shortened accordingly: No year is returned if
-                now is in the same year as td, no month is returned if now is
-                in the same month as td. If now and td is the same day, 'today'
-                is returned.
-            use_24hour (bool): output in 24-hour/military or 12-hour format
-            use_ampm (bool): include the am/pm for 12-hour format
-        Returns:
-            (str): The formatted date time string
-    """
+                      Return a human-friendly Portuguese string representing the given date and time.
+                      
+                      If a reference date (`now`) is provided, the output is shortened by omitting redundant information (such as the year or month) when possible. The time can be formatted in 24-hour or 12-hour format, with optional AM/PM markers.
+                      
+                      Parameters:
+                          dt (datetime): The date and time to format.
+                          now (datetime, optional): Reference date for relative formatting. Defaults to the current local time.
+                          use_24hour (bool, optional): If True, formats time in 24-hour notation. Defaults to False.
+                          use_ampm (bool, optional): If True and using 12-hour format, includes AM/PM. Defaults to False.
+                      
+                      Returns:
+                          str: The formatted date and time string in Portuguese.
+                      """
     now = now or now_local()
     return f"{nice_date_pt(dt, now)} ás {nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
 def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
     """
-    Format a datetime to a pronounceable date
-
-    For example, generates 'tuesday, june the fifth, 2018'
-
-    Args:
-        dt (datetime): date to format (assumes already in local timezone)
-        now (datetime): Current date. If provided, the returned date for speech
-            will be shortened accordingly: No year is returned if now is in the
-            same year as td, no month is returned if now is in the same month
-            as td. If now and td is the same day, 'today' is returned.
-
+    Format a datetime object as a human-friendly Portuguese date string.
+    
+    If a reference date (`now`) is provided, the output is shortened: the year is omitted if it matches, the month is omitted if it matches, and relative terms like "hoje", "amanhã", or "ontem" are used for the same, next, or previous day. The weekday is included if `include_weekday` is True.
+    
+    Parameters:
+        dt (datetime): The date to format.
+        now (datetime, optional): Reference date for relative or shortened formatting.
+        include_weekday (bool, optional): Whether to include the weekday in the output. Defaults to True.
+    
     Returns:
-        (str): The formatted date string
+        str: The formatted Portuguese date string.
     """
     day = pronounce_number_pt(dt.day, gender=GrammaticalGender.MASCULINE)
     if now is not None:
@@ -133,16 +128,16 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
 
 def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
     """
-    Format a time to a comfortable human format
-     For example, generate 'cinco treinta' for speech or '5:30' for
-    text display.
-     Args:
-        dt (datetime): date to format (assumes already in local timezone)
-        speech (bool): format for speech (default/True) or display (False)=Fal
-        use_24hour (bool): output in 24-hour/military or 12-hour format
-        use_ampm (bool): include the am/pm for 12-hour format
+    Format a datetime object's time as a human-friendly Portuguese string for speech or display.
+    
+    Parameters:
+        dt (datetime): The datetime object to format.
+        speech (bool): If True, returns a pronounceable Portuguese phrase; if False, returns a numeric string.
+        use_24hour (bool): If True, formats time in 24-hour format; otherwise, uses 12-hour format.
+        use_ampm (bool): If True and not using 24-hour format, includes the AM/PM period in the output.
+    
     Returns:
-        (str): The formatted time string
+        str: The formatted time string in Portuguese, suitable for speech or display.
     """
     if use_24hour:
         # e.g. "03:01" or "14:22"

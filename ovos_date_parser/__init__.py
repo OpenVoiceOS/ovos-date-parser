@@ -426,7 +426,7 @@ class DateTimeFormat:
                         formatted_hundreds=formatted_hundreds,
                         number=str(number % 10000))
 
-    def date_format(self, dt, lang, now):
+    def date_format(self, dt, lang, now, include_weekday=True):
         format_str = 'date_full'
         lang = lang.split("-")[0]
         if now:
@@ -444,7 +444,17 @@ class DateTimeFormat:
             elif yesterday.date() == dt.date():
                 format_str = 'yesterday'
 
-        return self.lang_config[lang]['date_format'][format_str].format(
+
+        unformatted = self.lang_config[lang]['date_format'][format_str]
+
+        if not include_weekday:
+            unformatted = unformatted.replace("{weekday}", "").strip(", ")
+            return unformatted.format(
+                month=self.lang_config[lang]['month'][str(dt.month)],
+                day=self.lang_config[lang]['date'][str(dt.day)],
+                formatted_year=self.year_format(dt, lang, False))
+
+        return unformatted.format(
             weekday=self.lang_config[lang]['weekday'][str(dt.weekday())],
             month=self.lang_config[lang]['month'][str(dt.month)],
             day=self.lang_config[lang]['date'][str(dt.day)],
@@ -485,7 +495,7 @@ class DateTimeFormat:
 date_time_format = DateTimeFormat(os.path.join(os.path.dirname(__file__), 'res'))
 
 
-def nice_date(dt, lang, now=None):
+def nice_date(dt, lang, now=None, include_weekday=True):
     """
     Format a datetime to a pronounceable date
 
@@ -505,11 +515,11 @@ def nice_date(dt, lang, now=None):
     """
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
-        return nice_date_pt(dt, now)
+        return nice_date_pt(dt, now, include_weekday)
     if lang.startswith("es"):
-        return nice_date_es(dt, now)
+        return nice_date_es(dt, now, include_weekday)
     if lang.startswith("gl"):
-        return nice_date_gl(dt, now)
+        return nice_date_gl(dt, now, include_weekday)
     date_time_format.cache(lang)
     return date_time_format.date_format(dt, lang, now)
 

@@ -89,7 +89,7 @@ def nice_date_time_es(dt, now=None, use_24hour=False,
     return f"{nice_date_es(dt, now)} a las {nice_time_es(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
-def nice_date_es(dt: datetime, now: datetime = None):
+def nice_date_es(dt: datetime, now: datetime = None, include_weekday=True):
     """
     Formatea una fecha en una forma pronunciable.
 
@@ -104,10 +104,9 @@ def nice_date_es(dt: datetime, now: datetime = None):
     Returns:
         (str): La cadena de fecha formateada
     """
-    weekday = nice_weekday_es(dt)
     day = pronounce_number_es(dt.day)
     if now is not None:
-        nice = f"{weekday}, {day}"
+        nice = day
         if dt.day == now.day:
             return "hoy"
         if dt.day == now.day + 1:
@@ -119,7 +118,11 @@ def nice_date_es(dt: datetime, now: datetime = None):
         if dt.year != now.year:
             nice = nice + ", " + nice_year_es(dt)
     else:
-        nice = f"{weekday}, {day} de {nice_month_es(dt)}, {nice_year_es(dt)}"
+        nice = f"{day} de {nice_month_es(dt)}, {nice_year_es(dt)}"
+
+    if include_weekday:
+        weekday = nice_weekday_es(dt)
+        nice = f"{weekday}, {nice}"
     return nice
 
 

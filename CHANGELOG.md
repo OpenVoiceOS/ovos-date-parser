@@ -1,16 +1,12 @@
 # Changelog
 
-## [0.6.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.5a1) (2025-08-04)
+## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a1) (2025-08-04)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.4...0.6.5a1)
-
-**Closed issues:**
-
-- pt - grammatical gender for time words [\#94](https://github.com/OpenVoiceOS/ovos-date-parser/issues/94)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.5...0.7.0a1)
 
 **Merged pull requests:**
 
-- fix: pt number grammatical gender [\#95](https://github.com/OpenVoiceOS/ovos-date-parser/pull/95) ([JarbasAl](https://github.com/JarbasAl))
+- feat: optional weekday in nice\_date [\#97](https://github.com/OpenVoiceOS/ovos-date-parser/pull/97) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

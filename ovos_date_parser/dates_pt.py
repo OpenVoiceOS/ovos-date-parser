@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pt import pronounce_number_pt, numbers_to_digits_pt
+from ovos_number_parser.util import GrammaticalGender
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 
 WEEKDAYS_PT = {
@@ -43,7 +44,7 @@ def nice_year_pt(dt, bc=False):
         Returns:
             (str): The formatted year string
     """
-    year = pronounce_number_pt(dt.year)  # TODO - not pronouncing large numbers
+    year = pronounce_number_pt(dt.year, gender=GrammaticalGender.MASCULINE)
     if bc:
         return f"{year} a.C."
     return year
@@ -109,7 +110,7 @@ def nice_date_pt(dt: datetime, now: datetime = None):
         (str): The formatted date string
     """
     weekday = nice_weekday_pt(dt)
-    day = pronounce_number_pt(dt.day)
+    day = pronounce_number_pt(dt.day, gender=GrammaticalGender.MASCULINE)
     if now is not None:
         nice = f"{weekday}, {day}"
         if dt.day == now.day:
@@ -160,14 +161,11 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
     speak = ""
     if use_24hour:
         # simply speak the number
-        if dt.hour == 1:
-            speak += "uma"
-        else:
-            speak += pronounce_number_pt(dt.hour)
+        speak += pronounce_number_pt(dt.hour, gender=GrammaticalGender.FEMININE)
 
         # equivalent to "quarter past ten"
         if dt.minute > 0:
-            speak += " e " + pronounce_number_pt(dt.minute)
+            speak += " e " + pronounce_number_pt(dt.minute, gender=GrammaticalGender.MASCULINE)
 
     else:
         # speak number and add daytime identifier
@@ -201,9 +199,9 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
         elif hour == 2 or hour == 14:
             speak += "duas"
         elif hour < 13:
-            speak = pronounce_number_pt(hour)
+            speak = pronounce_number_pt(hour, gender=GrammaticalGender.FEMININE)
         else:
-            speak = pronounce_number_pt(hour - 12)
+            speak = pronounce_number_pt(hour - 12, gender=GrammaticalGender.FEMININE)
 
         if minute != 0:
             if minute == 15:
@@ -214,9 +212,9 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
                 speak += " menos um quarto"
             else:
                 if minute > 0:
-                    speak += " e " + pronounce_number_pt(minute)
+                    speak += " e " + pronounce_number_pt(minute, gender=GrammaticalGender.MASCULINE)
                 else:
-                    speak += " " + pronounce_number_pt(minute)
+                    speak += " " + pronounce_number_pt(minute, gender=GrammaticalGender.MASCULINE)
 
         # exact time
         if minute == 0 and not use_ampm:

@@ -414,6 +414,19 @@ class DateTimeFormat:
 
     def _number_format_thousand(self, number, number_tuple, lang,
                                 formatted_decade, formatted_hundreds):
+        """
+        Format the thousands part of a year using language-specific templates.
+
+        Parameters:
+            number (int): The year value to format.
+            number_tuple: A named tuple containing precomputed string representations of number components.
+            lang (str): Language code for localization.
+            formatted_decade (str): Preformatted decade string.
+            formatted_hundreds (str): Preformatted hundreds string.
+
+        Returns:
+            str: The formatted thousands part of the year as a localized string.
+        """
         s = self._format_string(number % 10000, 'thousand_format', lang)
         return s.format(x_in_x00=number_tuple.x_in_x00,
                         xx00=number_tuple.xx00,
@@ -427,6 +440,18 @@ class DateTimeFormat:
                         number=str(number % 10000))
 
     def date_format(self, dt, lang, now, include_weekday=True):
+        """
+        Format a datetime object as a localized date string according to language-specific templates.
+        
+        Parameters:
+            dt (datetime): The date to format.
+            lang (str): Language code for localization.
+            now (datetime): Reference date for relative formatting (e.g., today, tomorrow).
+            include_weekday (bool): If True, includes the weekday name in the output.
+        
+        Returns:
+            str: The formatted date string, localized and optionally including the weekday.
+        """
         format_str = 'date_full'
         lang = lang.split("-")[0]
         if now:
@@ -505,6 +530,7 @@ def nice_date(dt, lang, now=None, include_weekday=True):
             will be shortened accordingly: No year is returned if now is in the
             same year as td, no month is returned if now is in the same month
             as td. If now and td is the same day, 'today' is returned.
+        include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
 
     Returns:
         (str): The formatted date string

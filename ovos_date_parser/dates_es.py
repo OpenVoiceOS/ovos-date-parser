@@ -100,6 +100,7 @@ def nice_date_es(dt: datetime, now: datetime = None, include_weekday=True):
         now (datetime): Fecha actual. Si se proporciona, la fecha devuelta se acortará en consecuencia:
             No se devuelve el año si ahora está en el mismo año que `dt`, no se devuelve el mes
             si ahora está en el mismo mes que `dt`. Si `now` y `dt` son el mismo día, se devuelve 'hoy'.
+        include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
 
     Returns:
         (str): La cadena de fecha formateada

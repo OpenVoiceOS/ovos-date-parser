@@ -99,6 +99,7 @@ def nice_date_gl(dt: datetime, now: datetime = None, include_weekday=True):
         now (datetime): Data actual. Se se proporciona, a data devolta acurtarase en consecuencia:
             Non se devolve o ano se now está no mesmo ano que `dt`, non se devolve o mes
             se now está no mesmo mes que `dt`. Se `now` e `dt` son o mesmo día, devélvese 'hoxe'.
+        include_weekday (bool, optional): Whether to prepend the weekday name to the formatted date. Defaults to True.
 
     Returns:
         (str): A cadea de data formatada

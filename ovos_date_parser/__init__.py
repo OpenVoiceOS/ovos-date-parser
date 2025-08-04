@@ -521,7 +521,7 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     if lang.startswith("gl"):
         return nice_date_gl(dt, now, include_weekday)
     date_time_format.cache(lang)
-    return date_time_format.date_format(dt, lang, now)
+    return date_time_format.date_format(dt, lang, now, include_weekday)
 
 
 def nice_date_time(dt, lang, now=None, use_24hour=False,

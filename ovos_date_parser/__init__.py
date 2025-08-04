@@ -414,6 +414,19 @@ class DateTimeFormat:
 
     def _number_format_thousand(self, number, number_tuple, lang,
                                 formatted_decade, formatted_hundreds):
+        """
+        Format the thousands part of a year using language-specific templates.
+
+        Parameters:
+            number (int): The year value to format.
+            number_tuple: A named tuple containing precomputed string representations of number components.
+            lang (str): Language code for localization.
+            formatted_decade (str): Preformatted decade string.
+            formatted_hundreds (str): Preformatted hundreds string.
+
+        Returns:
+            str: The formatted thousands part of the year as a localized string.
+        """
         s = self._format_string(number % 10000, 'thousand_format', lang)
         return s.format(x_in_x00=number_tuple.x_in_x00,
                         xx00=number_tuple.xx00,
@@ -426,7 +439,19 @@ class DateTimeFormat:
                         formatted_hundreds=formatted_hundreds,
                         number=str(number % 10000))
 
-    def date_format(self, dt, lang, now):
+    def date_format(self, dt, lang, now, include_weekday=True):
+        """
+        Format a datetime object as a localized date string according to language-specific templates.
+        
+        Parameters:
+            dt (datetime): The date to format.
+            lang (str): Language code for localization.
+            now (datetime): Reference date for relative formatting (e.g., today, tomorrow).
+            include_weekday (bool): If True, includes the weekday name in the output.
+        
+        Returns:
+            str: The formatted date string, localized and optionally including the weekday.
+        """
         format_str = 'date_full'
         lang = lang.split("-")[0]
         if now:
@@ -444,11 +469,17 @@ class DateTimeFormat:
             elif yesterday.date() == dt.date():
                 format_str = 'yesterday'
 
-        return self.lang_config[lang]['date_format'][format_str].format(
-            weekday=self.lang_config[lang]['weekday'][str(dt.weekday())],
-            month=self.lang_config[lang]['month'][str(dt.month)],
-            day=self.lang_config[lang]['date'][str(dt.day)],
-            formatted_year=self.year_format(dt, lang, False))
+        unformatted = self.lang_config[lang]['date_format'][format_str]
+        args = dict(
+                month=self.lang_config[lang]['month'][str(dt.month)],
+                day=self.lang_config[lang]['date'][str(dt.day)],
+                formatted_year=self.year_format(dt, lang, False)
+        )
+        if include_weekday:
+            args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
+        else:
+            unformatted = re.sub(r"{weekday}\s*,?\s*", "", unformatted).strip(", ")
+        return unformatted.format(**args)
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
         lang = lang.split("-")[0]
@@ -485,7 +516,7 @@ class DateTimeFormat:
 date_time_format = DateTimeFormat(os.path.join(os.path.dirname(__file__), 'res'))
 
 
-def nice_date(dt, lang, now=None):
+def nice_date(dt, lang, now=None, include_weekday=True):
     """
     Format a datetime to a pronounceable date
 
@@ -499,19 +530,20 @@ def nice_date(dt, lang, now=None):
             will be shortened accordingly: No year is returned if now is in the
             same year as td, no month is returned if now is in the same month
             as td. If now and td is the same day, 'today' is returned.
+        include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
 
     Returns:
         (str): The formatted date string
     """
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
-        return nice_date_pt(dt, now)
+        return nice_date_pt(dt, now, include_weekday)
     if lang.startswith("es"):
-        return nice_date_es(dt, now)
+        return nice_date_es(dt, now, include_weekday)
     if lang.startswith("gl"):
-        return nice_date_gl(dt, now)
+        return nice_date_gl(dt, now, include_weekday)
     date_time_format.cache(lang)
-    return date_time_format.date_format(dt, lang, now)
+    return date_time_format.date_format(dt, lang, now, include_weekday)
 
 
 def nice_date_time(dt, lang, now=None, use_24hour=False,

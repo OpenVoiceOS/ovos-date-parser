@@ -93,7 +93,7 @@ def nice_date_time_pt(dt, now=None, use_24hour=False,
     return f"{nice_date_pt(dt, now)} ás {nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
-def nice_date_pt(dt: datetime, now: datetime = None):
+def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
     """
     Format a datetime to a pronounceable date
 
@@ -105,14 +105,14 @@ def nice_date_pt(dt: datetime, now: datetime = None):
             will be shortened accordingly: No year is returned if now is in the
             same year as td, no month is returned if now is in the same month
             as td. If now and td is the same day, 'today' is returned.
+        include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
 
     Returns:
         (str): The formatted date string
     """
-    weekday = nice_weekday_pt(dt)
     day = pronounce_number_pt(dt.day, gender=GrammaticalGender.MASCULINE)
     if now is not None:
-        nice = f"{weekday}, {day}"
+        nice = day
         if dt.day == now.day:
             return "hoje"
         if dt.day == now.day + 1:
@@ -124,7 +124,11 @@ def nice_date_pt(dt: datetime, now: datetime = None):
         if dt.year != now.year:
             nice = nice + ", " + nice_year_pt(dt)
     else:
-        nice = f"{weekday}, {day} de {nice_month_pt(dt)}, {nice_year_pt(dt)}"
+        nice = f"{day} de {nice_month_pt(dt)}, {nice_year_pt(dt)}"
+
+    if include_weekday:
+        weekday = nice_weekday_pt(dt)
+        nice = f"{weekday}, {nice}"
     return nice
 
 
@@ -193,11 +197,6 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
             speak += "meia noite"
         elif hour == 12:
             speak += "meio dia"
-        # 1 and 2 are pronounced in female form when talking about hours
-        elif hour == 1 or hour == 13:
-            speak += "uma"
-        elif hour == 2 or hour == 14:
-            speak += "duas"
         elif hour < 13:
             speak = pronounce_number_pt(hour, gender=GrammaticalGender.FEMININE)
         else:

@@ -88,7 +88,7 @@ def nice_date_time_gl(dt, now=None, use_24hour=False, use_ampm=False):
     return f"{nice_date_gl(dt, now)} ás {nice_time_gl(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
-def nice_date_gl(dt: datetime, now: datetime = None):
+def nice_date_gl(dt: datetime, now: datetime = None, include_weekday=True):
     """
     Formatea unha data nunha forma pronunciable.
 
@@ -99,14 +99,14 @@ def nice_date_gl(dt: datetime, now: datetime = None):
         now (datetime): Data actual. Se se proporciona, a data devolta acurtarase en consecuencia:
             Non se devolve o ano se now está no mesmo ano que `dt`, non se devolve o mes
             se now está no mesmo mes que `dt`. Se `now` e `dt` son o mesmo día, devélvese 'hoxe'.
+        include_weekday (bool, optional): Whether to prepend the weekday name to the formatted date. Defaults to True.
 
     Returns:
         (str): A cadea de data formatada
     """
-    weekday = nice_weekday_gl(dt)
     day = pronounce_number_gl(dt.day)
     if now is not None:
-        nice = f"{weekday}, {day}"
+        nice = day
         if dt.day == now.day:
             return "hoxe"
         if dt.day == now.day + 1:
@@ -118,7 +118,11 @@ def nice_date_gl(dt: datetime, now: datetime = None):
         if dt.year != now.year:
             nice = nice + ", " + nice_year_gl(dt)
     else:
-        nice = f"{weekday}, {day} de {nice_month_gl(dt)}, {nice_year_gl(dt)}"
+        nice = f"{day} de {nice_month_gl(dt)}, {nice_year_gl(dt)}"
+
+    if include_weekday:
+        weekday = nice_weekday_gl(dt)
+        nice = f"{weekday}, {nice}"
     return nice
 
 

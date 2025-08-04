@@ -1,4 +1,4 @@
-ovos-date-parser==0.6.3
+ovos-date-parser==0.6.4
 ├── ovos-skill-days-in-history==0.3.11 [requires: ovos-date-parser>=0.0.3]
 ├── ovos-skill-number-facts==0.1.12 [requires: ovos-date-parser>=0.0.1,<1.0.0]
 ├── ovos-skill-iss-location==0.2.16 [requires: ovos-date-parser>=0.0.3,<1.0.0]

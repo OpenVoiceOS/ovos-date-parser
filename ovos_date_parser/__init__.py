@@ -415,19 +415,19 @@ class DateTimeFormat:
     def _number_format_thousand(self, number, number_tuple, lang,
                                 formatted_decade, formatted_hundreds):
         """
-                                Format the thousands part of a year using language-specific templates.
-                                
-                                Parameters:
-                                    number (int): The year value to format.
-                                    number_tuple: A named tuple containing precomputed string representations of number components.
-                                    lang (str): Language code for localization.
-                                    formatted_decade (str): Preformatted decade string.
-                                    formatted_hundreds (str): Preformatted hundreds string.
-                                
-                                Returns:
-                                    str: The formatted thousands part of the year as a localized string.
-                                """
-                                s = self._format_string(number % 10000, 'thousand_format', lang)
+        Format the thousands part of a year using language-specific templates.
+
+        Parameters:
+            number (int): The year value to format.
+            number_tuple: A named tuple containing precomputed string representations of number components.
+            lang (str): Language code for localization.
+            formatted_decade (str): Preformatted decade string.
+            formatted_hundreds (str): Preformatted hundreds string.
+
+        Returns:
+            str: The formatted thousands part of the year as a localized string.
+        """
+        s = self._format_string(number % 10000, 'thousand_format', lang)
         return s.format(x_in_x00=number_tuple.x_in_x00,
                         xx00=number_tuple.xx00,
                         xx_in_xx00=number_tuple.xx_in_xx00,
@@ -469,21 +469,17 @@ class DateTimeFormat:
             elif yesterday.date() == dt.date():
                 format_str = 'yesterday'
 
-
         unformatted = self.lang_config[lang]['date_format'][format_str]
-
-        if not include_weekday:
-            unformatted = unformatted.replace("{weekday}", "").strip(", ")
-            return unformatted.format(
+        args = dict(
                 month=self.lang_config[lang]['month'][str(dt.month)],
                 day=self.lang_config[lang]['date'][str(dt.day)],
-                formatted_year=self.year_format(dt, lang, False))
-
-        return unformatted.format(
-            weekday=self.lang_config[lang]['weekday'][str(dt.weekday())],
-            month=self.lang_config[lang]['month'][str(dt.month)],
-            day=self.lang_config[lang]['date'][str(dt.day)],
-            formatted_year=self.year_format(dt, lang, False))
+                formatted_year=self.year_format(dt, lang, False)
+        )
+        if include_weekday:
+            args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
+        else:
+            unformatted = unformatted.replace("{weekday}", "").strip(", ")
+        return unformatted.format(**args)
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
         lang = lang.split("-")[0]
@@ -522,18 +518,21 @@ date_time_format = DateTimeFormat(os.path.join(os.path.dirname(__file__), 'res')
 
 def nice_date(dt, lang, now=None, include_weekday=True):
     """
-    Formats a datetime object into a human-friendly, pronounceable date string in the specified language.
-    
-    If a reference date (`now`) is provided, the output is shortened when possible (e.g., omitting the year if it matches, or returning "today" if the dates are the same). The weekday can be optionally included or excluded from the formatted string.
-    
-    Parameters:
-        dt (datetime): The date to format.
-        lang (str): BCP-47 language code for localization.
-        now (datetime, optional): Reference date for relative formatting.
-        include_weekday (bool, optional): Whether to include the weekday in the output. Defaults to True.
-    
+    Format a datetime to a pronounceable date
+
+    For example, generates 'tuesday, june the fifth, 2018'
+
+    Args:
+        dt (datetime): date to format (assumes already in local timezone)
+        lang (str, optional): an optional BCP-47 language code, if omitted
+                              the default language will be used.
+        now (datetime): Current date. If provided, the returned date for speech
+            will be shortened accordingly: No year is returned if now is in the
+            same year as td, no month is returned if now is in the same month
+            as td. If now and td is the same day, 'today' is returned.
+
     Returns:
-        str: The formatted, localized date string.
+        (str): The formatted date string
     """
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
@@ -549,20 +548,24 @@ def nice_date(dt, lang, now=None, include_weekday=True):
 def nice_date_time(dt, lang, now=None, use_24hour=False,
                    use_ampm=False):
     """
-                   Format a datetime object as a human-friendly, localized date and time string.
-                   
-                   Generates a pronounceable date and time phrase in the specified language, with language-specific formatting for Portuguese, Spanish, and Galician. For other languages, uses a resource-based formatter. The output adapts to the current date if provided, omitting redundant information (such as the year or month) when appropriate.
-                   
-                   Parameters:
-                       dt (datetime): The datetime to format.
-                       lang (str): BCP-47 language code for localization.
-                       now (datetime, optional): Reference date for relative formatting; omits year or month if matching.
-                       use_24hour (bool, optional): If True, formats time in 24-hour notation; otherwise uses 12-hour format.
-                       use_ampm (bool, optional): If True and using 12-hour format, includes AM/PM marker.
-                   
-                   Returns:
-                       str: The formatted, localized date and time string.
-                   """
+        Format a datetime to a pronounceable date and time
+
+        For example, generate 'tuesday, june the fifth, 2018 at five thirty'
+
+        Args:
+            dt (datetime): date to format (assumes already in local timezone)
+            lang (str, optional): an optional BCP-47 language code, if omitted
+                                  the default language will be used.
+            now (datetime): Current date. If provided, the returned date for
+                speech will be shortened accordingly: No year is returned if
+                now is in the same year as td, no month is returned if now is
+                in the same month as td. If now and td is the same day, 'today'
+                is returned.
+            use_24hour (bool): output in 24-hour/military or 12-hour format
+            use_ampm (bool): include the am/pm for 12-hour format
+        Returns:
+            (str): The formatted date time string
+    """
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_time_pt(dt, now, use_24hour, use_ampm)

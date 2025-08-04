@@ -444,21 +444,17 @@ class DateTimeFormat:
             elif yesterday.date() == dt.date():
                 format_str = 'yesterday'
 
-
         unformatted = self.lang_config[lang]['date_format'][format_str]
-
-        if not include_weekday:
-            unformatted = unformatted.replace("{weekday}", "").strip(", ")
-            return unformatted.format(
+        args = dict(
                 month=self.lang_config[lang]['month'][str(dt.month)],
                 day=self.lang_config[lang]['date'][str(dt.day)],
-                formatted_year=self.year_format(dt, lang, False))
-
-        return unformatted.format(
-            weekday=self.lang_config[lang]['weekday'][str(dt.weekday())],
-            month=self.lang_config[lang]['month'][str(dt.month)],
-            day=self.lang_config[lang]['date'][str(dt.day)],
-            formatted_year=self.year_format(dt, lang, False))
+                formatted_year=self.year_format(dt, lang, False)
+        )
+        if include_weekday:
+            args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
+        else:
+            unformatted = unformatted.replace("{weekday}", "").strip(", ")
+        return unformatted.format(**args)
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
         lang = lang.split("-")[0]

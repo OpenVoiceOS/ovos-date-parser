@@ -26,7 +26,8 @@
     "5": {"match": "^(1\\d{3})|(\\d0\\d{2})$", "format": "{formatted_thousand} og {formatted_decade} {bc}"},
     "6": {"match": "^\\d{4}$", "format": "{formatted_thousand} {formatted_hundreds} og {formatted_decade} {bc}"},
     "default": "{year} {bc}",
-    "bc": "f.kr."
+    "bc": "f.kr.",
+    "ad": "e.kr."
   },
   "date_format": {
     "date_full": "{weekday}, den {day} {month}, {formatted_year}",
@@ -51,13 +52,13 @@
   "date": {
     "1": "første",
     "2": "anden",
-    "3": "tredie",
+    "3": "tredje",
     "4": "fjerde",
     "5": "femte",
     "6": "sjette",
     "7": "syvende",
     "8": "ottende",
-    "9": "ninende",
+    "9": "niende",
     "10": "tiende",
     "11": "elvte",
     "12": "tolvte",
@@ -107,7 +108,7 @@
     "8": "otte",
     "9": "ni",
     "10": "ti",
-    "11": "elve",
+    "11": "elleve",
     "12": "tolv",
     "13": "tretten",
     "14": "fjorten",
@@ -120,7 +121,7 @@
     "30": "tredive",
     "40": "fyrre",
     "50": "halvtreds",
-    "60": "treds",
+    "60": "tres",
     "70": "halvfjerds",
     "80": "firs",
     "90": "halvfems",

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0a4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a4) (2025-12-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a3...0.7.0a4)
+
+**Merged pull requests:**
+
+- chore\(deps\): update dependency python to 3.14 [\#102](https://github.com/OpenVoiceOS/ovos-date-parser/pull/102) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.7.0a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a3) (2025-12-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a2...0.7.0a3)
+
+**Merged pull requests:**
+
+- chore\(deps\): update actions/setup-python action to v6 [\#106](https://github.com/OpenVoiceOS/ovos-date-parser/pull/106) ([renovate[bot]](https://github.com/apps/renovate))
+- chore\(deps\): update actions/checkout action to v6 [\#103](https://github.com/OpenVoiceOS/ovos-date-parser/pull/103) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a2) (2025-12-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a1...0.7.0a2)

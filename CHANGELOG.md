@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.1a1) (2026-04-03)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a5...0.7.1a1)
+
+**Merged pull requests:**
+
+- Fix French runtime date resources [\#108](https://github.com/OpenVoiceOS/ovos-date-parser/pull/108) ([goldyfruit](https://github.com/goldyfruit))
+
+## [0.7.0a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a5) (2025-12-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a4...0.7.0a5)
+
 ## [0.7.0a4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a4) (2025-12-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a3...0.7.0a4)

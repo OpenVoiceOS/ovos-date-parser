@@ -261,6 +261,8 @@ def extract_datetime(
         return extract_datetime_en(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("es"):
         return extract_datetime_es(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("eu"):
+        return extract_datetime_eu(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fa"):
         return extract_datetime_fa(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fr"):
@@ -656,7 +658,8 @@ def nice_year(dt, lang, bc=False):
     return date_time_format.year_format(dt, lang, bc)
 
 
-def get_date_strings(dt, lang, date_format='DMY', time_format="full"):
+def get_date_strings(dt, lang, date_format=None, time_format="full"):
+    date_format = date_format or Configuration().get("date_format", 'DMY')
     lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
                         use_24hour=time_format == "full")

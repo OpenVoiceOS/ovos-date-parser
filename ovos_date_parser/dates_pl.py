@@ -296,7 +296,23 @@ def nice_duration_pl(duration, speech=True):
         str: timespan as a string
     """
     if not speech:
-        raise NotImplementedError
+        # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
+        _days = int(duration // 86400)
+        _hours = int(duration // 3600 % 24)
+        _minutes = int(duration // 60 % 60)
+        _seconds = int(duration % 60)
+        out = ""
+        if _days > 0:
+            out = str(_days) + "d "
+        if _hours > 0 or _days > 0:
+            out += str(_hours) + ":"
+        if _minutes < 10 and (_hours > 0 or _days > 0):
+            out += "0"
+        out += str(_minutes) + ":"
+        if _seconds < 10:
+            out += "0"
+        out += str(_seconds)
+        return out
 
     days = int(duration // 86400)
     hours = int(duration // 3600 % 24)

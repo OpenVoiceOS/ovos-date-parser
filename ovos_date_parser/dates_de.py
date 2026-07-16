@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_de import pronounce_number_de, _get_ordinal_index, is_number_de, is_numeric_de, \
     numbers_to_digits_de
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 def nice_time_de(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -72,62 +75,26 @@ def nice_time_de(dt, speech=True, use_24hour=False, use_ampm=False):
     return string
 
 
-def extract_duration_de(text):
+def extract_duration_de(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert a german phrase into a number of seconds
-    Convert things like:
-        "10 Minuten"
-        "3 Tage 8 Stunden 10 Minuten und 49 Sekunden"
-    into an int, representing the total number of seconds.
-    The words used in the duration will be consumed, and
-    the remainder returned.
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
+
     Args:
-        text (str): string containing a duration
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = text.lower()
-    # die time_unit values werden für timedelta() mit dem jeweiligen Wert überschrieben
-    time_units = {
-        'microseconds': 'mikrosekunden',
-        'milliseconds': 'millisekunden',
-        'seconds': 'sekunden',
-        'minutes': 'minuten',
-        'hours': 'stunden',
-        'days': 'tage',
-        'weeks': 'wochen'
-    }
-
-    # Einzahl und Mehrzahl
-    pattern = r"(?:^|\s)(?P<value>\d+(?:[.,]?\d+)?\b)(?:\s+|\-)(?P<unit>{unit}[nes]?[sn]?\b)"
-
-    text = numbers_to_digits_de(text)
-
-    for (unit_en, unit_de) in time_units.items():
-        unit_pattern = pattern.format(
-            unit=unit_de[:-1])  # remove 'n'/'e' from unit
-        time_units[unit_en] = 0
-
-        def repl(match):
-            value = match.group("value").replace(",", ".")
-            time_units[unit_en] += float(value)
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["de"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_de(text, anchorDate=None, default_time=None):

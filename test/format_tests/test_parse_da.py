@@ -32,7 +32,7 @@ class TestExtractDurationDA(unittest.TestCase):
 
     def test_no_duration_found(self):
         self.assertEqual(extract_duration_da("der er ikke nogen tid"), (None, "der er ikke nogen tid"))
-        self.assertEqual(extract_duration_da(""), (None, ""))
+        self.assertEqual(extract_duration_da(""), None)
 
 
 if __name__ == "__main__":

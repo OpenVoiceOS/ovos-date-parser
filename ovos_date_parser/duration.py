@@ -88,6 +88,9 @@ class DurationLexicon:
             follows a numeral. Units are matched in _UNITS order.
         value_pattern: regex for the numeric value (named group ``value``).
         joiner: regex between the value and the unit word.
+        pattern_template: optional full pattern override with a ``{unit}``
+            placeholder; must define a ``value`` group and may define a
+            ``half`` group adding 0.5 to the value when present.
         normalize: optional override for text normalization; receives the
             raw text and returns text with numerals as digits. Defaults
             to ``numbers_to_digits(text.lower(), lang)``.
@@ -96,12 +99,18 @@ class DurationLexicon:
     units: Dict[str, str]
     value_pattern: str = r"(?P<value>\d+(?:[.,]\d+)?)"
     joiner: str = r"(?:\s+|-)"
+    pattern_template: Optional[str] = None
     normalize: Optional[Callable[[str], str]] = None
 
     def _normalize(self, text: str) -> str:
         if self.normalize:
             return self.normalize(text)
         return numbers_to_digits(text.lower(), self.lang)
+
+    def _pattern(self, fragment: str) -> str:
+        if self.pattern_template:
+            return self.pattern_template.format(unit=fragment)
+        return self.value_pattern + self.joiner + "(?:" + fragment + r")\b"
 
 
 def extract_duration_generic(
@@ -125,11 +134,12 @@ def extract_duration_generic(
         frag = lexicon.units.get(unit)
         if not frag:
             continue
-        pattern = lexicon.value_pattern + lexicon.joiner + \
-            "(?:" + frag + r")\b"
+        pattern = lexicon._pattern(frag)
 
         def repl(match, _unit=unit):
             val = float(match.group("value").replace(",", "."))
+            if "half" in match.groupdict() and match.group("half"):
+                val += 0.5
             values[_unit] = values.get(_unit, 0) + val
             return replace_token
 
@@ -322,4 +332,173 @@ register_duration_lexicon(DurationLexicon(
         "decades": r"desetletj(?:e|a|i|ih)?|desetletij",
         "centuries": r"stoletj(?:e|a|i|ih)?|stoletij",
         "millenniums": r"tisočletj(?:e|a|i|ih)?|tisočletij",
+    }))
+
+
+def _normalize_en(text: str) -> str:
+    # the English-specific normalizer folds "X and a half" into X.5
+    from ovos_number_parser.numbers_en import numbers_to_digits_en
+    text = numbers_to_digits_en(text)
+    text = text.replace("centuries", "century").replace(
+        "millenia", "millennium")
+    for word in ("day", "month", "year", "decade", "century", "millennium"):
+        text = text.replace(f"a {word}", f"1 {word}")
+    return text
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="en",
+    normalize=_normalize_en,
+    units={
+        "microseconds": r"microseconds?",
+        "milliseconds": r"milliseconds?",
+        "seconds": r"seconds?",
+        "minutes": r"minutes?",
+        "hours": r"hours?",
+        "days": r"days?",
+        "weeks": r"weeks?",
+        "months": r"months?",
+        "years": r"years?",
+        "decades": r"decades?",
+        "centuries": r"centurys?",
+        "millenniums": r"millenniums?",
+    }))
+
+
+def _fold_iberian(text: str) -> str:
+    return text.lower().replace("í", "i").replace("é", "e").replace("ñ", "n")
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="ca",
+    normalize=lambda text: numbers_to_digits(_fold_iberian(text), "ca"),
+    units={
+        "microseconds": r"microsegons?",
+        "milliseconds": r"mil·lisegons?|milisegons?",
+        "seconds": r"segons?",
+        "minutes": r"minuts?",
+        "hours": r"hor(?:a|es)",
+        "days": r"di(?:a|es)",
+        "weeks": r"setman(?:a|es)",
+        "months": r"mes(?:os)?",
+        "years": r"anys?",
+        "decades": r"dècad(?:a|es)|decad(?:a|es)",
+        "centuries": r"segles?",
+        "millenniums": r"mil·lenis?|milenis?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="es",
+    normalize=lambda text: numbers_to_digits(_fold_iberian(text), "es"),
+    units={
+        "microseconds": r"microsegundos?",
+        "milliseconds": r"milisegundos?",
+        "seconds": r"segundos?",
+        "minutes": r"minutos?",
+        "hours": r"horas?",
+        "days": r"dias?",
+        "weeks": r"semanas?",
+        "months": r"mes(?:es)?",
+        "years": r"anos?",
+        "decades": r"decadas?",
+        "centuries": r"siglos?",
+        "millenniums": r"milenios?",
+    }))
+
+# the Galician number normalizer folds articles ("un temporizador" ->
+# "1 temporizador"), so only accent folding is applied here
+register_duration_lexicon(DurationLexicon(
+    lang="gl",
+    normalize=_fold_iberian,
+    units={
+        "microseconds": r"microsegundos?",
+        "milliseconds": r"milisegundos?",
+        "seconds": r"segundos?",
+        "minutes": r"minutos?",
+        "hours": r"horas?",
+        "days": r"dias?",
+        "weeks": r"semanas?",
+        "months": r"mes(?:es)?",
+        "years": r"anos?",
+        "decades": r"decadas?",
+        "centuries": r"seculos?",
+        "millenniums": r"milenios?",
+    }))
+
+
+def _normalize_pt(text: str) -> str:
+    text = text.lower().replace("mês", "meses").replace("é", "e")
+    # "segundo" (second) is also the ordinal "second"; shield it from the
+    # number normalizer
+    text = text.replace("segundo", "_s_")
+    text = numbers_to_digits(text, "pt")
+    return text.replace("_s_", "segundo")
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="pt",
+    normalize=_normalize_pt,
+    units={
+        "microseconds": r"microsegundos?",
+        "milliseconds": r"milisegundos?",
+        "seconds": r"segundos?",
+        "minutes": r"minutos?",
+        "hours": r"horas?",
+        "days": r"dias?",
+        "weeks": r"semanas?",
+        "months": r"meses",
+        "years": r"anos?",
+        "decades": r"decadas?",
+        "centuries": r"seculos?",
+        "millenniums": r"milenios?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="de",
+    pattern_template=r"(?:^|\s)(?P<value>\d+(?:[.,]?\d+)?\b)(?:\s+|\-)"
+                     r"(?:{unit})\b",
+    units={
+        "microseconds": r"mikrosekunde[nes]?[sn]?",
+        "milliseconds": r"millisekunde[nes]?[sn]?",
+        "seconds": r"sekunde[nes]?[sn]?",
+        "minutes": r"minute[nes]?[sn]?",
+        "hours": r"stunde[nes]?[sn]?",
+        "days": r"tag[nes]?[sn]?",
+        "weeks": r"woche[nes]?[sn]?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="nl",
+    units={
+        "microseconds": r"microsecond(?:jes|je|en|e)?",
+        "milliseconds": r"millisecond(?:jes|je|en|e)?",
+        "seconds": r"second(?:jes|je|en|e)?",
+        "minutes": r"minu(?:ut(?:jes|je)?|ten)",
+        "hours": r"u(?:ur(?:tjes|tje)?|ren)",
+        "days": r"dag(?:jes|je|en)?",
+        "weeks": r"we(?:ek(?:jes|je)?|ken)",
+    }))
+
+def _normalize_da(text: str) -> str:
+    # the Danish-specific normalizer keeps the article "en" intact
+    from ovos_number_parser.numbers_da import numbers_to_digits_da
+    return numbers_to_digits_da(text.lower())
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="da",
+    normalize=_normalize_da,
+    units={
+        "microseconds": r"mikrosekund(?:ers|er|s)?",
+        "milliseconds": r"millisekund(?:er|s)?",
+        "seconds": r"sekund(?:ers|er|s)?",
+        "minutes": r"minut(?:ters|ter|s)?",
+        "hours": r"time(?:rs|r|s)?",
+        "days": r"dag(?:es|e|s)?",
+        "weeks": r"uge(?:rs|r|s)?",
+        "months": r"måned(?:ers|er|s)?",
+        "years": r"års?",
+        "decades": r"årti(?:er|s)?",
+        "centuries": r"århundrede(?:r|s)?",
+        "millenniums": r"årtusinde(?:r|s)?",
     }))

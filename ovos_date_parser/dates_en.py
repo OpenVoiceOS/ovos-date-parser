@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_en import extract_number_en, numbers_to_digits_en, pronounce_number_en
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 def nice_time_en(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -91,85 +94,26 @@ def nice_time_en(dt, speech=True, use_24hour=False, use_ampm=False):
         return speak
 
 
-def extract_duration_en(text):
+def extract_duration_en(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-    # NOTE: these are spelled wrong on purpose because of the loop below that strips the s
-    units = ['months', 'years', 'decades', 'centurys', 'millenniums'] + \
-            list(time_units.keys())
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}s?"
-    text = numbers_to_digits_en(text)
-    text = text.replace("centuries", "century").replace("millenia", "millennium")
-    for word in ('day', 'month', 'year', 'decade', 'century', 'millennium'):
-        text = text.replace(f'a {word}', f'1 {word}')
-
-    for unit_en in units:
-        unit_pattern = pattern.format(unit=unit_en[:-1])  # remove 's' from unit
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        def repl_non_std(match):
-            val = float(match.group(1))
-            if unit_en == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit_en == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit_en == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit_en == "centurys":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit_en == "millenniums":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            return ''
-
-        if unit_en not in time_units:
-            text = re.sub(unit_pattern, repl_non_std, text)
-        else:
-            text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["en"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_en(text, anchorDate=None, default_time=None):

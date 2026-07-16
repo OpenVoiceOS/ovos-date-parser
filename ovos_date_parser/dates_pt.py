@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pt import pronounce_number_pt, numbers_to_digits_pt
 from ovos_number_parser.util import GrammaticalGender
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 WEEKDAYS_PT = {
     0: "segunda-feira",
@@ -1034,88 +1037,23 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
     return [extractedDate, resultStr]
 
 
-def extract_duration_pt(text):
+def extract_duration_pt(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert a portuguese phrase into a number of seconds
-    Convert things like:
-        "10 Minutos"
-        "3 dias 8 horas 10 Minutos e 49 Segundos"
-    into an int, representing the total number of seconds.
-    The words used in the duration will be consumed, and
-    the remainder returned.
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
+
     Args:
-        text (str): string containing a duration
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = text.lower()
-    time_units = {
-        'microseconds': 'microsegundos',
-        'milliseconds': 'milisegundos',
-        'seconds': 'segundos',
-        'minutes': 'minutos',
-        'hours': 'horas',
-        'days': 'dias',
-        'weeks': 'semanas'
-    }
-    # NOTE: some of these english units are spelled wrong on purpose because of the loop below that strips the s
-    non_std_un = {
-        "months": "meses",
-        "years": "anos",
-        'decades': "decadas",
-        'centurys': "seculos",
-        'millenniums': "milenios"
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[s]?"
-
-    text = text.replace("mês", "meses").replace("é", "e")
-    text = text.replace("segundo", "_s_")  # HACK - segundo (second) will be replaced with 2
-    text = numbers_to_digits_pt(text)
-    text = text.replace("_s_", "segundo")  # undo HACK
-
-    for (unit_en, unit_pt) in time_units.items():
-        unit_pattern = pattern.format(
-            unit=unit_pt[:-1])  # remove 's' from unit
-        time_units[unit_en] = 0
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    for (unit_en, unit_pt) in non_std_un.items():
-        unit_pattern = pattern.format(
-            unit=unit_pt[:-1])  # remove 's' from unit
-
-        def repl_non_std(match):
-            val = float(match.group(1))
-            if unit_en == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit_en == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit_en == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit_en == "centurys":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit_en == "millenniums":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            return ''
-
-        text = re.sub(unit_pattern, repl_non_std, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["pt"],
+                                    resolution, replace_token)

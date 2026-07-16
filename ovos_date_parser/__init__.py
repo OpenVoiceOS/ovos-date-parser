@@ -228,28 +228,12 @@ def extract_duration(
         return extract_duration_ar(text)
     if lang.startswith("az"):
         return extract_duration_az(text)
-    if lang.startswith("ca"):
-        return extract_duration_ca(text)
     if lang.startswith("cs"):
         return extract_duration_cs(text)
-    if lang.startswith("da"):
-        return extract_duration_da(text)
-    if lang.startswith("de"):
-        return extract_duration_de(text)
-    if lang.startswith("en"):
-        return extract_duration_en(text)
-    if lang.startswith("es"):
-        return extract_duration_es(text)
-    if lang.startswith("gl"):
-        return extract_duration_gl(text)
     if lang.startswith("fa"):
         return extract_duration_fa(text)
-    if lang.startswith("nl"):
-        return extract_duration_nl(text)
     if lang.startswith("pl"):
         return extract_duration_pl(text)
-    if lang.startswith("pt"):
-        return extract_duration_pt(text)
     if lang.startswith("ru"):
         return extract_duration_ru(text)
     if lang.startswith("sv"):

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.10.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.9.0a1...0.10.0a1)
+
+**Merged pull requests:**
+
+- feat: galician datetime extraction [\#114](https://github.com/OpenVoiceOS/ovos-date-parser/pull/114) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.9.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.9.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.8.0a1...0.9.0a1)

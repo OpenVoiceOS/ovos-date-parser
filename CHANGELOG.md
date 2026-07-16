@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.9.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.8.0a1...0.9.0a1)
+
+**Merged pull requests:**
+
+- feat: hungarian datetime extraction [\#113](https://github.com/OpenVoiceOS/ovos-date-parser/pull/113) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.8.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.8.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.2a1...0.8.0a1)

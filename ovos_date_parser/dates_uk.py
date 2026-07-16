@@ -6,6 +6,9 @@ from ovos_number_parser.numbers_uk import extract_number_uk, numbers_to_digits_u
     _NUM_STRING_UK
 from ovos_number_parser.util import invert_dict, is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 # hours
 HOURS_UK = {
@@ -163,69 +166,26 @@ _STRING_NUM_UK.update({
 })
 
 
-def extract_duration_uk(text):
+def extract_duration_uk(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    # Ukrainian inflection for time: хвилина, хвилини, хвилин - safe to use хвилина as pattern
-    # For day: день, дня, днів - short pattern not applicable, list all
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}(?:ів|я|и|ин|і|унд|ни|ну|ку|дні|у|днів)?"
-    text = numbers_to_digits_uk(text)
-
-    for (unit_uk, unit_en) in _TIME_UNITS_CONVERSION.items():
-        unit_pattern = pattern.format(unit=unit_uk)
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    new_text = []
-    tokens_in_result_text = text.split(' ')
-    for token in tokens_in_result_text:
-        if not token.isdigit():
-            new_text.append(token)
-    text = " ".join(new_text).strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return duration, text
+    return extract_duration_generic(text, DURATION_LEXICONS["uk"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_uk(text, anchor_date=None, default_time=None):

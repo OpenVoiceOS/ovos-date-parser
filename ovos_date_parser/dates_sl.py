@@ -1,5 +1,9 @@
+import re
+from datetime import timedelta
 
+from ovos_number_parser import numbers_to_digits
 from ovos_number_parser.numbers_sl import pronounce_number_sl
+from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
 
 
 def nice_time_sl(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -87,3 +91,54 @@ def nice_time_sl(dt, speech=True, use_24hour=False, use_ampm=False):
                 speak += " a.m."
 
         return speak
+
+
+def extract_duration_sl(text):
+    """
+    Convert a Slovenian phrase into a number of seconds.
+
+    Converts things like "deset minut" or "3 dni 8 ur 10 minut" into a
+    timedelta, accepting the declined unit forms that follow numerals.
+    The words used in the duration are consumed, the remainder of the
+    text is returned.
+
+    Args:
+        text (str): string containing a duration.
+    Returns:
+        (timedelta, str): the duration and the remaining unconsumed text,
+                          or None if the input is empty. The duration is
+                          None if no duration was found.
+    """
+    if not text:
+        return None
+
+    text = numbers_to_digits(text.lower(), "sl")
+
+    units = [
+        (r"mikrosekund(?:a|e|i|o)?", "microseconds", None),
+        (r"milisekund(?:a|e|i|o)?", "milliseconds", None),
+        (r"sekund(?:a|e|i|o)?", "seconds", None),
+        (r"minut(?:a|e|i|o)?", "minutes", None),
+        (r"ur(?:a|e|i|o)?", "hours", None),
+        (r"(?:dan|dni|dnev(?:a|e|i|ov)?)", "days", None),
+        (r"(?:teden|tedn(?:a|e|i|ov)?)", "weeks", None),
+        (r"mesec(?:a|e|i|ev)?", "days", DAYS_IN_1_MONTH),
+        (r"let(?:o|a|i|ih)?", "days", DAYS_IN_1_YEAR),
+        (r"desetletj(?:e|a|i|ih)?|desetletij", "days", 10 * DAYS_IN_1_YEAR),
+        (r"stoletj(?:e|a|i|ih)?|stoletij", "days", 100 * DAYS_IN_1_YEAR),
+        (r"tisočletj(?:e|a|i|ih)?|tisočletij", "days", 1000 * DAYS_IN_1_YEAR),
+    ]
+    values = {}
+    for unit_re, unit, mult in units:
+        pattern = r"(?P<value>\d+(?:[.,]\d+)?)(?:\s+|-)(?:" + unit_re + r")\b"
+
+        def repl(match):
+            val = float(match.group("value").replace(",", "."))
+            values[unit] = values.get(unit, 0) + (val * mult if mult else val)
+            return ""
+
+        text = re.sub(pattern, repl, text)
+
+    text = re.sub(r"\s+", " ", text).strip(" ,;.!")
+    duration = timedelta(**values) if values else None
+    return duration, text

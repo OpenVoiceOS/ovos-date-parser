@@ -35,21 +35,22 @@ from ovos_date_parser.dates_es import (
     nice_weekday_es, nice_day_es, nice_year_es, nice_month_es
 )
 from ovos_date_parser.dates_eu import (
-    extract_datetime_eu, nice_time_eu, nice_relative_time_eu,
+    extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
 )
 from ovos_date_parser.dates_fa import (
     extract_datetime_fa, nice_time_fa, extract_duration_fa,
 )
 from ovos_date_parser.dates_fr import (
+    extract_duration_fr,
     extract_datetime_fr, nice_time_fr
 )
 from ovos_date_parser.dates_gl import (
     extract_duration_gl, nice_year_gl, nice_weekday_gl, nice_month_gl,
     nice_day_gl, nice_date_time_gl, nice_date_gl, nice_time_gl
 )
-from ovos_date_parser.dates_hu import nice_time_hu
+from ovos_date_parser.dates_hu import nice_time_hu, extract_duration_hu
 from ovos_date_parser.dates_it import (
-    extract_datetime_it, nice_time_it
+    extract_datetime_it, nice_time_it, extract_duration_it
 )
 from ovos_date_parser.dates_nl import (
     extract_datetime_nl, nice_part_of_day_nl, extract_duration_nl, nice_time_nl
@@ -65,7 +66,7 @@ from ovos_date_parser.dates_ru import (
     extract_datetime_ru, extract_duration_ru, nice_time_ru, nice_duration_ru
 )
 from ovos_date_parser.dates_sl import (
-    nice_time_sl
+    nice_time_sl, extract_duration_sl
 )
 from ovos_date_parser.dates_sv import (
     extract_datetime_sv, extract_duration_sv, nice_time_sv
@@ -208,12 +209,20 @@ def extract_duration(
         return extract_duration_de(text)
     if lang.startswith("en"):
         return extract_duration_en(text)
+    if lang.startswith("eu"):
+        return extract_duration_eu(text)
     if lang.startswith("es"):
         return extract_duration_es(text)
     if lang.startswith("gl"):
         return extract_duration_gl(text)
     if lang.startswith("fa"):
         return extract_duration_fa(text)
+    if lang.startswith("fr"):
+        return extract_duration_fr(text)
+    if lang.startswith("hu"):
+        return extract_duration_hu(text)
+    if lang.startswith("it"):
+        return extract_duration_it(text)
     if lang.startswith("nl"):
         return extract_duration_nl(text)
     if lang.startswith("pl"):
@@ -222,6 +231,8 @@ def extract_duration(
         return extract_duration_pt(text)
     if lang.startswith("ru"):
         return extract_duration_ru(text)
+    if lang.startswith("sl"):
+        return extract_duration_sl(text)
     if lang.startswith("sv"):
         return extract_duration_sv(text)
     if lang.startswith("uk"):

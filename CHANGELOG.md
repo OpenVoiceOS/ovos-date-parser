@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.13.0a2) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.13.0a1...0.13.0a2)
+
+**Merged pull requests:**
+
+- refactor: port Romance and Germanic durations to the shared engine [\#124](https://github.com/OpenVoiceOS/ovos-date-parser/pull/124) ([JarbasAl](https://github.com/JarbasAl))
+- feat: asturian date and time support [\#122](https://github.com/OpenVoiceOS/ovos-date-parser/pull/122) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.13.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.13.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.12.0a1...0.13.0a1)

@@ -565,3 +565,44 @@ register_duration_lexicon(DurationLexicon(
         "days": r"gün",
         "weeks": r"həftə",
     }))
+
+
+def _normalize_ro(text: str) -> str:
+    # articled "one <unit>" forms and idiomatic fractions of an hour
+    text = text.lower().replace("ş", "ș").replace("ţ", "ț")
+    for phrase, repl in (("o secundă", "1 secundă"), ("un minut", "1 minut"),
+                         ("o oră", "1 oră"), ("un ceas", "1 oră"),
+                         ("o zi", "1 zi"), ("o săptămână", "1 săptămână"),
+                         ("o lună", "1 lună"), ("un an", "1 an"),
+                         ("un deceniu", "1 deceniu"),
+                         ("un secol", "1 secol"), ("un veac", "1 secol"),
+                         ("un mileniu", "1 mileniu"),
+                         ("jumătate de oră", "30 minute"),
+                         ("un sfert de oră", "15 minute"),
+                         ("trei sferturi de oră", "45 minute")):
+        text = re.sub(rf"\b{phrase}\b", repl, text)
+    return numbers_to_digits(text, "ro")
+
+
+# "luni" is both Monday and the plural of "lună" (month); the value
+# pattern only matches it after a numeral, so the weekday is never
+# consumed. Numbers link to counted nouns with "de" ("49 de secunde"),
+# which the joiner accepts.
+register_duration_lexicon(DurationLexicon(
+    lang="ro",
+    normalize=_normalize_ro,
+    joiner=r"(?:\s+de\s+|\s+|-)",
+    units={
+        "microseconds": r"microsecund[ăe]",
+        "milliseconds": r"milisecund[ăe]",
+        "seconds": r"secund[ăe](?:le)?",
+        "minutes": r"minut(?:e(?:le)?|ul)?",
+        "hours": r"or[ăe](?:le)?|ceas(?:uri)?",
+        "days": r"zi(?:le(?:le)?|ua)?",
+        "weeks": r"săptămân[ăi](?:le)?",
+        "months": r"lun[ăi](?:le)?",
+        "years": r"an(?:i(?:i)?|ul)?",
+        "decades": r"deceni[iu](?:le)?",
+        "centuries": r"secol(?:e(?:le)?|ul)?|veac(?:uri)?",
+        "millenniums": r"mileni[iu](?:le)?",
+    }))

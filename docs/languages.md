@@ -63,6 +63,19 @@ absolute dates well but not conversational relative phrases.
 (`nice_duration_generic`) for languages without a dedicated implementation;
 plural declension may be imperfect (e.g. Slovenian dual forms).
 
+## Romanian
+
+- `nice_time` speaks quarter-hours idiomatically: "opt și un sfert" (8:15),
+  "opt și jumătate" (8:30, half past), "nouă fără un sfert" (8:45, "fără" =
+  minus, quarter to nine); exact hours take "fix". `use_ampm=True` appends
+  "dimineața" / "după-amiaza" / "seara" / "noaptea".
+- "luni" is both Monday and the plural of "lună" (month); a numeric context
+  ("3 luni") selects the month unit, otherwise it is the weekday.
+- "mai" is both May and a very common adverb; it only parses as a month next
+  to a day or year number ("3 mai", "mai 2019").
+- Spoken numbers are understood in dates, times and durations
+  ("peste trei zile", "douăzeci de minute").
+
 ## Known gaps
 
 - Relative *past* wording ("anoche", "bart", "last night") is not handled in

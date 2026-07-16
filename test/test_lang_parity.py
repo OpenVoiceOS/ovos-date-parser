@@ -12,7 +12,7 @@ from ovos_date_parser import (extract_datetime, extract_duration, nice_date,
                               nice_weekday, nice_year, get_date_strings)
 
 LANGS = ["ar", "ast", "az", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
-         "gl", "hu", "it", "kab", "nl", "pl", "pt", "ru", "sl", "sv", "uk"]
+         "gl", "hu", "it", "kab", "nl", "pl", "pt", "ro", "ru", "sl", "sv", "uk"]
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)
 
@@ -21,7 +21,7 @@ _TOMORROW = {
     "de": "morgen", "en": "tomorrow", "es": "mañana", "eu": "bihar",
     "fa": "فردا", "fr": "demain", "gl": "mañá", "hu": "holnap",
     "it": "domani", "kab": "azekka", "nl": "morgen", "pl": "jutro", "pt": "amanhã",
-    "ru": "завтра", "sl": "jutri", "sv": "imorgon", "uk": "завтра",
+    "ro": "mâine", "ru": "завтра", "sl": "jutri", "sv": "imorgon", "uk": "завтра",
 }
 
 _NO_DATE = {
@@ -31,7 +31,8 @@ _NO_DATE = {
     "fa": "سلام چطوری", "fr": "bonjour ça va", "gl": "ola que tal",
     "hu": "szia hogy vagy", "it": "ciao come stai",
     "kab": "azul fell-awen amek tellam", "nl": "hallo hoe gaat het",
-    "pl": "cześć jak się masz", "pt": "olá tudo bem", "ru": "привет как дела",
+    "pl": "cześć jak się masz", "pt": "olá tudo bem",
+    "ro": "salut ce faci", "ru": "привет как дела",
     "sl": "živjo kako si", "sv": "hej hur mår du", "uk": "привіт як справи",
 }
 
@@ -41,7 +42,7 @@ _DURATION_STRINGS = {
     "es": "10 minutos", "eu": "10 minutu", "fa": "۱۰ دقیقه",
     "fr": "10 minutes", "gl": "10 minutos", "hu": "10 perc",
     "it": "10 minuti", "kab": "10 n tesdidin", "nl": "10 minuten", "pl": "10 minut",
-    "pt": "10 minutos", "ru": "10 минут", "sl": "10 minut",
+    "pt": "10 minutos", "ro": "10 minute", "ru": "10 минут", "sl": "10 minut",
     "sv": "10 minuter", "uk": "10 хвилин",
 }
 

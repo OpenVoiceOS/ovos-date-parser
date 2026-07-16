@@ -1,0 +1,325 @@
+"""Shared duration-extraction engine.
+
+Each language contributes a :class:`DurationLexicon` — a table of unit
+regex fragments covering the declined/suffixed forms that follow a
+numeral — and the generic matcher does the rest: the text is normalized
+(numerals spelled in words become digits), every ``<number> <unit>``
+occurrence is consumed, and the accumulated values are converted to the
+requested :class:`DurationResolution`.
+"""
+import re
+from dataclasses import dataclass, field
+from datetime import timedelta
+from enum import Enum
+from math import modf
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+from dateutil.relativedelta import relativedelta
+from ovos_number_parser import numbers_to_digits
+from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
+
+
+class DurationResolution(Enum):
+    TIMEDELTA = 0
+    RELATIVEDELTA = 1
+    RELATIVEDELTA_STRICT = 1
+    RELATIVEDELTA_FALLBACK = 2
+    RELATIVEDELTA_APPROXIMATE = 3
+    TOTAL_SECONDS = 4
+    TOTAL_MICROSECONDS = 5
+    TOTAL_MILLISECONDS = 6
+    TOTAL_MINUTES = 7
+    TOTAL_HOURS = 8
+    TOTAL_DAYS = 9
+    TOTAL_WEEKS = 10
+    TOTAL_MONTHS = 11
+    TOTAL_YEARS = 12
+    TOTAL_DECADES = 13
+    TOTAL_CENTURIES = 14
+    TOTAL_MILLENNIUMS = 15
+
+
+# canonical unit names, in the order they are matched (smallest first, so
+# e.g. "milliseconds" never loses its prefix to a bare "seconds" fragment)
+_UNITS = ("microseconds", "milliseconds", "seconds", "minutes", "hours",
+          "days", "weeks", "months", "years", "decades", "centuries",
+          "millenniums")
+
+# canonical unit -> microseconds
+_US = {
+    "microseconds": 1,
+    "milliseconds": 1000,
+    "seconds": 1000 * 1000,
+    "minutes": 1000 * 1000 * 60,
+    "hours": 1000 * 1000 * 60 * 60,
+    "days": 1000 * 1000 * 60 * 60 * 24,
+    "weeks": 1000 * 1000 * 60 * 60 * 24 * 7,
+    "months": 1000 * 1000 * 60 * 60 * 24 * DAYS_IN_1_MONTH,
+    "years": 1000 * 1000 * 60 * 60 * 24 * DAYS_IN_1_YEAR,
+    "decades": 1000 * 1000 * 60 * 60 * 24 * DAYS_IN_1_YEAR * 10,
+    "centuries": 1000 * 1000 * 60 * 60 * 24 * DAYS_IN_1_YEAR * 100,
+    "millenniums": 1000 * 1000 * 60 * 60 * 24 * DAYS_IN_1_YEAR * 1000,
+}
+
+_TOTALS = {
+    DurationResolution.TOTAL_MICROSECONDS: "microseconds",
+    DurationResolution.TOTAL_MILLISECONDS: "milliseconds",
+    DurationResolution.TOTAL_SECONDS: "seconds",
+    DurationResolution.TOTAL_MINUTES: "minutes",
+    DurationResolution.TOTAL_HOURS: "hours",
+    DurationResolution.TOTAL_DAYS: "days",
+    DurationResolution.TOTAL_WEEKS: "weeks",
+    DurationResolution.TOTAL_MONTHS: "months",
+    DurationResolution.TOTAL_YEARS: "years",
+    DurationResolution.TOTAL_DECADES: "decades",
+    DurationResolution.TOTAL_CENTURIES: "centuries",
+    DurationResolution.TOTAL_MILLENNIUMS: "millenniums",
+}
+
+
+@dataclass
+class DurationLexicon:
+    """Per-language duration unit table.
+
+    Attributes:
+        lang: BCP-47 code passed to the number parser.
+        units: mapping of canonical unit name -> regex fragment matching
+            every declined/suffixed surface form of that unit when it
+            follows a numeral. Units are matched in _UNITS order.
+        value_pattern: regex for the numeric value (named group ``value``).
+        joiner: regex between the value and the unit word.
+        normalize: optional override for text normalization; receives the
+            raw text and returns text with numerals as digits. Defaults
+            to ``numbers_to_digits(text.lower(), lang)``.
+    """
+    lang: str
+    units: Dict[str, str]
+    value_pattern: str = r"(?P<value>\d+(?:[.,]\d+)?)"
+    joiner: str = r"(?:\s+|-)"
+    normalize: Optional[Callable[[str], str]] = None
+
+    def _normalize(self, text: str) -> str:
+        if self.normalize:
+            return self.normalize(text)
+        return numbers_to_digits(text.lower(), self.lang)
+
+
+def extract_duration_generic(
+        text: str, lexicon: DurationLexicon,
+        resolution: DurationResolution = DurationResolution.TIMEDELTA,
+        replace_token: str = ""
+) -> Optional[Tuple[Optional[Union[timedelta, relativedelta, float]], str]]:
+    """Extract a duration from ``text`` using ``lexicon``.
+
+    Consumes every ``<number> <unit>`` occurrence and returns the duration
+    in the requested resolution plus the remaining text. Returns ``None``
+    for empty input; the duration is ``None`` when nothing matched.
+    """
+    if not text:
+        return None
+
+    text = lexicon._normalize(text)
+
+    values: Dict[str, float] = {}
+    for unit in _UNITS:
+        frag = lexicon.units.get(unit)
+        if not frag:
+            continue
+        pattern = lexicon.value_pattern + lexicon.joiner + \
+            "(?:" + frag + r")\b"
+
+        def repl(match, _unit=unit):
+            val = float(match.group("value").replace(",", "."))
+            values[_unit] = values.get(_unit, 0) + val
+            return replace_token
+
+        text = re.sub(pattern, repl, text)
+
+    if not replace_token:
+        text = re.sub(r"\s+", " ", text).strip(" ,;.!")
+
+    return _resolve(values, resolution), text
+
+
+def _resolve(values: Dict[str, float],
+             resolution: DurationResolution
+             ) -> Optional[Union[timedelta, relativedelta, float]]:
+    """Convert accumulated per-unit values to the requested resolution."""
+    if not values:
+        return None
+
+    if resolution == DurationResolution.TIMEDELTA:
+        td = {k: v for k, v in values.items()
+              if k in ("microseconds", "milliseconds", "seconds",
+                       "minutes", "hours", "weeks")}
+        days = values.get("days", 0) \
+            + values.get("months", 0) * DAYS_IN_1_MONTH \
+            + values.get("years", 0) * DAYS_IN_1_YEAR \
+            + values.get("decades", 0) * 10 * DAYS_IN_1_YEAR \
+            + values.get("centuries", 0) * 100 * DAYS_IN_1_YEAR \
+            + values.get("millenniums", 0) * 1000 * DAYS_IN_1_YEAR
+        if days:
+            td["days"] = days
+        return timedelta(**td)
+
+    if resolution in (DurationResolution.RELATIVEDELTA,
+                      DurationResolution.RELATIVEDELTA_STRICT,
+                      DurationResolution.RELATIVEDELTA_FALLBACK,
+                      DurationResolution.RELATIVEDELTA_APPROXIMATE):
+        rd = {k: values.get(k, 0)
+              for k in ("seconds", "minutes", "hours", "days", "weeks")}
+        # relativedelta has no milliseconds field
+        rd["microseconds"] = int(values.get("microseconds", 0) +
+                                 values.get("milliseconds", 0) * 1000)
+        rd["months"] = values.get("months", 0)
+        # relativedelta has no decade/century/millennium fields
+        rd["years"] = values.get("years", 0) \
+            + values.get("decades", 0) * 10 \
+            + values.get("centuries", 0) * 100 \
+            + values.get("millenniums", 0) * 1000
+        if resolution == DurationResolution.RELATIVEDELTA_APPROXIMATE:
+            _frac, years = modf(rd["years"])
+            rd["months"] += 12 * _frac
+            rd["years"] = int(years)
+            _frac, months = modf(rd["months"])
+            rd["days"] += DAYS_IN_1_MONTH * _frac
+            rd["months"] = int(months)
+        else:
+            for unit in ("months", "years"):
+                _frac, whole = modf(rd[unit])
+                if _frac != 0:
+                    if resolution == DurationResolution.RELATIVEDELTA_FALLBACK:
+                        return _resolve(values, DurationResolution.TIMEDELTA)
+                    raise ValueError(
+                        f"relativedelta requires {unit} to be an integer")
+                rd[unit] = int(whole)
+        return relativedelta(**rd)
+
+    if resolution in _TOTALS:
+        microseconds = sum(v * _US[k] for k, v in values.items())
+        return microseconds / _US[_TOTALS[resolution]]
+
+    raise ValueError(f"invalid resolution: {resolution}")
+
+
+def _suffixed(stem: str, suffixes: str) -> str:
+    """Regex fragment for ``stem`` with optional suffix alternatives."""
+    return stem + "(?:" + suffixes + ")?"
+
+
+DURATION_LEXICONS: Dict[str, DurationLexicon] = {}
+
+
+def register_duration_lexicon(lexicon: DurationLexicon) -> None:
+    DURATION_LEXICONS[lexicon.lang.split("-")[0]] = lexicon
+
+
+# ---------------------------------------------------------------------------
+# language tables
+# ---------------------------------------------------------------------------
+
+register_duration_lexicon(DurationLexicon(
+    lang="fr",
+    units={
+        "microseconds": r"microsecondes?",
+        "milliseconds": r"millisecondes?",
+        "seconds": r"secondes?",
+        "minutes": r"minutes?",
+        "hours": r"heures?",
+        "days": r"jours?",
+        "weeks": r"semaines?",
+        "months": r"mois",
+        "years": r"an(?:née)?s?",
+        "decades": r"décennies?",
+        "centuries": r"siècles?",
+        "millenniums": r"millénaires?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="it",
+    units={
+        "microseconds": r"microsecond[oi]",
+        "milliseconds": r"millisecond[oi]",
+        "seconds": r"second[oi]",
+        "minutes": r"minut[oi]",
+        "hours": r"or[ae]",
+        "days": r"giorn[oi]",
+        "weeks": r"settiman[ae]",
+        "months": r"mes[ei]",
+        "years": r"ann[oi]",
+        "decades": r"decenni[o]?",
+        "centuries": r"secol[oi]",
+        "millenniums": r"millenni[o]?",
+    }))
+
+# Basque nouns stay singular after numerals; the absolutive/case suffixes
+# (-a, -ak, -ko, -tako, -z, -tan, -etan) are accepted.
+_EU_SUFFIX = "ak|a|ko|tako|z|tan|etan"
+register_duration_lexicon(DurationLexicon(
+    lang="eu",
+    units={
+        "microseconds": _suffixed("mikrosegundo", _EU_SUFFIX),
+        "milliseconds": _suffixed("milisegundo", _EU_SUFFIX),
+        "seconds": _suffixed("segundo", _EU_SUFFIX),
+        "minutes": _suffixed("minutu", _EU_SUFFIX),
+        "hours": _suffixed("ordu", _EU_SUFFIX),
+        "days": _suffixed("egun", _EU_SUFFIX),
+        "weeks": _suffixed("aste", _EU_SUFFIX),
+        "months": _suffixed("hilabete", _EU_SUFFIX),
+        "years": _suffixed("urte", _EU_SUFFIX),
+        "decades": _suffixed("hamarkada", "k|ko|tan"),
+        "centuries": _suffixed("mende", _EU_SUFFIX),
+        "millenniums": _suffixed("milurteko", _EU_SUFFIX),
+    }))
+
+
+def _normalize_hu(text: str) -> str:
+    # "hét" is both "seven" and "week": read it as the unit when a number
+    # precedes it and as the numeral otherwise
+    from ovos_number_parser.numbers_hu import extract_number_hu
+    tokens = text.lower().split()
+    protected = []
+    for i, tok in enumerate(tokens):
+        if tok == "hét" and i > 0 and \
+                extract_number_hu(tokens[i - 1]) is not False:
+            protected.append("\x00hét\x00")
+        else:
+            protected.append(tok)
+    text = numbers_to_digits(" ".join(protected), "hu")
+    return text.replace("\x00hét\x00", "hét")
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="hu",
+    normalize=_normalize_hu,
+    units={
+        "microseconds": r"mikroszekundum(?:ot)?",
+        "milliseconds": r"(?:milliszekundum(?:ot)?|ezredmásodperc(?:et)?)",
+        "seconds": r"másodperc(?:et|re|ig)?",
+        "minutes": r"perc(?:et|re|ig)?",
+        "hours": r"(?:óra|órát|órára|óráig)",
+        "days": r"nap(?:ot|ra|ig)?",
+        "weeks": r"h[eé]t(?:et|re|ig)?",
+        "months": r"hónap(?:ot|ra|ig)?",
+        "years": r"év(?:et|re|ig)?",
+        "decades": r"évtized(?:et)?",
+        "centuries": r"évszázad(?:ot)?",
+        "millenniums": r"évezred(?:et)?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="sl",
+    units={
+        "microseconds": r"mikrosekund(?:a|e|i|o)?",
+        "milliseconds": r"milisekund(?:a|e|i|o)?",
+        "seconds": r"sekund(?:a|e|i|o)?",
+        "minutes": r"minut(?:a|e|i|o)?",
+        "hours": r"ur(?:a|e|i|o)?",
+        "days": r"(?:dan|dni|dnev(?:a|e|i|ov)?)",
+        "weeks": r"(?:teden|tedn(?:a|e|i|ov)?)",
+        "months": r"mesec(?:a|e|i|ev)?",
+        "years": r"let(?:o|a|i|ih)?",
+        "decades": r"desetletj(?:e|a|i|ih)?|desetletij",
+        "centuries": r"stoletj(?:e|a|i|ih)?|stoletij",
+        "millenniums": r"tisočletj(?:e|a|i|ih)?|tisočletij",
+    }))

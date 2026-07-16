@@ -6,6 +6,9 @@ from ovos_number_parser.numbers_fr import _number_ordinal_fr, pronounce_number_f
     _number_parse_fr
 from ovos_utils.time import now_local, DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
 from ovos_number_parser import numbers_to_digits
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _ARTICLES_FR = ["le", "la", "du", "de", "les", "des"]
 
@@ -676,52 +679,23 @@ def normalize_fr(text, remove_articles=True):
     return normalized[1:]  # strip the initial space
 
 
-def extract_duration_fr(text):
+def extract_duration_fr(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert a French phrase into a number of seconds.
+    Convert a phrase into a duration and return the remainder text.
 
-    Converts things like "dix minutes" or "3 jours 8 heures 10 minutes et
-    49 secondes" into a timedelta. The words used in the duration are
-    consumed, the remainder of the text is returned.
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
         text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str): the duration and the remaining unconsumed text,
-                          or None if the input is empty. The duration is
-                          None if no duration was found.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = numbers_to_digits(text.lower(), "fr")
-
-    # (regex, timedelta unit, day multiplier)
-    units = [
-        (r"microsecondes?", "microseconds", None),
-        (r"millisecondes?", "milliseconds", None),
-        (r"secondes?", "seconds", None),
-        (r"minutes?", "minutes", None),
-        (r"heures?", "hours", None),
-        (r"jours?", "days", None),
-        (r"semaines?", "weeks", None),
-        (r"mois", "days", DAYS_IN_1_MONTH),
-        (r"an(?:née)?s?", "days", DAYS_IN_1_YEAR),
-        (r"décennies?", "days", 10 * DAYS_IN_1_YEAR),
-        (r"siècles?", "days", 100 * DAYS_IN_1_YEAR),
-        (r"millénaires?", "days", 1000 * DAYS_IN_1_YEAR),
-    ]
-    values = {}
-    for unit_re, unit, mult in units:
-        pattern = r"(?P<value>\d+(?:[.,]\d+)?)(?:\s+|-)" + unit_re + r"\b"
-
-        def repl(match):
-            val = float(match.group("value").replace(",", "."))
-            values[unit] = values.get(unit, 0) + (val * mult if mult else val)
-            return ""
-
-        text = re.sub(pattern, repl, text)
-
-    text = re.sub(r"\s+", " ", text).strip(" ,;.!")
-    duration = timedelta(**values) if values else None
-    return duration, text
+    return extract_duration_generic(text, DURATION_LEXICONS["fr"],
+                                    resolution, replace_token)

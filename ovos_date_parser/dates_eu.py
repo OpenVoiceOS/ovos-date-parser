@@ -6,6 +6,9 @@ from ovos_number_parser.numbers_eu import pronounce_number_eu
 from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
 from ovos_number_parser import numbers_to_digits
 from ovos_date_parser.common import _translate_word
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 HOUR_STRING_EU = {
     1: 'ordubata',
@@ -941,52 +944,23 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
     return [extractedDate, resultStr]
 
 
-def extract_duration_eu(text):
+def extract_duration_eu(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert a Basque phrase into a number of seconds.
+    Convert a phrase into a duration and return the remainder text.
 
-    Converts things like "hamar minutu" or "3 egun 8 ordu 10 minutu"
-    into a timedelta. Basque nouns stay singular after numerals; the
-    absolutive suffixes (-a, -ak) are accepted. The words used in the
-    duration are consumed, the remainder of the text is returned.
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
         text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str): the duration and the remaining unconsumed text,
-                          or None if the input is empty. The duration is
-                          None if no duration was found.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = numbers_to_digits(text.lower(), "eu")
-
-    units = [
-        (r"mikrosegundo(?:ak|a|ko|tako|z|tan|etan)?", "microseconds", None),
-        (r"milisegundo(?:ak|a|ko|tako|z|tan|etan)?", "milliseconds", None),
-        (r"segundo(?:ak|a|ko|tako|z|tan|etan)?", "seconds", None),
-        (r"minutu(?:ak|a|ko|tako|z|tan|etan)?", "minutes", None),
-        (r"ordu(?:ak|a|ko|tako|z|tan|etan)?", "hours", None),
-        (r"egun(?:ak|a|ko|tako|z|tan|etan)?", "days", None),
-        (r"aste(?:ak|a|ko|tako|z|tan|etan)?", "weeks", None),
-        (r"hilabete(?:ak|a|ko|tako|z|tan|etan)?", "days", DAYS_IN_1_MONTH),
-        (r"urte(?:ak|a|ko|tako|z|tan|etan)?", "days", DAYS_IN_1_YEAR),
-        (r"hamarkada(?:k|ko|tan)?", "days", 10 * DAYS_IN_1_YEAR),
-        (r"mende(?:ak|a|ko|tako|z|tan|etan)?", "days", 100 * DAYS_IN_1_YEAR),
-        (r"milurteko(?:ak|a|ko|tako|z|tan|etan)?", "days", 1000 * DAYS_IN_1_YEAR),
-    ]
-    values = {}
-    for unit_re, unit, mult in units:
-        pattern = r"(?P<value>\d+(?:[.,]\d+)?)(?:\s+|-)" + unit_re + r"\b"
-
-        def repl(match):
-            val = float(match.group("value").replace(",", "."))
-            values[unit] = values.get(unit, 0) + (val * mult if mult else val)
-            return ""
-
-        text = re.sub(pattern, repl, text)
-
-    text = re.sub(r"\s+", " ", text).strip(" ,;.!")
-    duration = timedelta(**values) if values else None
-    return duration, text
+    return extract_duration_generic(text, DURATION_LEXICONS["eu"],
+                                    resolution, replace_token)

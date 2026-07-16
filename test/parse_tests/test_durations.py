@@ -2,7 +2,10 @@
 import unittest
 from datetime import timedelta
 
-from ovos_date_parser import extract_duration
+from dateutil.relativedelta import relativedelta
+from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
+
+from ovos_date_parser import extract_duration, DurationResolution
 
 
 class TestExtractDurationFr(unittest.TestCase):
@@ -164,3 +167,70 @@ class TestExtractDurationSl(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDurationResolution(unittest.TestCase):
+    def test_relativedelta(self):
+        self.assertEqual(
+            extract_duration("2 mois", "fr",
+                             resolution=DurationResolution.RELATIVEDELTA),
+            (relativedelta(months=2), ""))
+        self.assertEqual(
+            extract_duration("2 anni e 3 mesi", "it",
+                             resolution=DurationResolution.RELATIVEDELTA),
+            (relativedelta(years=2, months=3), "e"))
+        self.assertEqual(
+            extract_duration("3 tedne", "sl",
+                             resolution=DurationResolution.RELATIVEDELTA),
+            (relativedelta(weeks=3), ""))
+
+    def test_relativedelta_strict_rejects_fractions(self):
+        with self.assertRaises(ValueError):
+            extract_duration("2,5 mois", "fr",
+                             resolution=DurationResolution.RELATIVEDELTA)
+
+    def test_relativedelta_fallback(self):
+        duration, remainder = extract_duration(
+            "2,5 mois", "fr",
+            resolution=DurationResolution.RELATIVEDELTA_FALLBACK)
+        self.assertEqual(duration, timedelta(days=2.5 * DAYS_IN_1_MONTH))
+        self.assertEqual(remainder, "")
+
+    def test_relativedelta_approximate(self):
+        duration, remainder = extract_duration(
+            "2,5 mois", "fr",
+            resolution=DurationResolution.RELATIVEDELTA_APPROXIMATE)
+        self.assertEqual(
+            duration, relativedelta(months=2, days=0.5 * DAYS_IN_1_MONTH))
+        self.assertEqual(remainder, "")
+
+    def test_totals(self):
+        self.assertEqual(
+            extract_duration("2 heures", "fr",
+                             resolution=DurationResolution.TOTAL_MINUTES),
+            (120.0, ""))
+        self.assertEqual(
+            extract_duration("1 jour", "fr",
+                             resolution=DurationResolution.TOTAL_SECONDS),
+            (86400.0, ""))
+        self.assertEqual(
+            extract_duration("1 décennie", "fr",
+                             resolution=DurationResolution.TOTAL_YEARS),
+            (10.0, ""))
+        self.assertEqual(
+            extract_duration("2 urte", "eu",
+                             resolution=DurationResolution.TOTAL_MONTHS),
+            (2 * DAYS_IN_1_YEAR / DAYS_IN_1_MONTH, ""))
+
+    def test_replace_token(self):
+        self.assertEqual(
+            extract_duration("attends 2 minutes puis parle", "fr",
+                             replace_token="_"),
+            (timedelta(minutes=2), "attends _ puis parle"))
+
+    def test_legacy_languages_reject_new_params(self):
+        with self.assertRaises(NotImplementedError):
+            extract_duration("10 minutes", "en",
+                             resolution=DurationResolution.RELATIVEDELTA)
+        with self.assertRaises(NotImplementedError):
+            extract_duration("10 minutes", "en", replace_token="_")

@@ -15,6 +15,9 @@ from ovos_date_parser.common import nice_duration_generic, nice_relative_time_ge
 from ovos_date_parser.dates_ar import (
     extract_datetime_ar, extract_duration_ar, nice_time_ar, nice_duration_ar,
 )
+from ovos_date_parser.duration import (
+    DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
+)
 from ovos_date_parser.dates_az import (
     extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
 )
@@ -192,18 +195,35 @@ def nice_duration(
 
 
 def extract_duration(
-        text: str, lang: str
+        text: str, lang: str, *,
+        resolution: DurationResolution = DurationResolution.TIMEDELTA,
+        replace_token: str = ""
 ) -> Tuple[Optional[timedelta], str]:
     """
-    Convert a phrase into a number of seconds and return the remainder text.
+    Convert a phrase into a duration and return the remainder text.
 
     Args:
         text: String containing a duration.
         lang: A BCP-47 language code.
+        resolution: Format to return the duration in — timedelta
+            (default), calendar-accurate relativedelta, or a total in a
+            single unit. Only supported for languages on the shared
+            duration engine.
+        replace_token: String each consumed duration is replaced with in
+            the remainder, marking where it was found. Only supported
+            for languages on the shared duration engine.
 
     Returns:
-        A tuple containing the duration as timedelta and the remaining text.
+        A tuple containing the duration (timedelta, relativedelta or
+        float depending on resolution) and the remaining text.
     """
+    code = lang.split("-")[0].lower()
+    if code in DURATION_LEXICONS:
+        return extract_duration_generic(text, DURATION_LEXICONS[code],
+                                        resolution, replace_token)
+    if resolution != DurationResolution.TIMEDELTA or replace_token:
+        raise NotImplementedError(
+            f"resolution/replace_token not supported for language: {lang}")
     if lang.startswith("ar"):
         return extract_duration_ar(text)
     if lang.startswith("az"):
@@ -218,20 +238,12 @@ def extract_duration(
         return extract_duration_de(text)
     if lang.startswith("en"):
         return extract_duration_en(text)
-    if lang.startswith("eu"):
-        return extract_duration_eu(text)
     if lang.startswith("es"):
         return extract_duration_es(text)
     if lang.startswith("gl"):
         return extract_duration_gl(text)
     if lang.startswith("fa"):
         return extract_duration_fa(text)
-    if lang.startswith("fr"):
-        return extract_duration_fr(text)
-    if lang.startswith("hu"):
-        return extract_duration_hu(text)
-    if lang.startswith("it"):
-        return extract_duration_it(text)
     if lang.startswith("nl"):
         return extract_duration_nl(text)
     if lang.startswith("pl"):
@@ -240,8 +252,6 @@ def extract_duration(
         return extract_duration_pt(text)
     if lang.startswith("ru"):
         return extract_duration_ru(text)
-    if lang.startswith("sl"):
-        return extract_duration_sl(text)
     if lang.startswith("sv"):
         return extract_duration_sv(text)
     if lang.startswith("uk"):

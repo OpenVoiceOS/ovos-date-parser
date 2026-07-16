@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.11.0a2) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.11.0a1...0.11.0a2)
+
+**Merged pull requests:**
+
+- feat: language parity test and display duration for polish, russian and ukrainian [\#116](https://github.com/OpenVoiceOS/ovos-date-parser/pull/116) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.11.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.11.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.10.0a1...0.11.0a1)

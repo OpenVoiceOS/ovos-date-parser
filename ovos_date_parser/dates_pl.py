@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pl import pronounce_number_pl, extract_number_pl, numbers_to_digits_pl
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _TIME_UNITS_CONVERSION = {
     'mikrosekund': 'microseconds',
@@ -372,61 +375,26 @@ def get_pronounce_number_for_duration(num):
     return 'jedna' if pronounced == 'jeden' else pronounced
 
 
-def extract_duration_pl(text):
+def extract_duration_pl(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    time_units = {
-        'microseconds': None,
-        'milliseconds': None,
-        'seconds': None,
-        'minutes': None,
-        'hours': None,
-        'days': None,
-        'weeks': None
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[ayeę]?"
-    text = numbers_to_digits_pl(text)
-
-    for unit in _TIME_UNITS_CONVERSION:
-        unit_pattern = pattern.format(unit=unit)
-        matches = re.findall(unit_pattern, text)
-        value = sum(map(float, matches))
-        unit_en = _TIME_UNITS_CONVERSION.get(unit)
-        if time_units[unit_en] is None or time_units.get(unit_en) == 0:
-            time_units[unit_en] = value
-        text = re.sub(unit_pattern, '', text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["pl"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_pl(string, anchorDate=None, default_time=None):

@@ -502,3 +502,66 @@ register_duration_lexicon(DurationLexicon(
         "centuries": r"århundrede(?:r|s)?",
         "millenniums": r"årtusinde(?:r|s)?",
     }))
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="cs",
+    units={
+        "microseconds": r"mikrosekund[ay]?",
+        "milliseconds": r"milisekund[ay]?",
+        "seconds": r"sekund(?:u|y|a)?",
+        "minutes": r"minut(?:u|y|a)?",
+        "hours": r"hodin[ay]?",
+        "days": r"(?:den|dny|dnů|dní|dne)",
+        "weeks": r"(?:týden|týdny|týdnů)",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="pl",
+    units={
+        "microseconds": r"mikrosekund(?:y|a|ę)?",
+        "milliseconds": r"milisekund(?:y|a|ę)?",
+        "seconds": r"sekund(?:y|a|ę)?",
+        "minutes": r"minut(?:y|a|ę)?",
+        "hours": r"godzin(?:y|a|ę)?",
+        "days": r"(?:dzień|dni[aeę]?)",
+        "weeks": r"(?:tydzień|tygodni(?:e|u|a)?)",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="ru",
+    units={
+        "microseconds": r"микросекунд(?:а|ы|у)?",
+        "milliseconds": r"мил(?:л)?исекунд(?:а|ы|у)?",
+        "seconds": r"секунд(?:а|ы|у)?",
+        "minutes": r"минут(?:а|ы|у)?",
+        "hours": r"(?:час(?:а|ов|у)?|годин(?:а|ы|ой|ами|е|у)?)",
+        "days": r"(?:день|дня|дней|дню)",
+        "weeks": r"недел(?:я|и|ь|ю|ей)?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="uk",
+    units={
+        "microseconds": r"мікросекунд(?:а|и|у)?",
+        "milliseconds": r"мілісекунд(?:а|и|у)?",
+        "seconds": r"секунд(?:а|и|у)?",
+        "minutes": r"хвилин(?:а|и|у)?",
+        "hours": r"годин(?:а|и|у|ами|ою)?",
+        "days": r"(?:днів|день|дні|дня|дню)",
+        "weeks": r"(?:тиждень|тижн(?:я|і|ів|ю))",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="az",
+    pattern_template=r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-)(?:{unit})"
+                     r"(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?",
+    units={
+        "microseconds": r"mikrosaniyə",
+        "milliseconds": r"milisaniyə",
+        "seconds": r"saniyə",
+        "minutes": r"dəqiqə",
+        "hours": r"saat",
+        "days": r"gün",
+        "weeks": r"həftə",
+    }))

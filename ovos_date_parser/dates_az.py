@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_az import pronounce_number_az, extract_number_az, numbers_to_digits_az
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _HARD_VOWELS = ['a', 'ı', 'o', 'u']
 _SOFT_VOWELS = ['e', 'ə', 'i', 'ö', 'ü']
@@ -213,70 +216,26 @@ def nice_duration_az(duration, speech=True):
     return out
 
 
-def extract_duration_az(text):
+def extract_duration_az(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an azerbaijani phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 dəqiqə"
-        "2 yarım saat"
-        "3 gün 8 saat 10 dəqiqə 49 saniyə"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "5 dəqiqəyə taymer qur" would return
-    (300, "taymer qur").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    time_units_az = {
-        'mikrosaniyə': 'microseconds',
-        'milisaniyə': 'milliseconds',
-        'saniyə': 'seconds',
-        'dəqiqə': 'minutes',
-        'saat': 'hours',
-        'gün': 'days',
-        'həftə': 'weeks'
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}?(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?"
-    text = numbers_to_digits_az(text)
-    for unit_az in time_units_az:
-        unit_pattern = pattern.format(unit=unit_az)
-
-        def repl(match):
-            time_units[time_units_az[unit_az]] += float(match.group(1)) + (0.5 if match.group(2) else 0)
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["az"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_az(text, anchorDate=None, default_time=None):

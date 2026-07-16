@@ -239,22 +239,12 @@ def extract_duration(
         return extract_duration_ar(text)
     if lang.startswith("ast"):
         return extract_duration_ast(text)
-    if lang.startswith("az"):
-        return extract_duration_az(text)
-    if lang.startswith("cs"):
-        return extract_duration_cs(text)
     if lang.startswith("kab"):
         return extract_duration_kab(text)
     if lang.startswith("fa"):
         return extract_duration_fa(text)
-    if lang.startswith("pl"):
-        return extract_duration_pl(text)
-    if lang.startswith("ru"):
-        return extract_duration_ru(text)
     if lang.startswith("sv"):
         return extract_duration_sv(text)
-    if lang.startswith("uk"):
-        return extract_duration_uk(text)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 

@@ -13,7 +13,7 @@ from ovos_date_parser import (extract_datetime, extract_duration, nice_date,
 ANCHOR = datetime(2023, 6, 5, 12, 0)  # monday, noon
 
 TOMORROW = {
-    "en": "tomorrow", "de": "morgen", "nl": "morgen", "da": "i morgen",
+    "ar": "غداً", "en": "tomorrow", "de": "morgen", "nl": "morgen", "da": "i morgen",
     "sv": "imorgon", "es": "mañana", "pt": "amanhã", "ca": "demà",
     "it": "domani", "fr": "demain", "cs": "zítra", "pl": "jutro",
     "ru": "завтра", "uk": "завтра", "fa": "فردا", "eu": "bihar",
@@ -21,7 +21,7 @@ TOMORROW = {
 }
 
 FIVE_MINUTES = {
-    "en": "5 minutes", "de": "5 minuten", "nl": "5 minuten",
+    "ar": "5 دقائق", "en": "5 minutes", "de": "5 minuten", "nl": "5 minuten",
     "da": "5 minutter", "sv": "5 minuter", "es": "5 minutos",
     "pt": "5 minutos", "ca": "5 minuts", "cs": "5 minut", "pl": "5 minut",
     "ru": "5 минут", "uk": "5 хвилин", "fa": "پنج دقیقه", "az": "5 dəqiqə",
@@ -29,7 +29,7 @@ FIVE_MINUTES = {
 }
 
 NO_DATE = {
-    "en": "hello world", "de": "hallo welt", "nl": "hallo wereld",
+    "ar": "مرحبا بالعالم", "en": "hello world", "de": "hallo welt", "nl": "hallo wereld",
     "da": "hej verden", "sv": "hej världen", "es": "hola mundo",
     "pt": "olá mundo", "ca": "hola món", "it": "ciao mondo",
     "fr": "bonjour le monde", "cs": "ahoj světe", "pl": "witaj świecie",
@@ -38,14 +38,14 @@ NO_DATE = {
 }
 
 TODAY_WORD = {
-    "en": "today", "de": "heute", "nl": "vandaag", "da": "i dag",
+    "ar": "اليوم", "en": "today", "de": "heute", "nl": "vandaag", "da": "i dag",
     "sv": "idag", "es": "hoy", "pt": "hoje", "ca": "avui", "it": "oggi",
     "fr": "aujourd'hui", "cs": "dnes", "pl": "dziś", "ru": "сегодня",
     "uk": "сьогодні", "fa": "امروز", "eu": "gaur", "az": "bu gün",
     "gl": "hoxe", "hu": "ma",
 }
 
-DIGIT_TIME_LANGS = ["en", "de", "nl", "da", "sv", "es", "pt", "ca", "it",
+DIGIT_TIME_LANGS = ["ar", "en", "de", "nl", "da", "sv", "es", "pt", "ca", "it",
                     "fr", "cs", "pl", "ru", "uk", "fa", "eu", "az"]
 
 

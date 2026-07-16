@@ -38,6 +38,20 @@ Full support: `nice_time`, `nice_date`, `nice_date_time`, `nice_day`,
 Duration parsing handles the Asturian plurals in `-es` (hores, selmanes,
 díes) as well as the singular forms. "mañana" is ambiguous between
 "tomorrow" and "morning" and is disambiguated the same way as in Spanish.
+## Kabyle
+
+Weekdays are the everyday Arabic-derived names (`letnayen` ... `lḥedd`);
+months follow the Kabyle calendar spellings (`yennayer`, `fuṛar`, ...
+`dujembeṛ`). `extract_datetime` covers the relative day words (`azekka`
+"tomorrow", `iḍelli` "yesterday", `ass-a` "today"), weekday and month
+names with day numbers, and digit clock times; it does not yet cover
+spoken clock phrases or year words. `extract_duration` accepts both the
+Amazigh neologisms (`tasint` second, `amalas` week) and the
+Arabic-derived units in daily use (`ddqiqa` minute, `ssaɛa` hour), with
+an optional genitive `n` between quantity and unit (`10 n tesdidin`).
+`nice_time` joins hour and minutes with the conjunction `d`; day parts
+use `ssbeḥ` (morning) and `tameddit` (evening). Years are given in
+digits; a verified spoken-year formulation is not available.
 
 ## Fallbacks
 

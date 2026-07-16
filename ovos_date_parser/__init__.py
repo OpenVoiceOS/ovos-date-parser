@@ -140,7 +140,7 @@ def nice_time(
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 
-def nice_relative_time(when, relative_to, lang):
+def nice_relative_time(when, relative_to=None, lang="en-us"):
     """Create a relative phrase to roughly describe a datetime
 
     Examples are "25 seconds", "tomorrow", "7 days".
@@ -152,6 +152,7 @@ def nice_relative_time(when, relative_to, lang):
     Returns:
         str: Relative description of the given time
     """
+    relative_to = relative_to or now_local()
     if lang.startswith("eu"):
         return nice_relative_time_eu(when, relative_to)
     return nice_relative_time_generic(lang, when, relative_to)

@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 from ovos_number_parser import numbers_to_digits
 from ovos_number_parser.numbers_hu import pronounce_number_hu, _NUM_STRING_HU, extract_number_hu
 from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 def nice_time_hu(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -83,65 +86,26 @@ def nice_time_hu(dt, speech=True, use_24hour=False, use_ampm=False):
         return speak
 
 
-def extract_duration_hu(text):
+def extract_duration_hu(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert a Hungarian phrase into a number of seconds.
+    Convert a phrase into a duration and return the remainder text.
 
-    Converts things like "tíz perc" or "3 nap 8 óra 10 perc" into a
-    timedelta. "hét" is both "seven" and "week": it is read as the unit
-    when a number precedes it and as the numeral otherwise. The words
-    used in the duration are consumed, the remainder of the text is
-    returned.
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
         text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str): the duration and the remaining unconsumed text,
-                          or None if the input is empty. The duration is
-                          None if no duration was found.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    tokens = text.lower().split()
-    protected = []
-    for i, tok in enumerate(tokens):
-        if tok == "hét" and i > 0 and \
-                extract_number_hu(tokens[i - 1]) is not False:
-            protected.append("\x00hét\x00")
-        else:
-            protected.append(tok)
-    text = numbers_to_digits(" ".join(protected), "hu")
-    text = text.replace("\x00hét\x00", "hét")
-
-    units = [
-        (r"mikroszekundum(?:ot)?", "microseconds", None),
-        (r"(?:milliszekundum(?:ot)?|ezredmásodperc(?:et)?)", "milliseconds", None),
-        (r"másodperc(?:et|re|ig)?", "seconds", None),
-        (r"perc(?:et|re|ig)?", "minutes", None),
-        (r"(?:óra|órát|órára|óráig)", "hours", None),
-        (r"nap(?:ot|ra|ig)?", "days", None),
-        (r"h[eé]t(?:et|re|ig)?", "weeks", None),
-        (r"hónap(?:ot|ra|ig)?", "days", DAYS_IN_1_MONTH),
-        (r"év(?:et|re|ig)?", "days", DAYS_IN_1_YEAR),
-        (r"évtized(?:et)?", "days", 10 * DAYS_IN_1_YEAR),
-        (r"évszázad(?:ot)?", "days", 100 * DAYS_IN_1_YEAR),
-        (r"évezred(?:et)?", "days", 1000 * DAYS_IN_1_YEAR),
-    ]
-    values = {}
-    for unit_re, unit, mult in units:
-        pattern = r"(?P<value>\d+(?:[.,]\d+)?)(?:\s+|-)" + unit_re + r"\b"
-
-        def repl(match):
-            val = float(match.group("value").replace(",", "."))
-            values[unit] = values.get(unit, 0) + (val * mult if mult else val)
-            return ""
-
-        text = re.sub(pattern, repl, text)
-
-    text = re.sub(r"\s+", " ", text).strip(" ,;.!")
-    duration = timedelta(**values) if values else None
-    return duration, text
+    return extract_duration_generic(text, DURATION_LEXICONS["hu"],
+                                    resolution, replace_token)
 
 
 _WEEKDAYS_HU = {

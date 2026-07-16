@@ -57,6 +57,7 @@ jobs:
           #       or they will overwrite previous invocations' coverage reports
           #       (for an example, see OVOS Skill Manager's workflow)
           pytest --cov=ovos_date_parser --cov-append --cov-report xml test/parse_tests/
+          pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_dates_pt.py
       - name: Upload coverage
         if: "${{ matrix.python-version == '3.9' }}"
         env:

@@ -28,6 +28,17 @@ style. Explicit years parse in the languages with full date support
 - Basque, Catalan and Persian have their own idiomatic readings
   (Catalan supports `TimeVariantCA` for bell-tower style).
 
+## Asturian (ast)
+
+Full support: `nice_time`, `nice_date`, `nice_date_time`, `nice_day`,
+`nice_weekday`, `nice_month`, `nice_year`, `extract_datetime` and
+`extract_duration`. Spoken time follows the feminine-article convention
+("la una", "les cinco y media", "les ocho menos cuartu", "en puntu") with
+`use_ampm=True` adding "de la madrugada / mañana / tarde / nueche".
+Duration parsing handles the Asturian plurals in `-es` (hores, selmanes,
+díes) as well as the singular forms. "mañana" is ambiguous between
+"tomorrow" and "morning" and is disambiguated the same way as in Spanish.
+
 ## Fallbacks
 
 If a language has no `extract_datetime` implementation, the

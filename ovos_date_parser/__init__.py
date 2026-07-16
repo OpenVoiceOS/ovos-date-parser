@@ -12,6 +12,9 @@ from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
 from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
+from ovos_date_parser.dates_ar import (
+    extract_datetime_ar, extract_duration_ar, nice_time_ar, nice_duration_ar,
+)
 from ovos_date_parser.dates_az import (
     extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
 )
@@ -98,6 +101,8 @@ def nice_time(
     Returns:
         The formatted time string.
     """
+    if lang.startswith("ar"):
+        return nice_time_ar(dt, speech, use_24hour, use_ampm)
     if lang.startswith("az"):
         return nice_time_az(dt, speech, use_24hour, use_ampm)
     if lang.startswith("gl"):
@@ -173,6 +178,8 @@ def nice_duration(
     Returns:
         Timespan as a string.
     """
+    if lang.startswith("ar"):
+        return nice_duration_ar(duration, speech)
     if lang.startswith("az"):
         return nice_duration_az(duration, speech)
     if lang.startswith("pl"):
@@ -197,6 +204,8 @@ def extract_duration(
     Returns:
         A tuple containing the duration as timedelta and the remaining text.
     """
+    if lang.startswith("ar"):
+        return extract_duration_ar(text)
     if lang.startswith("az"):
         return extract_duration_az(text)
     if lang.startswith("ca"):
@@ -259,6 +268,8 @@ def extract_datetime(
         A tuple with the extracted date as datetime and the leftover string,
         or None if no date or time related text is found.
     """
+    if lang.startswith("ar"):
+        return extract_datetime_ar(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("az"):
         return extract_datetime_az(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ca"):

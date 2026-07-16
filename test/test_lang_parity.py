@@ -11,13 +11,13 @@ from ovos_date_parser import (extract_datetime, extract_duration, nice_date,
                               nice_month, nice_relative_time, nice_time,
                               nice_weekday, nice_year, get_date_strings)
 
-LANGS = ["az", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr", "gl",
+LANGS = ["ar", "az", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr", "gl",
          "hu", "it", "nl", "pl", "pt", "ru", "sl", "sv", "uk"]
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)
 
 _TOMORROW = {
-    "az": "sabah", "ca": "demà", "cs": "zítra", "da": "i morgen",
+    "ar": "غداً", "az": "sabah", "ca": "demà", "cs": "zítra", "da": "i morgen",
     "de": "morgen", "en": "tomorrow", "es": "mañana", "eu": "bihar",
     "fa": "فردا", "fr": "demain", "gl": "mañá", "hu": "holnap",
     "it": "domani", "nl": "morgen", "pl": "jutro", "pt": "amanhã",
@@ -25,7 +25,7 @@ _TOMORROW = {
 }
 
 _NO_DATE = {
-    "az": "salam necəsən", "ca": "hola com estàs", "cs": "ahoj jak se máš",
+    "ar": "مرحبا كيف حالك", "az": "salam necəsən", "ca": "hola com estàs", "cs": "ahoj jak se máš",
     "da": "hej hvordan har du det", "de": "hallo wie geht es dir",
     "en": "hello how are you", "es": "hola qué tal", "eu": "kaixo zer moduz",
     "fa": "سلام چطوری", "fr": "bonjour ça va", "gl": "ola que tal",
@@ -35,7 +35,7 @@ _NO_DATE = {
 }
 
 _DURATION_STRINGS = {
-    "az": "10 dəqiqə", "ca": "10 minuts", "cs": "10 minut",
+    "ar": "١٠ دقائق", "az": "10 dəqiqə", "ca": "10 minuts", "cs": "10 minut",
     "da": "10 minutter", "de": "10 minuten", "en": "10 minutes",
     "es": "10 minutos", "eu": "10 minutu", "fa": "۱۰ دقیقه",
     "fr": "10 minutes", "gl": "10 minutos", "hu": "10 perc",

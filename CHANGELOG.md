@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.17.0a1...0.18.0a1)
+
+**Merged pull requests:**
+
+- feat: add Occitan \(oc\) date support [\#132](https://github.com/OpenVoiceOS/ovos-date-parser/pull/132) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.17.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.17.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.16.0a1...0.17.0a1)

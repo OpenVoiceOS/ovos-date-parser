@@ -66,7 +66,7 @@ from ovos_date_parser.dates_ru import (
     extract_datetime_ru, extract_duration_ru, nice_time_ru, nice_duration_ru
 )
 from ovos_date_parser.dates_sl import (
-    nice_time_sl, extract_duration_sl
+    nice_time_sl, extract_duration_sl, extract_datetime_sl
 )
 from ovos_date_parser.dates_sv import (
     extract_datetime_sv, extract_duration_sv, nice_time_sv
@@ -293,6 +293,8 @@ def extract_datetime(
         return extract_datetime_pt(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ru"):
         return extract_datetime_ru(text, anchor_date=anchorDate, default_time=default_time)
+    if lang.startswith("sl"):
+        return extract_datetime_sl(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("sv"):
         return extract_datetime_sv(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("uk"):

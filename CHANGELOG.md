@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.12.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.11.0a5...0.12.0a1)
+
+**Merged pull requests:**
+
+- feat: arabic date and time support [\#120](https://github.com/OpenVoiceOS/ovos-date-parser/pull/120) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.11.0a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.11.0a5) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.11.0a4...0.11.0a5)
+
 ## [0.11.0a4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.11.0a4) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.11.0a3...0.11.0a4)

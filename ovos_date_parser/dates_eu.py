@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
@@ -879,11 +880,14 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                           'aug',
                           'sept', 'oct', 'nov', 'dec']
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
         for idx, en_month in enumerate(en_monthsShort):
-            datestr = datestr.replace(monthsShort[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        temp = datetime.strptime(datestr, "%B %d")
+        if hasYear:
+            temp = datetime.strptime(datestr, "%B %d %Y")
+        else:
+            temp = datetime.strptime(datestr, "%B %d")
         temp = temp.replace(tzinfo=None)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year, tzinfo=extractedDate.tzinfo)

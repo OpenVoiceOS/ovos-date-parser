@@ -113,13 +113,13 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
     day = pronounce_number_pt(dt.day, gender=GrammaticalGender.MASCULINE)
     if now is not None:
         nice = day
-        if dt.day == now.day:
+        if dt.date() == now.date():
             return "hoje"
-        if dt.day == now.day + 1:
+        if dt.date() == now.date() + timedelta(days=1):
             return "amanhã"
-        if dt.day == now.day - 1:
+        if dt.date() == now.date() - timedelta(days=1):
             return "ontem"
-        if dt.month != now.month:
+        if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + nice_month_pt(dt)
         if dt.year != now.year:
             nice = nice + ", " + nice_year_pt(dt)
@@ -800,7 +800,15 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 if remainder == "":
                     remainder = wordNext.replace(".", "").lstrip().rstrip()
 
-                if (
+                # "15h30", "14h30min" style times
+                hour_minute = re.match(r"^(\d{1,2})h(\d{1,2})(?:min)?$", word)
+                if hour_minute:
+                    strHH = hour_minute.group(1)
+                    strMM = hour_minute.group(2)
+                    military = True
+                    if wordNext == "hora":
+                        used += 1
+                elif (
                         remainder == "pm" or
                         wordNext == "pm" or
                         remainder == "p.m." or
@@ -829,28 +837,28 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                         strHH = strNum
                         remainder = "am"
                         used = 1
-                    elif (int(word) > 100 and
+                    elif (strNum and int(strNum) > 100 and
                           (
                                   wordPrev == "o" or
                                   wordPrev == "oh" or
                                   wordPrev == "zero"
                           )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         military = True
                         if wordNext == "hora":
                             used += 1
                     elif (
                             wordNext == "hora" and
-                            word[0] != '0' and
+                            word[0] != '0' and strNum and
                             (
-                                    int(word) < 100 and
-                                    int(word) > 2400
+                                    int(strNum) < 100 or
+                                    int(strNum) > 2400
                             )):
                         # ignores military time
                         # "in 3 hours"
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
@@ -858,28 +866,28 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
 
                     elif wordNext == "minuto":
                         # "in 10 minutes"
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "segundo":
                         # in 5 seconds
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif strNum and int(strNum) > 100:
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         military = True
                         if wordNext == "hora":
                             used += 1
 
                     elif wordNext == "" or (
                             wordNext == "em" and wordNextNext == "ponto"):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "em" and wordNextNext == "ponto":
                             used += 2
@@ -897,7 +905,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                                 used += 1
 
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         military = True
                         used += 1
@@ -937,7 +945,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
             found = True
 
     # check that we found a date
-    if not date_found:
+    if not date_found():
         return None
 
     if dayOffset is False:
@@ -946,10 +954,14 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("em 2 horas") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',
@@ -958,11 +970,14 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                           'aug',
                           'sept', 'oct', 'nov', 'dec']
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
         for idx, en_month in enumerate(en_monthsShort):
-            datestr = datestr.replace(monthsShort[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        temp = datetime.strptime(datestr, "%B %d")
+        if hasYear:
+            temp = datetime.strptime(datestr, "%B %d %Y")
+        else:
+            temp = datetime.strptime(datestr, "%B %d")
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 

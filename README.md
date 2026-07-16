@@ -132,6 +132,13 @@ relative_time = nice_relative_time(datetime.now() + timedelta(days=1), datetime.
 print(relative_time)  # "tomorrow"
 ```
 
+## Documentation
+
+- [API reference](docs/api.md) — every public function and its parameters
+- [Language notes](docs/languages.md) — per-language behaviour and known gaps
+- [Adding a language](docs/adding-a-language.md) — implementation guide
+- [examples/](examples/) — runnable example scripts
+
 ## Related Projects
 
 - [ovos-number-parser](https://github.com/OpenVoiceOS/ovos-number-parser) - for handling numbers

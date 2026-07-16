@@ -140,7 +140,7 @@ def nice_time(
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 
-def nice_relative_time(when, relative_to, lang):
+def nice_relative_time(when, relative_to=None, lang="en-us"):
     """Create a relative phrase to roughly describe a datetime
 
     Examples are "25 seconds", "tomorrow", "7 days".
@@ -152,6 +152,7 @@ def nice_relative_time(when, relative_to, lang):
     Returns:
         str: Relative description of the given time
     """
+    relative_to = relative_to or now_local()
     if lang.startswith("eu"):
         return nice_relative_time_eu(when, relative_to)
     return nice_relative_time_generic(lang, when, relative_to)
@@ -261,6 +262,8 @@ def extract_datetime(
         return extract_datetime_en(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("es"):
         return extract_datetime_es(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("eu"):
+        return extract_datetime_eu(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fa"):
         return extract_datetime_fa(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fr"):
@@ -656,7 +659,8 @@ def nice_year(dt, lang, bc=False):
     return date_time_format.year_format(dt, lang, bc)
 
 
-def get_date_strings(dt, lang, date_format='DMY', time_format="full"):
+def get_date_strings(dt, lang, date_format=None, time_format="full"):
+    date_format = date_format or Configuration().get("date_format", 'DMY')
     lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
                         use_24hour=time_format == "full")

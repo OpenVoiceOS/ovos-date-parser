@@ -666,7 +666,10 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                                           minute=0,
                                           hour=0)
     if datestr != "":
-        temp = datetime.strptime(datestr, "%B %d")
+        if hasYear:
+            temp = datetime.strptime(datestr, "%B %d %Y")
+        else:
+            temp = datetime.strptime(datestr, "%B %d")
         if not hasYear:
             temp = temp.replace(year=extractedDate.year)
             if extractedDate < temp:

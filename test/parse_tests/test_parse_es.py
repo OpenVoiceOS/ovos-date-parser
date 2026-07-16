@@ -94,7 +94,6 @@ class TestDatetime_es(unittest.TestCase):
     #         retornar correctamente
     #         (escrito con disculpas por un Inglés hablante)
     #      further broken tests are below their respective working tests.
-    @unittest.skip("currently processing these months incorrectly")
     def test_bugged_output_wastebasket(self):
         self.assertEqual(extract_datetime(
             "11 jun", lang='es', anchorDate=datetime(1998, 6, 1))[0],

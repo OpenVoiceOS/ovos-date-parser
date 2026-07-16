@@ -146,7 +146,6 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, "en"),
                          "quarter to two")
 
-    @unittest.skip("missing code")
     def test_nice_duration(self):
         self.assertEqual(nice_duration(1, "en"), "one second")
         self.assertEqual(nice_duration(3, "en"), "three seconds")

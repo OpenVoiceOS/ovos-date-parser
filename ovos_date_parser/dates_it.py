@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
@@ -722,7 +723,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                            'aug', 'sept', 'oct', 'nov', 'dec']
 
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
 
         for idx, en_month in enumerate(en_months_short):
             datestr = datestr.replace(months_short[idx], en_month)

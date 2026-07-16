@@ -181,7 +181,6 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, "sl"),
                          "petnajst do dveh")
 
-    @unittest.skip("missing code")
     def test_nice_duration(self):
         # TODO implement better plural support for nice_duration
         # Correct results are in comments
@@ -205,7 +204,7 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_duration(500000, "sl"),
                          "pet dni  osemnajst ur triinpetdeset minut dvajset sekund")  # nopep8
         self.assertEqual(nice_duration(500000, "sl", speech=False), "5d 18:53:20")
-        self.assertEqual(nice_duration(datetime.timedelta(seconds=500000), "sl", "sl",
+        self.assertEqual(nice_duration(datetime.timedelta(seconds=500000), "sl",
                                        speech=False),
                          "5d 18:53:20")
 

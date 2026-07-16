@@ -7,10 +7,9 @@ class TestNiceDateTimeGL(unittest.TestCase):
         self.test_date = datetime(2023, 6, 5, 17, 30)  # Monday, June 5, 2023, 17:30
         self.test_now = datetime(2023, 6, 5)  # Same day as test_date
 
-    @unittest.skip("number parser for galician only goes up to 100, update ovos-number-parser")
     def test_nice_year_gl(self):
-        self.assertEqual(nice_year_gl(self.test_date), "dous mil vinte e tres")
-        self.assertEqual(nice_year_gl(self.test_date, bc=True), "dous mil vinte e tres a.C.")
+        self.assertEqual(nice_year_gl(self.test_date), "dous mil e vinte e tres")
+        self.assertEqual(nice_year_gl(self.test_date, bc=True), "dous mil e vinte e tres a.C.")
 
     def test_nice_weekday_gl(self):
         self.assertEqual(nice_weekday_gl(self.test_date), "Luns")

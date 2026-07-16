@@ -45,7 +45,7 @@ from ovos_date_parser.dates_fr import (
     extract_datetime_fr, nice_time_fr
 )
 from ovos_date_parser.dates_gl import (
-    extract_duration_gl, nice_year_gl, nice_weekday_gl, nice_month_gl,
+    extract_duration_gl, extract_datetime_gl, nice_year_gl, nice_weekday_gl, nice_month_gl,
     nice_day_gl, nice_date_time_gl, nice_date_gl, nice_time_gl
 )
 from ovos_date_parser.dates_hu import nice_time_hu, extract_duration_hu, extract_datetime_hu
@@ -279,6 +279,8 @@ def extract_datetime(
         return extract_datetime_fa(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fr"):
         return extract_datetime_fr(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("gl"):
+        return extract_datetime_gl(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("hu"):
         return extract_datetime_hu(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("it"):

@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_da import pronounce_ordinal_da, pronounce_number_da, is_ordinal_da, numbers_to_digits_da
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 _MONTHS_DA = ['januar', 'februar', 'marts', 'april', 'maj', 'juni',
@@ -798,97 +801,23 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
 
     return [extractedDate, resultStr]
 
-def extract_duration_da(text):
-    """Convert a danish phrase into a number of seconds
+def extract_duration_da(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
+    """
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minutes"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None, ''
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    da_translations = {
-        'microseconds': ["mikrosekund", "mikrosekunder", "mikrosekunds", "mikrosekunders"],
-        'milliseconds': ["millisekund", "millisekunder", "millisekunds"],
-        'seconds': ["sekund", "sekunder", "sekunds", "sekunders"],
-        'minutes': ["minut", "minutter", "minuts", "minutters"],
-        'hours': ["time", "timer", "times", "timers"],
-        'days': ["dag", "dage", "dags", "dages"],
-        'weeks': ["uge", "uges", "uger", "ugers"]
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)\s+{unit}"
-    text = numbers_to_digits_da(text)
-
-    for unit in time_units:
-        unit_da_words = da_translations[unit]
-        unit_da_words.sort(key=len, reverse=True)
-        for unit_da in unit_da_words:
-            unit_pattern = pattern.format(unit=unit_da)
-            matches = re.findall(unit_pattern, text)
-            value = sum(map(float, matches))
-            time_units[unit] = time_units[unit] + value
-            text = re.sub(unit_pattern, '', text)
-
-    # Non-standard time units
-    non_std_unit = {
-        'months': ["måned", "måneder", "måneds", "måneders"],
-        'decades': ["årti", "årtier", "årtis"],
-        'centuries': ["århundrede", "århundreder", "århundredes"],
-        'millennia': ["årtusinde", "årtusinder", "årtusindes"],
-        'years': ["år", "års"]  # must be last to avoid matching on centuries and millennia
-    }
-
-    for unit in non_std_unit.keys():
-        unit_da_words = non_std_unit[unit]
-        unit_da_words.sort(key=len, reverse=True)
-        for unit_da in unit_da_words:
-            unit_pattern = pattern.format(unit=unit_da)
-            matches = re.findall(unit_pattern, text)
-            val = sum(map(float, matches))
-            if unit == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit == "centuries":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit == "millennia":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            text = re.sub(unit_pattern, '', text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["da"],
+                                    resolution, replace_token)

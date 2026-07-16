@@ -5,6 +5,9 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_gl import pronounce_number_gl
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 WEEKDAYS_GL = {
     0: "luns",
@@ -980,84 +983,23 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
     return [extractedDate, resultStr]
 
 
-def extract_duration_gl(text):
+def extract_duration_gl(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Converte unha frase en galego nun número de segundos.
-    Converte cousas como:
-        "10 minutos"
-        "3 días 8 horas 10 minutos e 49 segundos"
-    nun número enteiro que representa o total de segundos.
-    As palabras empregadas na duración serán consumidas,
-    devolvéndose o texto restante.
-    Por exemplo, "pon un temporizador de 5 minutos" devolvería
-    (300, "pon un temporizador de").
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): cadea de texto que contén unha duración
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-            Unha tupla co tempo total e o texto restante
-            non consumido no análise. O primeiro valor será
-            None se non se atopa ningunha duración. O texto devolto
-            terá os espazos en branco eliminados nos extremos.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None, text
-
-    text = text.lower().replace("í", "i").replace("é", "e").replace("ñ", "n").replace("meses", "mes")
-
-    unidades_tempo = {
-        'microseconds': 'microsegundos',
-        'milliseconds': 'milisegundos',
-        'seconds': 'segundos',
-        'minutes': 'minutos',
-        'hours': 'horas',
-        'days': 'dias',
-        'weeks': 'semanas'
-    }
-
-    unidades_non_estandar = {
-        "months": "mes",
-        "years": "anos",
-        'decades': "decadas",
-        'centuries': "seculos",
-        'millenniums': "milenios"
-    }
-
-    patron = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[s]?"
-
-    for (unit_en, unit_gl) in unidades_tempo.items():
-        patron_unidade = patron.format(unit=unit_gl[:-1])  # eliminar 's' da unidade
-        unidades_tempo[unit_en] = 0
-
-        def substitucion(match):
-            unidades_tempo[unit_en] += float(match.group("value"))
-            return ''
-
-        text = re.sub(patron_unidade, substitucion, text)
-
-    for (unit_en, unit_gl) in unidades_non_estandar.items():
-        patron_unidade = patron.format(unit=unit_gl[:-1])  # eliminar 's' da unidade
-
-        def substitucion_non_estandar(match):
-            val = float(match.group("value"))
-            if unit_en == "months":
-                val = 30 * val  # aproximación dun mes en días
-            elif unit_en == "years":
-                val = 365 * val  # aproximación dun ano en días
-            elif unit_en == "decades":
-                val = 10 * 365 * val
-            elif unit_en == "centuries":
-                val = 100 * 365 * val
-            elif unit_en == "millenniums":
-                val = 1000 * 365 * val
-            unidades_tempo["days"] += val
-            return ''
-
-        text = re.sub(patron_unidade, substitucion_non_estandar, text)
-
-    text = text.strip()
-    duracion = timedelta(**unidades_tempo) if any(unidades_tempo.values()) else None
-
-    return duracion, text
+    return extract_duration_generic(text, DURATION_LEXICONS["gl"],
+                                    resolution, replace_token)

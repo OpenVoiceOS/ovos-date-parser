@@ -5,6 +5,9 @@ from enum import IntEnum
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_ca import pronounce_number_ca, numbers_to_digits_ca
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 class TimeVariantCA(IntEnum):
@@ -14,90 +17,26 @@ class TimeVariantCA(IntEnum):
     SPANISH_LIKE = 3
 
 
-def extract_duration_ca(text):
+def extract_duration_ca(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Converteix una frase en català en un nombre de segons.
-    Converteix coses com:
-        "10 Minuts"
-        "3 dies 8 hores 10 Minuts i 49 Segons"
-    en un enter, que representa el nombre total de segons.
-    Les paraules utilitzades en la durada seran consumides, i
-    el restant es retornarà.
-    Com a exemple, "posa un temporitzador per 5 minuts" retornaria
-    (300, "posa un temporitzador per").
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): cadena que conté una durada.
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    Una tupla que conté la durada i el text restant
-                    no consumit en l'anàlisi. El primer valor serà
-                    None si no es troba cap durada. El text retornat
-                    tindrà els espais en blanc eliminats dels extrems.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = text.lower().replace("í", "i")
-    time_units = {
-        'microseconds': 'microsegons',
-        'milliseconds': 'mil·lisegons',
-        'seconds': 'segons',
-        'minutes': 'minuts',
-        'hours': 'hores',
-        'days': 'dies',
-        'weeks': 'setmanes'
-    }
-    # NOTE: alguns d'aquests unitats angleses estan escrites incorrectament a propòsit per al bucle següent que elimina la s
-    non_std_un = {
-        "months": "mesos",
-        "years": "anys",
-        'decades': "dècades",
-        'centurys': "segles",
-        'millenniums': "mil·lenis"
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[s]?"
-
-    text = text.replace("í", "i").replace("é", "e").replace("ñ", "n").replace("mesos", "mes")
-    text = numbers_to_digits_ca(text)
-
-    for (unit_en, unit_ca) in time_units.items():
-        unit_pattern = pattern.format(
-            unit=unit_ca[:-1])  # remove 's' from unit
-        time_units[unit_en] = 0
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    for (unit_en, unit_ca) in non_std_un.items():
-        unit_pattern = pattern.format(
-            unit=unit_ca[:-1])  # remove 's' from unit
-
-        def repl_non_std(match):
-            val = float(match.group(1))
-            if unit_en == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit_en == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit_en == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit_en == "centurys":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit_en == "millenniums":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            return ''
-
-        text = re.sub(unit_pattern, repl_non_std, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["ca"],
+                                    resolution, replace_token)
 
 
 def nice_time_ca(dt, speech=True, use_24hour=False, use_ampm=False,

@@ -230,7 +230,7 @@ class TestDurationResolution(unittest.TestCase):
 
     def test_legacy_languages_reject_new_params(self):
         with self.assertRaises(NotImplementedError):
-            extract_duration("10 minutes", "en",
+            extract_duration("10 minutes", "fa",
                              resolution=DurationResolution.RELATIVEDELTA)
         with self.assertRaises(NotImplementedError):
-            extract_duration("10 minutes", "en", replace_token="_")
+            extract_duration("10 minutes", "fa", replace_token="_")

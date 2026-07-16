@@ -1,6 +1,7 @@
 import unittest
 from datetime import timedelta
 from ovos_date_parser.dates_gl import extract_duration_gl
+from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
 
 
 class TestExtractDurationGL(unittest.TestCase):
@@ -23,15 +24,15 @@ class TestExtractDurationGL(unittest.TestCase):
                          (timedelta(hours=1), "avisame en"))
 
     def test_non_standard_units(self):
-        self.assertEqual(extract_duration_gl("2 meses"), (timedelta(days=60), ""))
-        self.assertEqual(extract_duration_gl("1 ano"), (timedelta(days=365), ""))
-        self.assertEqual(extract_duration_gl("1 década"), (timedelta(days=10 * 365), ""))
-        self.assertEqual(extract_duration_gl("1 século"), (timedelta(days=100 * 365), ""))
-        self.assertEqual(extract_duration_gl("1 milenio"), (timedelta(days=1000 * 365), ""))
+        self.assertEqual(extract_duration_gl("2 meses"), (timedelta(days=DAYS_IN_1_MONTH * 2), ""))
+        self.assertEqual(extract_duration_gl("1 ano"), (timedelta(days=DAYS_IN_1_YEAR), ""))
+        self.assertEqual(extract_duration_gl("1 década"), (timedelta(days=10 * DAYS_IN_1_YEAR), ""))
+        self.assertEqual(extract_duration_gl("1 século"), (timedelta(days=100 * DAYS_IN_1_YEAR), ""))
+        self.assertEqual(extract_duration_gl("1 milenio"), (timedelta(days=1000 * DAYS_IN_1_YEAR), ""))
 
     def test_no_duration_found(self):
         self.assertEqual(extract_duration_gl("isto non ten tempo"), (None, "isto non ten tempo"))
-        self.assertEqual(extract_duration_gl(""), (None, ""))
+        self.assertEqual(extract_duration_gl(""), None)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.15.0a2) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.15.0a1...0.15.0a2)
+
+**Merged pull requests:**
+
+- refactor: port Slavic and Turkic durations to the shared engine [\#126](https://github.com/OpenVoiceOS/ovos-date-parser/pull/126) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.15.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.15.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.14.0a1...0.15.0a1)

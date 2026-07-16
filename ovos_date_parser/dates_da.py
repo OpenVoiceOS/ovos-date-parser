@@ -211,7 +211,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
         start = idx
         used = 0
         # save timequalifier for later
-        if word in timeQualifiersList:
+        if word == "morgen" and wordPrev == "i" and not fromFlag:
+            # "i morgen" = tomorrow, while bare "morgen" = morning
+            dayOffset = 1
+            used += 1
+        elif word == "overmorgen" and wordPrev == "i" and not fromFlag:
+            dayOffset = 2
+            used += 1
+        elif word in timeQualifiersList:
             timeQualifier = word
             # parse today, tomorrow, day after tomorrow
         elif word == "dag" and not fromFlag:
@@ -538,21 +545,21 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                     remainder = "am"
                     used = 1
                 else:
-                    if wordNext == "time" and int(word) < 100:
+                    if wordNext in ("time", "timer") and int(word) < 100:
                         # "in 3 hours"
                         hrOffset = int(word)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext == "minut":
+                    elif wordNext in ("minut", "minutter"):
                         # "in 10 minutes"
                         minOffset = int(word)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext == "sekund":
+                    elif wordNext in ("sekund", "sekunder"):
                         # in 5 seconds
                         secOffset = int(word)
                         used = 2
@@ -704,10 +711,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("om 2 timer") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',

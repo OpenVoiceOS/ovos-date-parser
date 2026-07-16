@@ -1270,7 +1270,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
             found = True
 
     # check that we found a date
-    if not date_found:
+    if not date_found():
         return None
 
     if dayOffset is False:

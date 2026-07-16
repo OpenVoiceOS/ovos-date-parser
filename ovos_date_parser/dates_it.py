@@ -705,7 +705,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             found = True
 
     # check that we found a date
-    if not date_found:
+    if not date_found():
         return None
 
     if day_offset is False:

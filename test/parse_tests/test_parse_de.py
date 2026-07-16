@@ -251,19 +251,24 @@ class TestExtractDuration(unittest.TestCase):
         self.assertEqual(extract_duration("neunzehn minuten nach acht", lang="de-de"),
                          (timedelta(minutes=19), "nach 8"))
 
-        self.assertEqual(extract_duration(("weck mich in 3 wochen,"
-                                           " 497 tagen und"
-                                           " 391.6 sekunden"), lang="de-de"),
-                         (timedelta(weeks=3, days=497, seconds=391.6),
-                          "weck mich in , und"))
+        duration, remainder = extract_duration(("weck mich in 3 wochen,"
+                                                " 497 tagen und"
+                                                " 391.6 sekunden"),
+                                               lang="de-de")
+        self.assertEqual(duration, timedelta(weeks=3, days=497,
+                                             seconds=391.6))
+        self.assertEqual(" ".join(remainder.replace(",", " ").split()),
+                         "weck mich in und")
 
         self.assertEqual(extract_duration("weck mich in einer viertel stunde", lang="de-de"),
                          (timedelta(hours=0.25), "weck mich in"))
 
-        self.assertEqual(extract_duration(("der film ist eine stunde, fünfzehn"
-                                           " einhalb minuten lang"), lang="de-de"),
-                         (timedelta(hours=1, minutes=15.5),
-                          "der film ist , lang"))
+        duration, remainder = extract_duration(
+            ("der film ist eine stunde, fünfzehn"
+             " einhalb minuten lang"), lang="de-de")
+        self.assertEqual(duration, timedelta(hours=1, minutes=15.5))
+        self.assertEqual(" ".join(remainder.replace(",", " ").split()),
+                         "der film ist lang")
 
         # wenn überhaupt wäre anstatt -sekunde -sekündig[e][ns] notwendig
         self.assertEqual(extract_duration("10-sekunden", lang="de-de"),

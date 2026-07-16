@@ -1,11 +1,16 @@
 # Changelog
 
-## [0.7.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.1a1) (2026-04-03)
+## [0.7.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.2a1) (2026-07-16)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a5...0.7.1a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a5...0.7.2a1)
+
+**Closed issues:**
+
+- Typo in French month name for October in  [\#14](https://github.com/OpenVoiceOS/ovos-date-parser/issues/14)
 
 **Merged pull requests:**
 
+- fix: datetime extraction bugs across languages + full multilingual test suites [\#111](https://github.com/OpenVoiceOS/ovos-date-parser/pull/111) ([JarbasAl](https://github.com/JarbasAl))
 - Fix French runtime date resources [\#108](https://github.com/OpenVoiceOS/ovos-date-parser/pull/108) ([goldyfruit](https://github.com/goldyfruit))
 
 ## [0.7.0a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a5) (2025-12-19)

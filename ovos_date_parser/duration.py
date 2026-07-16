@@ -426,6 +426,30 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 
+def _fold_occitan(text: str) -> str:
+    return (text.lower().replace("è", "e").replace("ò", "o")
+            .replace("í", "i").replace("é", "e").replace("ó", "o"))
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="oc",
+    normalize=_fold_occitan,
+    units={
+        "microseconds": r"microsegondas?",
+        "milliseconds": r"millisegondas?|milisegondas?",
+        "seconds": r"segondas?",
+        "minutes": r"minutas?",
+        "hours": r"oras?",
+        "days": r"jorns?",
+        "weeks": r"setmanas?",
+        "months": r"mes(?:es)?",
+        "years": r"ans?",
+        "decades": r"decadas?",
+        "centuries": r"segles?",
+        "millenniums": r"millenaris?|milenaris?",
+    }))
+
+
 def _normalize_pt(text: str) -> str:
     text = text.lower().replace("mês", "meses").replace("é", "e")
     # "segundo" (second) is also the ordinal "second"; shield it from the

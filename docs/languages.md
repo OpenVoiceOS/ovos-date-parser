@@ -27,6 +27,10 @@ style. Explicit years parse in the languages with full date support
   "huit heures moins vingt").
 - Basque, Catalan and Persian have their own idiomatic readings
   (Catalan supports `TimeVariantCA` for bell-tower style).
+- Occitan (classical orthography, Lengadocian variety) reads 12-hour with
+  the traditional quarter idioms: "una ora e quart", "cinc oras e mièja",
+  and the quarter-to form naming the next hour ("doas oras manca un quart"
+  for 1:45); noon and midnight are "miègjorn" / "mièjanuèch".
 
 ## Asturian (ast)
 

@@ -31,7 +31,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version: [ 3.9, "3.10" ]
+        python-version: [ "3.10", "3.11", "3.12" ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -60,6 +60,7 @@ jobs:
           pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_dates_pt.py
           pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_multilang_invariants.py
           pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_lang_parity.py
+          pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_packaging.py
       - name: Upload coverage
         if: "${{ matrix.python-version == '3.9' }}"
         env:

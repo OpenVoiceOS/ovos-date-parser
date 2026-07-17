@@ -400,13 +400,34 @@ def extract_datetime_hu(text, anchorDate=None, default_time=None):
     extractedDate = dateNow.replace(microsecond=0, second=0, minute=0, hour=0)
 
     if datestrMonth is not None:
-        temp = extractedDate.replace(month=datestrMonth,
-                                     day=datestrDay or 1)
+        day = datestrDay or 1
         if datestrYear:
-            temp = temp.replace(year=datestrYear)
-        elif temp < extractedDate:
-            temp = temp.replace(year=extractedDate.year + 1)
-        extractedDate = temp
+            candidate_years = [datestrYear]
+        else:
+            # walk forward to the soonest year where the date exists and is
+            # not already past (handles "február 29" -> next leap year)
+            candidate_years = range(extractedDate.year,
+                                    extractedDate.year + 9)
+        temp = None
+        for y in candidate_years:
+            try:
+                cand = extractedDate.replace(year=y, month=datestrMonth,
+                                             day=day)
+            except ValueError:
+                continue  # e.g. Feb 29 in a common year
+            if datestrYear or cand >= extractedDate:
+                temp = cand
+                break
+        if temp is None:
+            # a date that never exists ("április 31") or an invalid
+            # explicit year ("február 29 2019"): drop the bad date rather
+            # than raising, and give up entirely if nothing else was found
+            datestrMonth = None
+            if not (hrAbs is not None or hrOffset or minOffset or secOffset
+                    or dayOffset or monthOffset or yearOffset):
+                return None
+        else:
+            extractedDate = temp
 
     if yearOffset != 0:
         extractedDate = extractedDate + relativedelta(years=yearOffset)

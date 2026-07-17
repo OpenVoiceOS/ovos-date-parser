@@ -492,7 +492,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                 datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if wordNext and wordNext[0].isdigit() and len(wordNext) == 4:
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -506,7 +506,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
             elif wordNext and wordNext[0].isdigit():
                 datestr += " " + wordNext
                 used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
+                if wordNextNext and wordNextNext[0].isdigit() and len(wordNextNext) == 4:
                     datestr += " " + wordNextNext
                     used += 1
                     hasYear = True
@@ -575,13 +575,30 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         elif word == "saat":
             if wordPrev == "yarım":
                 minOffset = 30
-            if wordNext in markers:
+                words[idx - 1] = ""
+                hrAbs = -1
+                minAbs = -1
                 used += 1
-
-            words[idx - 1] = ""
-            used += 1
-            hrAbs = -1
-            minAbs = -1
+                if wordNext in markers:
+                    used += 1
+            elif wordNext and wordNext[0].isdigit() and ":" not in wordNext:
+                # explicit clock hour, e.g. "saat 8" or "axşam saat 8"
+                digits = "".join(c for c in wordNext if c.isdigit())
+                hh = int(digits)
+                if timeQualifier in timeQualifiersPM and hh < 12:
+                    hh += 12
+                if hh <= 24:
+                    hrAbs = hh
+                    minAbs = 0
+                used += 2
+                if wordNextNext in markers:
+                    used += 1
+            else:
+                hrAbs = -1
+                minAbs = -1
+                used += 1
+                if wordNext in markers:
+                    used += 1
         # parse 5:00 am, 12:00 p.m., etc
         elif word[0].isdigit():
             isTime = True
@@ -731,11 +748,12 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
 
     if datestr != "":
         # date included an explicit date, e.g. "iyun 5" or "iyun 2, 2017"
-        try:
-            temp = datetime.strptime(datestr, "%B %d")
-        except ValueError:
-            # Try again, allowing the year
+        if hasYear:
             temp = datetime.strptime(datestr, "%B %d %Y")
+        else:
+            # anchor to a leap year so "29 fevral" parses; the real
+            # year is applied below
+            temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,

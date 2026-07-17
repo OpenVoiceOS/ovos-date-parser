@@ -12,7 +12,14 @@ Parsing:
   names, month + day (+ optional year), today/tomorrow/yesterday, relative
   offsets ("in N hours/days/weeks"), morning/afternoon/evening qualifiers,
   and digit times.
-- `extract_duration_<code>(text)` — returns `(timedelta, remaining_text)`.
+- Duration parsing — the preferred path is the **shared duration engine**:
+  register a `DurationLexicon` (unit words + conjunctions) with
+  `register_duration_lexicon(...)` in `ovos_date_parser/duration.py`, then have
+  `extract_duration_<code>` delegate to
+  `extract_duration_generic(text, DURATION_LEXICONS["<code>"], ...)`. Languages
+  on this engine get `resolution` and `replace_token` support for free. A
+  standalone `extract_duration_<code>(text) -> (timedelta, remaining_text)` is
+  only needed when a language cannot use the shared lexicon.
 
 Formatting:
 

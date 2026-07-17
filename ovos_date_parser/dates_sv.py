@@ -213,12 +213,12 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
             used += 1
         # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dagar":
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev)
                 start -= 1
                 used = 2
         elif word == "vecka" or word == "veckor" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -232,7 +232,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif word == "månad" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -246,7 +246,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 5 years, next year, last year
         elif word == "år" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -569,7 +569,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                         strMM = int(word) - strHH * 100
                         if wordNext == "hours":
                             used += 1
-                    elif wordNext[0].isdigit():
+                    elif wordNext and wordNext[0].isdigit():
                         strHH = word
                         strMM = wordNext
                         used += 1
@@ -666,29 +666,37 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                                           minute=0,
                                           hour=0)
     if datestr != "":
+        # datestr is built from Swedish month names (e.g. "juni 15"),
+        # which strptime("%B") cannot parse, so map the month directly.
+        dateparts = datestr.split()
+        month_num = months.index(dateparts[0]) + 1
+        day_num = int(dateparts[1])
         if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
-        if not hasYear:
-            temp = temp.replace(year=extractedDate.year)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(year=int(currentYear),
-                                                      month=int(
-                                                          temp.strftime(
-                                                              "%m")),
-                                                      day=int(temp.strftime(
-                                                          "%d")))
-            else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")))
-        else:
+            temp = datetime(int(dateparts[2]), month_num, day_num)
             extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")))
+                year=temp.year, month=temp.month, day=temp.day)
+        else:
+            # find the soonest year in which this day/month exists (handles
+            # "29 februari" when the current year is not a leap year) and
+            # keep the existing "next occurrence" semantics
+            base_year = extractedDate.year
+            try:
+                this_year = datetime(base_year, month_num, day_num)
+                use_this_year = extractedDate < this_year
+            except ValueError:
+                use_this_year = False
+            if use_this_year:
+                year = base_year
+            else:
+                year = base_year + 1
+                while True:
+                    try:
+                        datetime(year, month_num, day_num)
+                        break
+                    except ValueError:
+                        year += 1
+            extractedDate = extractedDate.replace(
+                year=year, month=month_num, day=day_num)
 
     if timeStr != "":
         temp = datetime(timeStr)

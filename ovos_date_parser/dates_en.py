@@ -1051,21 +1051,22 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
 
     extractedDate = anchorDate.replace(microsecond=0)
 
+    temp = None
     if datestr != "":
         # date included an explicit date, e.g. "june 5" or "june 2, 2017"
-        try:
-            temp = datetime.strptime(datestr, "%B %d")
-        except ValueError:
-            # Try again, allowing the year
+        for fmt in ("%B %d", "%B %d %Y", "%B %Y", "%B"):
             try:
-                temp = datetime.strptime(datestr, "%B %d %Y")
+                temp = datetime.strptime(datestr, fmt)
+                break
             except ValueError:
-                # Try again, without day
-                try:
-                    temp = datetime.strptime(datestr, "%B %Y")
-                except ValueError:
-                    # Try again, with only month
-                    temp = datetime.strptime(datestr, "%B")
+                # e.g. an impossible calendar date like "february 29 2019"
+                # falls through every format and leaves temp as None
+                continue
+    if datestr != "" and temp is None:
+        # an explicit date was spoken but it does not exist on the calendar
+        # (e.g. "february 29 2019"); report nothing rather than a wrong guess
+        return None
+    if temp is not None:
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,

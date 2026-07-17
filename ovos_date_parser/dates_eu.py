@@ -235,6 +235,16 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
     if anchorDate is None:
         anchorDate = datetime.now()
 
+    def is_numeric_day(tok):
+        # a bare day number ("25"), not a clock ("15:00") or a
+        # case-inflected number ("3etan")
+        return bool(tok) and tok.isdigit()
+
+    def is_numeric_year(tok):
+        # only a 4 digit token is treated as a year, so a trailing
+        # clock time or inflected number is never swallowed as one
+        return bool(tok) and tok.isdigit() and len(tok) == 4
+
     found = False
     daySpecified = False
     dayOffset = False
@@ -443,47 +453,47 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                 m = monthsShort.index(word)
             used += 1
             datestr = months[m]
-            if wordPrev and wordPrev[0].isdigit():
+            if is_numeric_day(wordPrev):
                 # 13 mayo
                 datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if is_numeric_year(wordNext):
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
                 else:
                     hasYear = False
 
-            elif wordNext and wordNext[0].isdigit():
+            elif is_numeric_day(wordNext):
                 # mayo 13
                 datestr += " " + wordNext
                 used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
+                if is_numeric_year(wordNextNext):
                     datestr += " " + wordNextNext
                     used += 1
                     hasYear = True
                 else:
                     hasYear = False
 
-            elif wordPrevPrev and wordPrevPrev[0].isdigit():
+            elif is_numeric_day(wordPrevPrev):
                 # 13 dia mayo
                 datestr += " " + wordPrevPrev
 
                 start -= 2
                 used += 2
-                if wordNext and word[0].isdigit():
+                if is_numeric_year(wordNext):
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
                 else:
                     hasYear = False
 
-            elif wordNextNext and wordNextNext[0].isdigit():
+            elif is_numeric_day(wordNextNext):
                 # mayo dia 13
                 datestr += " " + wordNextNext
                 used += 2
-                if wordNextNextNext and wordNextNextNext[0].isdigit():
+                if is_numeric_year(wordNextNextNext):
                     datestr += " " + wordNextNextNext
                     used += 1
                     hasYear = True
@@ -690,7 +700,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                         remainder = "pm"
                         used += 1
                     elif wordNext == "gaua" or wordNext == "gauean" or wordNext == "gaueko":
-                        if 0 < int(word[0]) < 6:
+                        if 0 < int(strHH) < 6:
                             remainder = "am"
                         else:
                             remainder = "pm"
@@ -709,11 +719,9 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                         remainder = "pm"
                         used = 2
                     else:
-                        if timeQualifier != "":
-                            if strHH <= 12 and \
-                                    (timeQualifier == "goiza" or
-                                     timeQualifier == "arratsaldea"):
-                                strHH += 12
+                        if timeQualifier == "arratsaldea" and \
+                                strHH and int(strHH) < 12:
+                            strHH = int(strHH) + 12
 
             else:
                 # try to parse # s without colons
@@ -759,27 +767,27 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                         strHH = strNum
                         remainder = "am"
                         used = 0
-                    elif (int(word) > 100 and
+                    elif (int(strNum) > 100 and
                           (
                                   # wordPrev == "o" or
                                   # wordPrev == "oh" or
                                   wordPrev == "zero"
                           )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) / 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "orduak":
                             used += 1
                     elif (
                             wordNext == "orduak" and
                             word[0] != '0' and
                             (
-                                    int(word) < 100 and
-                                    int(word) > 2400
+                                    int(strNum) < 100 and
+                                    int(strNum) > 2400
                             )):
                         # ignores military time
                         # "in 3 hours"
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
@@ -787,27 +795,27 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
 
                     elif wordNext == "minutu":
                         # "in 10 minutes"
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "segundu":
                         # in 5 seconds
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif int(strNum) > 100:
+                        strHH = int(strNum) / 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "ordu":
                             used += 1
 
                     elif wordNext == "" or (
                             wordNext == "puntuan"):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "puntuan":
                             used += 2
@@ -825,7 +833,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                                 used += 1
 
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "orduak":
@@ -889,30 +897,33 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
         for idx, en_month in enumerate(en_monthsShort):
             datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
-        temp = temp.replace(tzinfo=None)
-        if not hasYear:
-            temp = temp.replace(year=extractedDate.year, tzinfo=extractedDate.tzinfo)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(year=int(currentYear),
-                                                      month=int(
-                                                          temp.strftime(
-                                                              "%m")),
-                                                      day=int(temp.strftime(
-                                                          "%d")))
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
             else:
+                # 2000 is a leap year, so Feb 29 parses; the year is
+                # replaced below anyway
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+            temp = temp.replace(tzinfo=None)
+            if not hasYear:
+                if extractedDate.replace(year=extractedDate.year) < \
+                        temp.replace(year=extractedDate.year):
+                    chosen_year = int(currentYear)
+                else:
+                    chosen_year = int(currentYear) + 1
                 extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
+                    year=chosen_year,
                     month=int(temp.strftime("%m")),
                     day=int(temp.strftime("%d")))
-        else:
-            extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")))
+            else:
+                extractedDate = extractedDate.replace(
+                    year=int(temp.strftime("%Y")),
+                    month=int(temp.strftime("%m")),
+                    day=int(temp.strftime("%d")))
+        except ValueError:
+            # impossible date (e.g. an out-of-range day, or Feb 29 in a
+            # non-leap target year): treat it as no valid date found
+            return None
 
     if yearOffset != 0:
         extractedDate = extractedDate + relativedelta(years=yearOffset)

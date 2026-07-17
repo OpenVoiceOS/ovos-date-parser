@@ -128,16 +128,16 @@ class TestDatetimeOC(unittest.TestCase):
             datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
 
     def test_relative_time_offsets(self):
-        # offsets are applied from the day's start, matching dates_gl
+        # relative offsets keep the anchor time of day, matching dates_gl
         self.assertEqual(
             extract_datetime("en 10 minutas", anchorDate=self.ANCHOR_NOON)[0],
-            datetime(1998, 1, 1, 0, 10, tzinfo=default_timezone()))
+            datetime(1998, 1, 1, 12, 10, tzinfo=default_timezone()))
         self.assertEqual(
             extract_datetime("en 3 oras", anchorDate=self.ANCHOR_NOON)[0],
-            datetime(1998, 1, 1, 3, 0, tzinfo=default_timezone()))
+            datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
         self.assertEqual(
             extract_datetime("en 5 segondas", anchorDate=self.ANCHOR_NOON)[0],
-            datetime(1998, 1, 1, 0, 0, 5, tzinfo=default_timezone()))
+            datetime(1998, 1, 1, 12, 0, 5, tzinfo=default_timezone()))
 
     def test_no_date(self):
         self.assertIsNone(extract_datetime("adiu amics", anchorDate=self.ANCHOR))

@@ -783,6 +783,10 @@ def extract_duration_sv(text):
     """
     tokens = tokenize(text)
     number_tok_map = _find_numbers_in_text(tokens)
+    if not number_tok_map:
+        # No numbers means no duration; also avoids indexing an empty
+        # token list downstream when the input is empty or whitespace.
+        return None
     # Combine adjacent numbers
     simplified = _combine_adjacent_numbers(number_tok_map)
 

@@ -470,5 +470,225 @@ class TestExtractDurationEl(unittest.TestCase):
         self.assertIn("X", rem)
 
 
+class _RealSentenceBase(unittest.TestCase):
+    """Shared anchor and helpers for full-sentence extraction tests.
+
+    All expected values are reference-verified against how a Modern Greek
+    speaker reads the sentence, not pinned from engine output. The anchor
+    is Tuesday 2017-06-27 13:04, a non-midnight time so that relative
+    offsets and the "earlier clock time rolls to tomorrow" inference are
+    both exercised. Remainder strings are asserted in the parser's
+    normalized form (lowercased, diacritics dropped, final sigma folded).
+    """
+    def setUp(self):
+        self.anchor = datetime(2017, 6, 27, 13, 4, 0)
+
+    def _check(self, text, expected_dt, expected_remainder):
+        res = extract_datetime_el(text, anchorDate=self.anchor)
+        self.assertIsNotNone(res, f"expected a datetime for {text!r}")
+        dt, remainder = res
+        self.assertEqual(dt, expected_dt, f"datetime for {text!r}")
+        self.assertEqual(remainder, expected_remainder,
+                         f"remainder for {text!r}")
+
+    def _none(self, text):
+        self.assertIsNone(extract_datetime_el(text, anchorDate=self.anchor),
+                          f"expected None for {text!r}")
+
+
+class TestRealSentenceAlarmsReminders(_RealSentenceBase):
+    """Alarms, reminders and timers phrased as complete utterances."""
+
+    def test_wake_me_tomorrow_half_past_seven_morning(self):
+        # "wake me tomorrow at half past seven in the morning"
+        self._check("ξύπνα με αύριο στις εφτά και μισή το πρωί",
+                    datetime(2017, 6, 28, 7, 30), "ξυπνα με")
+
+    def test_wake_me_tomorrow_formal_seven(self):
+        # formal επτά instead of colloquial εφτά
+        self._check("ξύπνα με αύριο στις επτά και μισή το πρωί",
+                    datetime(2017, 6, 28, 7, 30), "ξυπνα με")
+
+    def test_remind_me_in_three_hours(self):
+        # "remind me in three hours" -> anchor + 3h
+        self._check("θύμισέ μου σε τρεις ώρες",
+                    datetime(2017, 6, 27, 16, 4), "θυμισε μου")
+
+    def test_remind_me_in_ten_minutes_with_tail(self):
+        self._check("θύμισέ μου σε δέκα λεπτά να πάρω τηλέφωνο",
+                    datetime(2017, 6, 27, 13, 14),
+                    "θυμισε μου να παρω τηλεφωνο")
+
+    def test_remind_me_in_two_days_with_tail(self):
+        self._check("θύμισέ μου σε δύο μέρες να πληρώσω",
+                    datetime(2017, 6, 29, 0, 0), "θυμισε μου να πληρωσω")
+
+    def test_alarm_eight_oclock_colloquial(self):
+        # οχτώ ακριβώς -> 08:00, rolls to tomorrow (earlier than anchor)
+        self._check("βάλε ξυπνητήρι στις οχτώ ακριβώς",
+                    datetime(2017, 6, 28, 8, 0), "βαλε ξυπνητηρι")
+
+    def test_alarm_eight_oclock_formal(self):
+        self._check("βάλε ξυπνητήρι στις οκτώ ακριβώς",
+                    datetime(2017, 6, 28, 8, 0), "βαλε ξυπνητηρι")
+
+    def test_timer_five_minutes_digit(self):
+        self._check("βάλε χρονόμετρο για 5 λεπτά",
+                    datetime(2017, 6, 27, 13, 9), "βαλε χρονομετρο για")
+
+    def test_turn_off_light_in_five_minutes_spoken(self):
+        self._check("κλείσε το φως σε πέντε λεπτά",
+                    datetime(2017, 6, 27, 13, 9), "κλεισε φωσ")
+
+    def test_leave_in_two_days_digit(self):
+        self._check("θα φύγω σε 2 μέρες",
+                    datetime(2017, 6, 29, 0, 0), "θα φυγω")
+
+
+class TestRealSentenceAppointments(_RealSentenceBase):
+    """Appointments and events carrying an absolute calendar date."""
+
+    def test_doctor_on_fifth_of_june(self):
+        # 5 Ιουνίου is already past this year's anchor -> next year
+        self._check("ραντεβού στον γιατρό στις 5 Ιουνίου",
+                    datetime(2018, 6, 5, 0, 0), "ραντεβου γιατρο")
+
+    def test_train_leaves_fifteenth_of_march(self):
+        self._check("το τρένο φεύγει στις 15 Μαρτίου",
+                    datetime(2018, 3, 15, 0, 0), "το τρενο φευγει")
+
+    def test_nominative_month_input(self):
+        # nominative "Ιούνιος" accepted the same as the genitive
+        self._check("ραντεβού στις 5 Ιούνιος",
+                    datetime(2018, 6, 5, 0, 0), "ραντεβου")
+
+    def test_spoken_day_of_month(self):
+        # spelled-out day-of-month with genitive month
+        self._check("κράτηση στις δεκαπέντε Ιουνίου",
+                    datetime(2018, 6, 15, 0, 0), "κρατηση")
+
+    def test_next_tuesday_question(self):
+        # anchor is Tuesday -> next Tuesday is a week later
+        self._check("τι γίνεται την επόμενη Τρίτη",
+                    datetime(2017, 7, 4, 0, 0), "τι γινεται")
+
+    def test_appointment_on_friday_ten_morning(self):
+        # Friday after the anchor at 10:00
+        self._check("ραντεβού την Παρασκευή στις δέκα το πρωί",
+                    datetime(2017, 6, 30, 10, 0), "ραντεβου")
+
+    def test_talk_tomorrow(self):
+        self._check("μιλάμε αύριο", datetime(2017, 6, 28, 0, 0), "μιλαμε")
+
+
+class TestRealSentenceClockIdioms(_RealSentenceBase):
+    """και μισή / και τέταρτο / παρά τέταρτο / ακριβώς and parts of day."""
+
+    def test_quarter_to_four_spoken(self):
+        # τέσσερις παρά τέταρτο -> 03:45
+        self._check("συνάντηση στις τέσσερις παρά τέταρτο",
+                    datetime(2017, 6, 28, 3, 45), "συναντηση")
+
+    def test_quarter_past_three_predawn(self):
+        # τρεις και τέταρτο τα ξημερώματα -> 03:15
+        self._check("ξύπνα με στις τρεις και τέταρτο τα ξημερώματα",
+                    datetime(2017, 6, 28, 3, 15), "ξυπνα με")
+
+    def test_three_in_the_afternoon(self):
+        # τρεις το απόγευμα -> 15:00 same day
+        self._check("κλείσε ραντεβού στις τρεις το απόγευμα",
+                    datetime(2017, 6, 27, 15, 0), "κλεισε ραντεβου")
+
+    def test_nine_thirty_at_night(self):
+        # εννέα και μισή το βράδυ -> 21:30 same day
+        self._check("η ταινία παίζει στις εννέα και μισή το βράδυ",
+                    datetime(2017, 6, 27, 21, 30), "η ταινια παιζει")
+
+    def test_nine_at_night(self):
+        self._check("δείπνο απόψε στις εννέα το βράδυ",
+                    datetime(2017, 6, 27, 21, 0), "δειπνο αποψε")
+
+    def test_eleven_at_night(self):
+        # έντεκα το βράδυ -> 23:00
+        self._check("το πάρτι είναι στις έντεκα το βράδυ",
+                    datetime(2017, 6, 27, 23, 0), "το παρτι ειναι")
+
+
+class TestRealSentenceGenderInContext(_RealSentenceBase):
+    """Gendered numerals embedded in sentences.
+
+    Clock hours take the feminine μία/τρεις/τέσσερις; counted nouns take
+    the neuter τρία/τέσσερα. Both must be understood on input.
+    """
+
+    def test_feminine_one_oclock(self):
+        # στη μία -> 01:00 (rolls to tomorrow); feminine "μία"
+        self._check("ξύπνα με στη μία",
+                    datetime(2017, 6, 28, 1, 0), "ξυπνα με")
+
+    def test_feminine_three_afternoon(self):
+        self._check("τα λέμε στις τρεις το απόγευμα",
+                    datetime(2017, 6, 27, 15, 0), "τα λεμε")
+
+    def test_feminine_four_quarter_to(self):
+        self._check("συνάντηση στις τέσσερις παρά τέταρτο",
+                    datetime(2017, 6, 28, 3, 45), "συναντηση")
+
+    def test_neuter_three_minutes(self):
+        # counted noun "λεπτά" takes neuter "τρία"
+        self._check("θύμισέ μου σε τρία λεπτά",
+                    datetime(2017, 6, 27, 13, 7), "θυμισε μου")
+
+    def test_neuter_four_days(self):
+        self._check("έλα σε τέσσερα μέρες",
+                    datetime(2017, 7, 1, 0, 0), "ελα")
+
+
+class TestRealSentenceMixedDigits(_RealSentenceBase):
+    """Sentences mixing spelled-out numerals with ASCII digits."""
+
+    def test_digit_hour_spoken_half(self):
+        # digit "7" + spoken idiom "και μισή"
+        self._check("ξύπνα με στις 7 και μισή",
+                    datetime(2017, 6, 28, 7, 30), "ξυπνα με")
+
+    def test_digit_hour_spoken_quarter_morning(self):
+        self._check("βάλε ξυπνητήρι στις 6 και τέταρτο το πρωί",
+                    datetime(2017, 6, 28, 6, 15), "βαλε ξυπνητηρι")
+
+    def test_digit_hours_spoken_minutes_offset(self):
+        # "in 3 hours and twenty minutes" -> anchor + 3h20m
+        self._check("θύμισέ μου σε 3 ώρες και είκοσι λεπτά",
+                    datetime(2017, 6, 27, 16, 24), "θυμισε μου")
+
+    def test_spoken_day_digit_absent(self):
+        # spelled-out day, genitive month, no year -> next occurrence
+        self._check("κράτηση στις δεκαπέντε Ιουνίου",
+                    datetime(2018, 6, 15, 0, 0), "κρατηση")
+
+
+class TestRealSentenceAdversarial(_RealSentenceBase):
+    """Sentence-shaped inputs that must NOT yield a datetime."""
+
+    def test_greeting_no_date(self):
+        self._none("γεια σου τι κάνεις")
+
+    def test_vague_sometime(self):
+        self._none("πάμε σινεμά κάποια στιγμή")
+
+    def test_plain_statement(self):
+        self._none("αυτό είναι ένα κανονικό μήνυμα χωρίς ημερομηνία")
+
+    def test_malformed_clock_in_sentence(self):
+        # 25:99 is not a valid time and nothing else anchors the sentence
+        self._none("ραντεβού στις 25:99 δεν υπάρχει")
+
+    def test_empty(self):
+        self.assertIsNone(extract_datetime_el(""))
+
+    def test_whitespace_only(self):
+        self._none("       ")
+
+
 if __name__ == "__main__":
     unittest.main()

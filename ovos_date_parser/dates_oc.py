@@ -780,16 +780,16 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = str(int(word) // 100)
-                        strMM = str(int(word) % 100)
+                    elif strNum and int(strNum) > 100:
+                        strHH = str(int(strNum) // 100)
+                        strMM = str(int(strNum) % 100)
                         if wordNext == "ora":
                             used += 1
                     elif wordNext == "":
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "ora":

@@ -254,6 +254,52 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
         # voweled spelling must parse identically to the bare form
         self.assertEqual(self._dt("الساعة الثَّالِثة صباحاً")[0].hour, 3)
 
+    def test_weekday_proclitics(self):
+        # anchor is a Friday; ب/ل proclitics fuse onto the article
+        base = self.A.replace(hour=0, minute=0)
+        self.assertEqual(self._dt("بالجمعة")[0].date(), base.date())
+        self.assertEqual(self._dt("للجمعة")[0].date(), base.date())
+        # بالأحد -> the coming Sunday (two days after a Friday anchor)
+        self.assertEqual(self._dt("بالأحد")[0].date(),
+                         (base + timedelta(days=2)).date())
+
+    def test_within_marks_future(self):
+        # خلال / في غضون ("within") look forward like بعد
+        self.assertEqual(self._dt("خلال ساعتين")[0], self.A + timedelta(hours=2))
+        base = self.A.replace(hour=0, minute=0)
+        self.assertEqual(self._dt("في غضون ثلاثة أيام")[0],
+                         base + timedelta(days=3))
+        self.assertEqual(self._dt("خلال ثلاثة أيام")[0],
+                         base + timedelta(days=3))
+
+    def test_ago_marks_past(self):
+        # قبل / منذ resolve to the past, not the future
+        self.assertEqual(self._dt("قبل ثلاث ساعات")[0],
+                         self.A - timedelta(hours=3))
+        base = self.A.replace(hour=0, minute=0)
+        self.assertEqual(self._dt("منذ ثلاثة أيام")[0],
+                         base - timedelta(days=3))
+
+    def test_out_of_range_clock_does_not_crash(self):
+        # an impossible clock must not raise; it is simply not a time
+        self.assertIsNone(self._dt("الساعة 5:70"))
+        self.assertIsNone(self._dt("الساعة ١٧:٧٠"))
+        self.assertIsNone(self._dt("الساعة 25"))
+        # a valid boundary still parses
+        self.assertEqual((self._dt("الساعة 23:59")[0].hour,
+                          self._dt("الساعة 23:59")[0].minute), (23, 59))
+
+    def test_and_a_third_past_the_hour(self):
+        # "وثلث" / "والثلث" = twenty past
+        self.assertEqual(self._dt("الساعة الثالثة والثلث")[0].minute, 20)
+        self.assertEqual(self._dt("الساعة الثالثة وثلث")[0].minute, 20)
+
+    def test_noon_and_midnight_words(self):
+        self.assertEqual((self._dt("منتصف الليل")[0].hour,
+                          self._dt("منتصف الليل")[0].minute), (0, 0))
+        self.assertEqual(self._dt("الظهر")[0].hour, 12)
+        self.assertEqual(self._dt("ظهراً")[0].hour, 12)
+
 
 class TestExtractDurationArabicHardening(unittest.TestCase):
     def _d(self, text):

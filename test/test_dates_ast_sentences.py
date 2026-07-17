@@ -161,5 +161,34 @@ class TestImpossibleAndBoundaryDates(unittest.TestCase):
         self.assertIsNone(extract("una frase ensin data"))
 
 
+class TestNumericTimeWithLetterSuffix(unittest.TestCase):
+    """A numeric time token carrying a trailing letter (``20h``, ``21h30``)
+    must parse from its digit prefix instead of crashing on ``int()``."""
+
+    def test_bare_hour_suffix(self):
+        self.assertEqual(extract("20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_hour_suffix_with_preposition(self):
+        self.assertEqual(extract("a les 20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_hour_and_minutes_suffix(self):
+        self.assertEqual(extract("21h30")[0], dt(2117, 9, 3, 21, 30))
+
+    def test_hour_and_minutes_suffix_with_preposition(self):
+        self.assertEqual(extract("a les 21h30")[0], dt(2117, 9, 3, 21, 30))
+
+    def test_hour_suffix_on_the_dot(self):
+        self.assertEqual(
+            extract("a les 20h en puntu")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_letter_only_token_does_not_crash(self):
+        # no digit prefix at all: must fall through, never reach int("")
+        self.assertIsNone(extract("hhh"))
+
+    def test_impossible_hour_suffix_is_none(self):
+        # 25h is out of range once parsed; must reject, not raise
+        self.assertIsNone(extract("a les 25h"))
+
+
 if __name__ == "__main__":
     unittest.main()

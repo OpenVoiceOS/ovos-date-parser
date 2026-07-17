@@ -147,6 +147,7 @@ _MONTH_UNITS_ET = ("kuu", "kuud")
 _YEAR_UNITS_ET = ("aasta", "aastat")
 _HOUR_UNITS_ET = ("tund", "tunni", "tundi")
 _MINUTE_UNITS_ET = ("minut", "minuti", "minutit")
+_SECOND_UNITS_ET = ("sekund", "sekundi", "sekundit")
 _AFTER_MARKERS_ET = ("pärast", "järel", "möödudes")
 _NEXT_ET = ("järgmine", "järgmisel", "tulev", "tuleval")
 _LAST_ET = ("eelmine", "eelmisel", "möödunud")
@@ -274,6 +275,7 @@ def extract_datetime_et(text, anchorDate=None, default_time=None):
     hr_abs = None
     min_abs = None
     min_offset = 0  # relative "in N hours/minutes" offset, in minutes
+    sec_offset = 0  # relative "in N seconds" offset, in seconds
     consumed = [False] * len(words)
     found = False
 
@@ -363,6 +365,8 @@ def extract_datetime_et(text, anchorDate=None, default_time=None):
                     min_offset += num * 60
                 elif unit in _MINUTE_UNITS_ET:
                     min_offset += num
+                elif unit in _SECOND_UNITS_ET:
+                    sec_offset += num
                 else:
                     continue
                 consumed[idx] = consumed[idx - 1] = consumed[idx - 2] = True
@@ -414,10 +418,14 @@ def extract_datetime_et(text, anchorDate=None, default_time=None):
     has_date = (abs_month is not None or day_offset is not None or
                 week_offset or month_offset or year_offset)
 
-    if not has_date and hr_abs is None and min_offset:
-        # a pure "N tunni/minuti pärast" offset is measured from the anchor
-        extracted = anchor.replace(second=0, microsecond=0) + \
-            timedelta(minutes=min_offset)
+    if not has_date and hr_abs is None and (min_offset or sec_offset):
+        # a pure "N tunni/minuti/sekundi pärast" offset is measured from the
+        # anchor; a seconds offset keeps the anchor's seconds, mirroring how a
+        # minutes offset keeps the anchor's minutes
+        base = anchor.replace(microsecond=0)
+        if not sec_offset:
+            base = base.replace(second=0)
+        extracted = base + timedelta(minutes=min_offset, seconds=sec_offset)
         leftover = " ".join(w for i, w in enumerate(words)
                             if not consumed[i] and w != ".")
         return [extracted, " ".join(leftover.split())]
@@ -451,8 +459,9 @@ def extract_datetime_et(text, anchorDate=None, default_time=None):
         min_abs = default_time.minute
     if hr_abs is not None:
         extracted = extracted.replace(hour=hr_abs, minute=min_abs or 0)
-    if min_offset:
-        extracted = extracted + timedelta(minutes=min_offset)
+    if min_offset or sec_offset:
+        extracted = extracted + timedelta(minutes=min_offset,
+                                          seconds=sec_offset)
 
     leftover = " ".join(w for i, w in enumerate(words)
                         if not consumed[i] and w != ".")

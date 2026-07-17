@@ -772,36 +772,36 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
                         remainder = "am" if 0 < int(strNum) < 6 else "pm"
                         used = 1
                     elif wordNext == "ωρα" and word[0] != '0' and \
-                            int(word) < 100:
-                        hrOffset = int(word)
+                            strNum and int(strNum) < 100:
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "λεπτο":
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "δευτερολεπτο":
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = str(int(word) // 100)
-                        strMM = str(int(word) % 100)
+                    elif strNum and int(strNum) > 100:
+                        strHH = str(int(strNum) // 100)
+                        strMM = str(int(strNum) % 100)
                         if wordNext == "ωρα":
                             used += 1
                     elif wordNext == "" or wordNext == "ακριβωσ":
-                        strHH = word
+                        strHH = strNum
                         strMM = 0
                         if wordNext == "ακριβωσ":
                             used += 1
                     elif wordNext and wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "ωρα":

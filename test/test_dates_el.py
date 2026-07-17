@@ -233,6 +233,26 @@ class TestExtractDatetimeEl(unittest.TestCase):
         self.assertIsNone(extract_datetime_el("25:99",
                                               anchorDate=self.anchor))
 
+    def test_numeric_time_letter_suffix_no_crash(self):
+        # "20h" glues digits to a trailing letter; the extractor must not
+        # feed the raw token to int() and crash on it
+        res = extract_datetime_el("20h", anchorDate=self.anchor)
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0].hour, 20)
+        self.assertEqual(res[0].minute, 0)
+
+    def test_numeric_time_hhmm_letter_suffix_no_crash(self):
+        # "21h30" packs hours and minutes around a letter separator
+        res = extract_datetime_el("21h30", anchorDate=self.anchor)
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0].hour, 21)
+        self.assertEqual(res[0].minute, 30)
+
+    def test_impossible_numeric_time_suffix_no_crash(self):
+        # digits glued to gibberish letters must resolve to None, not raise
+        self.assertIsNone(extract_datetime_el("99z9foo",
+                                              anchorDate=self.anchor))
+
     def test_returns_pair(self):
         res = extract_datetime_el("σήμερα", anchorDate=self.anchor)
         self.assertIsInstance(res, list)

@@ -157,5 +157,83 @@ class TestParsing(unittest.TestCase):
                          (timedelta(seconds=3600), ""))
 
 
+class TestParsingNatural(unittest.TestCase):
+    """Natural spoken Dutch and adversarial inputs for extract_datetime."""
+
+    def setUp(self):
+        self.anchor = datetime(2017, 6, 27, 0, 0,
+                               tzinfo=default_timezone())
+
+    def _extract(self, text):
+        return extract_datetime(text, anchorDate=self.anchor, lang=LANG)
+
+    def _fmt(self, text):
+        res = self._extract(text)
+        self.assertIsNotNone(res, text)
+        return res[0].strftime("%Y-%m-%d %H:%M:%S"), res[1]
+
+    def test_dutch_month_names(self):
+        # months whose Dutch spelling differs from the English one must not
+        # crash the parser (strptime "%B" only knows C-locale month names)
+        self.assertEqual(self._fmt("afspraak op 3 mei")[0],
+                         "2018-05-03 00:00:00")
+        self.assertEqual(self._fmt("afspraak op 5 juli")[0],
+                         "2017-07-05 00:00:00")
+        self.assertEqual(self._fmt("afspraak op 20 oktober")[0],
+                         "2017-10-20 00:00:00")
+        self.assertEqual(self._fmt("afspraak op 10 augustus")[0],
+                         "2017-08-10 00:00:00")
+        self.assertEqual(self._fmt("15 maart 2019")[0],
+                         "2019-03-15 00:00:00")
+        self.assertEqual(self._fmt("29 februari 2020")[0],
+                         "2020-02-29 00:00:00")
+
+    def test_all_month_names_do_not_crash(self):
+        for m in ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
+                  'juli', 'augustus', 'september', 'oktober', 'november',
+                  'december']:
+            with self.subTest(month=m):
+                res = self._extract("afspraak op 12 " + m)
+                self.assertIsNotNone(res)
+                self.assertEqual(res[0].day, 12)
+
+    def test_part_of_day_makes_hour_pm(self):
+        # a genitive part-of-day after an explicit hour marks it as pm
+        self.assertEqual(self._fmt("3 uur 's middags")[0],
+                         "2017-06-27 15:00:00")
+        self.assertEqual(self._fmt("8 uur 's avonds")[0],
+                         "2017-06-27 20:00:00")
+        self.assertEqual(self._fmt("om 2 uur 's middags")[0],
+                         "2017-06-27 14:00:00")
+        date, leftover = self._fmt("plan een afspraak om 2 uur 's middags")
+        self.assertEqual(date, "2017-06-27 14:00:00")
+        self.assertEqual(leftover, "plan een afspraak")
+
+    def test_part_of_day_morning_stays_am(self):
+        self.assertEqual(self._fmt("3 uur 's ochtends")[0],
+                         "2017-06-27 03:00:00")
+
+    def test_hour_after_date_not_swallowed_as_year(self):
+        # "3 uur" following a date must be a clock time, not a bogus year
+        self.assertEqual(self._fmt("15 december 3 uur")[0],
+                         "2017-12-15 03:00:00")
+        self.assertEqual(self._fmt("afspraak op 15 juni om 3 uur")[0],
+                         "2018-06-15 03:00:00")
+
+    def test_relative_hour_offset_preserved(self):
+        # "over 3 uur" stays a duration offset from the anchor
+        self.assertEqual(self._fmt("over 3 uur")[0],
+                         "2017-06-27 03:00:00")
+
+    def test_mixed_case(self):
+        self.assertEqual(self._fmt("AFSPRAAK OP 3 MEI")[0],
+                         "2018-05-03 00:00:00")
+
+    def test_no_date_returns_none(self):
+        for junk in ["", "   ", "geen tijd hier", "hallo wereld", "!!!"]:
+            with self.subTest(junk=junk):
+                self.assertIsNone(self._extract(junk))
+
+
 if __name__ == "__main__":
     unittest.main()

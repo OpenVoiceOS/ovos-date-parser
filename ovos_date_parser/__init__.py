@@ -114,7 +114,7 @@ def nice_time(
         speech: bool = True,
         use_24hour: bool = False,
         use_ampm: bool = False,
-        variant: Optional[TimeVariantCA] = None,
+        variant: Optional[Union[TimeVariantCA, str]] = None,
 ) -> str:
     """
     Format a time to a comfortable human format.
@@ -125,7 +125,10 @@ def nice_time(
         speech: Format for speech (default is True) or display (False).
         use_24hour: Output in 24-hour/military or 12-hour format.
         use_ampm: Include the am/pm for 12-hour format.
-        variant: Optional variant for Catalan (ca).
+        variant: Optional time-telling register for Catalan (ca). Accepts a
+            TimeVariantCA member or a friendly alias string such as
+            "standard"/"central" (les quatre i quart) or "quarts" (un quart
+            de cinc). Ignored for other languages.
 
     Returns:
         The formatted time string.

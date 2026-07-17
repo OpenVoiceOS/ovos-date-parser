@@ -17,6 +17,53 @@ class TimeVariantCA(IntEnum):
     SPANISH_LIKE = 3
 
 
+# Human-friendly aliases so callers can pick a time-telling register by name
+# instead of importing the enum. Catalan has two well-known ways to tell time:
+#   - the "standard"/central register: "les quatre i quart", "les quatre i
+#     mitja", "les cinc menys quart" (mapped to SPANISH_LIKE)
+#   - the traditional "quarts" register: quarters counted toward the *next*
+#     hour, "un quart de cinc" (4:15), "dos quarts de cinc" (4:30), "tres
+#     quarts de cinc" (4:45), with the finer "mig quart" / "un quart i mig"
+#     refinements (mapped to BELL, or FULL_BELL for the exhaustive gradation)
+_TIME_VARIANT_ALIASES_CA = {
+    "default": TimeVariantCA.DEFAULT,
+    "watch": TimeVariantCA.DEFAULT,
+    "standard": TimeVariantCA.SPANISH_LIKE,
+    "central": TimeVariantCA.SPANISH_LIKE,
+    "spanish_like": TimeVariantCA.SPANISH_LIKE,
+    "quarts": TimeVariantCA.BELL,
+    "bell": TimeVariantCA.BELL,
+    "quarts_full": TimeVariantCA.FULL_BELL,
+    "full_bell": TimeVariantCA.FULL_BELL,
+}
+
+
+def _resolve_time_variant_ca(variant):
+    """Resolve a variant given as an enum member, an enum name, or a
+    human-friendly alias string into a ``TimeVariantCA``.
+
+    Anything unrecognised (including ``None``) falls back to
+    ``TimeVariantCA.DEFAULT`` so existing callers keep the current behaviour.
+    """
+    if isinstance(variant, TimeVariantCA):
+        return variant
+    if isinstance(variant, str):
+        key = variant.strip().lower()
+        if key in _TIME_VARIANT_ALIASES_CA:
+            return _TIME_VARIANT_ALIASES_CA[key]
+        # also accept the exact enum member name, e.g. "FULL_BELL"
+        try:
+            return TimeVariantCA[variant.strip().upper()]
+        except KeyError:
+            return TimeVariantCA.DEFAULT
+    if isinstance(variant, int):
+        try:
+            return TimeVariantCA(variant)
+        except ValueError:
+            return TimeVariantCA.DEFAULT
+    return TimeVariantCA.DEFAULT
+
+
 def extract_duration_ca(text, resolution=DurationResolution.TIMEDELTA,
                         replace_token=""):
     """
@@ -50,10 +97,17 @@ def nice_time_ca(dt, speech=True, use_24hour=False, use_ampm=False,
         speech (bool): format for speech (default/True) or display (False)=Fal
         use_24hour (bool): output in 24-hour/military or 12-hour format
         use_ampm (bool): include the am/pm for 12-hour format
+        variant (TimeVariantCA|str): time-telling register. Accepts a
+            TimeVariantCA member or a friendly alias string. Notable aliases:
+            "standard"/"central" (i quart / i mitja / menys quart),
+            "quarts" (traditional quarters-toward-next-hour: "un quart de
+            cinc"), "quarts_full" (fine-grained quarts gradation) and
+            "default" (plain watch time). Unknown values fall back to the
+            default watch-time register, preserving existing behaviour.
     Returns:
         (str): The formatted time string
     """
-    variant = variant or TimeVariantCA.DEFAULT
+    variant = _resolve_time_variant_ca(variant)
 
     if use_24hour:
         # e.g. "03:01" or "14:22"

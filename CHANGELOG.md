@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a3) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a2...0.18.1a3)
+
+**Merged pull requests:**
+
+- docs: polish docs and examples for beginners, advanced users and standalone use [\#179](https://github.com/OpenVoiceOS/ovos-date-parser/pull/179) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a2) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a1...0.18.1a2)

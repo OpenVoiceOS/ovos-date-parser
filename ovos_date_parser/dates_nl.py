@@ -712,7 +712,9 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             if timeQualifier in timeQualifiersPM and HH < 12:
                 HH += 12
 
-            if HH > 24 or MM > 59:
+            if HH > 23 or MM > 59:
+                # a clock value like "24:00" or "25:30" is not a real time;
+                # reject it rather than building an out-of-range datetime
                 isTime = False
                 used = 0
             if isTime:
@@ -766,7 +768,13 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         month_num = months.index(date_parts[0]) + 1
         day_num = int(date_parts[1]) if len(date_parts) > 1 else 1
         year_num = int(date_parts[2]) if len(date_parts) > 2 else 1900
-        temp = datetime(year_num, month_num, day_num)
+        try:
+            temp = datetime(year_num, month_num, day_num)
+        except ValueError:
+            # an explicit date was spoken but it does not exist on the
+            # calendar (e.g. "30 februari" or "29 februari 2019"); report
+            # nothing rather than a wrong guess
+            return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,
@@ -794,12 +802,17 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         if hrOffset == 0 and minOffset == 0 and secOffset == 0:
             extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
 
-    if yearOffset != 0:
-        extractedDate = extractedDate + relativedelta(years=yearOffset)
-    if monthOffset != 0:
-        extractedDate = extractedDate + relativedelta(months=monthOffset)
-    if dayOffset != 0:
-        extractedDate = extractedDate + relativedelta(days=dayOffset)
+    try:
+        if yearOffset != 0:
+            extractedDate = extractedDate + relativedelta(years=yearOffset)
+        if monthOffset != 0:
+            extractedDate = extractedDate + relativedelta(months=monthOffset)
+        if dayOffset != 0:
+            extractedDate = extractedDate + relativedelta(days=dayOffset)
+    except (OverflowError, ValueError):
+        # an absurd offset like "999999999999 uur" overflows the datetime
+        # range; report nothing rather than crashing
+        return None
     if hrAbs != -1 and minAbs != -1:
         # If no time was supplied in the string set the time to default
         # time if it's available
@@ -814,12 +827,17 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         if (hrAbs != 0 or minAbs != 0) and datestr == "":
             if not daySpecified and anchorDate > extractedDate:
                 extractedDate = extractedDate + relativedelta(days=1)
-    if hrOffset != 0:
-        extractedDate = extractedDate + relativedelta(hours=hrOffset)
-    if minOffset != 0:
-        extractedDate = extractedDate + relativedelta(minutes=minOffset)
-    if secOffset != 0:
-        extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    try:
+        if hrOffset != 0:
+            extractedDate = extractedDate + relativedelta(hours=hrOffset)
+        if minOffset != 0:
+            extractedDate = extractedDate + relativedelta(minutes=minOffset)
+        if secOffset != 0:
+            extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    except (OverflowError, ValueError):
+        # an absurd offset like "999999999999 uur" overflows the datetime
+        # range; report nothing rather than crashing
+        return None
     for idx, word in enumerate(words):
         if words[idx] == "en" and \
                 words[idx - 1] == "" and words[idx + 1] == "":

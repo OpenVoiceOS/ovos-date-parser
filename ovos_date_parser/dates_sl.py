@@ -386,6 +386,17 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
     hrAbs = None
     minAbs = None
 
+    def _apply_time_qualifier(hour):
+        # "ponoči" (in the night) keeps the small hours in the AM: "ob enih
+        # ponoči" is 1:00, while "ob enajstih ponoči" is 23:00.
+        if timeQualifier == "ponoči":
+            return hour + 12 if 5 < hour < 12 else hour
+        if timeQualifier in timeQualifiersPM and 0 < hour < 12:
+            return hour + 12
+        if timeQualifier in timeQualifiersAM and hour >= 12:
+            return hour - 12
+        return hour
+
     for idx, word in enumerate(words):
         if word == "":
             continue
@@ -445,10 +456,7 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
                 minAbs = 30
                 start -= 1
                 used += 1
-            if timeQualifier in timeQualifiersPM and 0 < hrAbs < 12:
-                hrAbs += 12
-            elif timeQualifier in timeQualifiersAM and hrAbs >= 12:
-                hrAbs -= 12
+            hrAbs = _apply_time_qualifier(hrAbs)
         elif word[0].isdigit():
             strHH = ""
             strMM = ""
@@ -484,10 +492,7 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
                 HH = int(strHH)
                 MM = int(strMM) if strMM else 0
                 if HH <= 24 and MM <= 59:
-                    if timeQualifier in timeQualifiersPM and 0 < HH < 12:
-                        HH += 12
-                    elif timeQualifier in timeQualifiersAM and HH >= 12:
-                        HH -= 12
+                    HH = _apply_time_qualifier(HH)
                     hrAbs = HH % 24
                     minAbs = MM
                 else:
@@ -511,35 +516,40 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
     # perform date manipulation
     extractedDate = anchorDate.replace(microsecond=0)
     if datestr != "":
-        try:
-            temp = datetime.strptime(datestr, "%B %d")
-        except ValueError:
+        temp = None
+        for fmt in ("%B %d %Y", "%B %d", "%B %Y", "%B"):
             try:
-                temp = datetime.strptime(datestr, "%B %d %Y")
+                temp = datetime.strptime(datestr, fmt)
+                break
             except ValueError:
-                temp = datetime.strptime(datestr + " 1", "%B %d")
+                continue
+        if temp is None:
+            # a leap day like "29. februarja" has no valid date in the
+            # default year 1900; parse it against a known leap year
+            temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+        month = temp.month
+        day = temp.day
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
+
+        def _on_or_after(year):
+            # roll forward to the next year the day exists in, so that
+            # "29. februarja" lands on the next actual 29 February
+            while True:
+                try:
+                    return extractedDate.replace(year=year, month=month,
+                                                 day=day,
+                                                 tzinfo=extractedDate.tzinfo)
+                except ValueError:
+                    year += 1
+
         if not hasYear:
-            temp = temp.replace(year=extractedDate.year,
-                                tzinfo=extractedDate.tzinfo)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear),
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extractedDate.tzinfo)
+            thisYear = _on_or_after(int(currentYear))
+            if extractedDate < thisYear:
+                extractedDate = thisYear
             else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extractedDate.tzinfo)
+                extractedDate = _on_or_after(int(currentYear) + 1)
         else:
-            extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")),
-                tzinfo=extractedDate.tzinfo)
+            extractedDate = _on_or_after(temp.year)
     else:
         # ignore the current HH:MM:SS if relative using days or greater
         if hrOffset == 0 and minOffset == 0 and secOffset == 0:

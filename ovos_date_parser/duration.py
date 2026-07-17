@@ -630,3 +630,35 @@ register_duration_lexicon(DurationLexicon(
         "centuries": r"secol(?:e(?:le)?|ul)?|veac(?:uri)?",
         "millenniums": r"mileni[iu](?:le)?",
     }))
+
+
+def _normalize_fi(text):
+    # numbers_to_digits already folds "puoli" -> 0.5 and "puolitoista" ->
+    # 1.5; collapse "N ja 0.5" ("kolme ja puoli") into "N.5" so the whole
+    # quantity is read as a single fractional value
+    text = numbers_to_digits(text.lower(), "fi")
+    return re.sub(r"(\d+)\s+ja\s+0[.,]5", r"\1.5", text)
+
+
+# Finnish nouns follow a numeral in the partitive singular ("kaksi tuntia");
+# the nominative ("tunti") and genitive ("tunnin", in "kahden tunnin") forms
+# also occur, so each unit accepts its common declined surface forms.
+# Fractional numerals ("puoli tuntia" = 0.5 h, "puolitoista tuntia" = 1.5 h,
+# "kolme ja puoli tuntia" = 3.5 h) are handled by the numeral normalizer.
+register_duration_lexicon(DurationLexicon(
+    lang="fi",
+    normalize=_normalize_fi,
+    units={
+        "microseconds": r"mikrosekunt(?:ia|i)|mikrosekunnin",
+        "milliseconds": r"millisekunt(?:ia|i)|millisekunnin",
+        "seconds": r"sekunt(?:ia|i)|sekunnin",
+        "minutes": r"minuut(?:tia|ti)|minuutin",
+        "hours": r"(?:tunti|tuntia|tunnin)",
+        "days": r"(?:päivää|päivän|päivä|vuorokausi|vuorokautta)",
+        "weeks": r"(?:viikko|viikkoa|viikon)",
+        "months": r"(?:kuukausi|kuukautta|kuukauden)",
+        "years": r"(?:vuosi|vuotta|vuoden)",
+        "decades": r"(?:vuosikymmen|vuosikymmentä|vuosikymmenen)",
+        "centuries": r"(?:vuosisata|vuosisataa|vuosisadan)",
+        "millenniums": r"(?:vuosituhat|vuosituhatta|vuosituhannen)",
+    }))

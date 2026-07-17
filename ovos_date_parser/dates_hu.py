@@ -173,6 +173,12 @@ def extract_datetime_hu(text, anchorDate=None, default_time=None):
             had_kor = True
         elif tok in ("órára", "óráig", "órától"):
             tok = "óra"
+        elif tok.endswith("kor") and extract_number_hu(tok[:-3]) is not False:
+            # a spelled-out hour carries "-kor" attached, without a hyphen
+            # ("nyolckor" = at eight); only strip it when the remainder is
+            # itself a number word, so "akkor"/"amikor" are left untouched
+            tok = tok[:-3]
+            had_kor = True
         tokens.append(tok)
         kor.append(had_kor)
 
@@ -370,12 +376,14 @@ def extract_datetime_hu(text, anchorDate=None, default_time=None):
                         int(m_min) < 60:
                     minAbs = int(m_min)
                     used += 1
-        elif nxt == "óra":
+        elif nxt == "óra" or kor[idx]:
+            # a spelled-out hour, either before "óra" or carrying "-kor"
+            # ("nyolckor" = at eight)
             n = _num(tok)
             if n is not None and float(n).is_integer() and 0 <= n <= 24:
                 hrAbs = int(n)
                 minAbs = 0
-                used = 2
+                used = 2 if nxt == "óra" else 1
         if used > 0:
             for i in range(used):
                 tokens[idx + i] = ""
@@ -397,7 +405,11 @@ def extract_datetime_hu(text, anchorDate=None, default_time=None):
     if not found and hrAbs is None and datestrMonth is None:
         return None
 
-    extractedDate = dateNow.replace(microsecond=0, second=0, minute=0, hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # a purely relative offset ("15 perc múlva") keeps the anchor time of day
+        extractedDate = dateNow.replace(microsecond=0, second=0)
+    else:
+        extractedDate = dateNow.replace(microsecond=0, second=0, minute=0, hour=0)
 
     if datestrMonth is not None:
         day = datestrDay or 1

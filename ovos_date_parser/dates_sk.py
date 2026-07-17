@@ -2,11 +2,29 @@ import re
 from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
-from ovos_number_parser.numbers_sk import pronounce_number_sk
+from ovos_number_parser.numbers_sk import pronounce_number_sk, extract_number_sk
 from ovos_utils.time import now_local
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
+
+
+def _int_token_sk(word):
+    """Return the integer a single spelled/digit token denotes, else None.
+
+    Ordinals ("siedmej") and fractions ("pol") are rejected so they keep
+    their clock-idiom meaning.
+    """
+    if not word:
+        return None
+    if word.isdigit():
+        return int(word)
+    n = extract_number_sk(word)
+    if n is False or n is None or isinstance(n, bool):
+        return None
+    if isinstance(n, float) and not n.is_integer():
+        return None
+    return int(n)
 
 
 # feminine genitive ordinals, used by the traditional "pol" idiom
@@ -485,6 +503,21 @@ def extract_datetime_sk(text, anchorDate=None, default_time=None):
                 hrAbs += 12
             elif timeQualifier in timeQualifiersAM and hrAbs >= 12:
                 hrAbs -= 12
+        # spelled future offsets: "o desať minút", "cez tri hodiny"
+        elif wordPrev in _FUTURE_PREPS_SK and \
+                wordNext in ("minút", "hodín", "sekúnd") and \
+                not word[0].isdigit() and _int_token_sk(word) is not None:
+            value = _int_token_sk(word)
+            if wordNext == "minút":
+                minOffset = value
+            elif wordNext == "hodín":
+                hrOffset = value
+            else:
+                secOffset = value
+            hrAbs = -1
+            minAbs = -1
+            start -= 1
+            used = 3
         elif word[0].isdigit():
             strHH = ""
             strMM = ""

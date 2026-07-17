@@ -197,5 +197,132 @@ class TestAdversarial(unittest.TestCase):
         self.assertIsNone(result)
 
 
+class TestNaturalSentences(unittest.TestCase):
+    """Full sentences a user would actually speak.
+
+    Every expected value is derived from Slovak usage, then checked
+    against the parser; both the resolved datetime and the leftover text
+    are asserted so number/date words are consumed but the surrounding
+    request survives.
+    """
+    CASES = [
+        ("nastav budík na zajtra o siedmej ráno",
+         "2017-06-29 07:00", "nastav budík"),
+        ("pripomeň mi stretnutie v piatok o pol tretej poobede",
+         "2017-06-30 14:30", "pripomeň mi stretnutie"),
+        ("zobuď ma o štvrť na osem",
+         "2017-06-29 07:15", "zobuď ma"),
+        ("mám schôdzku 15. augusta o 14:30",
+         "2017-08-15 14:30", "mám schôdzku"),
+        ("stretneme sa o tri hodiny",
+         "2017-06-28 16:04", "stretneme sa"),
+        ("pripomeň mi to o desať minút",
+         "2017-06-28 13:14", "pripomeň mi to"),
+        ("rezervácia je na 3. januára 2020",
+         "2020-01-03 00:00", "rezervácia je"),
+        ("budúcu stredu o dvanástej",
+         "2017-07-05 12:00", ""),
+        ("o dvadsaťpäť minút",
+         "2017-06-28 13:29", ""),
+        ("budík na 6:45 ráno",
+         "2017-06-29 06:45", "budík"),
+    ]
+
+    def test_sentences(self):
+        for text, expected_dt, expected_rem in self.CASES:
+            result = extract_datetime_sk(text, anchorDate=ANCHOR)
+            self.assertIsNotNone(result, text)
+            self.assertEqual(result[0].strftime("%Y-%m-%d %H:%M"),
+                             expected_dt, text)
+            self.assertEqual(result[1], expected_rem, text)
+
+
+class TestSpelledOffsets(unittest.TestCase):
+    def test_spelled_in_minutes_hours_seconds(self):
+        cases = {
+            "o päť minút": timedelta(minutes=5),
+            "o desať minút": timedelta(minutes=10),
+            "cez tri hodiny": timedelta(hours=3),
+            "za dvadsaťpäť minút": timedelta(minutes=25),
+            "o štyridsaťpäť sekúnd": timedelta(seconds=45),
+        }
+        for phrase, delta in cases.items():
+            result = extract_datetime_sk(phrase, anchorDate=ANCHOR)
+            self.assertIsNotNone(result, phrase)
+            self.assertEqual(result[0], ANCHOR + delta, phrase)
+
+
+class TestDurationSentences(unittest.TestCase):
+    def test_declined_numbers_in_context(self):
+        self.assertEqual(
+            extract_duration_sk("nastav časovač na dve hodiny "
+                                 "a tridsať minút")[0],
+            timedelta(hours=2, minutes=30))
+        self.assertEqual(extract_duration_sk("počkaj päť minút")[0],
+                         timedelta(minutes=5))
+        self.assertEqual(extract_duration_sk("odpočítavaj devätnásť "
+                                             "sekúnd")[0],
+                         timedelta(seconds=19))
+
+
+class TestBoundaryEdges(unittest.TestCase):
+    def test_leap_day(self):
+        result = extract_datetime_sk("29. februára 2020", anchorDate=ANCHOR)
+        self.assertEqual(result[0].strftime("%Y-%m-%d"), "2020-02-29")
+
+    def test_mixed_case(self):
+        result = extract_datetime_sk("ZAJTRA O SIEDMEJ RÁNO",
+                                     anchorDate=ANCHOR)
+        self.assertEqual(result[0].strftime("%Y-%m-%d %H:%M"),
+                         "2017-06-29 07:00")
+
+    def test_none_input(self):
+        self.assertIsNone(extract_datetime_sk(None, anchorDate=ANCHOR))
+
+    def test_language_code_variant_dispatch(self):
+        # regional code must still route through the Slovak parser
+        result = extract_datetime("zajtra", "sk-SK", anchorDate=ANCHOR)
+        self.assertEqual(result[0].date(),
+                         (ANCHOR + timedelta(days=1)).date())
+        self.assertTrue(nice_time(ANCHOR, "sk-SK", use_24hour=True).strip())
+
+    def test_wrap_around_clock(self):
+        result = extract_datetime_sk("o 23:30", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (23, 30))
+
+    def test_remainder_retained(self):
+        result = extract_datetime_sk("koľko stojí lístok na zajtra",
+                                     anchorDate=ANCHOR)
+        self.assertNotIn("zajtra", result[1])
+        self.assertIn("lístok", result[1])
+
+
+class TestNumbersInContext(unittest.TestCase):
+    def test_trailing_punctuation_and_digits(self):
+        result = extract_datetime_sk("stretnutie 15. augusta?",
+                                     anchorDate=ANCHOR)
+        self.assertEqual((result[0].month, result[0].day), (8, 15))
+
+    def test_digit_time_inside_sentence(self):
+        result = extract_datetime_sk("vlak odchádza o 9:05",
+                                     anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (9, 5))
+
+
+class TestCrossLanguageContamination(unittest.TestCase):
+    """Croatian/Bulgarian date phrases must not parse as Slovak dates."""
+    FOREIGN = [
+        "sutra", "sljedeću srijedu", "u sedam ujutro", "15. kolovoza",
+        "za deset minuta", "vidimo se za tri sata",
+        "утре", "следващата сряда", "в седем сутринта", "15 август",
+        "след десет минути", "след три часа",
+    ]
+
+    def test_foreign_phrases_do_not_match(self):
+        for phrase in self.FOREIGN:
+            self.assertIsNone(extract_datetime_sk(phrase, anchorDate=ANCHOR),
+                              phrase)
+
+
 if __name__ == "__main__":
     unittest.main()

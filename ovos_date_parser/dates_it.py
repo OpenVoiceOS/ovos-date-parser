@@ -435,8 +435,11 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
     # digit-based time parser just like "alle 3" does; the indefinite
     # article and the fraction words keep their own meaning and are left
     # untouched
+    # the duration-unit words must survive: "secondo" is also the ordinal
+    # "second", so converting it to a digit would turn "15 secondo" into
+    # "15 2" and lose the seconds offset
     _keep_words = {'un', 'uno', 'una', "un'", 'mezzo', 'mezza', 'mezzora',
-                   'quarto', 'quarti', 'paio'}
+                   'quarto', 'quarti', 'paio', 'secondo', 'minuto', 'ora'}
     for _i, _w in enumerate(words):
         if not _w or _w[0].isdigit() or _w in _keep_words:
             continue

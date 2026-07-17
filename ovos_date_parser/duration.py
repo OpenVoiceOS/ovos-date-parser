@@ -550,6 +550,30 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 
+def _normalize_nn(text: str) -> str:
+    from ovos_number_parser.numbers_nn import numbers_to_digits_nn
+    return numbers_to_digits_nn(text.lower())
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="nn",
+    normalize=_normalize_nn,
+    units={
+        "microseconds": r"mikrosekund(?:a|er|et)?",
+        "milliseconds": r"millisekund(?:a|er|et)?",
+        "seconds": r"sekund(?:a|er|et)?",
+        "minutes": r"minutt(?:a|er|et)?",
+        "hours": r"tim(?:ane|ar|en|e|r)?",
+        "days": r"dag(?:ane|ar|er|en)?",
+        "weeks": r"veke(?:ne|r|a)?",
+        "months": r"månad(?:ene|er|en)?",
+        "years": r"år(?:a|et)?",
+        "decades": r"(?:tiår(?:a|et)?|årti(?:a|er|et)?)",
+        "centuries": r"(?:hundreår(?:a|et)?|århundre(?:a|r|t)?)",
+        "millenniums": r"årtusen(?:a|er|et)?",
+    }))
+
+
 register_duration_lexicon(DurationLexicon(
     lang="cs",
     units={

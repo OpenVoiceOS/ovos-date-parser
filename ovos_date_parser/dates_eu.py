@@ -778,32 +778,33 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                         strMM = int(strNum) - strHH * 100
                         if wordNext == "orduak":
                             used += 1
-                    elif (
-                            wordNext == "orduak" and
-                            word[0] != '0' and
-                            (
-                                    int(strNum) < 100 and
-                                    int(strNum) > 2400
-                            )):
-                        # ignores military time
-                        # "in 3 hours"
+                    elif (wordNext == "ordu" or wordNext == "orduak") \
+                            and word[0] != '0' and int(strNum) < 100:
+                        # "3 ordu barru" -> in 3 hours
                         hrOffset = int(strNum)
                         used = 2
+                        if wordNextNext in suffix_nexts:
+                            used = 3
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
 
-                    elif wordNext == "minutu":
-                        # "in 10 minutes"
+                    elif wordNext == "minutu" or wordNext == "minutuak":
+                        # "10 minutu barru" -> in 10 minutes
                         minOffset = int(strNum)
                         used = 2
+                        if wordNextNext in suffix_nexts:
+                            used = 3
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext == "segundu":
-                        # in 5 seconds
+                    elif wordNext == "segundo" or wordNext == "segundu" \
+                            or wordNext == "segunduak":
+                        # "5 segundo barru" -> in 5 seconds
                         secOffset = int(strNum)
                         used = 2
+                        if wordNextNext in suffix_nexts:
+                            used = 3
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
@@ -881,10 +882,13 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # a purely relative hour/minute/second offset keeps the
+        # anchor time of day instead of resetting to midnight
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0, second=0,
+                                              minute=0, hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',

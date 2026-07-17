@@ -5,6 +5,13 @@ Time is told with the feminine ordinal hour names after "الساعة"
 "التاسعة والنصف" = 9:30, "التاسعة إلا ربعاً" = quarter to nine.
 Extraction accepts both Western and Eastern Arabic-Indic digits and
 tolerates unvocalized spelling variants.
+
+Counted-noun agreement follows Wright, "A Grammar of the Arabic
+Language" Vol. I: the dual endings -āni (nominative) / -aini (oblique)
+give يومان/يومين = "two days" (§299), and cardinal numerals 3-10 take
+the gender opposite the counted noun (§319-§321), so the feminine
+nouns ساعة/دقيقة/ثانية take the bare numeral forms ثلاث/أربع/خمس while
+the masculine يوم takes ثلاثة/أربعة/خمسة.
 """
 import re
 from datetime import timedelta
@@ -63,8 +70,15 @@ _MONTHS_LOOKUP_AR[_normalize_ar("اثنين")] = None  # guard, see weekdays
 del _MONTHS_LOOKUP_AR[_normalize_ar("اثنين")]
 _WEEKDAYS_LOOKUP_AR = {}
 for _i, _w in _WEEKDAYS_AR.items():
-    _WEEKDAYS_LOOKUP_AR[_normalize_ar(_w)] = _i
-    _WEEKDAYS_LOOKUP_AR[_normalize_ar(_w)[2:]] = _i  # without the article
+    _name = _normalize_ar(_w)  # e.g. "الجمعه" (article + bare noun)
+    _bare = _name[2:]  # drop the "ال" article -> "جمعه"
+    _WEEKDAYS_LOOKUP_AR[_name] = _i
+    _WEEKDAYS_LOOKUP_AR[_bare] = _i  # without the article
+    # ب/ل proclitics fused onto the article: "بالجمعة" (on Friday),
+    # "للجمعة" (for/until Friday). With ل the article's alif elides
+    # (li + al -> lil), so build it from the bare noun.
+    _WEEKDAYS_LOOKUP_AR["ب" + _name] = _i
+    _WEEKDAYS_LOOKUP_AR["لل" + _bare] = _i
 
 _HOUR_LOOKUP_AR = {}
 for _n, _name in _HOUR_NAMES_AR.items():
@@ -163,7 +177,9 @@ def _count_unit_ar(count, singular, dual, plural, feminine):
     """A counted noun with Arabic number agreement.
 
     1 and 2 use the bare singular/dual, 3-10 take the plural with the
-    polarity-opposed numeral, 11+ take the singular."""
+    polarity-opposed numeral, 11+ take the singular. The reverse gender
+    polarity of 3-10 follows Wright, "A Grammar of the Arabic Language"
+    Vol. I §319: the numeral takes the gender opposite the counted noun."""
     if count == 1:
         return singular
     if count == 2:
@@ -318,7 +334,10 @@ _MIDNIGHT_WORD = _normalize_ar("منتصفالليل")
 _NEXT_WORDS = {_normalize_ar("القادم"), _normalize_ar("القادمة"),
                _normalize_ar("المقبل"), _normalize_ar("المقبلة")}
 _PREV_WORDS = {_normalize_ar("الماضي"), _normalize_ar("الماضية")}
-_AFTER_WORD = _normalize_ar("بعد")
+# forward-looking relatives: بعد (after), خلال (within/during),
+# غضون (the noun in "في غضون" = within); all place the offset in the future
+_AFTER_WORDS = {_normalize_ar("بعد"), _normalize_ar("خلال"),
+                _normalize_ar("غضون")}
 _BEFORE_WORDS = {_normalize_ar("قبل"), _normalize_ar("منذ")}
 _CLOCK_WORDS = {_normalize_ar("الساعة"), _normalize_ar("ساعة")}
 _CALENDAR_UNITS = {
@@ -341,9 +360,15 @@ _IN_WORD = _normalize_ar("في")
 def extract_datetime_ar(text, anchorDate=None, default_time=None):
     """Convert a human date reference in Arabic into an exact datetime.
 
-    Handles relative days (اليوم, غداً, أمس, بعد غد), weekdays, Gregorian
-    month names, relative offsets ("بعد ثلاثة أيام", "الأسبوع القادم") and
-    clock times ("الساعة التاسعة والنصف مساءً", "5:30").
+    Handles relative days (اليوم, غداً, أمس, بعد غد), weekdays (including
+    the ب/ل proclitics بالجمعة/للجمعة), Gregorian month names, relative
+    offsets and clock times ("الساعة التاسعة والنصف مساءً", "5:30").
+
+    Forward-looking markers بعد / خلال / في غضون ("after" / "within")
+    place the offset in the future; قبل / منذ ("before" / "since") place
+    it in the past. Dual offsets use the -āni/-aini forms يومين/ساعتين
+    = "two days"/"two hours" (Wright, "A Grammar of the Arabic Language"
+    Vol. I §299).
 
     Args:
         text (str): string containing date words
@@ -361,7 +386,8 @@ def extract_datetime_ar(text, anchorDate=None, default_time=None):
     normalized = normalized.replace("بعد غد", "بعدغد") \
         .replace("اول امس", "اولامس").replace("امس الاول", "اولامس") \
         .replace("منتصف الليل", "منتصفالليل") \
-        .replace("بعد الظهر", "بعدالظهر")
+        .replace("بعد الظهر", "بعدالظهر") \
+        .replace("في غضون", "غضون")  # "within" -> single forward marker
     tokens = _tokenize_ar(normalized)
 
     if not anchorDate:
@@ -549,8 +575,8 @@ def extract_datetime_ar(text, anchorDate=None, default_time=None):
             date_found = True
             i += 2
             continue
-        if tok == _AFTER_WORD or tok in _BEFORE_WORDS:
-            sign = 1 if tok == _AFTER_WORD else -1
+        if tok in _AFTER_WORDS or tok in _BEFORE_WORDS:
+            sign = 1 if tok in _AFTER_WORDS else -1
             duration, j = _parse_duration_span(tokens, i + 1)
             if duration is not None:
                 delta += sign * duration[0]
@@ -579,6 +605,9 @@ def extract_datetime_ar(text, anchorDate=None, default_time=None):
             # "الساعة 5" or "الساعة 5:30"
             if i + 1 < n:
                 m = _HHMM_RE.match(tokens[i + 1])
+                if m and not (0 <= int(m.group(1)) < 24 and
+                              0 <= int(m.group(2)) < 60):
+                    m = None  # out-of-range clock like "5:70"; not a time
                 val = None
                 if not m:
                     val, jj = _parse_number_span(tokens, i + 1)

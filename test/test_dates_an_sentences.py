@@ -7,14 +7,13 @@ rather than isolated word<->value anchors.
 Every expected string is built only from reference-verified Aragonese forms:
 - weekdays: Biquipedia "Nombre d'os días d'a semana"/"Semana"; Wiktionary "luns"
     Luns, Martes, Miercres, Chueves, Viernes, Sabado, Dominche
-- months: Biquipedia "Mes"
-    Chinero, Febrero, Marzo, Abril, Mayo, Chunio, Chulio, Agosto,
-    Setiembre, Octubre, Noviembre, Aviento
+- months: reviewed Aragonese forms
+    Chinero, Febrero, Marzo, Abril, Mayo, Chunyo, Chuliol, Agosto,
+    Setiembre, Octubre, Noviembre, Deciembre
 - carrier words: "Hue" (today), "ye" (is, 3rd person singular) — attested
     Aragonese, used only to place the verified date inside a real sentence.
 
-Aragonese is date-only for now: the spoken clock idiom is pending expert
-review, so no time sentences are asserted here.
+The date connector "de" elides to "d'" before a vowel-initial month.
 """
 import unittest
 from datetime import datetime
@@ -38,14 +37,16 @@ MONTH_FIRST = {
     "Marzo": datetime(2019, 3, 1),
     "Abril": datetime(2019, 4, 1),
     "Mayo": datetime(2019, 5, 1),
-    "Chunio": datetime(2019, 6, 1),
-    "Chulio": datetime(2019, 7, 1),
+    "Chunyo": datetime(2019, 6, 1),
+    "Chuliol": datetime(2019, 7, 1),
     "Agosto": datetime(2019, 8, 1),
     "Setiembre": datetime(2019, 9, 1),
     "Octubre": datetime(2019, 10, 1),
     "Noviembre": datetime(2019, 11, 1),
-    "Aviento": datetime(2019, 12, 1),
+    "Deciembre": datetime(2019, 12, 1),
 }
+# months whose name starts with a vowel take the elided "d'" connector
+_VOWEL_MONTHS = {"Abril", "Agosto", "Octubre"}
 
 
 class TestAragoneseWeekdaySentences(unittest.TestCase):
@@ -70,7 +71,7 @@ class TestAragoneseFullDateSentences(unittest.TestCase):
         sentence = f"L'acto ye o {nice_date(WEEK['Martes'], 'an')}."
         self.assertEqual(
             sentence,
-            "L'acto ye o Martes, cinco de Chunio de dos mil y deciueito.")
+            "L'acto ye o Martes, cinco de Chunyo de dos mil y deciueito.")
 
     def test_full_date_without_weekday(self):
         dt = MONTH_FIRST["Chinero"]
@@ -87,7 +88,8 @@ class TestAragoneseFullDateSentences(unittest.TestCase):
         for month, dt in MONTH_FIRST.items():
             clause = nice_date(dt, "an", include_weekday=False)
             sentence = f"O mes prencipia o {clause}."
-            self.assertIn(f"de {month} de", sentence)
+            connector = f"d'{month} de" if month in _VOWEL_MONTHS else f"de {month} de"
+            self.assertIn(connector, sentence)
             self.assertTrue(sentence.endswith("."))
 
 
@@ -97,6 +99,12 @@ class TestAragoneseDayAndYearSentences(unittest.TestCase):
         dt = datetime(2019, 8, 15)
         sentence = f"A fiesta ye o {nice_day(dt, 'an')}."
         self.assertEqual(sentence, "A fiesta ye o 15 Agosto.")
+
+    def test_vowel_month_elides_connector(self):
+        # "de" -> "d'" before a vowel-initial month, no space
+        for month in ("Abril", "Agosto", "Octubre"):
+            clause = nice_date(MONTH_FIRST[month], "an", include_weekday=False)
+            self.assertIn(f"d'{month}", clause)
 
     def test_year_in_sentence(self):
         dt = datetime(2020, 1, 1)
@@ -138,9 +146,9 @@ class TestAragoneseEdgeCasesInContext(unittest.TestCase):
         self.assertEqual(nice_weekday(WEEK["Miercres"], "an"), "Miercres")
         self.assertNotEqual(nice_weekday(WEEK["Miercres"], "an"), "Miércoles")  # es
         self.assertNotEqual(nice_weekday(WEEK["Miercres"], "an"), "Woansdei")   # fy
-        self.assertEqual(nice_month(MONTH_FIRST["Aviento"], "an"), "Aviento")
-        self.assertNotEqual(nice_month(MONTH_FIRST["Aviento"], "an"), "Diciembre")  # es
-        self.assertNotEqual(nice_month(MONTH_FIRST["Aviento"], "an"), "Desimber")   # fy
+        self.assertEqual(nice_month(MONTH_FIRST["Deciembre"], "an"), "Deciembre")
+        self.assertNotEqual(nice_month(MONTH_FIRST["Deciembre"], "an"), "Diciembre")  # es
+        self.assertNotEqual(nice_month(MONTH_FIRST["Deciembre"], "an"), "Desimber")   # fy
         self.assertEqual(nice_month(MONTH_FIRST["Chinero"], "an"), "Chinero")
         self.assertNotEqual(nice_month(MONTH_FIRST["Chinero"], "an"), "Enero")      # es
 

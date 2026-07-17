@@ -405,11 +405,9 @@ register_duration_lexicon(DurationLexicon(
         "millenniums": r"milenios?",
     }))
 
-# the Galician number normalizer folds articles ("un temporizador" ->
-# "1 temporizador"), so only accent folding is applied here
 register_duration_lexicon(DurationLexicon(
     lang="gl",
-    normalize=_fold_iberian,
+    normalize=lambda text: numbers_to_digits(_fold_iberian(text), "gl"),
     units={
         "microseconds": r"microsegundos?",
         "milliseconds": r"milisegundos?",
@@ -528,6 +526,54 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 
+def _normalize_nb(text: str) -> str:
+    from ovos_number_parser.numbers_nb import numbers_to_digits_nb
+    return numbers_to_digits_nb(text.lower())
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="nb",
+    normalize=_normalize_nb,
+    units={
+        "microseconds": r"mikrosekund(?:ene|er|et)?",
+        "milliseconds": r"millisekund(?:ene|er|et)?",
+        "seconds": r"sekund(?:ene|er|et)?",
+        "minutes": r"minutt(?:ene|er|et)?",
+        "hours": r"time(?:ne|r|n)?",
+        "days": r"dag(?:ene|er|en)?",
+        "weeks": r"uke(?:ne|r|n)?",
+        "months": r"måned(?:ene|er|en)?",
+        "years": r"år(?:ene|et)?",
+        "decades": r"(?:tiår(?:ene|et)?|årti(?:ene|er|et)?)",
+        "centuries": r"(?:århundre(?:ne|r|t)?|hundreår(?:ene|et)?)",
+        "millenniums": r"årtusen(?:ene|er|et)?",
+    }))
+
+
+def _normalize_nn(text: str) -> str:
+    from ovos_number_parser.numbers_nn import numbers_to_digits_nn
+    return numbers_to_digits_nn(text.lower())
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="nn",
+    normalize=_normalize_nn,
+    units={
+        "microseconds": r"mikrosekund(?:a|er|et)?",
+        "milliseconds": r"millisekund(?:a|er|et)?",
+        "seconds": r"sekund(?:a|er|et)?",
+        "minutes": r"minutt(?:a|er|et)?",
+        "hours": r"tim(?:ane|ar|en|e|r)?",
+        "days": r"dag(?:ane|ar|er|en)?",
+        "weeks": r"veke(?:ne|r|a)?",
+        "months": r"månad(?:ene|er|en)?",
+        "years": r"år(?:a|et)?",
+        "decades": r"(?:tiår(?:a|et)?|årti(?:a|er|et)?)",
+        "centuries": r"(?:hundreår(?:a|et)?|århundre(?:a|r|t)?)",
+        "millenniums": r"årtusen(?:a|er|et)?",
+    }))
+
+
 register_duration_lexicon(DurationLexicon(
     lang="cs",
     units={
@@ -574,6 +620,57 @@ register_duration_lexicon(DurationLexicon(
         "hours": r"годин(?:а|и|у|ами|ою)?",
         "days": r"(?:днів|день|дні|дня|дню)",
         "weeks": r"(?:тиждень|тижн(?:я|і|ів|ю))",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="sk",
+    units={
+        "microseconds": r"mikrosek[úu]nd(?:a|y|u)?",
+        "milliseconds": r"milisek[úu]nd(?:a|y|u)?",
+        "seconds": r"sek[úu]nd(?:a|y|u)?",
+        "minutes": r"min[úu]t(?:a|y|u)?",
+        "hours": r"hod[íi]n(?:a|y|u)?",
+        "days": r"(?:deň|dni|dní|dňa)",
+        "weeks": r"(?:týždeň|týždne|týždňov|týždňa)",
+        "months": r"mesiac(?:e|ov|a)?",
+        "years": r"(?:rok(?:y|ov|a)?)",
+        "decades": r"(?:desaťroč(?:ie|ia|í)|dekád(?:a|y)?)",
+        "centuries": r"storoč(?:ie|ia|í)",
+        "millenniums": r"tisícroč(?:ie|ia|í)",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="hr",
+    units={
+        "microseconds": r"mikrosekund(?:a|e|i|u)?",
+        "milliseconds": r"milisekund(?:a|e|i|u)?",
+        "seconds": r"sekund(?:a|e|i|u)?",
+        "minutes": r"minut(?:a|e|i|u)?",
+        "hours": r"sat(?:a|i|u)?",
+        "days": r"dan(?:a|i|u)?",
+        "weeks": r"(?:tjedan|tjedn(?:a|i|u))",
+        "months": r"mjesec(?:a|i|u)?",
+        "years": r"godin(?:a|e|i|u)?",
+        "decades": r"(?:desetljeć(?:e|a|i)?|desetljeća)",
+        "centuries": r"stoljeć(?:e|a|i)?",
+        "millenniums": r"tisućljeć(?:e|a|i)?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="bg",
+    units={
+        "microseconds": r"микросекунд(?:а|и)?",
+        "milliseconds": r"милисекунд(?:а|и)?",
+        "seconds": r"секунд(?:а|и)?",
+        "minutes": r"минут(?:а|и)?",
+        "hours": r"час(?:а|ове)?",
+        "days": r"(?:ден|дни|дена)",
+        "weeks": r"седмиц(?:а|и)?",
+        "months": r"месец(?:а|и)?",
+        "years": r"годин(?:а|и)?",
+        "decades": r"десетилети(?:е|я)",
+        "centuries": r"(?:век(?:а|ове)?|столети(?:е|я))",
+        "millenniums": r"хилядолети(?:е|я)",
     }))
 
 register_duration_lexicon(DurationLexicon(
@@ -629,4 +726,67 @@ register_duration_lexicon(DurationLexicon(
         "decades": r"deceni[iu](?:le)?",
         "centuries": r"secol(?:e(?:le)?|ul)?|veac(?:uri)?",
         "millenniums": r"mileni[iu](?:le)?",
+    }))
+
+
+def _normalize_fi(text):
+    # numbers_to_digits already folds "puoli" -> 0.5 and "puolitoista" ->
+    # 1.5; collapse "N ja 0.5" ("kolme ja puoli") into "N.5" so the whole
+    # quantity is read as a single fractional value
+    text = numbers_to_digits(text.lower(), "fi")
+    return re.sub(r"(\d+)\s+ja\s+0[.,]5", r"\1.5", text)
+
+
+# Finnish nouns follow a numeral in the partitive singular ("kaksi tuntia");
+# the nominative ("tunti") and genitive ("tunnin", in "kahden tunnin") forms
+# also occur, so each unit accepts its common declined surface forms.
+# Fractional numerals ("puoli tuntia" = 0.5 h, "puolitoista tuntia" = 1.5 h,
+# "kolme ja puoli tuntia" = 3.5 h) are handled by the numeral normalizer.
+register_duration_lexicon(DurationLexicon(
+    lang="fi",
+    normalize=_normalize_fi,
+    units={
+        "microseconds": r"mikrosekunt(?:ia|i)|mikrosekunnin",
+        "milliseconds": r"millisekunt(?:ia|i)|millisekunnin",
+        "seconds": r"sekunt(?:ia|i)|sekunnin",
+        "minutes": r"minuut(?:tia|ti)|minuutin",
+        "hours": r"(?:tunti|tuntia|tunnin)",
+        "days": r"(?:päivää|päivän|päivä|vuorokausi|vuorokautta)",
+        "weeks": r"(?:viikko|viikkoa|viikon)",
+        "months": r"(?:kuukausi|kuukautta|kuukauden)",
+        "years": r"(?:vuosi|vuotta|vuoden)",
+        "decades": r"(?:vuosikymmen|vuosikymmentä|vuosikymmenen)",
+        "centuries": r"(?:vuosisata|vuosisataa|vuosisadan)",
+        "millenniums": r"(?:vuosituhat|vuosituhatta|vuosituhannen)",
+    }))
+
+
+def _normalize_et(text):
+    # numbers_to_digits already folds "pool" -> 0.5 and "poolteist" -> 1.5;
+    # collapse "N ja 0.5" ("kolm ja pool") into "N.5" so the whole quantity
+    # is read as a single fractional value
+    text = numbers_to_digits(text.lower(), "et")
+    return re.sub(r"(\d+)\s+ja\s+0[.,]5", r"\1.5", text)
+
+
+# Estonian nouns follow a numeral in the partitive singular ("kaks tundi");
+# the nominative ("tund") and partitive/genitive variants also occur.
+# Fractional numerals ("pool tundi" = 0.5 h, "poolteist tundi" = 1.5 h,
+# "kolm ja pool tundi" = 3.5 h) are handled by the numeral normalizer.
+register_duration_lexicon(DurationLexicon(
+    lang="et",
+    normalize=_normalize_et,
+    units={
+        "microseconds": r"mikrosekund(?:it|i)?",
+        "milliseconds": r"millisekund(?:it|i)?",
+        "seconds": r"sekund(?:it|i)?",
+        "minutes": r"minut(?:it|i)?",
+        "hours": r"(?:tundi|tunni|tund)",
+        "days": r"(?:päeva|päev|ööpäev(?:a)?)",
+        "weeks": r"(?:nädalat|nädala|nädal)",
+        "months": r"(?:kuud|kuu)",
+        "years": r"(?:aastat|aasta)",
+        "decades": r"(?:aastakümmet|aastakümne|aastakümmend)",
+        "centuries": r"(?:aastasada|aastasaja|sajand(?:it|i)?)",
+        "millenniums": r"(?:aastatuhat|aastatuhande|aastatuhat)",
     }))

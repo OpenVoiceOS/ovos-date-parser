@@ -1,0 +1,201 @@
+"""Slovak (sk) date/time parsing.
+
+Covers the public entry points, an exhaustive digit-time round-trip
+sweep (pronounce a HH:MM, extract it, assert identity), and adversarial
+inputs written to break the parser.
+"""
+import unittest
+from datetime import datetime, timedelta
+
+from ovos_date_parser import (
+    extract_datetime, extract_duration, nice_time, nice_date, nice_year,
+    nice_month, nice_weekday, nice_duration,
+)
+from ovos_date_parser.dates_sk import (
+    nice_time_sk, extract_datetime_sk, extract_duration_sk,
+)
+
+# wednesday 2017-06-28 13:04 is a fixed, timezone-naive anchor
+ANCHOR = datetime(2017, 6, 28, 13, 4)
+# minutes chosen to exercise <10 zero-padding, quarters and boundaries
+_MINUTES = [0, 1, 5, 9, 15, 30, 45, 58, 59]
+
+
+class TestRoundTrip(unittest.TestCase):
+    def test_digit_time_identity(self):
+        checked = 0
+        for hh in range(24):
+            for mm in _MINUTES:
+                text = f"{hh}:{mm:02d}"
+                result = extract_datetime_sk(text, anchorDate=ANCHOR)
+                self.assertIsNotNone(result, text)
+                self.assertEqual((result[0].hour, result[0].minute),
+                                 (hh, mm), text)
+                checked += 1
+        self.assertGreaterEqual(checked, 200)
+
+    def test_display_time_identity(self):
+        # nice_time display form must be the printable HH:MM back again
+        for hh in range(24):
+            for mm in _MINUTES:
+                dt = ANCHOR.replace(hour=hh, minute=mm)
+                shown = nice_time(dt, "sk", speech=False, use_24hour=True)
+                self.assertEqual(shown, f"{hh:02d}:{mm:02d}")
+
+
+class TestNiceTime(unittest.TestCase):
+    def test_speech_forms_non_empty(self):
+        for hh in range(24):
+            for mm in (0, 15, 30, 45, 7):
+                dt = ANCHOR.replace(hour=hh, minute=mm)
+                self.assertTrue(nice_time(dt, "sk", use_24hour=True).strip())
+                self.assertTrue(nice_time(dt, "sk", use_24hour=False).strip())
+
+    def test_midnight_and_noon(self):
+        self.assertEqual(nice_time_sk(ANCHOR.replace(hour=0, minute=0),
+                                      use_24hour=False), "polnoc")
+        self.assertEqual(nice_time_sk(ANCHOR.replace(hour=12, minute=0),
+                                      use_24hour=False), "poludnie")
+
+    def test_traditional_variant(self):
+        dt = ANCHOR.replace(hour=8)
+        self.assertEqual(nice_time_sk(dt.replace(minute=15), use_24hour=False,
+                                      variant="traditional"),
+                         "štvrť na deväť")
+        self.assertEqual(nice_time_sk(dt.replace(minute=30), use_24hour=False,
+                                      variant="traditional"), "pol deviatej")
+        self.assertEqual(nice_time_sk(dt.replace(minute=45), use_24hour=False,
+                                      variant="traditional"),
+                         "trištvrte na deväť")
+
+    def test_default_variant_is_digital(self):
+        dt = ANCHOR.replace(hour=8, minute=15)
+        self.assertEqual(nice_time_sk(dt, use_24hour=False), "osem pätnásť")
+
+
+class TestExtractDatetime(unittest.TestCase):
+    def test_relative_days(self):
+        cases = {
+            "dnes": 0,
+            "zajtra": 1,
+            "pozajtra": 2,
+            "včera": -1,
+            "predvčerom": -2,
+        }
+        for phrase, offset in cases.items():
+            result = extract_datetime_sk(phrase, anchorDate=ANCHOR)
+            self.assertIsNotNone(result, phrase)
+            self.assertEqual(result[0].date(),
+                             (ANCHOR + timedelta(days=offset)).date(), phrase)
+
+    def test_weekday(self):
+        # anchor is a wednesday; "v piatok" is two days later
+        result = extract_datetime_sk("v piatok", anchorDate=ANCHOR)
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0].weekday(), 4)
+
+    def test_weekday_accusative(self):
+        result = extract_datetime_sk("v stredu", anchorDate=ANCHOR)
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0].weekday(), 2)
+
+    def test_explicit_date(self):
+        result = extract_datetime_sk("15. augusta", anchorDate=ANCHOR)
+        self.assertIsNotNone(result)
+        self.assertEqual((result[0].month, result[0].day), (8, 15))
+
+    def test_date_with_year(self):
+        result = extract_datetime_sk("15. augusta 2020", anchorDate=ANCHOR)
+        self.assertIsNotNone(result)
+        self.assertEqual((result[0].year, result[0].month, result[0].day),
+                         (2020, 8, 15))
+
+    def test_offset_minutes(self):
+        result = extract_datetime_sk("o 5 minút", anchorDate=ANCHOR)
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0], ANCHOR + timedelta(minutes=5))
+
+    def test_spoken_clock(self):
+        cases = {
+            "o ôsmej": (8, 0),
+            "o pol deviatej": (8, 30),
+            "o štvrť na deväť": (8, 15),
+            "o trištvrte na deväť": (8, 45),
+        }
+        for phrase, (h, m) in cases.items():
+            result = extract_datetime_sk(phrase, anchorDate=ANCHOR)
+            self.assertIsNotNone(result, phrase)
+            self.assertEqual((result[0].hour, result[0].minute), (h, m),
+                             phrase)
+
+    def test_leftover_text_returned(self):
+        result = extract_datetime_sk("aké je počasie zajtra",
+                                     anchorDate=ANCHOR)
+        self.assertIsNotNone(result)
+        self.assertNotIn("zajtra", result[1])
+        self.assertIn("počasie", result[1])
+
+
+class TestExtractDuration(unittest.TestCase):
+    def test_minutes(self):
+        self.assertEqual(extract_duration_sk("10 minút")[0],
+                         timedelta(minutes=10))
+
+    def test_compound(self):
+        self.assertEqual(extract_duration_sk("2 hodiny 30 minút")[0],
+                         timedelta(hours=2, minutes=30))
+
+    def test_spelled_number(self):
+        self.assertEqual(extract_duration_sk("päť minút")[0],
+                         timedelta(minutes=5))
+
+
+class TestNiceDateFamily(unittest.TestCase):
+    def test_non_empty(self):
+        self.assertTrue(nice_date(ANCHOR, "sk").strip())
+        self.assertTrue(nice_year(ANCHOR, "sk").strip())
+        self.assertIn(nice_month(ANCHOR, "sk").lower(), ("jún",))
+        self.assertTrue(nice_weekday(ANCHOR, "sk").strip())
+        self.assertTrue(nice_duration(163, "sk").strip())
+
+
+class TestAdversarial(unittest.TestCase):
+    def test_empty_and_blank(self):
+        self.assertIsNone(extract_datetime_sk("", anchorDate=ANCHOR))
+        self.assertIsNone(extract_datetime_sk("   ", anchorDate=ANCHOR))
+
+    def test_no_date_text(self):
+        self.assertIsNone(extract_datetime_sk("ahoj ako sa máš",
+                                              anchorDate=ANCHOR))
+
+    def test_impossible_clock_values(self):
+        for bad in ("99:99", "25:61", "40:00", "13:75"):
+            self.assertIsNone(extract_datetime_sk(bad, anchorDate=ANCHOR), bad)
+
+    def test_boundary_clock_values(self):
+        # 24:00 folds to midnight, 00:00 stays midnight
+        self.assertEqual(extract_datetime_sk("00:00", anchorDate=ANCHOR)[0]
+                         .hour, 0)
+        self.assertEqual(extract_datetime_sk("24:00", anchorDate=ANCHOR)[0]
+                         .hour, 0)
+
+    def test_duration_empty_is_none(self):
+        self.assertIsNone(extract_duration_sk(""))
+
+    def test_duration_junk_yields_no_value(self):
+        duration, remainder = extract_duration_sk("žiadne trvanie tu")
+        self.assertIsNone(duration)
+
+    def test_garbage_is_rejected(self):
+        self.assertIsNone(extract_datetime_sk("qwerty zxcvb",
+                                              anchorDate=ANCHOR))
+
+    def test_lone_ordinal_dot_not_crash(self):
+        # a bare number with a trailing dot must not raise
+        result = extract_datetime_sk("15.", anchorDate=ANCHOR)
+        # no month -> not a date
+        self.assertIsNone(result)
+
+
+if __name__ == "__main__":
+    unittest.main()

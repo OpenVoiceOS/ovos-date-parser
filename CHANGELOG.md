@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.23.1a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.23.0a1...0.23.1a1)
+
+**Merged pull requests:**
+
+- fix: close dates\_el import tuple in package init [\#190](https://github.com/OpenVoiceOS/ovos-date-parser/pull/190) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.23.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.23.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.22.0a1...0.23.0a1)
@@ -502,10 +510,6 @@
 ## [0.0.1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.1) (2024-11-07)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.0.1a2...0.0.1)
-
-**Merged pull requests:**
-
-- Release 0.0.1a2 [\#50](https://github.com/OpenVoiceOS/ovos-date-parser/pull/50) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.0.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.1a2) (2024-11-07)
 

@@ -152,6 +152,7 @@ _MONTH_UNITS_FI = ("kuukausi", "kuukautta", "kuukauden")
 _YEAR_UNITS_FI = ("vuosi", "vuotta", "vuoden")
 _HOUR_UNITS_FI = ("tunti", "tuntia", "tunnin")
 _MINUTE_UNITS_FI = ("minuutti", "minuuttia", "minuutin")
+_SECOND_UNITS_FI = ("sekunti", "sekuntia", "sekunnin")
 # adpositions that mark "in X <unit>" / "after"
 _AFTER_MARKERS_FI = ("kuluttua", "päästä", "päähän")
 _NEXT_FI = ("ensi", "seuraava", "seuraavana", "tuleva", "tulevana")
@@ -299,6 +300,7 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
     hr_abs = None
     min_abs = None
     min_offset = 0  # relative "in N hours/minutes" offset, in minutes
+    sec_offset = 0  # relative "in N seconds" offset, in seconds
     consumed = [False] * len(words)
     found = False
 
@@ -392,6 +394,8 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
                     min_offset += num * 60
                 elif unit in _MINUTE_UNITS_FI:
                     min_offset += num
+                elif unit in _SECOND_UNITS_FI:
+                    sec_offset += num
                 else:
                     continue
                 consumed[idx] = consumed[idx - 1] = consumed[idx - 2] = True
@@ -446,10 +450,12 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
     has_date = (abs_month is not None or day_offset is not None or
                 week_offset or month_offset or year_offset)
 
-    if not has_date and hr_abs is None and min_offset:
-        # a pure "in N hours/minutes" offset is measured from the anchor time
-        extracted = anchor.replace(second=0, microsecond=0) + \
-            timedelta(minutes=min_offset)
+    if not has_date and hr_abs is None and (min_offset or sec_offset):
+        # a pure "in N hours/minutes/seconds" offset is measured from the anchor
+        base = anchor.replace(microsecond=0)
+        if not sec_offset:
+            base = base.replace(second=0)
+        extracted = base + timedelta(minutes=min_offset, seconds=sec_offset)
         leftover = " ".join(w for i, w in enumerate(words)
                             if not consumed[i] and w != ".")
         return [extracted, " ".join(leftover.split())]
@@ -486,6 +492,8 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
         extracted = extracted.replace(hour=hr_abs, minute=min_abs or 0)
     if min_offset:
         extracted = extracted + timedelta(minutes=min_offset)
+    if sec_offset:
+        extracted = extracted + timedelta(seconds=sec_offset)
 
     leftover = " ".join(w for i, w in enumerate(words)
                         if not consumed[i] and w != ".")

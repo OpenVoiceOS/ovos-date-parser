@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.27.1a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.27.0a1...0.27.1a1)
+
+**Merged pull requests:**
+
+- fix: compute Romance relative time offsets from the anchor time [\#185](https://github.com/OpenVoiceOS/ovos-date-parser/pull/185) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.27.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.27.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.26.0a1...0.27.0a1)
@@ -510,10 +518,6 @@
 ## [0.0.3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.3) (2024-11-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.0.3a1...0.0.3)
-
-**Merged pull requests:**
-
-- Release 0.0.3a1 [\#68](https://github.com/OpenVoiceOS/ovos-date-parser/pull/68) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.0.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.3a1) (2024-11-11)
 

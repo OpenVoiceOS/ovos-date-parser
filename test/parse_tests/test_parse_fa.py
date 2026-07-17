@@ -136,5 +136,85 @@ class TestNormalize(unittest.TestCase):
         #       remainder.  But let it pass for now since time is correct
 
 
+    def test_extractdatetime_ago_fa(self):
+        # "ago"/"before" (پیش/قبل) must move the anchor backwards in time
+        anchor = datetime(2017, 6, 27, 13, 4, tzinfo=default_timezone())
+
+        def testExtract(text, expected_date, expected_leftover):
+            [extractedDate, leftover] = extract_datetime(text, anchor)
+            self.assertEqual(extractedDate.strftime("%Y-%m-%d %H:%M:%S"),
+                             expected_date, "for=" + text)
+            self.assertEqual(leftover, expected_leftover, "for=" + text)
+
+        testExtract("دو ساعت پیش", "2017-06-27 11:04:00", "")
+        testExtract("پنج دقیقه قبل", "2017-06-27 12:59:00", "")
+        testExtract("سه هفته پیش", "2017-06-06 00:00:00", "")
+        testExtract("سه روز پیش به من یادآوری کن",
+                    "2017-06-24 00:00:00", "به من یادآوری کن")
+        # sanity: "later" still moves forward
+        testExtract("دو روز بعد", "2017-06-29 00:00:00", "")
+
+    def test_extractdatetime_eastern_digits_fa(self):
+        # Persian (Eastern Arabic) digits must be accepted like ASCII digits
+        anchor = datetime(2017, 6, 27, 13, 4, tzinfo=default_timezone())
+
+        def testExtract(text, expected_date, expected_leftover):
+            [extractedDate, leftover] = extract_datetime(text, anchor)
+            self.assertEqual(extractedDate.strftime("%Y-%m-%d %H:%M:%S"),
+                             expected_date, "for=" + text)
+            self.assertEqual(leftover, expected_leftover, "for=" + text)
+
+        testExtract("۱ ثانیه دیگه", "2017-06-27 13:04:01", "")
+        testExtract("۵ دقیقه دیگه", "2017-06-27 13:09:00", "")
+        testExtract("۱۰:۳۰", "2017-06-27 10:30:00", "")
+        testExtract("ساعت ۱۴:۳۰", "2017-06-27 14:30:00", "")
+        testExtract("جمعه ساعت ۱۴:۳۰", "2017-06-30 14:30:00", "")
+        # Eastern digits in durations too
+        self.assertEqual(extract_duration("۱۰ ثانیه"),
+                         (timedelta(seconds=10), ""))
+        self.assertEqual(extract_duration("۵ دقیقه"),
+                         (timedelta(minutes=5), ""))
+
+    def test_extractdatetime_partofday_fa(self):
+        anchor = datetime(2017, 6, 27, 13, 4, tzinfo=default_timezone())
+
+        def testExtract(text, expected_date, expected_leftover):
+            [extractedDate, leftover] = extract_datetime(text, anchor)
+            self.assertEqual(extractedDate.strftime("%Y-%m-%d %H:%M:%S"),
+                             expected_date, "for=" + text)
+            self.assertEqual(leftover, expected_leftover, "for=" + text)
+
+        testExtract("امروز صبح", "2017-06-27 08:00:00", "")
+        testExtract("امروز بعد از ظهر", "2017-06-27 15:00:00", "")
+        testExtract("فردا صبح", "2017-06-28 08:00:00", "")
+        testExtract("فردا بعد از ظهر", "2017-06-28 15:00:00", "")
+
+    def test_extractdatetime_adversarial_fa(self):
+        anchor = datetime(2017, 6, 27, 13, 4, tzinfo=default_timezone())
+        # None / empty / junk must not crash and must yield no date
+        self.assertEqual(
+            _odp.extract_datetime(None, lang=LANG, anchorDate=anchor), None)
+        self.assertEqual(
+            _odp.extract_datetime("", lang=LANG, anchorDate=anchor), None)
+        self.assertEqual(
+            _odp.extract_datetime("بلابلابلا", lang=LANG, anchorDate=anchor),
+            None)
+        # An out-of-range clock is not consumed as a time; it stays in remainder
+        res = extract_datetime("فردا ساعت ۲۵:۹۹", anchor)
+        self.assertEqual(res[0].strftime("%Y-%m-%d %H:%M:%S"),
+                         "2017-06-28 00:00:00")
+        self.assertIn("۲۵:۹۹", res[1])
+
+    def test_extract_duration_adversarial_fa(self):
+        # Empty and no-duration input must return a zero delta, never crash
+        self.assertEqual(extract_duration(""), (timedelta(0), ""))
+        self.assertEqual(extract_duration("سلام دنیا"),
+                         (timedelta(0), "سلام دنیا"))
+        # Remainder retention: leading number with no unit is kept verbatim
+        result, remainder = extract_duration("سه تا سیب و پنج دقیقه")
+        self.assertEqual(result, timedelta(minutes=5))
+        self.assertIn("سیب", remainder)
+
+
 if __name__ == "__main__":
     unittest.main()

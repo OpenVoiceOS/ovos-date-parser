@@ -291,7 +291,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                     datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if wordNext and wordNext.isdigit() and len(wordNext) == 4:
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -301,7 +301,8 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
             elif wordNext and wordNext[0].isdigit():
                 datestr += " " + wordNext
                 used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
+                if wordNextNext and wordNextNext.isdigit() and \
+                        len(wordNextNext) == 4:
                     datestr += " " + wordNextNext
                     used += 1
                     hasYear = True
@@ -715,28 +716,45 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         for idx, en_month in enumerate(en_monthsShort):
             datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                # parse against a leap year so "29. februar" is a valid reference
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+        except ValueError:
+            # impossible calendar date (e.g. "31. juni", "0. januar",
+            # "29. februar 2021") - null beats a wrong guess
+            return None
 
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
         if not hasYear:
-            temp = temp.replace(year=extractedDate.year)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(year=int(currentYear),
-                                                      month=int(
-                                                          temp.strftime(
-                                                              "%m")),
-                                                      day=int(temp.strftime(
-                                                          "%d")))
+            month = temp.month
+            day = temp.day
+
+            def _valid_date(year):
+                # a calendar day may be missing in a given year (e.g. 29 Feb)
+                try:
+                    return extractedDate.replace(year=year, month=month, day=day)
+                except ValueError:
+                    return None
+
+            candidate = _valid_date(extractedDate.year)
+            if candidate is not None and extractedDate < candidate:
+                extractedDate = candidate
             else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")))
+                # search a bounded span of years for the next valid occurrence
+                candidate = None
+                for year in range(extractedDate.year + 1,
+                                  extractedDate.year + 9):
+                    candidate = _valid_date(year)
+                    if candidate is not None:
+                        break
+                if candidate is None:
+                    return None
+                extractedDate = candidate
         else:
             extractedDate = extractedDate.replace(
                 year=int(temp.strftime("%Y")),

@@ -57,6 +57,19 @@ an optional genitive `n` between quantity and unit (`10 n tesdidin`).
 use `ssbeḥ` (morning) and `tameddit` (evening). Years are given in
 digits; a verified spoken-year formulation is not available.
 
+## Norwegian Bokmål (nb)
+
+Bokmål is supported with `no` accepted as an alias. It covers `nice_time`,
+`nice_date`, `nice_date_time`, `nice_day`, `nice_weekday`, `nice_month`,
+`nice_year`, `nice_duration`, `nice_relative_time`, `extract_datetime` and
+`extract_duration`. Number and ordinal words use the modern tens-first
+counting reform (`tjueen` = 21) with decimal tens (`femti`, `åtti`), so
+years read "nitten hundre og åttifire" and "to tusen og tjueen". Weekdays
+are `mandag` … `søndag`; one o'clock reads with the neuter `ett`
+(`klokka ett`). `extract_datetime` covers relative day words, weekdays
+with `neste`/`forrige`, month names with day and optional year, and digit
+clock times.
+
 ## Fallbacks
 
 If a language has no `extract_datetime` implementation, the
@@ -84,8 +97,8 @@ plural declension may be imperfect (e.g. Slovenian dual forms).
 
 - Relative *past* wording ("anoche", "bart", "last night") is not handled in
   es/eu; the corresponding tests are skipped.
-- `extract_duration` is missing for eu, fr, hu, it.
 - `nice_time` is missing for sl.
-- Duration parsing understands "2 weeks", "3 months", "4 years" in most
-  languages, but common.py's generic helper only covers seconds through
-  days.
+- `gl` and `hu` `extract_datetime` are partial (🚧 in the README matrix).
+- The `resolution` / `replace_token` options of `extract_duration` are only
+  available on the shared duration engine; ar, ast, fa, kab and sv use a
+  dedicated parser that returns a plain `timedelta` and rejects those options.

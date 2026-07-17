@@ -172,7 +172,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
     timeQualifier = ""
 
     timeQualifiersList = ['morgon', 'förmiddag', 'eftermiddag', 'kväll']
-    markers = ['på', 'i', 'den här', 'kring', 'efter']
+    markers = ['på', 'i', 'den här', 'kring', 'efter', 'om']
     days = ['måndag', 'tisdag', 'onsdag', 'torsdag',
             'fredag', 'lördag', 'söndag']
     months = ['januari', 'februari', 'mars', 'april', 'maj', 'juni',
@@ -395,13 +395,21 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 hrAbs = 19
             used += 1
             # parse half an hour, quarter hour
-        elif wordPrev in markers or wordPrevPrev in markers:
+        elif word in ("halvtimme", "halvtimma", "kvart", "timme", "timma",
+                      "minut", "sekund") \
+                and (wordPrev in markers or wordPrevPrev in markers):
             if word == "halvtimme" or word == "halvtimma":
                 minOffset = 30
             elif word == "kvart":
                 minOffset = 15
             elif word == "timme" or word == "timma":
                 hrOffset = 1
+            elif word == "minut":
+                minOffset = 1
+            elif word == "sekund":
+                secOffset = 1
+            if wordPrevPrev in markers:
+                words[idx - 2] = ""
             words[idx - 1] = ""
             used += 1
             hrAbs = -1
@@ -536,29 +544,24 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                         strMM = int(word) - strHH * 100
                         if wordNext == "hours":
                             used += 1
-                    elif (
-                            wordNext == "hours" and
-                            word[0] != '0' and
-                            (
-                                    int(word) < 100 and
-                                    int(word) > 2400
-                            )):
-                        # "in 3 hours"
+                    elif wordNext in ("timme", "timma", "timmar") and \
+                            int(word) < 100:
+                        # "om 3 timmar" = "in 3 hours"
                         hrOffset = int(word)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
 
-                    elif wordNext == "minutes":
-                        # "in 10 minutes"
+                    elif wordNext in ("minut", "minuter"):
+                        # "om 10 minuter" = "in 10 minutes"
                         minOffset = int(word)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext == "seconds":
-                        # in 5 seconds
+                    elif wordNext in ("sekund", "sekunder"):
+                        # "om 5 sekunder" = "in 5 seconds"
                         secOffset = int(word)
                         used = 2
                         isTime = False
@@ -661,10 +664,14 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("om 2 timmar") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         # datestr is built from Swedish month names (e.g. "juni 15"),
         # which strptime("%B") cannot parse, so map the month directly.
@@ -672,7 +679,11 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
         month_num = months.index(dateparts[0]) + 1
         day_num = int(dateparts[1])
         if hasYear:
-            temp = datetime(int(dateparts[2]), month_num, day_num)
+            try:
+                temp = datetime(int(dateparts[2]), month_num, day_num)
+            except ValueError:
+                # impossible date such as "31 april 2020"
+                return None
             extractedDate = extractedDate.replace(
                 year=temp.year, month=temp.month, day=temp.day)
         else:
@@ -688,13 +699,19 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
             if use_this_year:
                 year = base_year
             else:
-                year = base_year + 1
-                while True:
+                # search a bounded window (any leap cycle resolves within a
+                # few years); an impossible day/month such as "31 april" never
+                # resolves, so give up and report no date instead of looping
+                year = None
+                for candidate in range(base_year + 1, base_year + 9):
                     try:
-                        datetime(year, month_num, day_num)
+                        datetime(candidate, month_num, day_num)
+                        year = candidate
                         break
                     except ValueError:
-                        year += 1
+                        continue
+                if year is None:
+                    return None
             extractedDate = extractedDate.replace(
                 year=year, month=month_num, day=day_num)
 

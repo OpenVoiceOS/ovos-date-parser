@@ -405,11 +405,9 @@ register_duration_lexicon(DurationLexicon(
         "millenniums": r"milenios?",
     }))
 
-# the Galician number normalizer folds articles ("un temporizador" ->
-# "1 temporizador"), so only accent folding is applied here
 register_duration_lexicon(DurationLexicon(
     lang="gl",
-    normalize=_fold_iberian,
+    normalize=lambda text: numbers_to_digits(_fold_iberian(text), "gl"),
     units={
         "microseconds": r"microsegundos?",
         "milliseconds": r"milisegundos?",

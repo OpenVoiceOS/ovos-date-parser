@@ -18,10 +18,21 @@ class TestExtractDurationGL(unittest.TestCase):
                          (timedelta(weeks=2, days=5), ""))
 
     def test_with_extra_text(self):
+        # the number normalizer folds the article "un" to "1" in the
+        # remainder, matching the Spanish and Portuguese behaviour
         self.assertEqual(extract_duration_gl("pon un temporizador de 5 minutos"),
-                         (timedelta(minutes=5), "pon un temporizador de"))
+                         (timedelta(minutes=5), "pon 1 temporizador de"))
         self.assertEqual(extract_duration_gl("avisame en 1 hora"),
                          (timedelta(hours=1), "avisame en"))
+
+    def test_spelled_out_numbers(self):
+        # spelled-out numbers must be converted before matching
+        self.assertEqual(extract_duration_gl("dez minutos"),
+                         (timedelta(minutes=10), ""))
+        self.assertEqual(extract_duration_gl("dúas horas"),
+                         (timedelta(hours=2), ""))
+        self.assertEqual(extract_duration_gl("corenta e cinco segundos"),
+                         (timedelta(seconds=45), ""))
 
     def test_non_standard_units(self):
         self.assertEqual(extract_duration_gl("2 meses"), (timedelta(days=DAYS_IN_1_MONTH * 2), ""))

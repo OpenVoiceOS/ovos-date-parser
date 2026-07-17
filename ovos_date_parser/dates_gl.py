@@ -817,36 +817,36 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                             remainder = "pm"
                         used = 1
                     elif (wordNext == "hora" and
-                          word[0] != '0' and
-                          int(word) < 100):
+                          word[0] != '0' and strNum and
+                          int(strNum) < 100):
                         # en 3 horas
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "minuto":
                         # en 10 minutos
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "segundo":
                         # en 5 segundos
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = str(int(word) // 100)
-                        strMM = str(int(word) % 100)
+                    elif strNum and int(strNum) > 100:
+                        strHH = str(int(strNum) // 100)
+                        strMM = str(int(strNum) % 100)
                         if wordNext == "hora":
                             used += 1
                     elif wordNext == "" or (
                             wordNext == "en" and wordNextNext == "punto"):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punto":
                             used += 2
@@ -863,7 +863,7 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                                     remainder = "pm"
                                 used += 1
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "hora":

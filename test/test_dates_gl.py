@@ -146,5 +146,38 @@ class TestExtractDurationGL(unittest.TestCase):
         self.assertEqual(extract_duration_gl("pon a mesa"), (None, "pon a mesa"))
 
 
+class TestExtractDatetimeNumericTimeSuffixGL(unittest.TestCase):
+    """Numeric time tokens carrying a letter suffix ("20h", "21h30")
+    must parse without crashing on int() of the raw glued token."""
+
+    def setUp(self):
+        self.anchor = datetime(2117, 9, 3, 13, 30, 0)
+
+    def _dt(self, text):
+        return extract_datetime_gl(text, anchorDate=self.anchor)
+
+    def test_hour_with_h_suffix(self):
+        dt, _ = self._dt("20h")
+        self.assertEqual(dt, datetime(2117, 9, 3, 20, 0))
+
+    def test_as_hour_with_h_suffix(self):
+        dt, _ = self._dt("ás 20h")
+        self.assertEqual(dt, datetime(2117, 9, 3, 20, 0))
+
+    def test_hour_minute_glued_suffix(self):
+        dt, _ = self._dt("21h30")
+        self.assertEqual(dt, datetime(2117, 9, 3, 21, 30))
+
+    def test_gibberish_after_time_token_does_not_crash(self):
+        # impossible / junk trailing content must not raise, just yield None
+        self.assertIsNone(self._dt("ás 20h e 45m gzqx 99h"))
+
+    def test_bare_letter_suffix_token_does_not_crash(self):
+        # a suffixed 4-digit-ish number must not crash on int() of "500x";
+        # the digit prefix drives military-time parsing instead
+        dt, _ = self._dt("blah 500x blah")
+        self.assertEqual(dt, datetime(2117, 9, 4, 5, 0))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -899,10 +899,13 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
     # manipulación de la data
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',
@@ -928,7 +931,12 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
         else:
             # parse against a leap year so 29 of february never raises here,
             # then resolve the actual year below
-            temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+            try:
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+            except ValueError:
+                # impossible date that exists in no year (e.g. 31 of
+                # february) -> no date to extract
+                return None
             month, day = temp.month, temp.day
             year = int(currentYear)
             # advance to the next year where this day exists and is in the

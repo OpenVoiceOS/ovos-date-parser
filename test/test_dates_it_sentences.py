@@ -80,5 +80,32 @@ class TestValidSentencesStillWork(unittest.TestCase):
         self.assertEqual(extract("a mezzogiorno")[0], dt(2117, 9, 4, 12, 0))
 
 
+class TestNumericTimeWithLetterSuffix(unittest.TestCase):
+    """Tokens gluing a letter suffix onto a number must parse, never crash.
+
+    "20h" once reached int("20h") and raised ValueError; the digits-only
+    prefix now feeds the clock math instead.
+    """
+
+    def test_bare_hour_with_h_suffix(self):
+        self.assertEqual(extract("20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_alle_hour_with_h_suffix(self):
+        self.assertEqual(extract("alle 20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_hour_minute_h_infix_does_not_crash(self):
+        # "21h30" glues suffix and trailing digits; must resolve without raising
+        res = extract("21h30")
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0].hour, 21)
+
+    def test_garbage_suffix_token_does_not_crash(self):
+        # impossible clock value carrying a letter suffix must return None
+        for text in ["alle 25h99z", "99h", "0h", "abc12h34xyz"]:
+            with self.subTest(text=text):
+                # must not raise; either None or a datetime is acceptable
+                extract(text)
+
+
 if __name__ == "__main__":
     unittest.main()

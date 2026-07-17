@@ -556,6 +556,14 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             str_hh = ''
             str_mm = ''
             remainder = ''
+            # digits-only prefix, so tokens like "20h" or "21h30" that glue a
+            # letter suffix onto a number do not crash int() below
+            str_num = ''
+            for ch in word:
+                if ch.isdigit():
+                    str_num += ch
+                else:
+                    break
             if ':' in word:
                 # parse colons
                 # '3:00 in the morning'
@@ -567,13 +575,13 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                             and 0 <= num0 <= 23 and 0 <= num1 <= 59:
                         str_hh = str(num0)
                         str_mm = str(num1)
-            elif 0 < int(extract_number_it(word)) < 24 \
+            elif str_num and 0 < int(str_num) < 24 \
                     and word_next != 'quarto':
-                str_hh = str(int(word))
+                str_hh = str(int(str_num))
                 str_mm = '00'
-            elif 100 <= int(word) <= 2400:
-                str_hh = int(word) / 100
-                str_mm = int(word) - str_hh * 100
+            elif str_num and 100 <= int(str_num) <= 2400:
+                str_hh = int(str_num) / 100
+                str_mm = int(str_num) - str_hh * 100
                 military = True
                 isTime = False
             if extract_number_it(word) and word_next \

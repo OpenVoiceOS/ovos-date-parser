@@ -133,6 +133,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             for 12 hour date format
         """
 
+        s = numbers_to_digits_da(s)
         s = s.lower().replace('?', '').replace('.', '').replace(',', '') \
             .replace(' den ', ' ').replace(' det ', ' ').replace(' om ',
                                                                  ' ').replace(
@@ -641,11 +642,11 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                         strHH = word
                         strMM = 00
                         isTime = True
-                        if wordNext[:10] == "eftermidag":
+                        if wordNext[:11] == "eftermiddag":
                             used += 1
                             remainder = "pm"
                         elif wordNext == "om" and \
-                                wordNextNext == "eftermiddanen":
+                                wordNextNext == "eftermiddagen":
                             used += 2
                             remainder = "pm"
                         elif wordNext[:7] == "aftenen":

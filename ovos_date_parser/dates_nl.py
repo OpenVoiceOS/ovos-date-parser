@@ -127,6 +127,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     'sep', 'okt', 'nov', 'dec']
     year_multiples = ["decennium", "eeuw", "millennium"]
     day_multiples = ["dagen", "weken", "maanden", "jaren"]
+    time_units = ["uur", "uren", "minuut", "minuten", "seconde", "seconden"]
 
     words = clean_string(text)
 
@@ -281,7 +282,10 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if wordNext and wordNext[0].isdigit() and \
+                        wordNextNext not in time_units:
+                    # a bare clock hour following the date ("15 juni 3 uur")
+                    # must not be swallowed as the year
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -568,7 +572,16 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     strHH = strNum
                     used = 1
                 else:
+                    # "3 uur 's middags" is a clock time, not "in 3 hours";
+                    # a part-of-day right after the hour disambiguates it
+                    _after_uur = words[idx + 2] if idx + 2 < len(words) else ""
+                    _after_uur2 = words[idx + 3] if idx + 3 < len(words) else ""
+                    pod_follows = (
+                        (_after_uur == "'s" and _after_uur2 in
+                         ("ochtends", "middags", "avonds", "nachts")) or
+                        _after_uur in timeQualifiersList)
                     if (
+                            not pod_follows and
                             (wordNext == "uren" or wordNext == "uur" or
                              remainder == "uren" or remainder == "uur") and
                             word[0] != '0' and
@@ -631,6 +644,18 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                         strMM = "00"
                         if wordNext == "uur":
                             used += 1
+
+                        # part of day expressed genitively after the hour:
+                        # "3 uur 's middags" -> pm, "8 uur 's avonds" -> pm
+                        genitive_pod = {"ochtends": "am", "middags": "pm",
+                                        "avonds": "pm", "nachts": "am"}
+                        _pod_i = idx + used + 1
+                        _pod_next = words[_pod_i + 1] \
+                            if _pod_i + 1 < len(words) else ""
+                        if _pod_i < len(words) and words[_pod_i] == "'s" \
+                                and _pod_next in genitive_pod:
+                            remainder = genitive_pod[_pod_next]
+                            used += 2
 
                         if wordNext == "in" or wordNextNext == "in":
                             used += (1 if wordNext == "in" else 2)
@@ -733,12 +758,15 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
     extractedDate = anchorDate.replace(microsecond=0)
 
     if datestr != "":
-        # date included an explicit date, e.g. "june 5" or "june 2, 2017"
-        try:
-            temp = datetime.strptime(datestr, "%B %d")
-        except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(datestr, "%B %d %Y")
+        # date included an explicit date, e.g. "juni 5" or "juni 2 2017".
+        # parse against the Dutch month names directly; strptime's "%B"
+        # only knows C-locale English names and would reject "juni",
+        # "maart", "augustus", etc.
+        date_parts = datestr.split()
+        month_num = months.index(date_parts[0]) + 1
+        day_num = int(date_parts[1]) if len(date_parts) > 1 else 1
+        year_num = int(date_parts[2]) if len(date_parts) > 2 else 1900
+        temp = datetime(year_num, month_num, day_num)
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,

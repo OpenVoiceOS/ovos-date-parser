@@ -363,7 +363,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 if wordNextNext == "quart":
                     minAbs = 15
                     used += 2
-                elif wordNextNext == "demi":
+                elif wordNextNext in ["demi", "demie"]:
                     minAbs = 30
                     used += 2
             elif wordNext == "moins":
@@ -473,7 +473,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                     minAbs = 15
                                 used += 2
                                 idxHr += 2
-                            elif words[idxHr + 1] == "demi":
+                            elif words[idxHr + 1] in ["demi", "demie"]:
                                 if wordPrev in words_in:
                                     minOffset = 30
                                 else:
@@ -571,6 +571,20 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
 
             idx += used - 1
             found = True
+
+    # a bare part-of-day qualifier ("cet après-midi", "ce soir") is consumed
+    # while scanning for dates, so apply its default hour once no explicit
+    # time was given
+    if hrAbs is None and minAbs is None and timeQualifier and \
+            not (hrOffset or minOffset or secOffset):
+        if timeQualifier == "matin":
+            hrAbs = 8
+        elif timeQualifier == "après-midi":
+            hrAbs = 15
+        elif timeQualifier == "soir":
+            hrAbs = 19
+        elif timeQualifier == "nuit":
+            hrAbs = 2
 
     # check that we found a date
     if not date_found():

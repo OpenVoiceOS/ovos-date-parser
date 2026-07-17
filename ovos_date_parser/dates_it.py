@@ -359,8 +359,11 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 datestr += ' ' + str(int(extract_number_it(word_prev)))
                 start -= 1
                 used += 1
-                if word_next and extract_number_it(word_next):
-                    datestr += ' ' + str(int(extract_number_it(word_next)))
+                # only a value large enough to be a year (never a clock
+                # hour or a day-of-month) may follow the day as the year
+                _yr = extract_number_it(word_next) if word_next else False
+                if _yr and int(_yr) >= 100:
+                    datestr += ' ' + str(int(_yr))
                     used += 1
                     has_year = True
                 else:
@@ -368,7 +371,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             elif word_next and word_next[0].isdigit():
                 datestr += ' ' + word_next
                 used += 1
-                if word_next_next and word_next_next[0].isdigit():
+                if word_next_next and word_next_next[0].isdigit() \
+                        and int(word_next_next) >= 100:
                     datestr += ' ' + word_next_next
                     used += 1
                     has_year = True
@@ -426,6 +430,20 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 words[start - 1] = ''
             found = True
             day_specified = True
+
+    # spoken clock hours ("alle tre", "domani alle otto") must reach the
+    # digit-based time parser just like "alle 3" does; the indefinite
+    # article and the fraction words keep their own meaning and are left
+    # untouched
+    _keep_words = {'un', 'uno', 'una', "un'", 'mezzo', 'mezza', 'mezzora',
+                   'quarto', 'quarti', 'paio'}
+    for _i, _w in enumerate(words):
+        if not _w or _w[0].isdigit() or _w in _keep_words:
+            continue
+        _n = extract_number_it(_w)
+        if _n is not False and _n is not None and float(_n) == int(_n) \
+                and 1 <= int(_n) <= 24:
+            words[_i] = str(int(_n))
 
     # parse time
     time_str = ''
@@ -732,13 +750,20 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
         for idx, en_month in enumerate(en_months_short):
             datestr = datestr.replace(months_short[idx], en_month)
 
-        try:
-            temp = datetime.strptime(datestr, '%B %d')
-        except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(datestr, '%B %d %Y')
+        temp = None
+        for _fmt in ('%B %d', '%B %d %Y', '%B'):
+            try:
+                temp = datetime.strptime(datestr, _fmt)
+                # a bare month with no day ("a giugno"): first of the month
+                has_year = has_year and _fmt == '%B %d %Y'
+                break
+            except ValueError:
+                continue
         extracted_date = extracted_date.replace(hour=0, minute=0, second=0)
-        if not has_year:
+        if temp is None:
+            # unparseable day/month ("il 99 dicembre"): leave the date alone
+            pass
+        elif not has_year:
             temp = temp.replace(year=extracted_date.year,
                                 tzinfo=extracted_date.tzinfo)
             if extracted_date < temp:

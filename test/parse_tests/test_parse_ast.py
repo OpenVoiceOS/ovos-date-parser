@@ -161,6 +161,60 @@ class TestDatetimeAst(unittest.TestCase):
             datetime(1998, 1, 6, 9, 30, tzinfo=default_timezone()))
 
 
+class TestDatetimeEdgeCasesAst(unittest.TestCase):
+    # anchor: 1998-01-01 was a thursday (non-leap year)
+    ANCHOR = datetime(1998, 1, 1)
+    LEAP_ANCHOR = datetime(2020, 1, 1)
+
+    def test_leap_day_non_leap_anchor(self):
+        # "29 de febreru" with no year on a non-leap anchor must not crash;
+        # it resolves to the next february that has a 29th (year 2000)
+        self.assertEqual(
+            extract_datetime("29 de febreru", anchorDate=self.ANCHOR)[0],
+            datetime(2000, 2, 29, tzinfo=default_timezone()))
+
+    def test_leap_day_leap_anchor(self):
+        self.assertEqual(
+            extract_datetime("29 de febreru", anchorDate=self.LEAP_ANCHOR)[0],
+            datetime(2020, 2, 29, tzinfo=default_timezone()))
+
+    def test_leap_day_explicit_leap_year(self):
+        self.assertEqual(
+            extract_datetime("29 de febreru de 2020",
+                             anchorDate=self.ANCHOR)[0],
+            datetime(2020, 2, 29, tzinfo=default_timezone()))
+
+    def test_leap_day_explicit_non_leap_year(self):
+        # 29 february 2019 does not exist -> no date, not a crash
+        self.assertIsNone(
+            extract_datetime("29 de febreru de 2019", anchorDate=self.ANCHOR))
+
+    def test_date_then_clock_not_taken_as_year(self):
+        # the trailing clock must not be swallowed as the year
+        self.assertEqual(
+            extract_datetime("3 de xunu a les 5", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 6, 3, 5, 0, tzinfo=default_timezone()))
+
+    def test_date_with_year_and_clock(self):
+        self.assertEqual(
+            extract_datetime("3 de xunu 2020 a les 5",
+                             anchorDate=self.ANCHOR)[0],
+            datetime(2020, 6, 3, 5, 0, tzinfo=default_timezone()))
+
+    def test_none_input(self):
+        self.assertIsNone(extract_datetime(None, anchorDate=self.ANCHOR))
+
+    def test_afternoon_pm_applied(self):
+        self.assertEqual(
+            extract_datetime("a les 3 de la tarde", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
+
+    def test_night_pm_applied(self):
+        self.assertEqual(
+            extract_datetime("a les 8 de la nueche", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 20, 0, tzinfo=default_timezone()))
+
+
 class TestExtractDurationAst(unittest.TestCase):
     def test_extract_duration(self):
         self.assertEqual(extract_duration("10 segundos"),
@@ -179,6 +233,18 @@ class TestExtractDurationAst(unittest.TestCase):
                          (timedelta(days=1), ""))
         self.assertEqual(extract_duration("1 selmana"),
                          (timedelta(weeks=1), ""))
+
+    def test_duration_none_and_empty(self):
+        self.assertEqual(extract_duration(None), (None, None))
+        self.assertEqual(extract_duration(""), (None, ""))
+
+    def test_duration_no_units(self):
+        self.assertEqual(extract_duration("nun hai duración"),
+                         (None, "nun hai duración"))
+
+    def test_duration_combined(self):
+        dur, _ = extract_duration("3 díes 8 hores 10 minutos y 49 segundos")
+        self.assertEqual(dur, timedelta(days=3, hours=8, minutes=10, seconds=49))
 
 
 if __name__ == "__main__":

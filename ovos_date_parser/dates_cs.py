@@ -278,7 +278,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
     timeQualifiersAM = ['ráno', 'dopoledne']
     timeQualifiersPM = ['odpoledne', 'večer', 'noc', 'noci']
     timeQualifiersList = set(timeQualifiersAM + timeQualifiersPM)
-    markers = ['na', 'v', 'do', 'na', 'tento',
+    markers = ['na', 'v', 've', 'do', 'na', 'tento',
                'okolo', 'toto', 'během', 'za', 'této']
     days = ['pondělí', 'úterý', 'středa',
             'čtvrtek', 'pátek', 'sobota', 'neděle']
@@ -1121,6 +1121,14 @@ def _text_cs_inflection_normalize(word, arg):
             word = "večer"
         if word == "noční":
             word = "noc"
+        # Accusative weekday forms ("v neděli", "v sobotu", "ve středu")
+        if word == "neděli":
+            word = "neděle"
+        if word == "sobotu":
+            word = "sobota"
+        if word == "středu":
+            word = "středa"
+
         if word == "víkendech":
             word = "víkend"
         if word == "víkendu":
@@ -1132,6 +1140,8 @@ def _text_cs_inflection_normalize(word, arg):
 
         # Months
         if word == "únoru":
+            word = "únor"
+        elif word == "února":
             word = "únor"
         elif word == "červenci":
             word = "červenec"

@@ -200,6 +200,32 @@ class TestNiceDateFormat_nl(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="nl-nl", use_ampm=True),
                          "half zes 's nachts")
 
+    def test_half_uur_nl(self):
+        # Dutch "half vier" counts down to the coming hour: 3:30, not 4:30
+        dt = datetime.datetime(2017, 1, 31, 3, 30, 0,
+                               tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="nl-nl"), "half vier")
+        self.assertEqual(nice_time(dt, lang="nl-nl", speech=False), "3:30")
+
+        dt = datetime.datetime(2017, 1, 31, 15, 30, 0,
+                               tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="nl-nl"), "half vier")
+        self.assertEqual(nice_time(dt, lang="nl-nl", use_ampm=True),
+                         "half vier 's middags")
+
+    def test_quarter_forms_nl(self):
+        dt = datetime.datetime(2017, 1, 31, 7, 15, 0,
+                               tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="nl-nl"), "kwart over zeven")
+        dt = datetime.datetime(2017, 1, 31, 16, 45, 0,
+                               tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="nl-nl"), "kwart voor vijf")
+
+    def test_midnight_nl(self):
+        dt = datetime.datetime(2017, 1, 31, 0, 0, 0,
+                               tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="nl-nl"), "Middernacht")
+
 
 if __name__ == "__main__":
     unittest.main()

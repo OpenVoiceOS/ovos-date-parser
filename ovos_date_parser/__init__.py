@@ -54,8 +54,14 @@ from ovos_date_parser.dates_es import (
 from ovos_date_parser.dates_eu import (
     extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
 )
+from ovos_date_parser.dates_et import (
+    extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
+)
 from ovos_date_parser.dates_fa import (
     extract_datetime_fa, nice_time_fa, extract_duration_fa,
+)
+from ovos_date_parser.dates_fi import (
+    extract_datetime_fi, extract_duration_fi, nice_time_fi, nice_year_fi,
 )
 from ovos_date_parser.dates_fr import (
     extract_duration_fr,
@@ -150,10 +156,14 @@ def nice_time(
         return nice_time_en(dt, speech, use_24hour, use_ampm)
     if lang.startswith("es"):
         return nice_time_es(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("et"):
+        return nice_time_et(dt, speech, use_24hour, use_ampm)
     if lang.startswith("eu"):
         return nice_time_eu(dt, speech, use_24hour, use_ampm)
     if lang.startswith("fa"):
         return nice_time_fa(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("fi"):
+        return nice_time_fi(dt, speech, use_24hour, use_ampm)
     if lang.startswith("fr"):
         return nice_time_fr(dt, speech, use_24hour, use_ampm)
     if lang.startswith("hu"):
@@ -304,10 +314,14 @@ def extract_datetime(
         return extract_datetime_en(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("es"):
         return extract_datetime_es(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("et"):
+        return extract_datetime_et(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("eu"):
         return extract_datetime_eu(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fa"):
         return extract_datetime_fa(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("fi"):
+        return extract_datetime_fi(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fr"):
         return extract_datetime_fr(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("gl"):
@@ -745,6 +759,10 @@ def nice_year(dt, lang, bc=False):
         return nice_year_ro(dt, bc)
     if lang.startswith("ast"):
         return nice_year_ast(dt, bc)
+    if lang.startswith("et"):
+        return nice_year_et(dt, bc)
+    if lang.startswith("fi"):
+        return nice_year_fi(dt, bc)
     date_time_format.cache(lang)
     return date_time_format.year_format(dt, lang, bc)
 

@@ -334,6 +334,45 @@ register_duration_lexicon(DurationLexicon(
         "millenniums": r"tisočletj(?:e|a|i|ih)?|tisočletij",
     }))
 
+# Finnish nouns follow a numeral in the partitive singular ("kaksi tuntia");
+# the nominative ("tunti") and genitive ("tunnin", in "kahden tunnin") forms
+# also occur, so each unit accepts its common declined surface forms.
+register_duration_lexicon(DurationLexicon(
+    lang="fi",
+    units={
+        "microseconds": r"mikrosekunt(?:ia|i)|mikrosekunnin",
+        "milliseconds": r"millisekunt(?:ia|i)|millisekunnin",
+        "seconds": r"sekunt(?:ia|i)|sekunnin",
+        "minutes": r"minuut(?:tia|ti)|minuutin",
+        "hours": r"(?:tunti|tuntia|tunnin)",
+        "days": r"(?:päivää|päivän|päivä|vuorokausi|vuorokautta)",
+        "weeks": r"(?:viikko|viikkoa|viikon)",
+        "months": r"(?:kuukausi|kuukautta|kuukauden)",
+        "years": r"(?:vuosi|vuotta|vuoden)",
+        "decades": r"(?:vuosikymmen|vuosikymmentä|vuosikymmenen)",
+        "centuries": r"(?:vuosisata|vuosisataa|vuosisadan)",
+        "millenniums": r"(?:vuosituhat|vuosituhatta|vuosituhannen)",
+    }))
+
+# Estonian nouns follow a numeral in the partitive singular ("kaks tundi");
+# the nominative ("tund") and partitive/genitive variants also occur.
+register_duration_lexicon(DurationLexicon(
+    lang="et",
+    units={
+        "microseconds": r"mikrosekund(?:it|i)?",
+        "milliseconds": r"millisekund(?:it|i)?",
+        "seconds": r"sekund(?:it|i)?",
+        "minutes": r"minut(?:it|i)?",
+        "hours": r"(?:tundi|tunni|tund)",
+        "days": r"(?:päeva|päev|ööpäev(?:a)?)",
+        "weeks": r"(?:nädalat|nädala|nädal)",
+        "months": r"(?:kuud|kuu)",
+        "years": r"(?:aastat|aasta)",
+        "decades": r"(?:aastakümmet|aastakümne|aastakümmend)",
+        "centuries": r"(?:aastasada|aastasaja|sajand(?:it|i)?)",
+        "millenniums": r"(?:aastatuhat|aastatuhande|aastatuhat)",
+    }))
+
 
 def _normalize_en(text: str) -> str:
     # the English-specific normalizer folds "X and a half" into X.5

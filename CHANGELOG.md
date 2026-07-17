@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.27.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.26.0a1...0.27.0a1)
+
+**Merged pull requests:**
+
+- feat: Norwegian Nynorsk \(nn\) date formatting/parsing [\#155](https://github.com/OpenVoiceOS/ovos-date-parser/pull/155) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.26.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.26.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.25.0a1...0.26.0a1)
@@ -510,10 +518,6 @@
 ## [0.0.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.3a1) (2024-11-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.0.2...0.0.3a1)
-
-**Merged pull requests:**
-
-- fix:nice\_duration [\#67](https://github.com/OpenVoiceOS/ovos-date-parser/pull/67) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.0.2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.2) (2024-11-11)
 

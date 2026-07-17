@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.24.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.23.1a1...0.24.0a1)
+
+**Merged pull requests:**
+
+- feat: Estonian \(et\) date formatting and parsing [\#152](https://github.com/OpenVoiceOS/ovos-date-parser/pull/152) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.23.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.23.1a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.23.0a1...0.23.1a1)

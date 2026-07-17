@@ -136,6 +136,42 @@ class TestAdversarial(unittest.TestCase):
         self.assertEqual(extract("A LAS TRES DE LA TARDE")[0], dt(1998, 1, 1, 15))
 
 
+class TestNumericTimeSuffix(unittest.TestCase):
+    """Digit tokens glued to a letter suffix ("20h") must not crash the parser.
+
+    These tokens reach the numeric time-of-day branch, where only the leading
+    digits carry meaning; the trailing letters must be ignored, not fed to int().
+    """
+
+    def test_bare_hour_h_suffix(self):
+        self.assertEqual(extract("20h")[0], dt(1998, 1, 1, 20))
+
+    def test_a_las_hour_h_suffix(self):
+        self.assertEqual(extract("a las 20h")[0], dt(1998, 1, 1, 20))
+
+    def test_hour_minute_h_suffix(self):
+        self.assertEqual(extract("21h30")[0], dt(1998, 1, 1, 21, 30))
+
+    def test_hour_h_suffix_matches_plain_digits(self):
+        for glued, hour in [("8h", 8), ("13h", 13), ("20h", 20), ("23h", 23)]:
+            with self.subTest(token=glued):
+                self.assertEqual(extract(f"a las {glued}")[0].hour, hour)
+
+    def test_impossible_hour_does_not_crash(self):
+        # 99h is not a valid clock time; must not raise, either None or ignored
+        res = extract("a las 99h")
+        if res is not None:
+            self.assertNotEqual(res[0].hour, 99)
+
+    def test_letters_before_digits_gibberish(self):
+        # leading letters mean the digit-branch is never entered; must not crash
+        self.assertIsNone(extract("xyz123h"))
+
+    def test_lone_suffix_token_no_crash(self):
+        # only letters after stripping digits -> nothing usable, must not raise
+        self.assertIsNone(extract("hhh"))
+
+
 class TestDurations(unittest.TestCase):
     def test_basic_units(self):
         self.assertEqual(_odp.extract_duration("10 segundos", lang="es"),

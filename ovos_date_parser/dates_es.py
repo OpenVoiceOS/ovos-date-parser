@@ -828,27 +828,27 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                         strHH = strNum
                         remainder = "am"
                         used = 1
-                    elif (int(word) > 100 and
+                    elif (strNum and int(strNum) > 100 and
                           (
                                   # wordPrev == "o" or
                                   # wordPrev == "oh" or
                                   wordPrev == "cero"
                           )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hora":
                             used += 1
                     elif (
                             wordNext == "hora" and
-                            word[0] != '0' and
+                            word[0] != '0' and strNum and
                             (
-                                    int(word) < 100 or
-                                    int(word) > 2400
+                                    int(strNum) < 100 or
+                                    int(strNum) > 2400
                             )):
                         # ignores military time
                         # "in 3 hours"
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
@@ -856,21 +856,21 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
 
                     elif wordNext == "minuto":
                         # "in 10 minutes"
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "segundo":
                         # in 5 seconds
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif strNum and int(strNum) > 100:
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hora":
                             used += 1
 
@@ -878,7 +878,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                             wordNextNext in ("cuarto", "media") or
                             (wordNextNext and wordNextNext[0].isdigit())):
                         # "tres y cuarto", "tres y media", "tres y veinte"
-                        strHH = word
+                        strHH = strNum
                         if wordNextNext == "cuarto":
                             strMM = 15
                         elif wordNextNext == "media":
@@ -897,7 +897,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
 
                     elif wordNext == "" or (
                             wordNext == "en" and wordNextNext == "punto"):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punto":
                             used += 2
@@ -908,14 +908,14 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                                 remainder = "am"
                                 used += 1
                             elif wordNextNextNext == "noche":
-                                if 0 > strHH > 6:
+                                if 0 > int(strHH) > 6:
                                     remainder = "am"
                                 else:
                                     remainder = "pm"
                                 used += 1
 
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "hora":

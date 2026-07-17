@@ -526,6 +526,30 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 
+def _normalize_nb(text: str) -> str:
+    from ovos_number_parser.numbers_nb import numbers_to_digits_nb
+    return numbers_to_digits_nb(text.lower())
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="nb",
+    normalize=_normalize_nb,
+    units={
+        "microseconds": r"mikrosekund(?:ene|er|et)?",
+        "milliseconds": r"millisekund(?:ene|er|et)?",
+        "seconds": r"sekund(?:ene|er|et)?",
+        "minutes": r"minutt(?:ene|er|et)?",
+        "hours": r"time(?:ne|r|n)?",
+        "days": r"dag(?:ene|er|en)?",
+        "weeks": r"uke(?:ne|r|n)?",
+        "months": r"måned(?:ene|er|en)?",
+        "years": r"år(?:ene|et)?",
+        "decades": r"(?:tiår(?:ene|et)?|årti(?:ene|er|et)?)",
+        "centuries": r"(?:århundre(?:ne|r|t)?|hundreår(?:ene|et)?)",
+        "millenniums": r"årtusen(?:ene|er|et)?",
+    }))
+
+
 register_duration_lexicon(DurationLexicon(
     lang="cs",
     units={
@@ -644,4 +668,36 @@ register_duration_lexicon(DurationLexicon(
         "decades": r"deceni[iu](?:le)?",
         "centuries": r"secol(?:e(?:le)?|ul)?|veac(?:uri)?",
         "millenniums": r"mileni[iu](?:le)?",
+    }))
+
+
+def _normalize_fi(text):
+    # numbers_to_digits already folds "puoli" -> 0.5 and "puolitoista" ->
+    # 1.5; collapse "N ja 0.5" ("kolme ja puoli") into "N.5" so the whole
+    # quantity is read as a single fractional value
+    text = numbers_to_digits(text.lower(), "fi")
+    return re.sub(r"(\d+)\s+ja\s+0[.,]5", r"\1.5", text)
+
+
+# Finnish nouns follow a numeral in the partitive singular ("kaksi tuntia");
+# the nominative ("tunti") and genitive ("tunnin", in "kahden tunnin") forms
+# also occur, so each unit accepts its common declined surface forms.
+# Fractional numerals ("puoli tuntia" = 0.5 h, "puolitoista tuntia" = 1.5 h,
+# "kolme ja puoli tuntia" = 3.5 h) are handled by the numeral normalizer.
+register_duration_lexicon(DurationLexicon(
+    lang="fi",
+    normalize=_normalize_fi,
+    units={
+        "microseconds": r"mikrosekunt(?:ia|i)|mikrosekunnin",
+        "milliseconds": r"millisekunt(?:ia|i)|millisekunnin",
+        "seconds": r"sekunt(?:ia|i)|sekunnin",
+        "minutes": r"minuut(?:tia|ti)|minuutin",
+        "hours": r"(?:tunti|tuntia|tunnin)",
+        "days": r"(?:päivää|päivän|päivä|vuorokausi|vuorokautta)",
+        "weeks": r"(?:viikko|viikkoa|viikon)",
+        "months": r"(?:kuukausi|kuukautta|kuukauden)",
+        "years": r"(?:vuosi|vuotta|vuoden)",
+        "decades": r"(?:vuosikymmen|vuosikymmentä|vuosikymmenen)",
+        "centuries": r"(?:vuosisata|vuosisataa|vuosisadan)",
+        "millenniums": r"(?:vuosituhat|vuosituhatta|vuosituhannen)",
     }))

@@ -51,6 +51,9 @@ from ovos_date_parser.dates_da import (
 from ovos_date_parser.dates_de import (
     extract_datetime_de, extract_duration_de, nice_time_de,
 )
+from ovos_date_parser.dates_nb import (
+    extract_datetime_nb, extract_duration_nb, nice_time_nb,
+)
 from ovos_date_parser.dates_en import (
     extract_datetime_en, extract_duration_en, nice_time_en
 )
@@ -63,6 +66,9 @@ from ovos_date_parser.dates_eu import (
 )
 from ovos_date_parser.dates_fa import (
     extract_datetime_fa, nice_time_fa, extract_duration_fa,
+)
+from ovos_date_parser.dates_fi import (
+    extract_datetime_fi, extract_duration_fi, nice_time_fi, nice_year_fi,
 )
 from ovos_date_parser.dates_fr import (
     extract_duration_fr,
@@ -116,6 +122,8 @@ from ovos_date_parser.dates_sv import (
 from ovos_date_parser.dates_uk import (
     extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
 )
+from ovos_date_parser.dates_ms import nice_time_ms, extract_datetime_ms
+from ovos_date_parser.dates_id import nice_time_id, extract_datetime_id
 from ovos_date_parser.dates_tr import nice_time_tr, extract_datetime_tr
 
 
@@ -178,6 +186,8 @@ def nice_time(
         return nice_time_eu(dt, speech, use_24hour, use_ampm)
     if lang.startswith("fa"):
         return nice_time_fa(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("fi"):
+        return nice_time_fi(dt, speech, use_24hour, use_ampm)
     if lang.startswith("fr"):
         return nice_time_fr(dt, speech, use_24hour, use_ampm)
     if lang.startswith("hu"):
@@ -190,6 +200,8 @@ def nice_time(
         return nice_time_fy(dt, speech, use_24hour, use_ampm)
     if lang.startswith("nl"):
         return nice_time_nl(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("nb") or lang.startswith("no"):
+        return nice_time_nb(dt, speech, use_24hour, use_ampm)
     if lang.startswith("pl"):
         return nice_time_pl(dt, speech, use_24hour, use_ampm)
     if lang.startswith("pt"):
@@ -202,6 +214,10 @@ def nice_time(
         return nice_time_sl(dt, speech, use_24hour, use_ampm)
     if lang.startswith("uk"):
         return nice_time_uk(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("ms"):
+        return nice_time_ms(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("id"):
+        return nice_time_id(dt, speech, use_24hour, use_ampm)
     if lang.startswith("tr"):
         return nice_time_tr(dt, speech, use_24hour, use_ampm)
     raise NotImplementedError(f"Unsupported language: {lang}")
@@ -338,6 +354,8 @@ def extract_datetime(
         return extract_datetime_eu(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fa"):
         return extract_datetime_fa(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("fi"):
+        return extract_datetime_fi(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fr"):
         return extract_datetime_fr(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("gl"):
@@ -358,6 +376,8 @@ def extract_datetime(
         return extract_datetime_kab(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("nl"):
         return extract_datetime_nl(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("nb") or lang.startswith("no"):
+        return extract_datetime_nb(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("pl"):
         return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("pt"):
@@ -370,6 +390,10 @@ def extract_datetime(
         return extract_datetime_sv(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("uk"):
         return extract_datetime_uk(text, anchor_date=anchorDate, default_time=default_time)
+    if lang.startswith("ms"):
+        return extract_datetime_ms(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("id"):
+        return extract_datetime_id(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("tr"):
         return extract_datetime_tr(text, anchorDate=anchorDate, default_time=default_time)
 
@@ -815,6 +839,8 @@ def nice_year(dt, lang, bc=False):
         return nice_year_ro(dt, bc)
     if lang.startswith("ast"):
         return nice_year_ast(dt, bc)
+    if lang.startswith("fi"):
+        return nice_year_fi(dt, bc)
     if lang.startswith("fy"):
         return nice_year_fy(dt, bc)
     date_time_format.cache(lang)

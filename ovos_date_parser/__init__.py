@@ -102,6 +102,9 @@ from ovos_date_parser.dates_sv import (
 from ovos_date_parser.dates_uk import (
     extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
 )
+from ovos_date_parser.dates_tr import nice_time_tr
+from ovos_date_parser.dates_id import nice_time_id
+from ovos_date_parser.dates_ms import nice_time_ms
 
 
 def nice_time(
@@ -176,6 +179,12 @@ def nice_time(
         return nice_time_sl(dt, speech, use_24hour, use_ampm)
     if lang.startswith("uk"):
         return nice_time_uk(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("tr"):
+        return nice_time_tr(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("id"):
+        return nice_time_id(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("ms"):
+        return nice_time_ms(dt, speech, use_24hour, use_ampm)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 

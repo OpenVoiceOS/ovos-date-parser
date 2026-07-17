@@ -630,3 +630,62 @@ register_duration_lexicon(DurationLexicon(
         "centuries": r"secol(?:e(?:le)?|ul)?|veac(?:uri)?",
         "millenniums": r"mileni[iu](?:le)?",
     }))
+
+# Turkish nouns stay singular after a numeral (iki saat = "two hour"), so
+# no plural fragment is needed; the counted-noun forms are the bare stems.
+# "decade" has no single lexical word (it is the phrase "on yıl", literally
+# "ten years"), so it is omitted rather than guessed.
+register_duration_lexicon(DurationLexicon(
+    lang="tr",
+    units={
+        "microseconds": r"mikrosaniye",
+        "milliseconds": r"milisaniye",
+        "seconds": r"saniye",
+        "minutes": r"dakika",
+        "hours": r"saat",
+        "days": r"gün",
+        "weeks": r"hafta",
+        "months": r"ay",
+        "years": r"yıl|sene",
+        "centuries": r"yüzyıl|asır",
+        "millenniums": r"binyıl|milenyum",
+    }))
+
+# Indonesian nouns are not inflected for number; the counted-noun form is
+# identical to the citation form.
+register_duration_lexicon(DurationLexicon(
+    lang="id",
+    units={
+        "microseconds": r"mikrodetik",
+        "milliseconds": r"milidetik",
+        "seconds": r"detik",
+        "minutes": r"menit",
+        "hours": r"jam",
+        "days": r"hari",
+        "weeks": r"minggu|pekan",
+        "months": r"bulan",
+        "years": r"tahun",
+        "decades": r"dekade|dasawarsa",
+        "centuries": r"abad",
+        "millenniums": r"milenium",
+    }))
+
+# Malay shares most numerals with Indonesian but the time units differ:
+# "second" is saat (Indonesian detik) and "minute" is minit (Indonesian
+# menit). Nouns are not inflected for number.
+register_duration_lexicon(DurationLexicon(
+    lang="ms",
+    units={
+        "microseconds": r"mikrosaat",
+        "milliseconds": r"milisaat",
+        "seconds": r"saat|detik",
+        "minutes": r"minit",
+        "hours": r"jam",
+        "days": r"hari",
+        "weeks": r"minggu",
+        "months": r"bulan",
+        "years": r"tahun",
+        "decades": r"dekad",
+        "centuries": r"abad",
+        "millenniums": r"milenium|alaf",
+    }))

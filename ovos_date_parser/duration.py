@@ -633,6 +633,23 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 register_duration_lexicon(DurationLexicon(
+    lang="bg",
+    units={
+        "microseconds": r"микросекунд(?:а|и)?",
+        "milliseconds": r"милисекунд(?:а|и)?",
+        "seconds": r"секунд(?:а|и)?",
+        "minutes": r"минут(?:а|и)?",
+        "hours": r"час(?:а|ове)?",
+        "days": r"(?:ден|дни|дена)",
+        "weeks": r"седмиц(?:а|и)?",
+        "months": r"месец(?:а|и)?",
+        "years": r"годин(?:а|и)?",
+        "decades": r"десетилети(?:е|я)",
+        "centuries": r"(?:век(?:а|ове)?|столети(?:е|я))",
+        "millenniums": r"хилядолети(?:е|я)",
+    }))
+
+register_duration_lexicon(DurationLexicon(
     lang="az",
     pattern_template=r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-)(?:{unit})"
                      r"(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?",

@@ -1171,7 +1171,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                             wordNext == "hora" and
                             word[0] != '0' and
                             (
-                                    int(word) < 100 and
+                                    int(word) < 100 or
                                     int(word) > 2400
                             )):
                         # ignores military time
@@ -1272,10 +1272,14 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("d'aquí a dues hores") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',
@@ -1288,10 +1292,14 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
         for idx, en_month in enumerate(en_monthsShort):
             datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+        except ValueError:
+            # impossible calendar date ("el 31 de febrer") -> not a valid date
+            return None
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
@@ -1351,7 +1359,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
 
 def _ca_pruning(text, symbols=True, accents=False, agressive=True):
     # agressive ca word pruning
-    words = ["l", "la", "el", "els", "les", "de", "dels",
+    words = ["l", "la", "el", "els", "les", "de", "dels", "d", "aquí",
              "ell", "ells", "me", "és", "som", "al", "a", "dins", "per",
              "aquest", "aquesta", "això", "aixina", "en", "aquell", "aquella",
              "va", "vam", "vaig", "quin", "quina"]

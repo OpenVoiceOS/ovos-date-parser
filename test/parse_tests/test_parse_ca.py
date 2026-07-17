@@ -83,7 +83,7 @@ class TestNormalize(unittest.TestCase):
         testExtract("quin dia va ser abans d'abans d'ahir",
                     "2017-06-24 00:00:00", "dia ser")
         testExtract("fer el sopar d'aquí 5 dies",
-                    "2017-07-02 00:00:00", "fer sopar aquí")
+                    "2017-07-02 00:00:00", "fer sopar")
         testExtract("fer el sopar en 5 dies",
                     "2017-07-02 00:00:00", "fer sopar")
         testExtract("quin temps farà demà?",
@@ -99,7 +99,7 @@ class TestNormalize(unittest.TestCase):
         testExtract("quin temps fa el divendres de matí",
                     "2017-06-30 08:00:00", "temps fa")
         testExtract("truca'm per a quedar d'aquí a 8 setmanes i 2 dies",
-                    "2017-08-24 00:00:00", "truca m quedar aquí i")
+                    "2017-08-24 00:00:00", "truca m quedar i")
         testExtract("Toca black-metal 2 dies després de divendres",
                     "2017-07-02 00:00:00", "toca black-metal")
         testExtract("Toca satanic black metal 2 dies per a aquest divendres",
@@ -111,7 +111,7 @@ class TestNormalize(unittest.TestCase):
         testExtract("dilluns, compra formatge",
                     "2017-07-03 00:00:00", "compra formatge")
         testExtract("Envia felicitacions d'aquí a 5 anys",
-                    "2022-06-27 00:00:00", "envia felicitacions aquí")
+                    "2022-06-27 00:00:00", "envia felicitacions")
         testExtract("Envia felicitacions en 5 anys",
                     "2022-06-27 00:00:00", "envia felicitacions")
         testExtract("Truca per Skype a la mare pròxim dijous a les 12:45 pm",
@@ -160,7 +160,7 @@ class TestNormalize(unittest.TestCase):
         # testExtract("dorm 3 dies després de demà",
         #            "2017-07-02 00:00:00", "dorm")
         testExtract("concerta cita d'aquí a 2 setmanes i 6 dies després de dissabte",
-                    "2017-07-21 00:00:00", "concerta cita aquí i")
+                    "2017-07-21 00:00:00", "concerta cita i")
         testExtract("comença la festa a les 8 en punt de la nit de dijous",
                     "2017-06-29 20:00:00", "comença festa")
 

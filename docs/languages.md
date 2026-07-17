@@ -57,6 +57,24 @@ an optional genitive `n` between quantity and unit (`10 n tesdidin`).
 use `ssbeḥ` (morning) and `tameddit` (evening). Years are given in
 digits; a verified spoken-year formulation is not available.
 
+## Norwegian (nb, nn)
+
+Bokmål (`nb`) and Nynorsk (`nn`) are supported as distinct written
+standards; `no` is accepted as an alias for Bokmål. Both cover
+`nice_time`, `nice_date`, `nice_date_time`, `nice_day`, `nice_weekday`,
+`nice_month`, `nice_year`, `nice_duration`, `nice_relative_time`,
+`extract_datetime` and `extract_duration`. Number and ordinal words use
+the modern tens-first counting reform (`tjueen`/`tjueein` = 21) with
+decimal tens (`femti`, `åtti`), so years read "nitten hundre og åttifire"
+and "to tusen og tjueen". The two standards differ in weekday names
+(`tirsdag`/`lørdag` vs `tysdag`/`laurdag`), the tomorrow word
+(`i morgen` vs `i morgon`), the week and month nouns (`uke`/`måned` vs
+`veke`/`månad`) and neuter one (`ett` vs `eitt`); month names are shared.
+`extract_datetime` covers relative day words, weekdays with
+`neste`/`forrige` (nn `førre`), month names with day and optional year,
+and digit clock times. One o'clock reads with the neuter form
+(`klokka ett` / `klokka eitt`).
+
 ## Fallbacks
 
 If a language has no `extract_datetime` implementation, the

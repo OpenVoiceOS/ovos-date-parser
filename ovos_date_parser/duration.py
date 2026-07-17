@@ -528,6 +528,54 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 
+def _normalize_nb(text: str) -> str:
+    from ovos_number_parser.numbers_nb import numbers_to_digits_nb
+    return numbers_to_digits_nb(text.lower())
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="nb",
+    normalize=_normalize_nb,
+    units={
+        "microseconds": r"mikrosekund(?:ene|er|et)?",
+        "milliseconds": r"millisekund(?:ene|er|et)?",
+        "seconds": r"sekund(?:ene|er|et)?",
+        "minutes": r"minutt(?:ene|er|et)?",
+        "hours": r"time(?:ne|r|n)?",
+        "days": r"dag(?:ene|er|en)?",
+        "weeks": r"uke(?:ne|r|n)?",
+        "months": r"måned(?:ene|er|en)?",
+        "years": r"år(?:ene|et)?",
+        "decades": r"(?:tiår(?:ene|et)?|årti(?:ene|er|et)?)",
+        "centuries": r"(?:århundre(?:ne|r|t)?|hundreår(?:ene|et)?)",
+        "millenniums": r"årtusen(?:ene|er|et)?",
+    }))
+
+
+def _normalize_nn(text: str) -> str:
+    from ovos_number_parser.numbers_nn import numbers_to_digits_nn
+    return numbers_to_digits_nn(text.lower())
+
+
+register_duration_lexicon(DurationLexicon(
+    lang="nn",
+    normalize=_normalize_nn,
+    units={
+        "microseconds": r"mikrosekund(?:a|er|et)?",
+        "milliseconds": r"millisekund(?:a|er|et)?",
+        "seconds": r"sekund(?:a|er|et)?",
+        "minutes": r"minutt(?:a|er|et)?",
+        "hours": r"tim(?:ane|ar|en|e|r)?",
+        "days": r"dag(?:ane|ar|er|en)?",
+        "weeks": r"veke(?:ne|r|a)?",
+        "months": r"månad(?:ene|er|en)?",
+        "years": r"år(?:a|et)?",
+        "decades": r"(?:tiår(?:a|et)?|årti(?:a|er|et)?)",
+        "centuries": r"(?:hundreår(?:a|et)?|århundre(?:a|r|t)?)",
+        "millenniums": r"årtusen(?:a|er|et)?",
+    }))
+
+
 register_duration_lexicon(DurationLexicon(
     lang="cs",
     units={

@@ -11,14 +11,14 @@ from ovos_date_parser import (extract_datetime, extract_duration, nice_date,
                               nice_month, nice_relative_time, nice_time,
                               nice_weekday, nice_year, get_date_strings)
 
-LANGS = ["ar", "ast", "az", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
+LANGS = ["ar", "ast", "az", "ca", "cs", "da", "de", "el", "en", "es", "eu", "fa", "fr",
          "gl", "hu", "it", "kab", "nl", "oc", "pl", "pt", "ro", "ru", "sl", "sv", "uk"]
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)
 
 _TOMORROW = {
     "ar": "غداً", "ast": "mañana", "az": "sabah", "ca": "demà", "cs": "zítra", "da": "i morgen",
-    "de": "morgen", "en": "tomorrow", "es": "mañana", "eu": "bihar",
+    "de": "morgen", "el": "αύριο", "en": "tomorrow", "es": "mañana", "eu": "bihar",
     "fa": "فردا", "fr": "demain", "gl": "mañá", "hu": "holnap",
     "it": "domani", "kab": "azekka", "nl": "morgen", "oc": "deman", "pl": "jutro", "pt": "amanhã",
     "ro": "mâine", "ru": "завтра", "sl": "jutri", "sv": "imorgon", "uk": "завтра",
@@ -26,7 +26,7 @@ _TOMORROW = {
 
 _NO_DATE = {
     "ar": "مرحبا كيف حالك", "ast": "hola qué tal", "az": "salam necəsən", "ca": "hola com estàs", "cs": "ahoj jak se máš",
-    "da": "hej hvordan har du det", "de": "hallo wie geht es dir",
+    "da": "hej hvordan har du det", "de": "hallo wie geht es dir", "el": "γεια σου τι κάνεις",
     "en": "hello how are you", "es": "hola qué tal", "eu": "kaixo zer moduz",
     "fa": "سلام چطوری", "fr": "bonjour ça va", "gl": "ola que tal",
     "hu": "szia hogy vagy", "it": "ciao come stai",
@@ -39,7 +39,7 @@ _NO_DATE = {
 
 _DURATION_STRINGS = {
     "ar": "١٠ دقائق", "ast": "10 minutos", "az": "10 dəqiqə", "ca": "10 minuts", "cs": "10 minut",
-    "da": "10 minutter", "de": "10 minuten", "en": "10 minutes",
+    "da": "10 minutter", "de": "10 minuten", "el": "10 λεπτά", "en": "10 minutes",
     "es": "10 minutos", "eu": "10 minutu", "fa": "۱۰ دقیقه",
     "fr": "10 minutes", "gl": "10 minutos", "hu": "10 perc",
     "it": "10 minuti", "kab": "10 n tesdidin", "nl": "10 minuten", "pl": "10 minut",

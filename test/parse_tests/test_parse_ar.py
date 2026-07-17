@@ -174,5 +174,103 @@ class TestExtractDatetimeArabic(unittest.TestCase):
                                  (hour, minute), spoken)
 
 
+class TestExtractDatetimeArabicHardening(unittest.TestCase):
+    # a Friday, so weekday math is unambiguous
+    A = datetime(2026, 7, 17, 10, 0)
+
+    def _dt(self, text):
+        return extract_datetime(text, lang="ar", anchorDate=self.A)
+
+    def test_minutes_to_the_hour(self):
+        # "إلا خمس" = five minutes to the hour -> :55 of the previous hour
+        cases = {
+            "الساعة الخامسة إلا خمس": (4, 55),
+            "الساعة التاسعة إلا عشر دقائق": (8, 50),
+            "الساعة الواحدة إلا عشرين": (12, 40),
+        }
+        for phrase, (h, m) in cases.items():
+            with self.subTest(phrase=phrase):
+                r = self._dt(phrase)
+                self.assertIsNotNone(r, phrase)
+                self.assertEqual((r[0].hour, r[0].minute), (h, m), phrase)
+
+    def test_quarter_and_third_to_the_hour(self):
+        self.assertEqual(self._dt("الساعة التاسعة إلا ربعاً")[0].hour, 8)
+        self.assertEqual(self._dt("الساعة التاسعة إلا ربعاً")[0].minute, 45)
+        self.assertEqual(self._dt("الساعة التاسعة إلا ثلثاً")[0].minute, 40)
+
+    def test_fractional_relative_offset(self):
+        # "بعد ساعة ونصف" = in an hour and a half -> +90 min
+        self.assertEqual(self._dt("بعد ساعة ونصف")[0],
+                         self.A + timedelta(minutes=90))
+        self.assertEqual(self._dt("بعد ساعتين ونصف")[0],
+                         self.A + timedelta(minutes=150))
+        self.assertEqual(self._dt("بعد ساعة وربع")[0],
+                         self.A + timedelta(minutes=75))
+
+    def test_invalid_calendar_date_does_not_crash(self):
+        # an impossible date must not raise, just yield no such date
+        self.assertIsNone(self._dt("موعد يوم ٣١ فبراير"))
+        self.assertIsNone(self._dt("يوم 29 فبراير 2027"))  # not a leap year
+        # a real leap day resolves
+        r = self._dt("يوم 29 فبراير 2028")
+        self.assertEqual((r[0].year, r[0].month, r[0].day), (2028, 2, 29))
+
+    def test_appointment_with_day_month_and_clock(self):
+        # known cross-lang trap: the clock hour must not be read as a year
+        r = self._dt("موعد يوم ١٥ يونيو الساعة الثالثة")
+        self.assertEqual((r[0].month, r[0].day, r[0].hour, r[0].minute),
+                         (6, 15, 3, 0))
+
+    def test_part_of_day_drives_pm(self):
+        self.assertEqual(self._dt("الساعة الثالثة والنصف مساءً")[0].hour, 15)
+        self.assertEqual(self._dt("الساعة الرابعة عصراً")[0].hour, 16)
+        self.assertEqual(self._dt("الساعة السابعة صباحاً")[0].hour, 7)
+
+    def test_twelve_with_part_of_day(self):
+        # twelve in the morning is midnight; at noon it is 12:00
+        self.assertEqual(self._dt("الساعة الثانية عشرة صباحاً")[0].hour, 0)
+        self.assertEqual(self._dt("الساعة الثانية عشرة ظهراً")[0].hour, 12)
+
+    def test_eastern_and_western_digit_clocks(self):
+        self.assertEqual((self._dt("الساعة ١٧:٣٠")[0].hour,
+                          self._dt("الساعة ١٧:٣٠")[0].minute), (17, 30))
+        self.assertEqual((self._dt("5:30 مساءً")[0].hour,
+                          self._dt("5:30 مساءً")[0].minute), (17, 30))
+
+    def test_dual_relative_days(self):
+        self.assertEqual(self._dt("بعد يومين")[0].day, 19)
+        self.assertEqual(self._dt("بعد أسبوعين")[0],
+                         self.A.replace(hour=0, minute=0) + timedelta(weeks=2))
+        self.assertEqual(self._dt("قبل ساعتين")[0], self.A - timedelta(hours=2))
+
+    def test_relative_day_words(self):
+        base = self.A.replace(hour=0, minute=0)
+        self.assertEqual(self._dt("بعد غد")[0], base + timedelta(days=2))
+        self.assertEqual(self._dt("أول أمس")[0], base - timedelta(days=2))
+        self.assertEqual(self._dt("أمس الأول")[0], base - timedelta(days=2))
+
+    def test_diacritized_input(self):
+        # voweled spelling must parse identically to the bare form
+        self.assertEqual(self._dt("الساعة الثَّالِثة صباحاً")[0].hour, 3)
+
+
+class TestExtractDurationArabicHardening(unittest.TestCase):
+    def _d(self, text):
+        return extract_duration(text, lang="ar")[0]
+
+    def test_fractional_units(self):
+        self.assertEqual(self._d("ساعة ونصف"), timedelta(hours=1, minutes=30))
+        self.assertEqual(self._d("ساعة وربع"), timedelta(hours=1, minutes=15))
+        self.assertEqual(self._d("نصف ساعة"), timedelta(minutes=30))
+
+    def test_mixed_digits(self):
+        self.assertEqual(self._d("٣٠ دقيقة"), timedelta(minutes=30))
+        self.assertEqual(self._d("15 دقيقة"), timedelta(minutes=15))
+
+    def test_no_duration(self):
+        self.assertIsNone(extract_duration("مرحبا", lang="ar")[0])
+
+
 if __name__ == "__main__":
     unittest.main()

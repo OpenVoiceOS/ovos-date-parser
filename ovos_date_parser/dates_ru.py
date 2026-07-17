@@ -1063,28 +1063,38 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
     extracted_date = anchor_date.replace(microsecond=0)
     if date_string != "":
         # date included an explicit date, e.g. "june 5" or "june 2, 2017"
-        try:
-            temp = datetime.strptime(date_string, "%B %d")
-        except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(date_string, "%B %d %Y")
         extracted_date = extracted_date.replace(hour=0, minute=0, second=0)
         if not has_year:
-            temp = temp.replace(year=extracted_date.year,
-                                tzinfo=extracted_date.tzinfo)
-            if extracted_date < temp:
-                extracted_date = extracted_date.replace(
-                    year=int(current_year),
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extracted_date.tzinfo)
-            else:
-                extracted_date = extracted_date.replace(
-                    year=int(current_year) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extracted_date.tzinfo)
+            # Resolve the month/day against a real year rather than
+            # strptime's default 1900, which is not a leap year and would
+            # reject a valid "29 february". Pick the next year in which the
+            # day exists, so "29 february" lands on the next leap year.
+            def _resolve_year(base_year):
+                # search a bounded window so an impossible day (e.g. "45
+                # february") stops instead of looping forever
+                for year in range(base_year, base_year + 9):
+                    try:
+                        return datetime.strptime(
+                            "{} {}".format(date_string, year), "%B %d %Y")
+                    except ValueError:
+                        continue
+                return None
+
+            temp = _resolve_year(int(current_year))
+            if temp is None:
+                return None
+            temp = temp.replace(tzinfo=extracted_date.tzinfo)
+            if extracted_date >= temp:
+                later = _resolve_year(int(current_year) + 1)
+                if later is not None:
+                    temp = later.replace(tzinfo=extracted_date.tzinfo)
+            extracted_date = extracted_date.replace(
+                year=temp.year,
+                month=temp.month,
+                day=temp.day,
+                tzinfo=extracted_date.tzinfo)
         else:
+            temp = datetime.strptime(date_string, "%B %d %Y")
             extracted_date = extracted_date.replace(
                 year=int(temp.strftime("%Y")),
                 month=int(temp.strftime("%m")),

@@ -405,11 +405,9 @@ register_duration_lexicon(DurationLexicon(
         "millenniums": r"milenios?",
     }))
 
-# the Galician number normalizer folds articles ("un temporizador" ->
-# "1 temporizador"), so only accent folding is applied here
 register_duration_lexicon(DurationLexicon(
     lang="gl",
-    normalize=_fold_iberian,
+    normalize=lambda text: numbers_to_digits(_fold_iberian(text), "gl"),
     units={
         "microseconds": r"microsegundos?",
         "milliseconds": r"milisegundos?",
@@ -601,6 +599,23 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 register_duration_lexicon(DurationLexicon(
+    lang="sk",
+    units={
+        "microseconds": r"mikrosek[úu]nd(?:a|y|u)?",
+        "milliseconds": r"milisek[úu]nd(?:a|y|u)?",
+        "seconds": r"sek[úu]nd(?:a|y|u)?",
+        "minutes": r"min[úu]t(?:a|y|u)?",
+        "hours": r"hod[íi]n(?:a|y|u)?",
+        "days": r"(?:deň|dni|dní|dňa)",
+        "weeks": r"(?:týždeň|týždne|týždňov|týždňa)",
+        "months": r"mesiac(?:e|ov|a)?",
+        "years": r"(?:rok(?:y|ov|a)?)",
+        "decades": r"(?:desaťroč(?:ie|ia|í)|dekád(?:a|y)?)",
+        "centuries": r"storoč(?:ie|ia|í)",
+        "millenniums": r"tisícroč(?:ie|ia|í)",
+    }))
+
+register_duration_lexicon(DurationLexicon(
     lang="az",
     pattern_template=r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-)(?:{unit})"
                      r"(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?",
@@ -653,4 +668,36 @@ register_duration_lexicon(DurationLexicon(
         "decades": r"deceni[iu](?:le)?",
         "centuries": r"secol(?:e(?:le)?|ul)?|veac(?:uri)?",
         "millenniums": r"mileni[iu](?:le)?",
+    }))
+
+
+def _normalize_fi(text):
+    # numbers_to_digits already folds "puoli" -> 0.5 and "puolitoista" ->
+    # 1.5; collapse "N ja 0.5" ("kolme ja puoli") into "N.5" so the whole
+    # quantity is read as a single fractional value
+    text = numbers_to_digits(text.lower(), "fi")
+    return re.sub(r"(\d+)\s+ja\s+0[.,]5", r"\1.5", text)
+
+
+# Finnish nouns follow a numeral in the partitive singular ("kaksi tuntia");
+# the nominative ("tunti") and genitive ("tunnin", in "kahden tunnin") forms
+# also occur, so each unit accepts its common declined surface forms.
+# Fractional numerals ("puoli tuntia" = 0.5 h, "puolitoista tuntia" = 1.5 h,
+# "kolme ja puoli tuntia" = 3.5 h) are handled by the numeral normalizer.
+register_duration_lexicon(DurationLexicon(
+    lang="fi",
+    normalize=_normalize_fi,
+    units={
+        "microseconds": r"mikrosekunt(?:ia|i)|mikrosekunnin",
+        "milliseconds": r"millisekunt(?:ia|i)|millisekunnin",
+        "seconds": r"sekunt(?:ia|i)|sekunnin",
+        "minutes": r"minuut(?:tia|ti)|minuutin",
+        "hours": r"(?:tunti|tuntia|tunnin)",
+        "days": r"(?:päivää|päivän|päivä|vuorokausi|vuorokautta)",
+        "weeks": r"(?:viikko|viikkoa|viikon)",
+        "months": r"(?:kuukausi|kuukautta|kuukauden)",
+        "years": r"(?:vuosi|vuotta|vuoden)",
+        "decades": r"(?:vuosikymmen|vuosikymmentä|vuosikymmenen)",
+        "centuries": r"(?:vuosisata|vuosisataa|vuosisadan)",
+        "millenniums": r"(?:vuosituhat|vuosituhatta|vuosituhannen)",
     }))

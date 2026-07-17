@@ -97,8 +97,8 @@ plural declension may be imperfect (e.g. Slovenian dual forms).
 
 - Relative *past* wording ("anoche", "bart", "last night") is not handled in
   es/eu; the corresponding tests are skipped.
-- `extract_duration` is missing for eu, fr, hu, it.
 - `nice_time` is missing for sl.
-- Duration parsing understands "2 weeks", "3 months", "4 years" in most
-  languages, but common.py's generic helper only covers seconds through
-  days.
+- `gl` and `hu` `extract_datetime` are partial (🚧 in the README matrix).
+- The `resolution` / `replace_token` options of `extract_duration` are only
+  available on the shared duration engine; ar, ast, fa, kab and sv use a
+  dedicated parser that returns a plain `timedelta` and rejects those options.

@@ -1,3 +1,4 @@
+import calendar
 import re
 from datetime import datetime, timedelta
 
@@ -397,6 +398,36 @@ def extract_duration_pl(text, resolution=DurationResolution.TIMEDELTA,
                                     resolution, replace_token)
 
 
+# Ordinal day-of-month words in the genitive case Polish uses for dates,
+# e.g. "piętnastego stycznia" -> 15 January. Mapped to the day number so the
+# date parser can treat them like a numeric day.
+_ORDINAL_DAY_UNITS_PL = {
+    1: 'pierwszego', 2: 'drugiego', 3: 'trzeciego', 4: 'czwartego',
+    5: 'piątego', 6: 'szóstego', 7: 'siódmego', 8: 'ósmego',
+    9: 'dziewiątego', 10: 'dziesiątego', 11: 'jedenastego', 12: 'dwunastego',
+    13: 'trzynastego', 14: 'czternastego', 15: 'piętnastego',
+    16: 'szesnastego', 17: 'siedemnastego', 18: 'osiemnastego',
+    19: 'dziewiętnastego', 20: 'dwudziestego', 30: 'trzydziestego',
+}
+
+
+def _build_ordinal_days_pl():
+    phrases = {}
+    for day in range(1, 32):
+        if day in _ORDINAL_DAY_UNITS_PL:
+            phrase = _ORDINAL_DAY_UNITS_PL[day]
+        elif 21 <= day <= 29:
+            phrase = _ORDINAL_DAY_UNITS_PL[20] + ' ' \
+                + _ORDINAL_DAY_UNITS_PL[day - 20]
+        else:  # 31
+            phrase = _ORDINAL_DAY_UNITS_PL[30] + ' ' + _ORDINAL_DAY_UNITS_PL[1]
+        phrases[phrase] = day
+    return phrases
+
+
+_ORDINAL_DAYS_PL = _build_ordinal_days_pl()
+
+
 def extract_datetime_pl(string, anchorDate=None, default_time=None):
     """ Convert a human date reference into an exact datetime
 
@@ -432,6 +463,12 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
         # clean unneeded punctuation and capitalization among other things.
         s = s.lower().replace('?', '').replace('.', '').replace(',', '') \
             .replace("para", "2")
+
+        # spoken ordinal day-of-month ("piętnastego stycznia") -> "15 stycznia"
+        # longest phrase first so "dwudziestego pierwszego" wins over "dwudziestego"
+        for phrase in sorted(_ORDINAL_DAYS_PL, key=len, reverse=True):
+            s = re.sub(r'\b' + phrase + r'\b',
+                       str(_ORDINAL_DAYS_PL[phrase]), s)
 
         wordList = s.split()
         for idx, word in enumerate(wordList):
@@ -994,30 +1031,39 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
         try:
             temp = datetime.strptime(datestr, "%B %d")
         except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(datestr, "%B %d %Y")
+            # Try again, allowing the year, then a leap-safe day, then a
+            # bare month. "February 29" has no valid date in the default
+            # year 1900, so parse the day against a known leap year.
+            try:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            except ValueError:
+                try:
+                    temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+                except ValueError:
+                    try:
+                        temp = datetime.strptime(datestr, "%B %Y")
+                    except ValueError:
+                        temp = datetime.strptime(datestr, "%B")
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
-        if not hasYear:
-            temp = temp.replace(year=extractedDate.year,
-                                tzinfo=extractedDate.tzinfo)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear),
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extractedDate.tzinfo)
-            else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extractedDate.tzinfo)
+        month = temp.month
+        day = temp.day
+        if hasYear:
+            year = temp.year
+        elif month == 2 and day == 29:
+            # 29 February only exists in leap years: pick the next leap
+            # year on or after the reference date
+            year = int(currentYear)
+            while not (calendar.isleap(year) and
+                       datetime(year, 2, 29, tzinfo=extractedDate.tzinfo)
+                       >= extractedDate):
+                year += 1
         else:
-            extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")),
-                tzinfo=extractedDate.tzinfo)
+            year = int(currentYear)
+            candidate = extractedDate.replace(year=year, month=month, day=day)
+            if not extractedDate < candidate:
+                year += 1
+        extractedDate = extractedDate.replace(
+            year=year, month=month, day=day, tzinfo=extractedDate.tzinfo)
     else:
         # ignore the current HH:MM:SS if relative using days or greater
         if hrOffset == 0 and minOffset == 0 and secOffset == 0:

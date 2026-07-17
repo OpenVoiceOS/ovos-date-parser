@@ -11,8 +11,9 @@ from ovos_date_parser import (extract_datetime, extract_duration, nice_date,
                               nice_month, nice_relative_time, nice_time,
                               nice_weekday, nice_year, get_date_strings)
 
-LANGS = ["ar", "ast", "az", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
-         "gl", "hu", "it", "kab", "nl", "oc", "pl", "pt", "ro", "ru", "sl", "sv", "uk"]
+LANGS = ["ar", "ast", "az", "bg", "ca", "cs", "da", "de", "en", "es", "eu", "fa",
+         "fr", "gl", "hr", "hu", "it", "kab", "nl", "oc", "pl", "pt", "ro", "ru",
+         "sk", "sl", "sv", "uk"]
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)
 
@@ -22,6 +23,7 @@ _TOMORROW = {
     "fa": "فردا", "fr": "demain", "gl": "mañá", "hu": "holnap",
     "it": "domani", "kab": "azekka", "nl": "morgen", "oc": "deman", "pl": "jutro", "pt": "amanhã",
     "ro": "mâine", "ru": "завтра", "sl": "jutri", "sv": "imorgon", "uk": "завтра",
+    "sk": "zajtra", "hr": "sutra", "bg": "утре",
 }
 
 _NO_DATE = {
@@ -35,6 +37,7 @@ _NO_DATE = {
     "ro": "salut ce faci", "ru": "привет как дела",
     "sl": "živjo kako si", "sv": "hej hur mår du", "uk": "привіт як справи",
     "oc": "adiu amics",
+    "sk": "ahoj ako sa máš", "hr": "bok kako si", "bg": "здравей как си",
 }
 
 _DURATION_STRINGS = {
@@ -46,6 +49,7 @@ _DURATION_STRINGS = {
     "pt": "10 minutos", "ro": "10 minute", "ru": "10 минут", "sl": "10 minut",
     "sv": "10 minuter", "uk": "10 хвилин",
     "oc": "10 minutas",
+    "sk": "10 minút", "hr": "10 minuta", "bg": "10 минути",
 }
 
 

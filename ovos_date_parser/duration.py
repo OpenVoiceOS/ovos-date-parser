@@ -577,6 +577,57 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 register_duration_lexicon(DurationLexicon(
+    lang="sk",
+    units={
+        "microseconds": r"mikrosek[úu]nd(?:a|y|u)?",
+        "milliseconds": r"milisek[úu]nd(?:a|y|u)?",
+        "seconds": r"sek[úu]nd(?:a|y|u)?",
+        "minutes": r"min[úu]t(?:a|y|u)?",
+        "hours": r"hod[íi]n(?:a|y|u)?",
+        "days": r"(?:deň|dni|dní|dňa)",
+        "weeks": r"(?:týždeň|týždne|týždňov|týždňa)",
+        "months": r"mesiac(?:e|ov|a)?",
+        "years": r"(?:rok(?:y|ov|a)?)",
+        "decades": r"(?:desaťroč(?:ie|ia|í)|dekád(?:a|y)?)",
+        "centuries": r"storoč(?:ie|ia|í)",
+        "millenniums": r"tisícroč(?:ie|ia|í)",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="hr",
+    units={
+        "microseconds": r"mikrosekund(?:a|e|i|u)?",
+        "milliseconds": r"milisekund(?:a|e|i|u)?",
+        "seconds": r"sekund(?:a|e|i|u)?",
+        "minutes": r"minut(?:a|e|i|u)?",
+        "hours": r"sat(?:a|i|u)?",
+        "days": r"dan(?:a|i|u)?",
+        "weeks": r"(?:tjedan|tjedn(?:a|i|u))",
+        "months": r"mjesec(?:a|i|u)?",
+        "years": r"godin(?:a|e|i|u)?",
+        "decades": r"(?:desetljeć(?:e|a|i)?|desetljeća)",
+        "centuries": r"stoljeć(?:e|a|i)?",
+        "millenniums": r"tisućljeć(?:e|a|i)?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
+    lang="bg",
+    units={
+        "microseconds": r"микросекунд(?:а|и)?",
+        "milliseconds": r"милисекунд(?:а|и)?",
+        "seconds": r"секунд(?:а|и)?",
+        "minutes": r"минут(?:а|и)?",
+        "hours": r"час(?:а|ове)?",
+        "days": r"(?:ден|дни|дена)",
+        "weeks": r"седмиц(?:а|и)?",
+        "months": r"месец(?:а|и)?",
+        "years": r"годин(?:а|и)?",
+        "decades": r"десетилети(?:е|я)",
+        "centuries": r"(?:век(?:а|ове)?|столети(?:е|я))",
+        "millenniums": r"хилядолети(?:е|я)",
+    }))
+
+register_duration_lexicon(DurationLexicon(
     lang="az",
     pattern_template=r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-)(?:{unit})"
                      r"(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?",

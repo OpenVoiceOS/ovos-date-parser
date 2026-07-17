@@ -19,6 +19,7 @@ TOMORROW = {
     "ru": "завтра", "uk": "завтра", "fa": "فردا", "eu": "bihar",
     "az": "sabah",
     "oc": "deman",
+    "sk": "zajtra", "hr": "sutra", "bg": "утре",
 }
 
 FIVE_MINUTES = {
@@ -28,6 +29,7 @@ FIVE_MINUTES = {
     "ru": "5 минут", "uk": "5 хвилин", "fa": "پنج دقیقه", "az": "5 dəqiqə",
     "gl": "5 minutos",
     "oc": "5 minutas",
+    "sk": "5 minút", "hr": "5 minuta", "bg": "5 минути",
 }
 
 NO_DATE = {
@@ -38,6 +40,7 @@ NO_DATE = {
     "ru": "привет мир", "uk": "привіт світ", "fa": "سلام دنیا",
     "eu": "kaixo mundua", "az": "salam dünya",
     "oc": "adiu amics",
+    "sk": "ahoj svet", "hr": "bok svijete", "bg": "здравей свят",
 }
 
 TODAY_WORD = {
@@ -47,10 +50,12 @@ TODAY_WORD = {
     "uk": "сьогодні", "fa": "امروز", "eu": "gaur", "az": "bu gün",
     "gl": "hoxe", "hu": "ma",
     "oc": "uèi",
+    "sk": "dnes", "hr": "danas", "bg": "днес",
 }
 
 DIGIT_TIME_LANGS = ["ar", "en", "de", "nl", "da", "sv", "es", "pt", "ca", "it",
-                    "fr", "cs", "oc", "pl", "ru", "uk", "fa", "eu", "az"]
+                    "fr", "cs", "oc", "pl", "ru", "uk", "fa", "eu", "az",
+                    "sk", "hr", "bg"]
 
 
 class TestTomorrow(unittest.TestCase):

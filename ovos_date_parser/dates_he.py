@@ -23,15 +23,18 @@ offered; ``nice_time_he`` keeps this single sensible default.
 
 Extraction scope
 ----------------
-``extract_datetime_he`` recognises relative day words, weekday names,
-"in N <unit>" / "N <unit> ago" offsets in both masculine and feminine
-spoken forms (routed through the number normaliser), the dual nouns
-יומיים/שבועיים/חודשיים/שנתיים/שעתיים, relative hour/minute/second offsets
-(בעוד N שעות/דקות), explicit "N of <month> [year]" dates, and clock times
-given either as ``HH:MM`` or as "בשעה N", with optional half/quarter and
-part-of-day modifiers. Spoken minute compounds beyond half and quarter
-are out of scope: an unrecognised time is left in the returned remainder
-rather than guessed at.
+``extract_datetime_he`` recognises relative day words, weekday names
+(with or without a ב/ל proclitic), "in N <unit>" / "N <unit> ago"
+offsets in both masculine and feminine spoken forms (routed through the
+number normaliser), the dual nouns יומיים/שבועיים/חודשיים/שנתיים/שעתיים,
+relative hour/minute/second offsets (בעוד N שעות/דקות) including "וחצי"
+/"ורבע" fractions of an hour, explicit "N of <month> [year]" dates (a
+month with a year but no day resolves to the first of the month), and
+clock times given as ``HH:MM``, "בשעה N", or "רבע ל<hour>". A part-of-day
+word (בבוקר/אחר הצהריים/בערב/בלילה) shifts a spoken or absolute hour into
+the right half of the day. Spoken minute compounds beyond half and
+quarter are out of scope: an unrecognised time is left in the returned
+remainder rather than guessed at.
 """
 import re
 from datetime import datetime
@@ -304,14 +307,22 @@ def extract_datetime_he(text, anchorDate=None, default_time=None):
         for ch in [".", ",", ";", "?", "!"]:
             s = s.replace(ch, " ")
         # keep the two-word weekday phrases together so the number
-        # normaliser does not read "שני" as the numeral two, etc.
+        # normaliser does not read "שני" as the numeral two, etc.; a
+        # leading ב/ל proclitic ("ביום שלישי", "ליום חמישי") is folded in
         for w in _WEEKDAY_WORDS[:-1]:
-            s = re.sub(r"\bב?יום " + w + r"\b", "יום_" + w, s)
+            s = re.sub(r"\b[בל]?יום " + w + r"\b", "יום_" + w, s)
+        # Saturday carries no "יום" prefix; strip a ב/ל proclitic
+        s = re.sub(r"\b[בל]?שבת\b", "שבת", s)
         # shield half/quarter as whole words from the number normaliser
         s = re.sub(r"\bוחצי\b", " @half", s)
         s = re.sub(r"\bחצי\b", "@half", s)
         s = re.sub(r"\bורבע\b", " @quarter", s)
         s = re.sub(r"\bרבע\b", "@quarter", s)
+        # "רבע ל<hour>" (quarter to) — mark it and detach the ל proclitic
+        # so the hour word normalises to a digit
+        s = re.sub(r"@quarter ל", "@quarterto ", s)
+        # a ב/ל proclitic on a digit token ("ב15", "ל20")
+        s = re.sub(r"\b[בל](?=\d)", "", s)
         s = numbers_to_digits(s, "he")
         return s
 
@@ -449,17 +460,26 @@ def extract_datetime_he(text, anchorDate=None, default_time=None):
             elif kind == "hour":
                 hrOffset = sign * 2
             used = 1
+            if kind == "hour" and wordNext in ("@half", "@quarter"):
+                minOffset += sign * (30 if wordNext == "@half" else 15)
+                used += 1
         # relative clock offsets: "בעוד N שעות/דקות/שניות"
         elif word in ("שעה", "שעות"):
+            sign = -1 if words[idx - 2:idx - 1] == ["לפני"] else 1
+            matched = True
             if is_digit(wordPrev):
-                n = int(wordPrev)
-                sign = -1 if words[idx - 2:idx - 1] == ["לפני"] else 1
-                hrOffset = sign * n
+                hrOffset = sign * int(wordPrev)
                 start = idx - 1
                 used = 2
             elif wordPrev in ("בעוד", "עוד"):
                 hrOffset = 1
                 used = 1
+            else:
+                matched = False
+            # "שעה וחצי" / "שעה ורבע" -> add half/quarter of an hour
+            if matched and wordNext in ("@half", "@quarter"):
+                minOffset += sign * (30 if wordNext == "@half" else 15)
+                used += 1
         elif word in ("דקה", "דקות"):
             if is_digit(wordPrev):
                 n = int(wordPrev)
@@ -483,26 +503,40 @@ def extract_datetime_he(text, anchorDate=None, default_time=None):
                 month_token = month_token[1:]
             if month_token in _MONTH_WORDS:
                 m = _MONTH_WORDS.index(month_token)
-                datestr = _EN_MONTHS[m]
                 used = 1
-                if is_digit(wordPrev):
-                    datestr += " " + wordPrev
+                day = None
+                year = None
+                # a token counts as a day of month when 1..31, otherwise
+                # a 4-digit-ish value (>=100) is read as a year — so that
+                # "ביולי 2019" (month + year, no day) never mistakes the
+                # year for a day
+                if is_digit(wordPrev) and 1 <= int(wordPrev) <= 31:
+                    day = int(wordPrev)
                     start = idx - 1
                     used += 1
-                    if is_digit(wordNext) and int(wordNext) > 31:
-                        datestr += " " + wordNext
+                    if is_digit(wordNext) and int(wordNext) >= 100:
+                        year = int(wordNext)
                         used += 1
-                        hasYear = True
                 elif is_digit(wordNext):
-                    datestr += " " + wordNext
-                    used += 1
-                    if is_digit(wordNextNext) and int(wordNextNext) > 31:
-                        datestr += " " + wordNextNext
+                    if int(wordNext) >= 100:
+                        year = int(wordNext)
                         used += 1
-                        hasYear = True
-                if datestr in _EN_MONTHS:
-                    datestr = ""
+                    elif 1 <= int(wordNext) <= 31:
+                        day = int(wordNext)
+                        used += 1
+                        if is_digit(wordNextNext) and \
+                                int(wordNextNext) >= 100:
+                            year = int(wordNextNext)
+                            used += 1
+                if day is None and year is None:
+                    # a bare month word on its own is not a date
                     used = 0
+                else:
+                    # month + year with no day resolves to the first
+                    datestr = f"{_EN_MONTHS[m]} {day if day else 1}"
+                    hasYear = year is not None
+                    if year is not None:
+                        datestr += f" {year}"
 
         if used > 0:
             # drop a leading "בעוד"/"עוד"/"לפני" linker
@@ -529,19 +563,37 @@ def extract_datetime_he(text, anchorDate=None, default_time=None):
         if word in ("בבוקר", "בוקר"):
             if hrAbs is None:
                 hrAbs = 8
+            elif hrAbs == 12:
+                hrAbs = 0
             used = 1
         elif word in ("בצהריים", "צהריים"):
             if hrAbs is None:
                 hrAbs = 12
             used = 1
+        elif word == "אחר" and wordNext in ("הצהריים", "צהריים"):
+            if hrAbs is None:
+                hrAbs = 15
+            elif hrAbs < 12:
+                hrAbs += 12
+            used = 2
         elif word in ("בערב", "ערב"):
             if hrAbs is None:
                 hrAbs = 20
+            elif hrAbs < 12:
+                hrAbs += 12
             used = 1
         elif word in ("בלילה", "לילה"):
             if hrAbs is None:
                 hrAbs = 23
+            elif hrAbs < 12:
+                hrAbs += 12
             used = 1
+        elif word == "@quarterto" and is_digit(wordNext):
+            hrAbs = (int(wordNext) - 1) % 24
+            minAbs = 45
+            used = 2
+            if wordPrev == "בשעה":
+                words[idx - 1] = ""
         elif word == "בשעה" and is_digit(wordNext):
             hh, mm, used_inner = _parse_clock_token(wordNext, wordNextNext)
             if hh is not None:

@@ -290,10 +290,7 @@ class TestRealSentencesHe(unittest.TestCase):
     Each case asserts both the parsed datetime and the remainder text
     (the spoken command left after the date/time words are consumed).
     Expected values are checked against Modern Hebrew usage, never
-    pinned from engine output. Sentences that exercise idioms the parser
-    does not yet cover (e.g. an explicit hour combined with a part-of-day
-    word meaning PM, day-of-month or weekday carrying a ב/ל proclitic,
-    or "half" attached to an hour offset) are intentionally left out.
+    pinned from engine output.
     """
 
     def _parse(self, text):
@@ -449,6 +446,88 @@ class TestRealSentencesHe(unittest.TestCase):
         self.assertIsNotNone(res)
         self.assertEqual(res[0], datetime(2018, 6, 6, 0, 0))
         self.assertIn("25:99", res[1])
+
+
+class TestParserFixesHe(unittest.TestCase):
+    """Previously-broken natural forms, now supported."""
+
+    def _parse(self, text):
+        res = extract_datetime_he(text, ANCHOR)
+        self.assertIsNotNone(res, f"expected a datetime for: {text}")
+        return res[0], res[1]
+
+    # 1. month + year with no day no longer crashes
+    def test_month_year_no_day(self):
+        dt, rem = self._parse("פגישה ביולי 2019")
+        self.assertEqual(dt, datetime(2019, 7, 1, 0, 0))
+        self.assertEqual(rem, "פגישה")
+
+    def test_day_month_year_full(self):
+        dt, rem = self._parse("קבע פגישה ל20 ביולי 2019")
+        self.assertEqual(dt, datetime(2019, 7, 20, 0, 0))
+        self.assertEqual(rem, "קבע פגישה")
+
+    def test_full_date_and_time_no_crash(self):
+        dt, rem = self._parse("האירוע ב15 ביוני 2020 בשעה שמונה בערב")
+        self.assertEqual(dt, datetime(2020, 6, 15, 20, 0))
+        self.assertEqual(rem, "האירוע")
+
+    # 2. ב/ל proclitic on day-of-month and weekday
+    def test_proclitic_day_of_month(self):
+        dt, rem = self._parse("פגישה ב15 ביוני")
+        self.assertEqual(dt, datetime(2018, 6, 15, 0, 0))
+        self.assertEqual(rem, "פגישה")
+
+    def test_proclitic_weekday_saturday(self):
+        # next Saturday after Tuesday 2018-06-05 is 2018-06-09
+        dt, rem = self._parse("תזכיר לי בשבת בבוקר")
+        self.assertEqual(dt, datetime(2018, 6, 9, 8, 0))
+        self.assertEqual(rem, "תזכיר לי")
+
+    def test_proclitic_weekday_thursday_afternoon(self):
+        # next Thursday is 2018-06-07, "שתיים אחר הצהריים" -> 14:00
+        dt, rem = self._parse("קבע פגישה ליום חמישי בשעה שתיים אחר הצהריים")
+        self.assertEqual(dt, datetime(2018, 6, 7, 14, 0))
+        self.assertEqual(rem, "קבע פגישה")
+
+    # 3. part-of-day pushes an explicit hour to PM
+    def test_seven_in_the_evening(self):
+        dt, rem = self._parse("נפגשים היום בשעה שבע בערב")
+        self.assertEqual(dt, datetime(2018, 6, 5, 19, 0))
+        self.assertEqual(rem, "נפגשים")
+
+    def test_nine_in_the_evening(self):
+        dt, _ = self._parse("בשעה תשע בערב")
+        self.assertEqual(dt, datetime(2018, 6, 5, 21, 0))
+
+    def test_three_in_the_afternoon(self):
+        dt, _ = self._parse("בשעה שלוש אחר הצהריים")
+        self.assertEqual(dt, datetime(2018, 6, 5, 15, 0))
+
+    # 4. half / quarter applied to an hour offset
+    def test_offset_hour_and_half(self):
+        dt, rem = self._parse("תעיר אותי בעוד שעה וחצי")
+        self.assertEqual(dt, datetime(2018, 6, 5, 10, 30))
+        self.assertEqual(rem, "תעיר אותי")
+
+    def test_offset_hour_and_quarter(self):
+        dt, _ = self._parse("בעוד שעה ורבע")
+        self.assertEqual(dt, datetime(2018, 6, 5, 10, 15))
+
+    def test_offset_two_hours_and_half(self):
+        dt, _ = self._parse("בעוד שעתיים וחצי")
+        self.assertEqual(dt, datetime(2018, 6, 5, 11, 30))
+
+    # 5. spoken "quarter to <hour>" on extraction
+    def test_quarter_to_four(self):
+        # 03:45 is before the 09:00 anchor, so it rolls to tomorrow
+        dt, _ = self._parse("רבע לארבע")
+        self.assertEqual(dt, datetime(2018, 6, 6, 3, 45))
+
+    def test_quarter_to_four_in_sentence(self):
+        dt, rem = self._parse("נדבר בשעה רבע לארבע")
+        self.assertEqual(dt, datetime(2018, 6, 6, 3, 45))
+        self.assertEqual(rem, "נדבר")
 
 
 class TestDurationSentencesHe(unittest.TestCase):

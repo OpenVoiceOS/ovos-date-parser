@@ -142,6 +142,77 @@ class TestDatetime_eu(unittest.TestCase):
         self.assertEqual(extract_datetime("bart", anchorDate=datetime(1998, 1, 1),
                                           lang='eu')[0], datetime(1997, 12, 31, 21, tzinfo=default_timezone()))
 
+    def test_part_of_day_applies_pm(self):
+        anchor = datetime(1998, 1, 1)
+        # arratsaldeko = "in the afternoon" -> the hour is PM
+        self.assertEqual(extract_datetime_eu("arratsaldeko 3etan", anchorDate=anchor)[0],
+                         datetime(1998, 1, 1, 15, 0))
+        self.assertEqual(extract_datetime_eu("arratsaldea 5:00", anchorDate=anchor)[0],
+                         datetime(1998, 1, 1, 17, 0))
+        # goizeko = "in the morning" -> the hour stays AM
+        self.assertEqual(extract_datetime_eu("goizeko 8etan", anchorDate=anchor)[0],
+                         datetime(1998, 1, 1, 8, 0))
+        self.assertEqual(extract_datetime_eu("goiza 11:00", anchorDate=anchor)[0],
+                         datetime(1998, 1, 1, 11, 0))
+
+    def test_night_clock_does_not_wrap_to_am(self):
+        anchor = datetime(1998, 1, 1)
+        # "23:00 at night" must stay 23:00, not fold to 11:00
+        self.assertEqual(extract_datetime_eu("23:00 gauean", anchorDate=anchor)[0],
+                         datetime(1998, 1, 1, 23, 0))
+        # an early hour "at night" reads as AM
+        self.assertEqual(extract_datetime_eu("3:00 gauean", anchorDate=anchor)[0],
+                         datetime(1998, 1, 1, 3, 0))
+
+    def test_inflected_bare_hour_does_not_crash(self):
+        anchor = datetime(1998, 1, 1)
+        # "3etan" = "at 3 o'clock" (locative), a case-inflected number
+        self.assertEqual(extract_datetime_eu("3etan", anchorDate=anchor)[0],
+                         datetime(1998, 1, 1, 3, 0))
+
+    def test_trailing_clock_not_taken_as_year(self):
+        anchor = datetime(2020, 1, 1)
+        # the clock time after the date must not be swallowed as a year
+        self.assertEqual(extract_datetime_eu("abendua 25 15:00", anchorDate=anchor)[0],
+                         datetime(2020, 12, 25, 15, 0))
+        # explicit four digit year still works
+        self.assertEqual(extract_datetime_eu("maiatza 13 1998",
+                                             anchorDate=datetime(1998, 1, 1))[0],
+                         datetime(1998, 5, 13, 0, 0))
+
+    def test_leap_day(self):
+        # Feb 29 resolves in a leap year
+        self.assertEqual(extract_datetime_eu("otsaila 29", anchorDate=datetime(2020, 1, 1))[0],
+                         datetime(2020, 2, 29, 0, 0))
+        self.assertEqual(extract_datetime_eu("otsaila 29 2020",
+                                             anchorDate=datetime(2020, 1, 1))[0],
+                         datetime(2020, 2, 29, 0, 0))
+        # Feb 29 is impossible in a non-leap year -> no date, not a crash
+        self.assertEqual(extract_datetime_eu("otsaila 29", anchorDate=datetime(2021, 1, 1)),
+                         None)
+
+    def test_out_of_range_day_is_no_date(self):
+        # day 32 does not exist -> no date, not a crash
+        self.assertEqual(extract_datetime_eu("maiatza 32", anchorDate=datetime(2020, 1, 1)),
+                         None)
+
+    def test_remainder_text_is_returned(self):
+        anchor = datetime(1998, 1, 1)
+        res = extract_datetime_eu("bihar 15:00 mesedez", anchorDate=anchor)
+        self.assertEqual(res[0], datetime(1998, 1, 2, 15, 0))
+        self.assertEqual(res[1], "mesedez")
+
+    def test_mixed_case_and_lang_variants(self):
+        anchor = datetime(1998, 1, 1)
+        self.assertEqual(extract_datetime_eu("BIHAR 15:00", anchorDate=anchor)[0],
+                         datetime(1998, 1, 2, 15, 0))
+        # eu and eu-es route to the same extractor
+        self.assertEqual(extract_datetime("bihar 15:00", lang="eu-es", anchorDate=anchor)[0],
+                         datetime(1998, 1, 2, 15, 0, tzinfo=default_timezone()))
+
+    def test_empty_input_is_none(self):
+        self.assertEqual(extract_datetime_eu(""), None)
+
 
 if __name__ == "__main__":
     unittest.main()

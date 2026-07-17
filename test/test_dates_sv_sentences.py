@@ -138,5 +138,33 @@ class TestImpossibleAndEmpty(unittest.TestCase):
         self.assertEqual(extract("det finns ingen tid här"), None)
 
 
+class TestDurationEdgeCases(unittest.TestCase):
+    """extract_duration must signal 'no duration' with None, never crash."""
+
+    def test_empty_string(self):
+        self.assertIsNone(_odp.extract_duration("", lang="sv"))
+
+    def test_whitespace_only(self):
+        self.assertIsNone(_odp.extract_duration("   ", lang="sv"))
+
+    def test_tabs_and_newlines(self):
+        self.assertIsNone(_odp.extract_duration("\t\n  ", lang="sv"))
+
+    def test_gibberish(self):
+        self.assertIsNone(_odp.extract_duration("blahonga foo bar", lang="sv"))
+
+    def test_words_without_numbers(self):
+        self.assertIsNone(_odp.extract_duration("minuter och sekunder", lang="sv"))
+
+    def test_normal_duration_still_parses(self):
+        td, remainder = _odp.extract_duration("5 minuter", lang="sv")
+        self.assertEqual(td.total_seconds(), 300)
+
+    def test_compound_duration_still_parses(self):
+        td, remainder = _odp.extract_duration(
+            "2 timmar och 30 minuter", lang="sv")
+        self.assertEqual(td.total_seconds(), 2 * 3600 + 30 * 60)
+
+
 if __name__ == "__main__":
     unittest.main()

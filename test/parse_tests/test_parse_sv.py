@@ -68,7 +68,7 @@ class TestNormalize(unittest.TestCase):
         testExtract("vad blir morgondagens väder",
                     "2017-06-28 00:00:00", "vad blir väder")
         testExtract("påminn mig att ringa mamma om 8 veckor och 2 dagar",
-                    "2017-08-24 00:00:00", "påminn mig att ringa mamma om och")
+                    "2017-08-24 00:00:00", "påminn mig att ringa mamma och")
         testExtract("Spela Kurt Olssons musik 2 dagar från Fredag",
                     "2017-07-02 00:00:00", "spela kurt olssons musik")
         testExtract("vi möts 20:00",

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a2) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a1...0.18.1a2)
+
+**Merged pull requests:**
+
+- fix: parse spoken clock times in Spanish datetime extraction [\#180](https://github.com/OpenVoiceOS/ovos-date-parser/pull/180) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.0a3...0.18.1a1)

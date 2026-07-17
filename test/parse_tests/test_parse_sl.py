@@ -94,6 +94,38 @@ class TestExtractDateTimeSL(unittest.TestCase):
                                   default_time=time(9, 30))
         self.assertEqual(result[0], datetime(2023, 6, 7, 9, 30))
 
+    def test_leap_day_rolls_to_next_leap_year(self):
+        # 29 February does not exist in 2023 or 2024 is the next leap year;
+        # the reference must not raise and must land on a real 29 February
+        self.extract("29. februarja", datetime(2024, 2, 29, 0, 0))
+        self.extract("nastavi opomnik za 29. februarja",
+                     datetime(2024, 2, 29, 0, 0), "nastavi opomnik")
+
+    def test_night_keeps_small_hours_in_am(self):
+        # "ponoči" (in the night): 1 at night is 01:00, not 13:00
+        self.extract("ob enih ponoči", datetime(2023, 6, 7, 1, 0))
+        self.extract("ob dveh ponoči", datetime(2023, 6, 7, 2, 0))
+        self.extract("ob 3 ponoči", datetime(2023, 6, 7, 3, 0))
+
+    def test_night_shifts_late_hours_to_pm(self):
+        # the late evening hours still move into the PM half
+        self.extract("ob enajstih ponoči", datetime(2023, 6, 6, 23, 0))
+
+    def test_evening_spoken_hour_is_pm(self):
+        self.extract("ob osmih zvečer", datetime(2023, 6, 6, 20, 0))
+        self.extract("ob 8 zvečer", datetime(2023, 6, 6, 20, 0))
+
+    def test_afternoon_spoken_hour_is_pm(self):
+        self.extract("ob treh popoldne", datetime(2023, 6, 6, 15, 0))
+
+    def test_explicit_year_with_time(self):
+        self.extract("1. januarja 2025 ob 20:00",
+                     datetime(2025, 1, 1, 20, 0))
+
+    def test_bare_month_defaults_to_first(self):
+        # "junij" alone; 1 June already passed -> next year
+        self.extract("junij", datetime(2024, 6, 1, 0, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

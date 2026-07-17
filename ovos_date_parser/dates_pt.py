@@ -321,11 +321,11 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                        "no", "dia", "hora"]
     days = ['segunda', 'terca', 'quarta',
             'quinta', 'sexta', 'sabado', 'domingo']
-    months = ['janeiro', 'febreiro', 'marco', 'abril', 'maio', 'junho',
+    months = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
               'julho', 'agosto', 'setembro', 'outubro', 'novembro',
               'dezembro']
-    monthsShort = ['jan', 'feb', 'mar', 'abr', 'mai', 'jun', 'jul', 'ag',
-                   'set', 'out', 'nov', 'dec']
+    monthsShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago',
+                   'set', 'out', 'nov', 'dez']
     nexts = ["proximo", "proxima"]
     suffix_nexts = ["seguinte", "subsequente", "seguir"]
     lasts = ["ultimo", "ultima"]
@@ -526,7 +526,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if wordNext.isdigit() and len(wordNext) == 4:
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -537,7 +537,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 # maio 13
                 datestr += " " + wordNext
                 used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
+                if wordNextNext.isdigit() and len(wordNextNext) == 4:
                     datestr += " " + wordNextNext
                     used += 1
                     hasYear = True
@@ -550,7 +550,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
 
                 start -= 2
                 used += 2
-                if wordNext and word[0].isdigit():
+                if wordNext.isdigit() and len(wordNext) == 4:
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -561,7 +561,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 # maio dia 13
                 datestr += " " + wordNextNext
                 used += 2
-                if wordNextNextNext and wordNextNextNext[0].isdigit():
+                if wordNextNextNext.isdigit() and len(wordNextNextNext) == 4:
                     datestr += " " + wordNextNextNext
                     used += 1
                     hasYear = True
@@ -853,6 +853,19 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                         if wordNext == "hora":
                             used += 1
                     elif (
+                            wordNext == "hora" and strNum and
+                            wordPrev in ["as", "nas", "pelas", "volta"] and
+                            0 <= int(strNum) <= 24):
+                        # "às 14 horas" / "pelas 9 horas" -> absolute clock
+                        # time, unlike "em 14 horas" which is an offset
+                        strHH = strNum
+                        strMM = 0
+                        used += 1
+                        if timeQualifier in ["tarde", "noite"]:
+                            remainder = "pm"
+                        elif timeQualifier == "manha":
+                            remainder = "am"
+                    elif (
                             wordNext == "hora" and
                             word[0] != '0' and strNum and
                             (
@@ -977,32 +990,39 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         for idx, en_month in enumerate(en_monthsShort):
             datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+        except ValueError:
+            # impossible dates ("31 de abril") should not crash the parser
+            temp = None
+        if temp is None:
+            datestr = ""
         else:
-            temp = datetime.strptime(datestr, "%B %d")
-        if extractedDate.tzinfo:
-            temp = temp.replace(tzinfo=extractedDate.tzinfo)
+            if extractedDate.tzinfo:
+                temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
-        if not hasYear:
-            temp = temp.replace(year=extractedDate.year)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(year=int(currentYear),
-                                                      month=int(
-                                                          temp.strftime(
-                                                              "%m")),
-                                                      day=int(temp.strftime(
-                                                          "%d")))
+            if not hasYear:
+                temp = temp.replace(year=extractedDate.year)
+                if extractedDate < temp:
+                    extractedDate = extractedDate.replace(year=int(currentYear),
+                                                          month=int(
+                                                              temp.strftime(
+                                                                  "%m")),
+                                                          day=int(temp.strftime(
+                                                              "%d")))
+                else:
+                    extractedDate = extractedDate.replace(
+                        year=int(currentYear) + 1,
+                        month=int(temp.strftime("%m")),
+                        day=int(temp.strftime("%d")))
             else:
                 extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
+                    year=int(temp.strftime("%Y")),
                     month=int(temp.strftime("%m")),
                     day=int(temp.strftime("%d")))
-        else:
-            extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")))
 
     if timeStr != "":
         temp = datetime(timeStr)

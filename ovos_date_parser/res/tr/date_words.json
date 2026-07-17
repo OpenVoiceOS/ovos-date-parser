@@ -1,10 +1,11 @@
 {
-  "seconds": "saniyeler",
-  "hour": "saat",
+  "now": "şimdi",
+  "second": "saniye",
+  "seconds": "saniye",
   "minute": "dakika",
-  "days": "günler",
+  "minutes": "dakika",
+  "hour": "saat",
+  "hours": "saat",
   "day": "gün",
-  "minutes": "dakikalar",
-  "hours": "saatler",
-  "second": "saniye"
+  "days": "gün"
 }

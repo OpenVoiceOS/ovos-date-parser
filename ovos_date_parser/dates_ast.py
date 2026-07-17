@@ -298,7 +298,7 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
                     minAbs or secOffset != 0
             )
 
-    if text == "":
+    if not text:
         return None
     if anchorDate is None:
         anchorDate = now_local()
@@ -917,30 +917,33 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
                              en_month, datestr)
 
         if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
-        if extractedDate.tzinfo:
-            temp = temp.replace(tzinfo=extractedDate.tzinfo)
-
-        if not hasYear:
-            temp = temp.replace(year=extractedDate.year)
-
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear),
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")))
-            else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")))
-        else:
+            try:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            except ValueError:
+                # impossible date for the given year (e.g. 29 of february
+                # in a non-leap year) -> no date to extract
+                return None
             extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")))
+                year=temp.year, month=temp.month, day=temp.day)
+        else:
+            # parse against a leap year so 29 of february never raises here,
+            # then resolve the actual year below
+            temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+            month, day = temp.month, temp.day
+            year = int(currentYear)
+            # advance to the next year where this day exists and is in the
+            # future relative to the anchor (skips non-leap years for feb 29)
+            while True:
+                try:
+                    candidate = extractedDate.replace(
+                        year=year, month=month, day=day)
+                except ValueError:
+                    year += 1
+                    continue
+                if extractedDate < candidate:
+                    break
+                year += 1
+            extractedDate = candidate
 
     if yearOffset != 0:
         extractedDate = extractedDate + relativedelta(years=yearOffset)

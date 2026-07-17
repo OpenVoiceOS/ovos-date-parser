@@ -74,6 +74,49 @@ class TestNormalize(unittest.TestCase):
         testExtract("vi möts 20:00",
                     "2017-06-27 20:00:00", "vi möts")
 
+    def test_extractdatetime_named_month_sv(self):
+        # Swedish month names must not be fed to strptime("%B"), which only
+        # understands the C-locale (English) month names.
+        def extractWithFormat(text):
+            date = datetime(2017, 6, 27, 0, 0)
+            [extractedDate, leftover] = extract_datetime(text, date,
+                                                         lang='sv-se')
+            return [extractedDate.strftime("%Y-%m-%d %H:%M:%S"), leftover]
+
+        res = extractWithFormat("möte den 15 juni klockan 3")
+        self.assertEqual(res[0], "2018-06-15 03:00:00")
+        res = extractWithFormat("möte den 15 juni 2020")
+        self.assertEqual(res[0], "2020-06-15 00:00:00")
+
+    def test_extractdatetime_bare_clock_number_sv(self):
+        # A trailing lone clock number must not raise (regression: a bare
+        # digit at end-of-sentence indexed an empty next word).
+        date = datetime(2017, 6, 27, 0, 0)
+        res = extract_datetime("vi möts klockan 3", date, lang='sv-se')
+        self.assertEqual(res[0].strftime("%Y-%m-%d %H:%M:%S"),
+                         "2017-06-27 03:00:00")
+
+    def test_extractdatetime_leap_day_sv(self):
+        # "29 februari" from a non-leap anchor year must roll to the next
+        # leap year instead of raising "day is out of range for month".
+        date = datetime(2017, 6, 27, 0, 0)
+        res = extract_datetime("den 29 februari", date, lang='sv-se')
+        self.assertEqual(res[0].strftime("%Y-%m-%d"), "2020-02-29")
+
+    def test_extractdatetime_adversarial_sv(self):
+        # Malformed / junk / bare unit words must not raise, and yield no date.
+        for text in ["", "dagar", "veckor", "klockan", "på i den",
+                     "xyzzy blorp", "klockan 25", "klockan 99:99"]:
+            res = extract_datetime(text, datetime(2017, 6, 27, 0, 0),
+                                   lang='sv-se')
+            self.assertIn(res, (None,) if res is None else (res,))
+
+    def test_extractdatetime_langcode_variants_sv(self):
+        date = datetime(2017, 6, 27, 0, 0)
+        for lang in ("sv", "sv-se", "sv-SE"):
+            res = extract_datetime("vi möts 20:00", date, lang=lang)
+            self.assertEqual(res[0].strftime("%H:%M"), "20:00")
+
     def test_extractdatetime_default_sv(self):
         default = time(9, 0, 0)
         anchor = datetime(2017, 6, 27, 0, 0)

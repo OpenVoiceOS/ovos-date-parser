@@ -180,6 +180,28 @@ class TestNiceDateFormat_sv(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="sv-se", use_ampm=True),
                          "halv sex på morgonen")
 
+    def test_idiomatic_times_sv(self):
+        # "halv fyra" is 3:30 in Swedish (half TO four), not 4:30
+        dt = datetime.datetime(2017, 1, 31, 3, 30, 0, tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="sv-se"), "halv fyra")
+
+        # quarter past / quarter to
+        dt = datetime.datetime(2017, 1, 31, 7, 15, 0, tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="sv-se"), "kvart över sju")
+        dt = datetime.datetime(2017, 1, 31, 16, 45, 0, tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="sv-se"), "kvart i fem")
+
+        # part-of-day for an explicit evening hour
+        dt = datetime.datetime(2017, 1, 31, 19, 0, 0, tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="sv-se", use_ampm=True),
+                         "sju på kvällen")
+
+        # midnight and noon
+        dt = datetime.datetime(2017, 1, 31, 0, 0, 0, tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="sv-se"), "midnatt")
+        dt = datetime.datetime(2017, 1, 31, 12, 0, 0, tzinfo=default_timezone())
+        self.assertEqual(nice_time(dt, lang="sv-se"), "middag")
+
 
 if __name__ == "__main__":
     unittest.main()

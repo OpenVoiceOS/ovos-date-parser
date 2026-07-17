@@ -1155,28 +1155,28 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                         strHH = strNum
                         remainder = "am"
                         used = 1
-                    elif (int(word) > 100 and
+                    elif (strNum and int(strNum) > 100 and
                           (
                                   wordPrev == "o" or
                                   wordPrev == "oh" or
                                   wordPrev == "zero"
                           )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         military = True
                         if wordNext == "hora":
                             used += 1
                     elif (
                             wordNext == "hora" and
-                            word[0] != '0' and
+                            word[0] != '0' and strNum and
                             (
-                                    int(word) < 100 or
-                                    int(word) > 2400
+                                    int(strNum) < 100 or
+                                    int(strNum) > 2400
                             )):
                         # ignores military time
                         # "in 3 hours"
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
@@ -1184,28 +1184,28 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
 
                     elif wordNext == "minut":
                         # "in 10 minutes"
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "segon":
                         # in 5 seconds
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif strNum and int(strNum) > 100:
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         military = True
                         if wordNext == "hora":
                             used += 1
 
                     elif wordNext == "" or (
                             wordNext == "en" and wordNextNext == "punt"):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punt":
                             used += 2
@@ -1223,7 +1223,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                                 used += 1
 
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         military = True
                         used += 1

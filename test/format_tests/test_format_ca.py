@@ -284,10 +284,146 @@ class TestNiceDateFormat(unittest.TestCase):
                                    variant=TimeVariantCA.FULL_BELL),
                          "un quart d'una de la matinada")
 
-        # error
-        # with self.assertRaises(ValueError):
-        #    nice_time(dt, lang="ca", variant="invalid")
-        #    nice_time(dt, lang="ca", variant="bad_VARIANT")
+    # --- register-split anchor tests -------------------------------------
+    # Catalan tells time in two well-known registers:
+    #   * "standard"/central:  les quatre i quart / i mitja / menys quart
+    #   * traditional "quarts": quarters counted toward the NEXT hour,
+    #     un quart de cinc (4:15), dos quarts de cinc (4:30),
+    #     tres quarts de cinc (4:45)
+    # Sources: IEC grammar; Optimot fitxa "Les hores"; Wikipedia
+    # "Catalan time system". Expected forms below are the reference idiom,
+    # never pinned from engine output.
+
+    # de-<next hour> phrase as it surfaces (with elision before a vowel)
+    _NEXT_HOUR_DE = {
+        1: "d'una", 2: "de dues", 3: "de tres", 4: "de quatre",
+        5: "de cinc", 6: "de sis", 7: "de set", 8: "de vuit",
+        9: "de nou", 10: "de deu", 11: "d'onze", 12: "de dotze",
+    }
+
+    def test_quarts_full_clock(self):
+        # For every hour of the 12h clock, each quarter is counted toward the
+        # NEXT hour: un quart / dos quarts / tres quarts de <next hour>.
+        for h in range(1, 13):
+            nxt = (h % 12) + 1
+            de = self._NEXT_HOUR_DE[nxt]
+            for minute, count in ((15, "un quart"),
+                                  (30, "dos quarts"),
+                                  (45, "tres quarts")):
+                dt = datetime.datetime(2017, 1, 31, h, minute,
+                                       tzinfo=default_timezone())
+                out = nice_time(dt, lang="ca", use_24hour=True,
+                                variant="quarts")
+                self.assertTrue(
+                    out.startswith(f"{count} {de}"),
+                    f"{h:02d}:{minute:02d} quarts -> {out!r} "
+                    f"expected to start with {count!r} {de!r}")
+
+    def test_quarts_on_the_hour_and_loose_minutes(self):
+        # On the hour: plain "les X en punt". Loose minutes still hang off the
+        # quart already begun ("un quart i cinc minuts de ...").
+        dt = datetime.datetime(2017, 1, 31, 4, 0, tzinfo=default_timezone())
+        self.assertTrue(
+            nice_time(dt, lang="ca", use_24hour=True,
+                      variant="quarts").startswith("les quatre en punt"))
+        dt = datetime.datetime(2017, 1, 31, 4, 20, tzinfo=default_timezone())
+        self.assertTrue(
+            nice_time(dt, lang="ca", use_24hour=True,
+                      variant="quarts").startswith("un quart i cinc minuts de cinc"))
+
+    def test_standard_full_clock(self):
+        # Central/standard register: i quart (:15), i mitja (:30),
+        # menys quart (:45), plain "i <n>" for loose minutes.
+        cases = {15: " i quart", 30: " i mitja", 45: "menys quart",
+                 20: " i vint"}
+        for h in range(1, 13):
+            for minute, suffix in cases.items():
+                dt = datetime.datetime(2017, 1, 31, h, minute,
+                                       tzinfo=default_timezone())
+                out = nice_time(dt, lang="ca", use_24hour=True,
+                                variant="standard")
+                self.assertTrue(
+                    out.endswith(suffix),
+                    f"{h:02d}:{minute:02d} standard -> {out!r} "
+                    f"expected to end with {suffix!r}")
+
+    def test_standard_reference_anchors(self):
+        # Exact reference forms for the canonical example hour (4 -> 5).
+        anchors = {
+            15: "les quatre i quart",
+            30: "les quatre i mitja",
+            45: "les cinc menys quart",
+        }
+        for minute, expected in anchors.items():
+            dt = datetime.datetime(2017, 1, 31, 4, minute,
+                                   tzinfo=default_timezone())
+            self.assertEqual(
+                nice_time(dt, lang="ca", use_24hour=True, variant="standard"),
+                expected)
+
+    def test_quarts_reference_anchors(self):
+        # Exact reference forms for the canonical example hour (-> 5).
+        anchors = {
+            15: "un quart de cinc",
+            30: "dos quarts de cinc",
+            45: "tres quarts de cinc",
+        }
+        for minute, expected in anchors.items():
+            dt = datetime.datetime(2017, 1, 31, 4, minute,
+                                   tzinfo=default_timezone())
+            self.assertEqual(
+                nice_time(dt, lang="ca", use_24hour=True, variant="quarts"),
+                expected)
+
+    def test_alias_case_insensitive_and_enum_names(self):
+        dt = datetime.datetime(2017, 1, 31, 4, 30, tzinfo=default_timezone())
+        # aliases resolve regardless of case / surrounding whitespace
+        self.assertEqual(
+            nice_time(dt, lang="ca", use_24hour=True, variant="QUARTS"),
+            nice_time(dt, lang="ca", use_24hour=True,
+                      variant=TimeVariantCA.BELL))
+        self.assertEqual(
+            nice_time(dt, lang="ca", use_24hour=True, variant="  Standard "),
+            nice_time(dt, lang="ca", use_24hour=True,
+                      variant=TimeVariantCA.SPANISH_LIKE))
+        # exact enum member names are also accepted as strings
+        self.assertEqual(
+            nice_time(dt, lang="ca", use_24hour=True, variant="FULL_BELL"),
+            nice_time(dt, lang="ca", use_24hour=True,
+                      variant=TimeVariantCA.FULL_BELL))
+
+    def test_unknown_variant_falls_back_to_default(self):
+        # Adversarial: garbage variants must not raise and must reproduce the
+        # default watch-time register.
+        for h in range(0, 24):
+            for minute in (0, 15, 30, 45, 7, 59):
+                dt = datetime.datetime(2017, 1, 31, h, minute,
+                                       tzinfo=default_timezone())
+                baseline = nice_time(dt, lang="ca", use_24hour=True)
+                for bad in ("invalid", "bad_VARIANT", "", "quart", None, 99, -1):
+                    self.assertEqual(
+                        nice_time(dt, lang="ca", use_24hour=True, variant=bad),
+                        baseline,
+                        f"variant={bad!r} at {h:02d}:{minute:02d} "
+                        f"should fall back to default")
+
+    def test_default_backcompat_identical(self):
+        # Back-compat: the default output (no variant) is byte-identical to an
+        # explicit DEFAULT enum and to the "default"/"watch" aliases, for every
+        # minute of the clock and across the flag matrix.
+        for h in range(0, 24):
+            for minute in range(0, 60, 3):
+                dt = datetime.datetime(2017, 1, 31, h, minute,
+                                       tzinfo=default_timezone())
+                for u24 in (True, False):
+                    for ampm in (True, False):
+                        base = nice_time(dt, lang="ca", use_24hour=u24,
+                                         use_ampm=ampm)
+                        for eq in (TimeVariantCA.DEFAULT, "default", "watch"):
+                            self.assertEqual(
+                                nice_time(dt, lang="ca", use_24hour=u24,
+                                          use_ampm=ampm, variant=eq),
+                                base)
 
 
 if __name__ == "__main__":

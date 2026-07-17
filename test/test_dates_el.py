@@ -690,5 +690,38 @@ class TestRealSentenceAdversarial(_RealSentenceBase):
         self._none("       ")
 
 
+class TestRealSentenceDateWithClock(_RealSentenceBase):
+    """A calendar date and a separate clock time in the same sentence.
+
+    Regression coverage: a spoken or digit clock hour following a
+    "DD Μηνός" date must not be swallowed as a year (it used to crash),
+    and a bare noon phrase must not leave a stray digit in the remainder.
+    """
+
+    def test_date_then_spoken_clock(self):
+        # 15 June (rolls to next year, past the anchor) at 3 in the afternoon
+        self._check("κλείσε ραντεβού στις 15 Ιουνίου στις τρεις το απόγευμα",
+                    datetime(2018, 6, 15, 15, 0), "κλεισε ραντεβου")
+
+    def test_date_then_digit_clock(self):
+        self._check("κλείσε ραντεβού στις 15 Ιουνίου στις 3 το απόγευμα",
+                    datetime(2018, 6, 15, 15, 0), "κλεισε ραντεβου")
+
+    def test_date_with_year_and_clock(self):
+        # explicit 4-digit year is still read as a year, time still parsed
+        self._check("γιορτή στις 20 Δεκεμβρίου 2021 στις οκτώ το βράδυ",
+                    datetime(2021, 12, 20, 20, 0), "γιορτη")
+
+    def test_noon_no_stray_digit(self):
+        # "δώδεκα το μεσημέρι" -> 12:00 with no leftover "12" in the remainder
+        self._check("το μάθημα είναι στις δώδεκα το μεσημέρι",
+                    datetime(2017, 6, 28, 12, 0), "το μαθημα ειναι")
+
+    def test_one_at_noon_is_afternoon(self):
+        # "μία το μεσημέρι" -> 13:00
+        self._check("ραντεβού στη μία το μεσημέρι",
+                    datetime(2017, 6, 28, 13, 0), "ραντεβου")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -102,6 +102,15 @@ def _fem_hour(hour):
     return _FEM_HOURS.get(hour, pronounce_number_el(hour))
 
 
+def _is_year_token(token):
+    """True when ``token`` is a plausible calendar year (a 4-digit number).
+
+    Guards the date parser against swallowing a following clock hour — e.g.
+    the "3" in "15 Ιουνίου στις τρεις" — as if it were a year.
+    """
+    return bool(token) and token.isdigit() and len(token) == 4
+
+
 def _fold_el(text):
     """Lowercase Greek text, drop diacritics and normalize final sigma."""
     text = text.lower().replace("ς", "σ")
@@ -549,7 +558,9 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
                 datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                # only a 4-digit token is a year; a following clock number
+                # ("15 Ιουνίου στις τρεις") must stay for the time parser
+                if _is_year_token(wordNext):
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -558,7 +569,7 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
             elif wordNext and wordNext[0].isdigit():
                 datestr += " " + wordNext
                 used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
+                if _is_year_token(wordNextNext):
                     datestr += " " + wordNextNext
                     used += 1
                     hasYear = True
@@ -625,7 +636,8 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
         wordNextNextNext = words[idx + 3] if idx + 3 < len(words) else ""
         used = 0
         if word == "μεσημερι":
-            hrAbs = 12
+            if hrAbs is None:
+                hrAbs = 12
             used += 1
         elif word == "μεσανυχτα" or (word == "μεσα" and wordNext == "νυχτα"):
             hrAbs = 0
@@ -746,8 +758,9 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
                         remainder = "am"
                         used += 1
                 else:
-                    if wordNext == "απογευμα" or wordNext == "βραδυ":
+                    if wordNext in ("απογευμα", "βραδυ", "μεσημερι"):
                         strHH = strNum
+                        # noon: 12 stays 12; 1-11 read as afternoon (pm)
                         remainder = "pm"
                         used = 1
                     elif wordNext in ("πρωι", "ξημερωματα"):

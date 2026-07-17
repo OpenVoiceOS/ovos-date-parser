@@ -836,7 +836,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                             wordNext == "hora" and
                             word[0] != '0' and
                             (
-                                    int(word) < 100 and
+                                    int(word) < 100 or
                                     int(word) > 2400
                             )):
                         # ignores military time
@@ -935,10 +935,14 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("dentro de dos horas") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',

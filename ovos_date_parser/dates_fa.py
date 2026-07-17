@@ -95,7 +95,7 @@ def extract_datetime_fa(text, anchorDate=None, default_time=None):
                          text not consumed in the parsing, or None if no
                          date or time related text was found.
     """
-    if text == "":
+    if not text:
         return None
     text = text.lower().replace('‌', ' ').replace('.', '').replace('،', '') \
         .replace('?', '').replace("پس فردا", "پسفردا") \
@@ -193,10 +193,10 @@ def extract_datetime_fa(text, anchorDate=None, default_time=None):
                 return None
             sign = 1 if x in nextWords else -1
             if mode == 'delta_date':
-                result = today + delta_seen
+                result = today + sign * delta_seen
                 mode = 'time'
             elif mode == 'delta_time':
-                result = anchorDate + delta_seen
+                result = anchorDate + sign * delta_seen
                 mode = 'finished'
             else:
                 handled = 0

@@ -284,6 +284,187 @@ class TestExtractDatetimeHe(unittest.TestCase):
                          self._dt("מחר בשעה 3"))
 
 
+class TestRealSentencesHe(unittest.TestCase):
+    """Full natural sentences a user actually speaks.
+
+    Each case asserts both the parsed datetime and the remainder text
+    (the spoken command left after the date/time words are consumed).
+    Expected values are checked against Modern Hebrew usage, never
+    pinned from engine output. Sentences that exercise idioms the parser
+    does not yet cover (e.g. an explicit hour combined with a part-of-day
+    word meaning PM, day-of-month or weekday carrying a ב/ל proclitic,
+    or "half" attached to an hour offset) are intentionally left out.
+    """
+
+    def _parse(self, text):
+        res = extract_datetime_he(text, ANCHOR)
+        self.assertIsNotNone(res, f"expected a datetime for: {text}")
+        return res[0], res[1]
+
+    # --- reminders / relative day offsets ---
+    def test_remind_in_two_days(self):
+        dt, rem = self._parse("תזכיר לי בעוד יומיים")
+        self.assertEqual(dt, datetime(2018, 6, 7, 0, 0))
+        self.assertEqual(rem, "תזכיר לי")
+
+    def test_remind_in_two_days_with_task(self):
+        dt, rem = self._parse("תזכיר לי בעוד יומיים לקנות חלב")
+        self.assertEqual(dt, datetime(2018, 6, 7, 0, 0))
+        self.assertEqual(rem, "תזכיר לי לקנות חלב")
+
+    def test_remind_in_three_days_call_mom(self):
+        dt, rem = self._parse("תזכיר לי בעוד שלושה ימים להתקשר לאמא")
+        self.assertEqual(dt, datetime(2018, 6, 8, 0, 0))
+        self.assertEqual(rem, "תזכיר לי להתקשר לאמא")
+
+    def test_remind_in_two_weeks(self):
+        dt, rem = self._parse("תזכיר לי בעוד שבועיים")
+        self.assertEqual(dt, datetime(2018, 6, 19, 0, 0))
+        self.assertEqual(rem, "תזכיר לי")
+
+    def test_meeting_in_two_months(self):
+        dt, rem = self._parse("פגישה בעוד חודשיים")
+        self.assertEqual(dt, datetime(2018, 8, 5, 0, 0))
+        self.assertEqual(rem, "פגישה")
+
+    def test_remind_in_two_years_renew_passport(self):
+        dt, rem = self._parse("תזכיר לי בעוד שנתיים לחדש דרכון")
+        self.assertEqual(dt, datetime(2020, 6, 5, 0, 0))
+        self.assertEqual(rem, "תזכיר לי לחדש דרכון")
+
+    def test_what_did_i_do_yesterday(self):
+        dt, rem = self._parse("מה עשיתי אתמול")
+        self.assertEqual(dt, datetime(2018, 6, 4, 0, 0))
+        self.assertEqual(rem, "מה עשיתי")
+
+    # --- relative clock offsets counted from the anchor time ---
+    def test_alert_in_three_hours(self):
+        dt, rem = self._parse("קבע התראה בעוד שלוש שעות")
+        self.assertEqual(dt, datetime(2018, 6, 5, 12, 0))
+        self.assertEqual(rem, "קבע התראה")
+
+    def test_alert_in_45_minutes(self):
+        dt, rem = self._parse("קבע התראה בעוד 45 דקות")
+        self.assertEqual(dt, datetime(2018, 6, 5, 9, 45))
+        self.assertEqual(rem, "קבע התראה")
+
+    # --- explicit clock times ---
+    def test_doctor_tomorrow_hhmm(self):
+        dt, rem = self._parse("פגישה עם הרופא מחר בשעה 15:30")
+        self.assertEqual(dt, datetime(2018, 6, 6, 15, 30))
+        self.assertEqual(rem, "פגישה עם הרופא")
+
+    def test_meeting_hhmm_then_tomorrow(self):
+        dt, rem = self._parse("פגישה בשעה 14:00 מחר")
+        self.assertEqual(dt, datetime(2018, 6, 6, 14, 0))
+        self.assertEqual(rem, "פגישה")
+
+    def test_wake_me_six_morning(self):
+        dt, rem = self._parse("תעיר אותי בשעה 6 בבוקר")
+        self.assertEqual(dt, datetime(2018, 6, 6, 6, 0))
+        self.assertEqual(rem, "תעיר אותי")
+
+    # --- spoken (feminine) clock hours and half/quarter idioms ---
+    def test_alarm_half_past_seven_morning(self):
+        dt, rem = self._parse("האזעקה בשעה שבע וחצי בבוקר")
+        self.assertEqual(dt, datetime(2018, 6, 6, 7, 30))
+        self.assertEqual(rem, "האזעקה")
+
+    def test_talk_quarter_past_three(self):
+        dt, rem = self._parse("נדבר בשעה שלוש ורבע")
+        self.assertEqual(dt, datetime(2018, 6, 6, 3, 15))
+        self.assertEqual(rem, "נדבר")
+
+    def test_remind_tomorrow_eight_morning_take_pill(self):
+        dt, rem = self._parse("תזכיר לי מחר בשעה שמונה בבוקר לקחת תרופה")
+        self.assertEqual(dt, datetime(2018, 6, 6, 8, 0))
+        self.assertEqual(rem, "תזכיר לי לקחת תרופה")
+
+    def test_alert_half_past_eight_morning_tomorrow(self):
+        dt, rem = self._parse("קבע התראה בשעה שמונה וחצי בבוקר מחר")
+        self.assertEqual(dt, datetime(2018, 6, 6, 8, 30))
+        self.assertEqual(rem, "קבע התראה")
+
+    # --- part-of-day only (no explicit hour) ---
+    def test_meeting_tomorrow_morning(self):
+        dt, rem = self._parse("קבע פגישה מחר בבוקר")
+        self.assertEqual(dt, datetime(2018, 6, 6, 8, 0))
+        self.assertEqual(rem, "קבע פגישה")
+
+    def test_event_day_after_tomorrow_evening(self):
+        dt, rem = self._parse("האירוע מחרתיים בערב")
+        self.assertEqual(dt, datetime(2018, 6, 7, 20, 0))
+        self.assertEqual(rem, "האירוע")
+
+    def test_remind_today_evening(self):
+        dt, rem = self._parse("תזכיר לי היום בערב")
+        self.assertEqual(dt, datetime(2018, 6, 5, 20, 0))
+        self.assertEqual(rem, "תזכיר לי")
+
+    # --- weekday in sentence ---
+    def test_meet_friday_evening(self):
+        dt, rem = self._parse("נפגשים ביום שישי בערב")
+        self.assertEqual(dt, datetime(2018, 6, 8, 20, 0))
+        self.assertEqual(rem, "נפגשים")
+
+    def test_wake_seven_morning_next_sunday(self):
+        dt, rem = self._parse("תעיר אותי בשעה שבע בבוקר ביום ראשון הבא")
+        self.assertEqual(dt, datetime(2018, 6, 10, 7, 0))
+        self.assertEqual(rem, "תעיר אותי")
+
+    # --- mixed spoken numeral + ASCII digits in one sentence ---
+    def test_mixed_spoken_days_and_digit_clock(self):
+        dt, rem = self._parse("תזכיר לי בעוד שלושה ימים בשעה 15:30")
+        self.assertEqual(dt, datetime(2018, 6, 8, 15, 30))
+        self.assertEqual(rem, "תזכיר לי")
+
+    # --- gendered numerals embedded in sentences ---
+    def test_gender_days_in_sentence(self):
+        masc, _ = self._parse("תזכיר לי בעוד שלושה ימים")
+        fem, _ = self._parse("תזכיר לי בעוד שלוש ימים")
+        self.assertEqual(masc, datetime(2018, 6, 8, 0, 0))
+        self.assertEqual(fem, masc)
+
+    def test_gender_hours_in_sentence(self):
+        fem, _ = self._parse("קבע התראה בעוד שלוש שעות")
+        masc, _ = self._parse("קבע התראה בעוד שלושה שעות")
+        self.assertEqual(fem, datetime(2018, 6, 5, 12, 0))
+        self.assertEqual(masc, fem)
+
+    # --- adversarial: no date in an otherwise valid sentence ---
+    def test_no_date_what_time(self):
+        self.assertIsNone(extract_datetime_he("מה השעה", ANCHOR))
+
+    def test_no_date_tell_joke(self):
+        self.assertIsNone(extract_datetime_he("ספר לי בדיחה", ANCHOR))
+
+    def test_no_date_thanks(self):
+        self.assertIsNone(extract_datetime_he("תודה רבה", ANCHOR))
+
+    # --- adversarial: malformed clock inside a valid sentence ---
+    def test_malformed_time_in_sentence(self):
+        # 25:99 is rejected but the day word "מחר" still resolves; the
+        # bad token is left untouched in the remainder
+        res = extract_datetime_he("קבע פגישה בשעה 25:99 מחר", ANCHOR)
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0], datetime(2018, 6, 6, 0, 0))
+        self.assertIn("25:99", res[1])
+
+
+class TestDurationSentencesHe(unittest.TestCase):
+    def test_timer_for_ten_minutes(self):
+        dur, rem = extract_duration_he("קבע טיימר ל10 דקות")
+        self.assertEqual(dur, timedelta(minutes=10))
+
+    def test_countdown_three_hours_ten_minutes(self):
+        dur, rem = extract_duration_he("ספירה לאחור של שלוש שעות ועשר דקות")
+        self.assertEqual(dur, timedelta(hours=3, minutes=10))
+
+    def test_boil_for_five_minutes(self):
+        dur, rem = extract_duration_he("להרתיח במשך 5 דקות")
+        self.assertEqual(dur, timedelta(minutes=5))
+
+
 class TestExtractDurationHe(unittest.TestCase):
     def test_none_on_empty(self):
         self.assertIsNone(extract_duration_he(""))

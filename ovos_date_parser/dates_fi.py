@@ -116,9 +116,9 @@ def extract_duration_fi(text, resolution=DurationResolution.TIMEDELTA,
                         replace_token=""):
     """Convert a Finnish phrase into a duration.
 
-    Handles "kaksi tuntia", "puoli tuntia" is not supported (fractional
-    numerals are out of scope); numerals are read by the shared number
-    parser and matched against the declined unit nouns.
+    Handles "kaksi tuntia", fractional numerals ("puoli tuntia" = 30 min,
+    "puolitoista tuntia" = 90 min, "kolme ja puoli tuntia" = 3.5 h) and the
+    declined unit nouns; numerals are read by the shared number parser.
     """
     return extract_duration_generic(text, DURATION_LEXICONS["fi"],
                                     resolution, replace_token)
@@ -150,10 +150,40 @@ _DAY_UNITS_FI = ("päivä", "päivää", "päivän", "päivan")
 _WEEK_UNITS_FI = ("viikko", "viikkoa", "viikon")
 _MONTH_UNITS_FI = ("kuukausi", "kuukautta", "kuukauden")
 _YEAR_UNITS_FI = ("vuosi", "vuotta", "vuoden")
+_HOUR_UNITS_FI = ("tunti", "tuntia", "tunnin")
+_MINUTE_UNITS_FI = ("minuutti", "minuuttia", "minuutin")
 # adpositions that mark "in X <unit>" / "after"
 _AFTER_MARKERS_FI = ("kuluttua", "päästä", "päähän")
 _NEXT_FI = ("ensi", "seuraava", "seuraavana", "tuleva", "tulevana")
 _LAST_FI = ("viime", "edellinen", "edellisenä", "mennyt", "menneenä")
+
+# genitive cardinals, the case that "N <unit> kuluttua" actually uses in
+# speech ("kahden viikon", "kolmen tunnin"); the genitive of 7..10 equals
+# the citation form the number parser already resolves, so only 1..6 and
+# the teens are listed, plus the two fraction words used in this slot
+_GENITIVE_NUMBERS_FI = {
+    "yhden": 1, "kahden": 2, "kolmen": 3, "neljän": 4, "viiden": 5,
+    "kuuden": 6, "yhdentoista": 11, "kahdentoista": 12, "kolmentoista": 13,
+    "neljäntoista": 14, "viidentoista": 15, "kuudentoista": 16,
+    "seitsemäntoista": 17, "kahdeksantoista": 18, "yhdeksäntoista": 19,
+    "kahdenkymmenen": 20, "puolen": 0.5, "puolentoista": 1.5,
+}
+
+
+def _offset_number_fi(token):
+    """Resolve the numeral in a relative-offset slot, nominative or genitive.
+
+    Returns an int/float value or None. Fractions (0.5, 1.5) stay floats so
+    "puolen/puolentoista tunnin" can express half hours.
+    """
+    if token in _GENITIVE_NUMBERS_FI:
+        return _GENITIVE_NUMBERS_FI[token]
+    if token.isdigit():
+        return int(token)
+    val = extract_number_fi(token)
+    if val is not False and val is not None:
+        return val
+    return None
 
 
 def _clean_tokens_fi(text):
@@ -240,7 +270,10 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
     Supported constructs (each verified against everyday usage):
         * tänään / huomenna / ylihuomenna / eilen / toissapäivänä
         * weekday names, optionally with ensi/viime
-        * "N päivän/viikon/kuukauden/vuoden kuluttua|päästä"
+        * "N <unit> kuluttua|päästä" for day/week/month/year and also
+          hour/minute offsets, with the numeral in the nominative or the
+          genitive as it appears in speech ("kolmen päivän kuluttua",
+          "puolentoista tunnin päästä")
         * "ensi|viime viikolla|kuussa|vuonna"
         * clock times: "kello 15:30", "kello 15", "15:30", "15.30"
         * dates with a month name: "15. tammikuuta", "tammikuun 15."
@@ -265,6 +298,7 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
     abs_day = None
     hr_abs = None
     min_abs = None
+    min_offset = 0  # relative "in N hours/minutes" offset, in minutes
     consumed = [False] * len(words)
     found = False
 
@@ -341,20 +375,23 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
             found = True
             continue
 
-        # "N <unit> kuluttua/päästä"
+        # "N <unit> kuluttua/päästä" (unit and numeral appear in the genitive)
         if word in _AFTER_MARKERS_FI and idx >= 2:
             unit = words[idx - 1]
-            num = extract_number_fi(words[idx - 2])
-            if num is not False and num is not None:
-                num = int(num)
+            num = _offset_number_fi(words[idx - 2])
+            if num is not None:
                 if unit in _DAY_UNITS_FI:
-                    day_offset = (day_offset or 0) + num
+                    day_offset = (day_offset or 0) + int(num)
                 elif unit in _WEEK_UNITS_FI:
-                    week_offset += num
+                    week_offset += int(num)
                 elif unit in _MONTH_UNITS_FI:
-                    month_offset += num
+                    month_offset += int(num)
                 elif unit in _YEAR_UNITS_FI:
-                    year_offset += num
+                    year_offset += int(num)
+                elif unit in _HOUR_UNITS_FI:
+                    min_offset += num * 60
+                elif unit in _MINUTE_UNITS_FI:
+                    min_offset += num
                 else:
                     continue
                 consumed[idx] = consumed[idx - 1] = consumed[idx - 2] = True
@@ -406,6 +443,17 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
     if not found:
         return None
 
+    has_date = (abs_month is not None or day_offset is not None or
+                week_offset or month_offset or year_offset)
+
+    if not has_date and hr_abs is None and min_offset:
+        # a pure "in N hours/minutes" offset is measured from the anchor time
+        extracted = anchor.replace(second=0, microsecond=0) + \
+            timedelta(minutes=min_offset)
+        leftover = " ".join(w for i, w in enumerate(words)
+                            if not consumed[i] and w != ".")
+        return [extracted, " ".join(leftover.split())]
+
     extracted = anchor.replace(hour=0, minute=0, second=0)
 
     if abs_month is not None:
@@ -436,6 +484,8 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
         min_abs = default_time.minute
     if hr_abs is not None:
         extracted = extracted.replace(hour=hr_abs, minute=min_abs or 0)
+    if min_offset:
+        extracted = extracted + timedelta(minutes=min_offset)
 
     leftover = " ".join(w for i, w in enumerate(words)
                         if not consumed[i] and w != ".")

@@ -426,5 +426,135 @@ class TestNiceDateFormat(unittest.TestCase):
                                 base)
 
 
+    # --- real natural-sentence suite -------------------------------------
+    # Each case is a full utterance a native speaker would say, with the
+    # copula ("Són" plural / "És" singular) that Catalan grammar requires, and
+    # the correct part-of-day tail. The engine's time phrase must complete the
+    # sentence exactly. Sentences are drawn from IEC "Gramàtica de la llengua
+    # catalana" (les hores) and the Optimot fitxa "Les hores"; day-period
+    # boundaries follow the same references. Never pinned from engine output.
+    #
+    # tuple: (hour, minute, variant, copula, natural_sentence)
+
+    NATURAL_SENTENCES = [
+        # -- quarts register: quarters counted toward the NEXT hour ---------
+        # morning (del matí)
+        (6, 15, "quarts", "És", "És un quart de set del matí"),
+        (6, 30, "quarts", "Són", "Són dos quarts de set del matí"),
+        (6, 45, "quarts", "Són", "Són tres quarts de set del matí"),
+        (7, 45, "quarts", "Són", "Són tres quarts de vuit del matí"),
+        (8, 15, "quarts", "És", "És un quart de nou del matí"),
+        (9, 30, "quarts", "Són", "Són dos quarts de deu del matí"),
+        # elision d' before onze
+        (10, 15, "quarts", "És", "És un quart d'onze del matí"),
+        (10, 45, "quarts", "Són", "Són tres quarts d'onze del matí"),
+        (22, 30, "quarts", "Són", "Són dos quarts d'onze de la nit"),
+        # midday (del migdia)
+        (11, 15, "quarts", "És", "És un quart de dotze del migdia"),
+        # elision d' before una
+        (12, 15, "quarts", "És", "És un quart d'una de la tarda"),
+        (12, 45, "quarts", "Són", "Són tres quarts d'una de la tarda"),
+        # afternoon (de la tarda)
+        (15, 30, "quarts", "Són", "Són dos quarts de quatre de la tarda"),
+        (16, 15, "quarts", "És", "És un quart de cinc de la tarda"),
+        (17, 45, "quarts", "Són", "Són tres quarts de sis de la tarda"),
+        # evening (del vespre)
+        (18, 15, "quarts", "És", "És un quart de set del vespre"),
+        (19, 30, "quarts", "Són", "Són dos quarts de vuit del vespre"),
+        # night (de la nit)
+        (21, 45, "quarts", "Són", "Són tres quarts de deu de la nit"),
+        (23, 15, "quarts", "És", "És un quart de dotze de la nit"),
+        (1, 15, "quarts", "És", "És un quart de dues de la nit"),
+
+        # -- central/standard register: i quart / i mitja / menys quart -----
+        (1, 15, "standard", "És", "És la una i quart"),
+        (1, 30, "standard", "És", "És la una i mitja"),
+        (3, 15, "standard", "Són", "Són les tres i quart"),
+        (3, 30, "standard", "Són", "Són les tres i mitja"),
+        (3, 45, "standard", "Són", "Són les quatre menys quart"),
+        (4, 15, "standard", "Són", "Són les quatre i quart"),
+        (4, 30, "standard", "Són", "Són les quatre i mitja"),
+        (4, 45, "standard", "Són", "Són les cinc menys quart"),
+        (5, 45, "standard", "Són", "Són les sis menys quart"),
+        (6, 15, "standard", "Són", "Són les sis i quart"),
+        (7, 20, "standard", "Són", "Són les set i vint"),
+        (8, 30, "standard", "Són", "Són les vuit i mitja"),
+        (9, 45, "standard", "Són", "Són les deu menys quart"),
+        (10, 15, "standard", "Són", "Són les deu i quart"),
+        (11, 30, "standard", "Són", "Són les onze i mitja"),
+        (11, 45, "standard", "Són", "Són les dotze menys quart"),
+        (12, 15, "standard", "Són", "Són les dotze i quart"),
+        (12, 45, "standard", "És", "És la una menys quart"),
+    ]
+
+    def test_natural_sentences(self):
+        for h, m, variant, copula, sentence in self.NATURAL_SENTENCES:
+            dt = datetime.datetime(2017, 1, 31, h, m,
+                                   tzinfo=default_timezone())
+            phrase = nice_time(dt, lang="ca", use_24hour=True, variant=variant)
+            self.assertEqual(
+                f"{copula} {phrase}", sentence,
+                f"{h:02d}:{m:02d} [{variant}] -> {phrase!r} does not complete "
+                f"the natural sentence {sentence!r}")
+
+    def test_natural_sentences_cover_full_clock(self):
+        # Sanity: the curated utterances between the two registers exercise
+        # every hour of the 12h clock (as spoken) and every quarter.
+        spoken_hours = set()
+        quarters = set()
+        for h, m, variant, _copula, sentence in self.NATURAL_SENTENCES:
+            quarters.add(m)
+            if variant == "quarts":
+                spoken_hours.add(((h % 12) + 1))  # the hour being approached
+            else:
+                # central names the current hour, except menys-quart cases
+                spoken_hours.add((h % 12) or 12 if m < 35 else ((h % 12) + 1))
+        self.assertEqual(spoken_hours, set(range(1, 13)))
+        self.assertTrue({15, 30, 45}.issubset(quarters))
+
+    def test_natural_sentence_register_contrast(self):
+        # The SAME instant reads differently in each register — the whole point
+        # of letting the caller choose. 4:30 -> central "i mitja" vs quarts
+        # "dos quarts de cinc"; 4:45 -> "menys quart" vs "tres quarts de cinc".
+        dt = datetime.datetime(2017, 1, 31, 4, 30, tzinfo=default_timezone())
+        self.assertEqual(
+            "Són " + nice_time(dt, lang="ca", use_24hour=True, variant="standard"),
+            "Són les quatre i mitja")
+        self.assertEqual(
+            "Són " + nice_time(dt, lang="ca", use_24hour=True, variant="quarts"),
+            "Són dos quarts de cinc")
+        dt = datetime.datetime(2017, 1, 31, 4, 45, tzinfo=default_timezone())
+        self.assertEqual(
+            "Són " + nice_time(dt, lang="ca", use_24hour=True, variant="standard"),
+            "Són les cinc menys quart")
+        self.assertEqual(
+            "Són " + nice_time(dt, lang="ca", use_24hour=True, variant="quarts"),
+            "Són tres quarts de cinc")
+
+    def test_natural_sentence_backcompat_and_aliases(self):
+        # Real usage: default watch-time utterance is unchanged, and the same
+        # utterance is reachable via every default alias and the enum.
+        dt = datetime.datetime(2017, 1, 31, 4, 15, tzinfo=default_timezone())
+        watch = nice_time(dt, lang="ca", use_24hour=True)
+        self.assertEqual("Són " + watch, "Són les quatre i quinze")
+        for alias in ("default", "watch", None, TimeVariantCA.DEFAULT,
+                      "invalid", "", "  ", 999):
+            self.assertEqual(
+                nice_time(dt, lang="ca", use_24hour=True, variant=alias),
+                watch,
+                f"variant={alias!r} should reproduce the default utterance")
+        # case-insensitive / whitespace-padded aliases pick the right register
+        for spelling in ("quarts", "QUARTS", " Quarts "):
+            self.assertEqual(
+                "És " + nice_time(dt, lang="ca", use_24hour=True,
+                                  variant=spelling),
+                "És un quart de cinc")
+        for spelling in ("standard", "CENTRAL", " Standard "):
+            self.assertEqual(
+                "Són " + nice_time(dt, lang="ca", use_24hour=True,
+                                   variant=spelling),
+                "Són les quatre i quart")
+
+
 if __name__ == "__main__":
     unittest.main()

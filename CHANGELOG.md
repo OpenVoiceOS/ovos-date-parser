@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.25.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.24.0a1...0.25.0a1)
+
+**Merged pull requests:**
+
+- feat: add Croatian \(hr\) date support [\#150](https://github.com/OpenVoiceOS/ovos-date-parser/pull/150) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.24.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.24.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.23.1a1...0.24.0a1)
@@ -510,10 +518,6 @@
 ## [0.0.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.2a1) (2024-11-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.0.1...0.0.2a1)
-
-**Merged pull requests:**
-
-- fix:lang code handling [\#64](https://github.com/OpenVoiceOS/ovos-date-parser/pull/64) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.0.1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.1) (2024-11-07)
 

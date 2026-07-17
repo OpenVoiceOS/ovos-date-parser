@@ -800,36 +800,36 @@ def extract_datetime_ro(text, anchorDate=None, default_time=None):
                             remainder = "pm"
                         used = 1
                     elif (wordNext == "oră" and
-                          word[0] != '0' and
-                          int(word) < 100):
+                          word[0] != '0' and strNum and
+                          int(strNum) < 100):
                         # peste 3 ore
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "minut":
                         # peste 10 minute
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "secundă":
                         # peste 5 secunde
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = str(int(word) // 100)
-                        strMM = str(int(word) % 100)
+                    elif strNum and int(strNum) > 100:
+                        strHH = str(int(strNum) // 100)
+                        strMM = str(int(strNum) % 100)
                         if wordNext == "oră":
                             used += 1
                     elif wordNext == "fix" or wordNext == "" or \
                             wordPrev == "ora" or wordPrev == "la":
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "fix":
                             used += 1
@@ -843,7 +843,7 @@ def extract_datetime_ro(text, anchorDate=None, default_time=None):
                                 remainder = "pm"
                                 used += 1
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "oră":

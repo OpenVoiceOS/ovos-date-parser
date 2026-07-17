@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/OpenVoiceOS/ovos-date-parser/tree/HEAD)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.0a1...HEAD)
+
+**Merged pull requests:**
+
+- chore: migrate packaging to pyproject.toml and add LICENSE [\#136](https://github.com/OpenVoiceOS/ovos-date-parser/pull/136) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.17.0a1...0.18.0a1)

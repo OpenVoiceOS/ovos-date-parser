@@ -701,3 +701,34 @@ register_duration_lexicon(DurationLexicon(
         "centuries": r"(?:vuosisata|vuosisataa|vuosisadan)",
         "millenniums": r"(?:vuosituhat|vuosituhatta|vuosituhannen)",
     }))
+
+
+def _normalize_et(text):
+    # numbers_to_digits already folds "pool" -> 0.5 and "poolteist" -> 1.5;
+    # collapse "N ja 0.5" ("kolm ja pool") into "N.5" so the whole quantity
+    # is read as a single fractional value
+    text = numbers_to_digits(text.lower(), "et")
+    return re.sub(r"(\d+)\s+ja\s+0[.,]5", r"\1.5", text)
+
+
+# Estonian nouns follow a numeral in the partitive singular ("kaks tundi");
+# the nominative ("tund") and partitive/genitive variants also occur.
+# Fractional numerals ("pool tundi" = 0.5 h, "poolteist tundi" = 1.5 h,
+# "kolm ja pool tundi" = 3.5 h) are handled by the numeral normalizer.
+register_duration_lexicon(DurationLexicon(
+    lang="et",
+    normalize=_normalize_et,
+    units={
+        "microseconds": r"mikrosekund(?:it|i)?",
+        "milliseconds": r"millisekund(?:it|i)?",
+        "seconds": r"sekund(?:it|i)?",
+        "minutes": r"minut(?:it|i)?",
+        "hours": r"(?:tundi|tunni|tund)",
+        "days": r"(?:päeva|päev|ööpäev(?:a)?)",
+        "weeks": r"(?:nädalat|nädala|nädal)",
+        "months": r"(?:kuud|kuu)",
+        "years": r"(?:aastat|aasta)",
+        "decades": r"(?:aastakümmet|aastakümne|aastakümmend)",
+        "centuries": r"(?:aastasada|aastasaja|sajand(?:it|i)?)",
+        "millenniums": r"(?:aastatuhat|aastatuhande|aastatuhat)",
+    }))

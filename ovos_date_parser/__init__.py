@@ -64,6 +64,9 @@ from ovos_date_parser.dates_es import (
 from ovos_date_parser.dates_eu import (
     extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
 )
+from ovos_date_parser.dates_et import (
+    extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
+)
 from ovos_date_parser.dates_fa import (
     extract_datetime_fa, nice_time_fa, extract_duration_fa,
 )
@@ -183,6 +186,8 @@ def nice_time(
         return nice_time_en(dt, speech, use_24hour, use_ampm)
     if lang.startswith("es"):
         return nice_time_es(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("et"):
+        return nice_time_et(dt, speech, use_24hour, use_ampm)
     if lang.startswith("eu"):
         return nice_time_eu(dt, speech, use_24hour, use_ampm)
     if lang.startswith("fa"):
@@ -351,6 +356,8 @@ def extract_datetime(
         return extract_datetime_en(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("es"):
         return extract_datetime_es(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("et"):
+        return extract_datetime_et(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("eu"):
         return extract_datetime_eu(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fa"):
@@ -844,6 +851,8 @@ def nice_year(dt, lang, bc=False):
         return nice_year_fi(dt, bc)
     if lang.startswith("fy"):
         return nice_year_fy(dt, bc)
+    if lang.startswith("et"):
+        return nice_year_et(dt, bc)
     date_time_format.cache(lang)
     return date_time_format.year_format(dt, lang, bc)
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.23.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.23.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.22.0a1...0.23.0a1)
+
+**Merged pull requests:**
+
+- feat: add Greek \(el\) date support [\#149](https://github.com/OpenVoiceOS/ovos-date-parser/pull/149) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.22.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.22.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.21.0a1...0.22.0a1)
+
 ## [0.21.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.21.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.20.0a1...0.21.0a1)
@@ -498,10 +510,6 @@
 ## [0.0.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.1a2) (2024-11-07)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/8c7f8b9ec6500133f19b6af33196beeb1c57aa3b...0.0.1a2)
-
-**Merged pull requests:**
-
-- feat: automations and tests [\#49](https://github.com/OpenVoiceOS/ovos-date-parser/pull/49) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

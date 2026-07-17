@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.19.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.19.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a3...0.19.0a1)
+
+**Merged pull requests:**
+
+- feat: Turkish date formatting and parsing [\#156](https://github.com/OpenVoiceOS/ovos-date-parser/pull/156) ([JarbasAl](https://github.com/JarbasAl))
+- feat: add Slovak \(sk\) date support [\#147](https://github.com/OpenVoiceOS/ovos-date-parser/pull/147) ([JarbasAl](https://github.com/JarbasAl))
+- feat: expose Catalan time registers by name \(standard vs quarts\) [\#146](https://github.com/OpenVoiceOS/ovos-date-parser/pull/146) ([JarbasAl](https://github.com/JarbasAl))
+- feat: West Frisian date formatting [\#145](https://github.com/OpenVoiceOS/ovos-date-parser/pull/145) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a3) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a2...0.18.1a3)

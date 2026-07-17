@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.20.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.20.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.19.0a1...0.20.0a1)
+
+**Merged pull requests:**
+
+- feat: Finnish \(fi\) date formatting and parsing [\#151](https://github.com/OpenVoiceOS/ovos-date-parser/pull/151) ([JarbasAl](https://github.com/JarbasAl))
+- feat: add Hebrew \(he\) date support [\#148](https://github.com/OpenVoiceOS/ovos-date-parser/pull/148) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.19.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.19.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a3...0.19.0a1)

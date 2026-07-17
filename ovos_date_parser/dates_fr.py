@@ -595,10 +595,14 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
 
     # perform date manipulation
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("dans deux heures") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         if not hasYear:
             temp = datetime.strptime(datestr, "%B %d")

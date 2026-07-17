@@ -1096,18 +1096,23 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                                                   minute=default_time.minute,
                                                   second=default_time.second)
 
-    if yearOffset != 0:
-        extractedDate = extractedDate + relativedelta(years=yearOffset)
-    if monthOffset != 0:
-        extractedDate = extractedDate + relativedelta(months=monthOffset)
-    if dayOffset != 0:
-        extractedDate = extractedDate + relativedelta(days=dayOffset)
-    if hrOffset != 0:
-        extractedDate = extractedDate + relativedelta(hours=hrOffset)
-    if minOffset != 0:
-        extractedDate = extractedDate + relativedelta(minutes=minOffset)
-    if secOffset != 0:
-        extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    try:
+        if yearOffset != 0:
+            extractedDate = extractedDate + relativedelta(years=yearOffset)
+        if monthOffset != 0:
+            extractedDate = extractedDate + relativedelta(months=monthOffset)
+        if dayOffset != 0:
+            extractedDate = extractedDate + relativedelta(days=dayOffset)
+        if hrOffset != 0:
+            extractedDate = extractedDate + relativedelta(hours=hrOffset)
+        if minOffset != 0:
+            extractedDate = extractedDate + relativedelta(minutes=minOffset)
+        if secOffset != 0:
+            extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    except (OverflowError, ValueError):
+        # a relative offset so large it cannot be represented as a datetime
+        # (e.g. "999999999999 hours"); report nothing rather than a wrong guess
+        return None
 
     if hrAbs != -1 and minAbs != -1 and not hrOffset and not minOffset and not secOffset:
         # If no time was supplied in the string set the time to default
@@ -1118,8 +1123,13 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
             hrAbs = hrAbs or 0
             minAbs = minAbs or 0
 
-        extractedDate = extractedDate.replace(hour=hrAbs,
-                                              minute=minAbs)
+        try:
+            extractedDate = extractedDate.replace(hour=hrAbs,
+                                                  minute=minAbs)
+        except ValueError:
+            # an out-of-range clock value such as "2400" or "24:00" that maps
+            # to hour 24 or beyond; report nothing rather than a wrong guess
+            return None
 
         if (hrAbs != 0 or minAbs != 0) and datestr == "":
             if not daySpecified and anchorDate > extractedDate:

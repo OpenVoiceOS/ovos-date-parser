@@ -81,6 +81,7 @@ from ovos_date_parser.dates_gl import (
 from ovos_date_parser.dates_el import (
     extract_duration_el, extract_datetime_el, nice_year_el, nice_weekday_el, nice_month_el,
     nice_day_el, nice_date_time_el, nice_date_el, nice_time_el
+)
 from ovos_date_parser.dates_he import (
     extract_duration_he, extract_datetime_he, nice_year_he, nice_weekday_he, nice_month_he,
     nice_day_he, nice_date_time_he, nice_date_he, nice_time_he

@@ -141,5 +141,29 @@ class TestNoDateReturnsNone(unittest.TestCase):
         self.assertIsNone(extract("посылка"))
 
 
+class TestNumericTimeWithLetterSuffix(unittest.TestCase):
+    """Glued time tokens like "20h" must parse, never raise on int() of the raw token."""
+
+    def test_bare_hour_suffix(self):
+        self.assertEqual(extract("20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_a_les_hour_suffix(self):
+        self.assertEqual(extract("a les 20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_hour_minute_suffix(self):
+        self.assertEqual(extract("21h30")[0], dt(2117, 9, 3, 21, 30))
+
+    def test_a_les_hour_minute_suffix(self):
+        self.assertEqual(extract("a les 21h30")[0], dt(2117, 9, 3, 21, 30))
+
+    def test_impossible_hour_suffix_no_crash(self):
+        # out-of-range hour must resolve to None, not raise
+        self.assertIsNone(extract("a les 99h"))
+
+    def test_non_numeric_suffix_no_crash(self):
+        # gibberish glued token must not reach int() and blow up
+        self.assertIsNone(extract("a les xxh"))
+
+
 if __name__ == "__main__":
     unittest.main()

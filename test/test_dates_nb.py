@@ -200,5 +200,120 @@ class TestRoundTripNb(unittest.TestCase):
                 self.assertEqual((dt.hour, dt.minute), (hh, mm), txt)
 
 
+class TestRealSentencesNb(unittest.TestCase):
+    """Natural Bokmål sentences with the target embedded in surrounding
+    words, punctuation and casing. Expected calendar values are computed
+    independently from the Tuesday 2017-06-27 13:04 anchor; the linguistic
+    anchors (weekday/month/ordinal words) follow Bokmålsordboka."""
+
+    def _dt(self, text):
+        return extract_datetime(text, "nb", anchorDate=ANCHOR)
+
+    def test_alarm_digit_clock_rolls_forward(self):
+        dt, rem = self._dt("vekk meg klokka 7")
+        # 07:00 is earlier than the 13:04 anchor -> next day
+        self.assertEqual(dt, datetime(2017, 6, 28, 7, 0))
+        self.assertEqual(rem, "vekk meg")
+
+    def test_alarm_tomorrow_with_time(self):
+        dt, rem = self._dt("sett en alarm klokka 07:30 i morgen")
+        self.assertEqual(dt, datetime(2017, 6, 28, 7, 30))
+        self.assertEqual(rem, "sett en alarm")
+
+    def test_meeting_weekday_and_hour(self):
+        dt, rem = self._dt("møtet er på fredag klokka 14")
+        self.assertEqual(dt, datetime(2017, 6, 30, 14, 0))
+        self.assertEqual(rem, "møtet er")
+
+    def test_next_tuesday_in_sentence(self):
+        dt, _ = self._dt("vi ses neste tirsdag")
+        self.assertEqual(dt.date(), datetime(2017, 7, 4).date())
+
+    def test_ordinal_month_rolls_to_next_year(self):
+        # 3 May already passed in 2017 -> next occurrence is 2018
+        dt, _ = self._dt("bursdagen min er 3. mai")
+        self.assertEqual(dt.date(), datetime(2018, 5, 3).date())
+
+    def test_explicit_year_in_sentence(self):
+        dt, _ = self._dt("jeg reiser 15. august 2021")
+        self.assertEqual(dt.date(), datetime(2021, 8, 15).date())
+
+    def test_tomorrow_morning_qualifier(self):
+        dt, _ = self._dt("vekk meg i morgen tidlig")
+        self.assertEqual(dt, datetime(2017, 6, 28, 8, 0))
+
+    def test_duration_sentence_spoken_number(self):
+        dur, rem = extract_duration("kan du minne meg på det om ti minutter", "nb")
+        self.assertEqual(dur, timedelta(minutes=10))
+        self.assertIn("minne meg", rem)
+
+    def test_duration_sentence_half_hours(self):
+        # "en og en halv time" = 1.5 hours
+        dur, _ = extract_duration("timeren går om en og en halv time", "nb")
+        self.assertEqual(dur, timedelta(hours=1, minutes=30))
+
+    def test_duration_sentence_days(self):
+        dur, _ = extract_duration("vi er borte i tre dager", "nb")
+        self.assertEqual(dur, timedelta(days=3))
+
+
+class TestEdgeCasesNb(unittest.TestCase):
+    def test_uppercase_input(self):
+        dt, _ = extract_datetime("I MORGEN", "nb", anchorDate=ANCHOR)
+        self.assertEqual(dt.date(), datetime(2017, 6, 28).date())
+
+    def test_mixed_case_clock(self):
+        dt, _ = extract_datetime("Klokka 15:30", "nb", anchorDate=ANCHOR)
+        self.assertEqual((dt.hour, dt.minute), (15, 30))
+
+    def test_trailing_punctuation(self):
+        dt, rem = extract_datetime("vekk meg klokka 15:30!!!", "nb",
+                                   anchorDate=ANCHOR)
+        self.assertEqual((dt.hour, dt.minute), (15, 30))
+        self.assertIn("vekk meg", rem)
+
+    def test_leap_day(self):
+        dt, _ = extract_datetime("29. februar 2020", "nb", anchorDate=ANCHOR)
+        self.assertEqual(dt.date(), datetime(2020, 2, 29).date())
+
+    def test_clock_wraparound_bounds(self):
+        for txt, exp in (("klokka 00:00", (0, 0)), ("klokka 23:59", (23, 59))):
+            dt, _ = extract_datetime(txt, "nb", anchorDate=ANCHOR)
+            self.assertEqual((dt.hour, dt.minute), exp, txt)
+
+    def test_lang_code_variant_nb_no(self):
+        self.assertEqual(nice_time(ANCHOR, "nb-NO", use_24hour=True),
+                         "tretten null fire")
+        dt, _ = extract_datetime("i morgen", "nb-NO", anchorDate=ANCHOR)
+        self.assertEqual(dt.date(), datetime(2017, 6, 28).date())
+
+    def test_no_alias_extract(self):
+        dt, _ = extract_datetime("i morgen", "no", anchorDate=ANCHOR)
+        self.assertEqual(dt.date(), datetime(2017, 6, 28).date())
+
+    def test_none_input_raises(self):
+        # the string-based contract rejects None (no silent coercion)
+        with self.assertRaises((AttributeError, TypeError)):
+            extract_datetime(None, "nb", anchorDate=ANCHOR)
+
+
+class TestCrossContaminationNb(unittest.TestCase):
+    """Nynorsk-only forms must NOT be parsed by the Bokmål engine."""
+
+    def test_nn_tomorrow_word_rejected(self):
+        self.assertIsNone(
+            extract_datetime("i morgon", "nb", anchorDate=ANCHOR))
+
+    def test_nn_weekday_rejected(self):
+        self.assertIsNone(
+            extract_datetime("neste tysdag", "nb", anchorDate=ANCHOR))
+        self.assertIsNone(
+            extract_datetime("neste laurdag", "nb", anchorDate=ANCHOR))
+
+    def test_nn_duration_plurals_rejected(self):
+        self.assertIsNone(extract_duration("3 dagar", "nb")[0])
+        self.assertIsNone(extract_duration("2 veker", "nb")[0])
+
+
 if __name__ == "__main__":
     unittest.main()

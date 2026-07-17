@@ -214,6 +214,83 @@ class TestExtractDatetime(unittest.TestCase):
         self.assertEqual(default, res[0].time())
 
 
+class TestExtractDatetimeGerman(unittest.TestCase):
+    """Natural and adversarial German date/time utterances."""
+
+    anchor = datetime(2017, 6, 27, 0, 0)
+
+    def _extract(self, text):
+        res = extract_datetime(text, lang="de-de", anchorDate=self.anchor)
+        if res is None:
+            return None
+        return [res[0].strftime("%Y-%m-%d %H:%M:%S"), res[1]]
+
+    def test_part_of_day_makes_hour_pm(self):
+        # explicit hour + part-of-day must convert to the evening hour
+        self.assertEqual(self._extract("sieben uhr abends"),
+                         ["2017-06-27 19:00:00", ""])
+        self.assertEqual(self._extract("acht uhr abends"),
+                         ["2017-06-27 20:00:00", ""])
+        self.assertEqual(self._extract("elf uhr abends"),
+                         ["2017-06-27 23:00:00", ""])
+        self.assertEqual(self._extract("drei uhr nachmittags"),
+                         ["2017-06-27 15:00:00", ""])
+        self.assertEqual(self._extract("neun uhr morgens"),
+                         ["2017-06-27 09:00:00", ""])
+
+    def test_halb_is_half_to_next_hour(self):
+        # "halb vier" is 03:30 (half to four), not 04:30
+        self.assertEqual(self._extract("weck mich um halb vier")[0],
+                         "2017-06-27 03:30:00")
+
+    def test_trailing_clock_number_is_not_a_year(self):
+        # a single clock digit after "15. Juni" must not be grabbed as the year
+        self.assertEqual(self._extract("Treffen am 15. Juni um drei uhr"),
+                         ["2018-06-15 03:00:00", "treffen"])
+        self.assertEqual(self._extract("15. Juni um sieben uhr"),
+                         ["2018-06-15 07:00:00", ""])
+
+    def test_explicit_four_digit_year_still_parses(self):
+        self.assertEqual(self._extract("Treffen am 15. Juni 2019"),
+                         ["2019-06-15 00:00:00", "treffen"])
+        self.assertEqual(self._extract("kaufe feuerwerk am 21. juli 2020"),
+                         ["2020-07-21 00:00:00", "kaufe feuerwerk"])
+
+    def test_leap_day_without_year_rolls_to_next_leap_year(self):
+        # 2017 is not a leap year, the next 29 Feb is in 2020
+        self.assertEqual(self._extract("am 29. februar"),
+                         ["2020-02-29 00:00:00", ""])
+        self.assertEqual(self._extract("am 29. februar 2020"),
+                         ["2020-02-29 00:00:00", ""])
+
+    def test_impossible_calendar_dates_return_none(self):
+        # invalid days must not raise, they yield no datetime
+        for text in ["am 31. juni", "am 31. april", "am 0. januar",
+                     "am 32. märz", "am 29. februar 2021"]:
+            with self.subTest(text=text):
+                self.assertEqual(
+                    extract_datetime(text, lang="de-de", anchorDate=self.anchor),
+                    None)
+
+    def test_wraparound_midnight(self):
+        self.assertEqual(self._extract("setze den timer auf zwölf uhr nachts"),
+                         ["2017-06-28 00:00:00", "setze timer"])
+
+    def test_empty_and_junk_return_none(self):
+        for text in ["", "   ", "?", "kein zeit", "hallo wie geht es dir"]:
+            with self.subTest(text=text):
+                self.assertEqual(
+                    extract_datetime(text, lang="de-de", anchorDate=self.anchor),
+                    None)
+
+    def test_lang_code_variants(self):
+        for lang in ("de", "de-de", "de-DE"):
+            with self.subTest(lang=lang):
+                res = extract_datetime("sieben uhr abends", lang=lang,
+                                       anchorDate=self.anchor)
+                self.assertEqual(res[0].strftime("%H:%M"), "19:00")
+
+
 class TestExtractDuration(unittest.TestCase):
     def test_extract_duration_de(self):
         self.assertEqual(extract_duration("10 sekunden", lang="de-de"),

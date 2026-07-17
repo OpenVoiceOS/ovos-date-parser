@@ -616,6 +616,23 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 register_duration_lexicon(DurationLexicon(
+    lang="hr",
+    units={
+        "microseconds": r"mikrosekund(?:a|e|i|u)?",
+        "milliseconds": r"milisekund(?:a|e|i|u)?",
+        "seconds": r"sekund(?:a|e|i|u)?",
+        "minutes": r"minut(?:a|e|i|u)?",
+        "hours": r"sat(?:a|i|u)?",
+        "days": r"dan(?:a|i|u)?",
+        "weeks": r"(?:tjedan|tjedn(?:a|i|u))",
+        "months": r"mjesec(?:a|i|u)?",
+        "years": r"godin(?:a|e|i|u)?",
+        "decades": r"(?:desetljeć(?:e|a|i)?|desetljeća)",
+        "centuries": r"stoljeć(?:e|a|i)?",
+        "millenniums": r"tisućljeć(?:e|a|i)?",
+    }))
+
+register_duration_lexicon(DurationLexicon(
     lang="az",
     pattern_template=r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-)(?:{unit})"
                      r"(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?",

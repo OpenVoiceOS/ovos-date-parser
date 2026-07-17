@@ -45,6 +45,9 @@ from ovos_date_parser.dates_cs import (
 from ovos_date_parser.dates_sk import (
     extract_duration_sk, extract_datetime_sk, nice_time_sk
 )
+from ovos_date_parser.dates_hr import (
+    extract_duration_hr, extract_datetime_hr, nice_time_hr
+)
 from ovos_date_parser.dates_da import (
     extract_datetime_da, extract_duration_da, nice_time_da,
 )
@@ -178,6 +181,8 @@ def nice_time(
         return nice_time_cs(dt, speech, use_24hour, use_ampm)
     if lang.startswith("sk"):
         return nice_time_sk(dt, speech, use_24hour, use_ampm, variant=variant)
+    if lang.startswith("hr"):
+        return nice_time_hr(dt, speech, use_24hour, use_ampm, variant=variant)
     if lang.startswith("da"):
         return nice_time_da(dt, speech, use_24hour, use_ampm)
     if lang.startswith("de"):
@@ -348,6 +353,8 @@ def extract_datetime(
         return extract_datetime_cs(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("sk"):
         return extract_datetime_sk(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("hr"):
+        return extract_datetime_hr(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("da"):
         return extract_datetime_da(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("de"):

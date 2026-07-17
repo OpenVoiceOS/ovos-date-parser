@@ -497,7 +497,9 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
                     date_string += " " + word_prev
                 start -= 1
                 used += 1
-                if word_next and word_next[0].isdigit():
+                # only a full four-digit number is a year; a shorter trailing
+                # number (e.g. a clock hour) is left for the time parser
+                if word_next and word_next.isdigit() and len(word_next) == 4:
                     date_string += " " + word_next
                     used += 1
                     has_year = True
@@ -507,7 +509,7 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
             elif word_next and word_next[0].isdigit():
                 date_string += " " + word_next
                 used += 1
-                if word_next_next and word_next_next[0].isdigit():
+                if word_next_next and word_next_next.isdigit() and len(word_next_next) == 4:
                     date_string += " " + word_next_next
                     used += 1
                     has_year = True
@@ -807,7 +809,11 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
                         remainder == "ночі" or
                         word_next == "ночі" or
                         remainder == "ранку" or
-                        word_next == "ранку"):
+                        word_next == "ранку" or
+                        # "ранку" is normalized to "вранці" before this point,
+                        # so match the whole morning group, not just one form
+                        remainder in _WORDS_MORNING_UK or
+                        word_next in _WORDS_MORNING_UK):
                     str_hh = str_num
                     remainder = "am"
                     used = 1

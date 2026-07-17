@@ -255,6 +255,13 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                        "para", "una", "cualquier", "a",
                        "e'", "esta", "este"]
 
+        s = s.lower()
+        # "la una" is the canonical way to say one o'clock; "una" alone is an
+        # article and must not be treated as a number elsewhere
+        s = re.sub(r"\bla una\b", "la 1", s)
+        # turn spelled-out numbers ("tres", "quince") into digits so the
+        # numeric time/date parser below can consume them
+        s = numbers_to_digits_es(s)
         for word in symbols:
             s = s.replace(word, "")
         for word in noise_words:
@@ -296,7 +303,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     minAbs or secOffset != 0
             )
 
-    if text == "":
+    if not text:
         return None
     if anchorDate is None:
         anchorDate = now_local()
@@ -865,6 +872,27 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                         strHH = int(word) / 100
                         strMM = int(word) - strHH * 100
                         if wordNext == "hora":
+                            used += 1
+
+                    elif wordNext == "y" and (
+                            wordNextNext in ("cuarto", "media") or
+                            (wordNextNext and wordNextNext[0].isdigit())):
+                        # "tres y cuarto", "tres y media", "tres y veinte"
+                        strHH = word
+                        if wordNextNext == "cuarto":
+                            strMM = 15
+                        elif wordNextNext == "media":
+                            strMM = 30
+                        else:
+                            strMM = int(wordNextNext)
+                        used += 2
+                        # optional part-of-day right after the minutes
+                        if wordNextNextNext == "tarde" or \
+                                wordNextNextNext == "noche":
+                            remainder = "pm"
+                            used += 1
+                        elif wordNextNextNext in ("mañana", "madrugada"):
+                            remainder = "am"
                             used += 1
 
                     elif wordNext == "" or (

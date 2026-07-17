@@ -1,5 +1,68 @@
 # Changelog
 
+## [0.20.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.20.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.19.0a1...0.20.0a1)
+
+**Merged pull requests:**
+
+- feat: Finnish \(fi\) date formatting and parsing [\#151](https://github.com/OpenVoiceOS/ovos-date-parser/pull/151) ([JarbasAl](https://github.com/JarbasAl))
+- feat: add Hebrew \(he\) date support [\#148](https://github.com/OpenVoiceOS/ovos-date-parser/pull/148) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.19.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.19.0a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a3...0.19.0a1)
+
+**Merged pull requests:**
+
+- feat: Turkish date formatting and parsing [\#156](https://github.com/OpenVoiceOS/ovos-date-parser/pull/156) ([JarbasAl](https://github.com/JarbasAl))
+- feat: add Slovak \(sk\) date support [\#147](https://github.com/OpenVoiceOS/ovos-date-parser/pull/147) ([JarbasAl](https://github.com/JarbasAl))
+- feat: expose Catalan time registers by name \(standard vs quarts\) [\#146](https://github.com/OpenVoiceOS/ovos-date-parser/pull/146) ([JarbasAl](https://github.com/JarbasAl))
+- feat: West Frisian date formatting [\#145](https://github.com/OpenVoiceOS/ovos-date-parser/pull/145) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.18.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a3) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a2...0.18.1a3)
+
+**Merged pull requests:**
+
+- docs: polish docs and examples for beginners, advanced users and standalone use [\#179](https://github.com/OpenVoiceOS/ovos-date-parser/pull/179) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.18.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a2) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.1a1...0.18.1a2)
+
+**Merged pull requests:**
+
+- fix: parse spoken clock times in Spanish datetime extraction [\#180](https://github.com/OpenVoiceOS/ovos-date-parser/pull/180) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.18.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.1a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.0a3...0.18.1a1)
+
+**Merged pull requests:**
+
+- fix: harden Arabic time and duration parsing [\#178](https://github.com/OpenVoiceOS/ovos-date-parser/pull/178) ([JarbasAl](https://github.com/JarbasAl))
+- fix: Polish spoken ordinal dates and leap-day crash in extract\_datetime [\#177](https://github.com/OpenVoiceOS/ovos-date-parser/pull/177) ([JarbasAl](https://github.com/JarbasAl))
+- fix: correct Ukrainian morning hours and guard bogus year in datetime [\#176](https://github.com/OpenVoiceOS/ovos-date-parser/pull/176) ([JarbasAl](https://github.com/JarbasAl))
+- fix: convert spelled-out numbers in Galician durations [\#175](https://github.com/OpenVoiceOS/ovos-date-parser/pull/175) ([JarbasAl](https://github.com/JarbasAl))
+- fix: correct Portuguese month names and clock-time parsing [\#174](https://github.com/OpenVoiceOS/ovos-date-parser/pull/174) ([JarbasAl](https://github.com/JarbasAl))
+- fix: Dutch date parsing of month names, part-of-day and clock hours [\#173](https://github.com/OpenVoiceOS/ovos-date-parser/pull/173) ([JarbasAl](https://github.com/JarbasAl))
+- fix: robust English datetime extraction for impossible dates [\#172](https://github.com/OpenVoiceOS/ovos-date-parser/pull/172) ([JarbasAl](https://github.com/JarbasAl))
+- fix: Czech accusative weekdays and February genitive in extract\_datetime [\#171](https://github.com/OpenVoiceOS/ovos-date-parser/pull/171) ([JarbasAl](https://github.com/JarbasAl))
+- fix: build Hungarian explicit dates without crashing on invalid days [\#170](https://github.com/OpenVoiceOS/ovos-date-parser/pull/170) ([JarbasAl](https://github.com/JarbasAl))
+- fix\(sl\): leap-day dates and night-hour qualifiers in Slovene [\#169](https://github.com/OpenVoiceOS/ovos-date-parser/pull/169) ([JarbasAl](https://github.com/JarbasAl))
+- fix: robust German date extraction for clock hours and invalid dates [\#168](https://github.com/OpenVoiceOS/ovos-date-parser/pull/168) ([JarbasAl](https://github.com/JarbasAl))
+- fix: parse spoken Italian clock hours and guard malformed dates [\#167](https://github.com/OpenVoiceOS/ovos-date-parser/pull/167) ([JarbasAl](https://github.com/JarbasAl))
+- fix: recognise "et demie" and bare part-of-day in French dates [\#166](https://github.com/OpenVoiceOS/ovos-date-parser/pull/166) ([JarbasAl](https://github.com/JarbasAl))
+- fix: harden Basque datetime extraction against crashes and wrong hours [\#165](https://github.com/OpenVoiceOS/ovos-date-parser/pull/165) ([JarbasAl](https://github.com/JarbasAl))
+- fix: handle 29 of february and None input in Asturian datetime extraction [\#164](https://github.com/OpenVoiceOS/ovos-date-parser/pull/164) ([JarbasAl](https://github.com/JarbasAl))
+- fix: parse leap-day dates without a year \(ru\) [\#163](https://github.com/OpenVoiceOS/ovos-date-parser/pull/163) ([JarbasAl](https://github.com/JarbasAl))
+- fix: Swedish datetime parsing crashes \(named months, bare clock, leap day\) [\#162](https://github.com/OpenVoiceOS/ovos-date-parser/pull/162) ([JarbasAl](https://github.com/JarbasAl))
+- fix: understand spoken Danish clock times and evening hours [\#161](https://github.com/OpenVoiceOS/ovos-date-parser/pull/161) ([JarbasAl](https://github.com/JarbasAl))
+- fix: correct Azerbaijani clock and date parsing [\#160](https://github.com/OpenVoiceOS/ovos-date-parser/pull/160) ([JarbasAl](https://github.com/JarbasAl))
+- fix: correct "ago" direction and None handling in Persian date parsing [\#159](https://github.com/OpenVoiceOS/ovos-date-parser/pull/159) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.0a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.18.0a3) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.18.0a1...0.18.0a3)

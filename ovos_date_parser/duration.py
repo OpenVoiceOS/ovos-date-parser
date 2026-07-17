@@ -334,11 +334,30 @@ register_duration_lexicon(DurationLexicon(
         "millenniums": r"tisočletj(?:e|a|i|ih)?|tisočletij",
     }))
 
+def _normalize_finnic_half(text, lang):
+    # numbers_to_digits already folds "puoli"/"pool" -> 0.5 and
+    # "puolitoista"/"poolteist" -> 1.5; collapse "N ja 0.5" ("kolme ja
+    # puoli", "kolm ja pool") into "N.5" so the whole quantity is read
+    text = numbers_to_digits(text.lower(), lang)
+    return re.sub(r"(\d+)\s+ja\s+0[.,]5", r"\1.5", text)
+
+
+def _normalize_fi(text):
+    return _normalize_finnic_half(text, "fi")
+
+
+def _normalize_et(text):
+    return _normalize_finnic_half(text, "et")
+
+
 # Finnish nouns follow a numeral in the partitive singular ("kaksi tuntia");
 # the nominative ("tunti") and genitive ("tunnin", in "kahden tunnin") forms
 # also occur, so each unit accepts its common declined surface forms.
+# Fractional numerals ("puoli tuntia" = 0.5 h, "puolitoista tuntia" = 1.5 h,
+# "kolme ja puoli tuntia" = 3.5 h) are handled by the numeral normalizer.
 register_duration_lexicon(DurationLexicon(
     lang="fi",
+    normalize=_normalize_fi,
     units={
         "microseconds": r"mikrosekunt(?:ia|i)|mikrosekunnin",
         "milliseconds": r"millisekunt(?:ia|i)|millisekunnin",
@@ -356,8 +375,11 @@ register_duration_lexicon(DurationLexicon(
 
 # Estonian nouns follow a numeral in the partitive singular ("kaks tundi");
 # the nominative ("tund") and partitive/genitive variants also occur.
+# Fractional numerals ("pool tundi" = 0.5 h, "poolteist tundi" = 1.5 h,
+# "kolm ja pool tundi" = 3.5 h) are handled by the numeral normalizer.
 register_duration_lexicon(DurationLexicon(
     lang="et",
+    normalize=_normalize_et,
     units={
         "microseconds": r"mikrosekund(?:it|i)?",
         "milliseconds": r"millisekund(?:it|i)?",

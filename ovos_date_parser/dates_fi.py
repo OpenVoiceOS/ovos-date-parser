@@ -167,6 +167,64 @@ def _clean_tokens_fi(text):
     return out
 
 
+# idiomatic spoken clock: "yli" = past, "vaille"/"vailla" = to, "vartti" = 15
+_REL_PAST_FI = ("yli",)
+_REL_TO_FI = ("vaille", "vailla")
+_QUARTER_FI = ("vartti", "varttia", "varttia")
+
+
+def _num_fi(token):
+    if token is None:
+        return None
+    if token.isdigit():
+        return int(token)
+    val = extract_number_fi(token)
+    if val is not False and val is not None and val == int(val):
+        return int(val)
+    return None
+
+
+def _scan_clock_idiom_fi(words):
+    """Match an idiomatic spoken clock ("puoli kaksi" = 1:30).
+
+    Returns (hour, minute, consumed_indices) or None. The hour named in
+    these idioms is the *coming* hour: "puoli kaksi" is half an hour before
+    two, i.e. 1:30, never 2:30.
+    """
+    n = len(words)
+    for i, w in enumerate(words):
+        cons = set()
+        result = None
+        if w == "puoli" and i + 1 < n:
+            h = _num_fi(words[i + 1])
+            if h and 1 <= h <= 12:
+                result = ((h - 1) or 12, 30)
+                cons = {i, i + 1}
+        elif w in _QUARTER_FI and i + 2 < n and \
+                words[i + 1] in _REL_PAST_FI + _REL_TO_FI:
+            h = _num_fi(words[i + 2])
+            if h and 1 <= h <= 12:
+                if words[i + 1] in _REL_PAST_FI:
+                    result = (h, 15)          # "varttia yli kaksi" = 2:15
+                else:
+                    result = ((h - 1) or 12, 45)  # "varttia vaille kaksi" = 1:45
+                cons = {i, i + 1, i + 2}
+        elif w in _REL_PAST_FI + _REL_TO_FI and 0 < i and i + 1 < n:
+            mins = _num_fi(words[i - 1])
+            h = _num_fi(words[i + 1])
+            if mins is not None and 0 < mins < 60 and h and 1 <= h <= 12:
+                if w in _REL_PAST_FI:
+                    result = (h, mins)            # "kymmenen yli kaksi" = 2:10
+                else:
+                    result = ((h - 1) or 12, 60 - mins)  # "vaille" = to
+                cons = {i - 1, i, i + 1}
+        if result:
+            if min(cons) > 0 and words[min(cons) - 1] == "kello":
+                cons.add(min(cons) - 1)
+            return result[0], result[1], cons
+    return None
+
+
 def _month_from_word_fi(word):
     if word in _MONTHS_FI:
         return _MONTHS_FI[word]
@@ -209,6 +267,13 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
     min_abs = None
     consumed = [False] * len(words)
     found = False
+
+    idiom = _scan_clock_idiom_fi(words)
+    if idiom is not None:
+        hr_abs, min_abs, cons = idiom
+        for c in cons:
+            consumed[c] = True
+        found = True
 
     for idx, word in enumerate(words):
         if consumed[idx]:

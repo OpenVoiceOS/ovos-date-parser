@@ -161,6 +161,41 @@ def _clean_tokens_et(text):
     return out
 
 
+# idiomatic spoken clock, traditional "counting toward the coming hour":
+# "veerand kaks" = 1:15, "pool kaks" = 1:30, "kolmveerand kaks" = 1:45
+_QUARTER_MINUTES_ET = {"veerand": 15, "pool": 30, "kolmveerand": 45}
+
+
+def _num_et(token):
+    if token is None:
+        return None
+    if token.isdigit():
+        return int(token)
+    val = extract_number_et(token)
+    if val is not False and val is not None and val == int(val):
+        return int(val)
+    return None
+
+
+def _scan_clock_idiom_et(words):
+    """Match an idiomatic spoken clock ("pool kaks" = 1:30).
+
+    Returns (hour, minute, consumed_indices) or None. The hour named is the
+    *coming* hour: "pool kaks" is half an hour before two, i.e. 1:30, and
+    "veerand kaks" is a quarter into that hour, i.e. 1:15.
+    """
+    n = len(words)
+    for i, w in enumerate(words):
+        if w in _QUARTER_MINUTES_ET and i + 1 < n:
+            h = _num_et(words[i + 1])
+            if h and 1 <= h <= 12:
+                cons = {i, i + 1}
+                if i > 0 and words[i - 1] == "kell":
+                    cons.add(i - 1)
+                return (h - 1) or 12, _QUARTER_MINUTES_ET[w], cons
+    return None
+
+
 def _weekday_from_word_et(word):
     if word in _WEEKDAYS_ET:
         return _WEEKDAYS_ET[word]
@@ -212,6 +247,13 @@ def extract_datetime_et(text, anchorDate=None, default_time=None):
     min_abs = None
     consumed = [False] * len(words)
     found = False
+
+    idiom = _scan_clock_idiom_et(words)
+    if idiom is not None:
+        hr_abs, min_abs, cons = idiom
+        for c in cons:
+            consumed[c] = True
+        found = True
 
     for idx, word in enumerate(words):
         if consumed[idx]:

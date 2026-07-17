@@ -104,6 +104,49 @@ class TestExtractDatetimeEt(unittest.TestCase):
         self.assertEqual(leftover, "kohtumine")
 
 
+class TestClockIdiomsEt(unittest.TestCase):
+    def _hm(self, text):
+        res = extract_datetime(text, "et", ANCHOR)
+        self.assertIsNotNone(res, text)
+        return res[0].hour, res[0].minute
+
+    def test_half_hour_is_before_named_hour(self):
+        # the classic trap: "pool kaks" is 1:30, NOT 2:30
+        self.assertEqual(self._hm("pool kaks"), (1, 30))
+        self.assertEqual(self._hm("pool kolm"), (2, 30))
+
+    def test_half_hour_wraps_at_one(self):
+        self.assertEqual(self._hm("pool üks"), (12, 30))
+
+    def test_quarter_into_hour(self):
+        # traditional Estonian counting toward the coming hour
+        self.assertEqual(self._hm("veerand kaks"), (1, 15))
+
+    def test_three_quarters_into_hour(self):
+        self.assertEqual(self._hm("kolmveerand kaks"), (1, 45))
+
+    def test_with_kell(self):
+        self.assertEqual(self._hm("kell pool kaks"), (1, 30))
+
+    def test_duration_pool_not_read_as_clock(self):
+        # "pool tundi" is a duration, not a half-clock -> no datetime
+        self.assertIsNone(extract_datetime("pool tundi", "et", ANCHOR))
+
+
+class TestFractionalDurationEt(unittest.TestCase):
+    def test_half_hour(self):
+        self.assertEqual(extract_duration("pool tundi", "et")[0],
+                         timedelta(minutes=30))
+
+    def test_one_and_a_half_hours(self):
+        self.assertEqual(extract_duration("poolteist tundi", "et")[0],
+                         timedelta(hours=1, minutes=30))
+
+    def test_n_and_a_half_hours(self):
+        self.assertEqual(extract_duration("kolm ja pool tundi", "et")[0],
+                         timedelta(hours=3, minutes=30))
+
+
 class TestExtractDatetimeAdversarialEt(unittest.TestCase):
     def test_empty(self):
         self.assertIsNone(extract_datetime("", "et", ANCHOR))

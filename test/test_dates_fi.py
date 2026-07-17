@@ -109,6 +109,60 @@ class TestExtractDatetimeFi(unittest.TestCase):
         self.assertEqual(leftover, "tapaaminen")
 
 
+class TestClockIdiomsFi(unittest.TestCase):
+    def _hm(self, text):
+        res = extract_datetime(text, "fi", ANCHOR)
+        self.assertIsNotNone(res, text)
+        return res[0].hour, res[0].minute
+
+    def test_half_hour_is_before_named_hour(self):
+        # the classic trap: "puoli kaksi" is 1:30, NOT 2:30
+        self.assertEqual(self._hm("puoli kaksi"), (1, 30))
+        self.assertEqual(self._hm("puoli kolme"), (2, 30))
+
+    def test_half_hour_wraps_at_one(self):
+        # "puoli yksi" is half an hour before one o'clock -> 12:30
+        self.assertEqual(self._hm("puoli yksi"), (12, 30))
+
+    def test_half_hour_with_kello(self):
+        self.assertEqual(self._hm("kello puoli kaksi"), (1, 30))
+
+    def test_quarter_past(self):
+        self.assertEqual(self._hm("varttia yli kaksi"), (2, 15))
+
+    def test_quarter_to(self):
+        self.assertEqual(self._hm("varttia vaille kaksi"), (1, 45))
+
+    def test_minutes_past(self):
+        self.assertEqual(self._hm("kymmenen yli kaksi"), (2, 10))
+        self.assertEqual(self._hm("viisitoista yli kolme"), (3, 15))
+
+    def test_minutes_to(self):
+        self.assertEqual(self._hm("kymmentä vaille kaksi"), (1, 50))
+
+    def test_duration_puoli_not_read_as_clock(self):
+        # "puoli tuntia" is a duration, not a half-clock -> no datetime
+        self.assertIsNone(extract_datetime("puoli tuntia", "fi", ANCHOR))
+
+
+class TestFractionalDurationFi(unittest.TestCase):
+    def test_half_hour(self):
+        self.assertEqual(extract_duration("puoli tuntia", "fi")[0],
+                         timedelta(minutes=30))
+
+    def test_one_and_a_half_hours(self):
+        self.assertEqual(extract_duration("puolitoista tuntia", "fi")[0],
+                         timedelta(hours=1, minutes=30))
+
+    def test_n_and_a_half_hours(self):
+        self.assertEqual(extract_duration("kolme ja puoli tuntia", "fi")[0],
+                         timedelta(hours=3, minutes=30))
+
+    def test_half_minute(self):
+        self.assertEqual(extract_duration("puoli minuuttia", "fi")[0],
+                         timedelta(seconds=30))
+
+
 class TestExtractDatetimeAdversarialFi(unittest.TestCase):
     def test_empty(self):
         self.assertIsNone(extract_datetime("", "fi", ANCHOR))

@@ -143,5 +143,31 @@ class TestImpossibleAndAbsentDates(unittest.TestCase):
         self.assertEqual(extract("1 de genier de 2119")[0], dt(2119, 1, 1, 0, 0))
 
 
+class TestNumericTimeTokensWithLetterSuffix(unittest.TestCase):
+    """Glued time tokens like '20h' must parse without raising ValueError."""
+
+    def test_bare_hour_suffix(self):
+        self.assertEqual(extract("20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_preposition_hour_suffix(self):
+        self.assertEqual(extract("a 20h")[0], dt(2117, 9, 3, 20, 0))
+
+    def test_hour_minute_suffix(self):
+        self.assertEqual(extract("21h30")[0], dt(2117, 9, 3, 21, 30))
+
+    def test_impossible_glued_hour_does_not_raise(self):
+        # 99h is not a valid clock reading; must not crash on the letter suffix
+        try:
+            extract("99h")
+        except ValueError:
+            self.fail("extract('99h') raised ValueError")
+
+    def test_letter_only_token_does_not_raise(self):
+        try:
+            self.assertIsNone(extract("hhh"))
+        except ValueError:
+            self.fail("extract('hhh') raised ValueError")
+
+
 if __name__ == "__main__":
     unittest.main()

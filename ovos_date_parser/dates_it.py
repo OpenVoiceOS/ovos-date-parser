@@ -591,7 +591,13 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                     and word_next == 'in_punto':
                 str_hh = str(int(extract_number_it(word)))
                 used = 2
-            if word_next == 'pm':
+            if str_hh == '':
+                # a bare number that is not a valid clock value
+                # (e.g. "99", "25:99", "24:00", out-of-range hours/minutes)
+                # is not a time - ignore it rather than crashing on int('')
+                isTime = False
+                used = 0
+            elif word_next == 'pm':
                 remainder = 'pm'
                 hr_abs = int(str_hh)
                 min_abs = int(str_mm)

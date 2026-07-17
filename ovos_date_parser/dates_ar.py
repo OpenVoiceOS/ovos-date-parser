@@ -434,6 +434,16 @@ def extract_datetime_ar(text, anchorDate=None, default_time=None):
                 hour -= 1
                 minute = 40
                 i += 2
+            else:
+                # "إلا خمس (دقائق)" = a count of minutes to the hour
+                value, j = _parse_number_span(tokens, i + 1)
+                if value is not None and 0 < value < 60 \
+                        and float(value).is_integer():
+                    if j < n and tokens[j] in _MINUTE_WORDS_AR:
+                        j += 1
+                    hour -= 1
+                    minute = 60 - int(value)
+                    i = j
             if hour == 0:
                 hour = 12
         return i
@@ -525,7 +535,11 @@ def extract_datetime_ar(text, anchorDate=None, default_time=None):
                         float(val).is_integer():
                     year = int(val)
                     i = j
-            result_date = today.replace(year=year, month=month, day=day)
+            try:
+                result_date = today.replace(year=year, month=month, day=day)
+            except ValueError:
+                # impossible calendar date like "31 فبراير"; ignore it
+                continue
             date_found = True
             continue
         if tok in _CALENDAR_UNITS and i + 1 < n and \
@@ -664,14 +678,21 @@ def _parse_duration_span(tokens, i):
         return None, i
     tok = tokens[i]
     if tok in _DUALS_LOOKUP_AR:
-        secs = 2 * _DUALS_LOOKUP_AR[tok]
-        return (timedelta(seconds=secs), _DUALS_LOOKUP_AR[tok] < 86400), i + 1
-    if tok in _UNITS_LOOKUP_AR:
-        secs = _UNITS_LOOKUP_AR[tok]
-        return (timedelta(seconds=secs), _UNITS_LOOKUP_AR[tok] < 86400), i + 1
-    value, j = _parse_number_span(tokens, i)
-    if value is not None and j < n and tokens[j] in _UNITS_LOOKUP_AR:
-        secs = value * _UNITS_LOOKUP_AR[tokens[j]]
-        return (timedelta(seconds=secs),
-                _UNITS_LOOKUP_AR[tokens[j]] < 86400), j + 1
-    return None, i
+        unit = _DUALS_LOOKUP_AR[tok]
+        secs, k = 2 * unit, i + 1
+    elif tok in _UNITS_LOOKUP_AR:
+        unit = _UNITS_LOOKUP_AR[tok]
+        secs, k = unit, i + 1
+    else:
+        value, j = _parse_number_span(tokens, i)
+        if value is None or j >= n or tokens[j] not in _UNITS_LOOKUP_AR:
+            return None, i
+        unit = _UNITS_LOOKUP_AR[tokens[j]]
+        secs, k = value * unit, j + 1
+    # trailing fraction of the unit: "ساعة ونصف", "ساعتين وربع"
+    if k + 1 < n and tokens[k] == "و":
+        frac, jf = _parse_number_span(tokens, k + 1)
+        if frac is not None and 0 < frac < 1:
+            secs += frac * unit
+            k = jf
+    return (timedelta(seconds=secs), unit < 86400), k

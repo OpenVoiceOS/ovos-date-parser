@@ -83,6 +83,19 @@ class TestDuration(unittest.TestCase):
                 duration, _ = extract_duration(phrase, lang)
                 self.assertEqual(duration, timedelta(minutes=5))
 
+    def test_overflow_huge_value_returns_none(self):
+        # values too large for timedelta must not crash the caller
+        for phrase in ("in 999999999999999999999 seconds",
+                       "999999999999999999999 days",
+                       "1000000000000000000000000 hours"):
+            with self.subTest(phrase=phrase):
+                duration, _ = extract_duration(phrase, "en")
+                self.assertIsNone(duration)
+
+    def test_in_range_duration_still_parses_after_guard(self):
+        duration, _ = extract_duration("2 days", "en")
+        self.assertEqual(duration, timedelta(days=2))
+
 
 class TestNoDate(unittest.TestCase):
     def test_dateless_text_returns_none(self):

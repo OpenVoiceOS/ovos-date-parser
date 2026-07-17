@@ -29,6 +29,10 @@ from ovos_date_parser.dates_ast import (
     extract_duration_ast, extract_datetime_ast, nice_year_ast, nice_weekday_ast, nice_month_ast,
     nice_day_ast, nice_date_time_ast, nice_date_ast, nice_time_ast
 )
+from ovos_date_parser.dates_fy import (
+    nice_year_fy, nice_weekday_fy, nice_month_fy, nice_day_fy,
+    nice_date_time_fy, nice_date_fy, nice_time_fy, nice_part_of_day_fy
+)
 from ovos_date_parser.dates_az import (
     extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
 )
@@ -162,6 +166,8 @@ def nice_time(
         return nice_time_it(dt, speech, use_24hour, use_ampm)
     if lang.startswith("kab"):
         return nice_time_kab(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("fy"):
+        return nice_time_fy(dt, speech, use_24hour, use_ampm)
     if lang.startswith("nl"):
         return nice_time_nl(dt, speech, use_24hour, use_ampm)
     if lang.startswith("pl"):
@@ -605,6 +611,8 @@ def nice_date(dt, lang, now=None, include_weekday=True):
         return nice_date_ro(dt, now, include_weekday)
     if lang.startswith("ast"):
         return nice_date_ast(dt, now, include_weekday)
+    if lang.startswith("fy"):
+        return nice_date_fy(dt, now, include_weekday)
     date_time_format.cache(lang)
     return date_time_format.date_format(dt, lang, now, include_weekday)
 
@@ -643,6 +651,8 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         return nice_date_time_ro(dt, now, use_24hour, use_ampm)
     if lang.startswith("ast"):
         return nice_date_time_ast(dt, now, use_24hour, use_ampm)
+    if lang.startswith("fy"):
+        return nice_date_time_fy(dt, now, use_24hour, use_ampm)
     date_time_format.cache(lang)
     return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
 
@@ -660,6 +670,8 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
         return nice_day_ro(dt, date_format, include_month)
     if lang.startswith("ast"):
         return nice_day_ast(dt, date_format, include_month)
+    if lang.startswith("fy"):
+        return nice_day_fy(dt, date_format, include_month)
     if include_month:
         month = nice_month(dt, lang, date_format)
         if date_format == 'MDY':
@@ -683,6 +695,8 @@ def nice_weekday(dt, lang):
         return nice_weekday_ro(dt)
     if lang.startswith("ast"):
         return nice_weekday_ast(dt)
+    if lang.startswith("fy"):
+        return nice_weekday_fy(dt)
     date_time_format.cache(lang)
 
     if lang in date_time_format.lang_config.keys():
@@ -708,6 +722,8 @@ def nice_month(dt, lang, date_format='MDY'):
         return nice_month_ro(dt)
     if lang.startswith("ast"):
         return nice_month_ast(dt)
+    if lang.startswith("fy"):
+        return nice_month_fy(dt)
     date_time_format.cache(lang)
     if lang in date_time_format.lang_config.keys():
         localized_month_names = date_time_format.lang_config[lang]['month']
@@ -745,6 +761,8 @@ def nice_year(dt, lang, bc=False):
         return nice_year_ro(dt, bc)
     if lang.startswith("ast"):
         return nice_year_ast(dt, bc)
+    if lang.startswith("fy"):
+        return nice_year_fy(dt, bc)
     date_time_format.cache(lang)
     return date_time_format.year_format(dt, lang, bc)
 

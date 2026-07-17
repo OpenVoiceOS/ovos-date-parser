@@ -170,7 +170,12 @@ def _resolve(values: Dict[str, float],
             + values.get("millenniums", 0) * 1000 * DAYS_IN_1_YEAR
         if days:
             td["days"] = days
-        return timedelta(**td)
+        try:
+            return timedelta(**td)
+        except OverflowError:
+            # values too large for timedelta to represent; treat as no
+            # duration found rather than crashing the caller
+            return None
 
     if resolution in (DurationResolution.RELATIVEDELTA,
                       DurationResolution.RELATIVEDELTA_STRICT,

@@ -102,6 +102,7 @@ from ovos_date_parser.dates_sv import (
 from ovos_date_parser.dates_uk import (
     extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
 )
+from ovos_date_parser.dates_tr import nice_time_tr, extract_datetime_tr
 
 
 def nice_time(
@@ -176,6 +177,8 @@ def nice_time(
         return nice_time_sl(dt, speech, use_24hour, use_ampm)
     if lang.startswith("uk"):
         return nice_time_uk(dt, speech, use_24hour, use_ampm)
+    if lang.startswith("tr"):
+        return nice_time_tr(dt, speech, use_24hour, use_ampm)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 
@@ -336,6 +339,8 @@ def extract_datetime(
         return extract_datetime_sv(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("uk"):
         return extract_datetime_uk(text, anchor_date=anchorDate, default_time=default_time)
+    if lang.startswith("tr"):
+        return extract_datetime_tr(text, anchorDate=anchorDate, default_time=default_time)
 
     # fallback parser
     LOG.warning(f"{lang} is not implemented! attempting to use fallback date parser")

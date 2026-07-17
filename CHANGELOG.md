@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.0a1...0.28.1a1)
+
+**Merged pull requests:**
+
+- fix: keep Italian duration-unit words out of ordinal digit conversion [\#198](https://github.com/OpenVoiceOS/ovos-date-parser/pull/198) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.28.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.27.1a1...0.28.0a1)
@@ -510,10 +518,6 @@
 ## [0.0.4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.4) (2024-11-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.0.4a1...0.0.4)
-
-**Merged pull requests:**
-
-- Release 0.0.4a1 [\#70](https://github.com/OpenVoiceOS/ovos-date-parser/pull/70) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.0.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.0.4a1) (2024-11-11)
 

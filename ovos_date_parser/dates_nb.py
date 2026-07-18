@@ -564,10 +564,15 @@ def extract_datetime_nb(text, anchorDate=None, default_time=None):
             datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b",
                              en_month, datestr)
 
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+        except ValueError:
+            # an impossible calendar date like "30 februar"; report nothing
+            # rather than a wrong guess
+            return None
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 

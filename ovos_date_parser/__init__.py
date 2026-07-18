@@ -335,7 +335,8 @@ def extract_duration(
         return extract_duration_fa(text)
     if lang.startswith("sv"):
         return extract_duration_sv(text)
-    raise NotImplementedError(f"Unsupported language: {lang}")
+    # no native extractor for this language, report no duration found
+    return None, text
 
 
 def extract_datetime(
@@ -463,7 +464,8 @@ def extract_datetime(
     except:
         pass
 
-    raise NotImplementedError(f"Unsupported language: {lang}")
+    # fallback found nothing, report no date/time found
+    return None
 
 
 NUMBER_TUPLE = namedtuple(

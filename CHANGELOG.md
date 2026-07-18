@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.4a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.3a1...0.28.4a1)
+
+**Merged pull requests:**
+
+- fix: degrade gracefully for languages without a native extractor [\#255](https://github.com/OpenVoiceOS/ovos-date-parser/pull/255) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.28.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.3a1) (2026-07-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.2a1...0.28.3a1)

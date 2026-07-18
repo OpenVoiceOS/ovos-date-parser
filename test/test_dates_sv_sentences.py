@@ -137,6 +137,16 @@ class TestImpossibleAndEmpty(unittest.TestCase):
     def test_no_date(self):
         self.assertEqual(extract("det finns ingen tid här"), None)
 
+    def test_glued_clock_tokens_do_not_crash(self):
+        # digit-leading tokens with trailing letters or slashes must not raise
+        for token in ["20h", "klockan 20h", "3h30", "15/06/20", "3/0/0",
+                      "0/0/0", "10sept", "1er"]:
+            with self.subTest(token=token):
+                extract(token)
+
+    def test_bare_hour_h_suffix(self):
+        self.assertEqual(extract("20h")[0], dt(2117, 9, 3, 20))
+
 
 class TestDurationEdgeCases(unittest.TestCase):
     """extract_duration must signal 'no duration' with None, never crash."""

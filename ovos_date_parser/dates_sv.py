@@ -534,20 +534,20 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                         remainder = "am"
                         used = 1
                     elif (
-                            int(word) > 100 and
+                            int(strNum) > 100 and
                             (
                                     wordPrev == "o" or
                                     wordPrev == "oh"
                             )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) / 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hours":
                             used += 1
                     elif wordNext in ("timme", "timma", "timmar") and \
-                            int(word) < 100:
+                            int(strNum) < 100:
                         # "om 3 timmar" = "in 3 hours"
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
@@ -555,25 +555,25 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
 
                     elif wordNext in ("minut", "minuter"):
                         # "om 10 minuter" = "in 10 minutes"
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext in ("sekund", "sekunder"):
                         # "om 5 sekunder" = "in 5 seconds"
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif int(strNum) > 100:
+                        strHH = int(strNum) / 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hours":
                             used += 1
                     elif wordNext and wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "hours":
@@ -587,7 +587,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                                             wordNextNext == timeQualifier
                                     )
                             )):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "o'clock":
                             used += 1

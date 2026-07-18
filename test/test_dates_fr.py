@@ -91,6 +91,15 @@ class TestAdversarial(unittest.TestCase):
         if res is not None and res[0] is not None:
             self.assertNotEqual(res[0].hour, 99)
 
+    def test_impossible_dates_return_none(self):
+        for token in ["30 février", "31 avril", "30 février 2020",
+                      "février 30", "31 avril 2020"]:
+            with self.subTest(token=token):
+                self.assertIsNone(extract(token))
+
+    def test_valid_dates_still_parse(self):
+        self.assertEqual(extract("15 juillet 2020")[0], dt(2020, 7, 15))
+
 
 if __name__ == "__main__":
     unittest.main()

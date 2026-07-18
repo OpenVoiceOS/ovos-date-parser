@@ -606,8 +606,14 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                               minute=0,
                                               hour=0)
     if datestr != "":
+        try:
+            temp = datetime.strptime(datestr,
+                                     "%B %d %Y" if hasYear else "%B %d")
+        except ValueError:
+            # an impossible calendar date like "30 février"; report nothing
+            # rather than a wrong guess
+            return None
         if not hasYear:
-            temp = datetime.strptime(datestr, "%B %d")
             if extractedDate.tzinfo:
                 temp = temp.replace(tzinfo=extractedDate.tzinfo)
             temp = temp.replace(year=extractedDate.year)
@@ -624,7 +630,6 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                     month=int(temp.strftime("%m")),
                     day=int(temp.strftime("%d")))
         else:
-            temp = datetime.strptime(datestr, "%B %d %Y")
             extractedDate = extractedDate.replace(
                 year=int(temp.strftime("%Y")),
                 month=int(temp.strftime("%m")),

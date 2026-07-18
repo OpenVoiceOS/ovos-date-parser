@@ -47,6 +47,15 @@ class TestAdversarial(unittest.TestCase):
         self.assertIsNone(extract("   "))
         self.assertIsNone(extract("qwerty asdf"))
 
+    def test_impossible_dates_return_none(self):
+        for token in ["30 februar", "31 april", "29 februar",
+                      "31 april 2020"]:
+            with self.subTest(token=token):
+                self.assertIsNone(extract(token))
+
+    def test_leap_day_in_leap_year_parses(self):
+        self.assertEqual(extract("29 februar 2020")[0], dt(2020, 2, 29))
+
 
 if __name__ == "__main__":
     unittest.main()

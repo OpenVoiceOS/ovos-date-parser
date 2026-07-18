@@ -572,7 +572,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                         minAbs = -1
 
                     elif wordNext == "time":
-                        strHH = word
+                        strHH = strNum
                         used += 1
                         isTime = True
                         if wordNextNext == timeQualifier:
@@ -639,7 +639,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                                         remainder = "am"
 
                     elif wordNext == timeQualifier:
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         isTime = True
                         if wordNext[:11] == "eftermiddag":
@@ -735,10 +735,15 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
         for idx, en_month in enumerate(en_monthsShort):
             datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+        except ValueError:
+            # an impossible calendar date like "30 februar"; report nothing
+            # rather than a wrong guess
+            return None
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 

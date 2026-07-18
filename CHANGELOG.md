@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.3a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.2a1...0.28.3a1)
+
+**Merged pull requests:**
+
+- fix: return None instead of crashing on impossible dates \(az/cs/sk/hr/bg/el/he/pl/ru/sl/uk/ms/id/tr\) [\#253](https://github.com/OpenVoiceOS/ovos-date-parser/pull/253) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.28.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.2a1) (2026-07-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a22...0.28.2a1)
@@ -432,7 +440,6 @@
 **Merged pull requests:**
 
 - chore\(deps\): update actions/setup-python action to v6 [\#106](https://github.com/OpenVoiceOS/ovos-date-parser/pull/106) ([renovate[bot]](https://github.com/apps/renovate))
-- chore\(deps\): update actions/checkout action to v6 [\#103](https://github.com/OpenVoiceOS/ovos-date-parser/pull/103) ([renovate[bot]](https://github.com/apps/renovate))
 
 ## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a2) (2025-12-18)
 

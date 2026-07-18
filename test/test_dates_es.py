@@ -135,6 +135,15 @@ class TestAdversarial(unittest.TestCase):
     def test_uppercase(self):
         self.assertEqual(extract("A LAS TRES DE LA TARDE")[0], dt(1998, 1, 1, 15))
 
+    def test_impossible_dates_return_none(self):
+        for token in ["30 de febrero", "31 de abril", "29 de febrero",
+                      "31 de abril de 2020"]:
+            with self.subTest(token=token):
+                self.assertIsNone(extract(token))
+
+    def test_leap_day_in_leap_year_parses(self):
+        self.assertEqual(extract("29 de febrero 2020")[0], dt(2020, 2, 29))
+
 
 class TestNumericTimeSuffix(unittest.TestCase):
     """Digit tokens glued to a letter suffix ("20h") must not crash the parser.

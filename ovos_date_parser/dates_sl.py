@@ -526,7 +526,12 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
         if temp is None:
             # a leap day like "29. februarja" has no valid date in the
             # default year 1900; parse it against a known leap year
-            temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+            try:
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+            except ValueError:
+                # an impossible calendar date like "30. februarja"; report
+                # nothing rather than a wrong guess
+                return None
         month = temp.month
         day = temp.day
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)

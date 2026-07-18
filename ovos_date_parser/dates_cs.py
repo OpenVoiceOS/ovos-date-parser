@@ -970,7 +970,12 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
             temp = datetime.strptime(datestr, "%B %d")
         except ValueError:
             # Try again, allowing the year
-            temp = datetime.strptime(datestr, "%B %d %Y")
+            try:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            except ValueError:
+                # an impossible calendar date like "30 únor"; report nothing
+                # rather than a wrong guess
+                return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,

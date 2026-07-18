@@ -748,12 +748,17 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
 
     if datestr != "":
         # date included an explicit date, e.g. "iyun 5" or "iyun 2, 2017"
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            # anchor to a leap year so "29 fevral" parses; the real
-            # year is applied below
-            temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                # anchor to a leap year so "29 fevral" parses; the real
+                # year is applied below
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+        except ValueError:
+            # an impossible calendar date like "30 fevral"; report nothing
+            # rather than a wrong guess
+            return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,

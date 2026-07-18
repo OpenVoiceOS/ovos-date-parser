@@ -623,11 +623,16 @@ def extract_datetime_he(text, anchorDate=None, default_time=None):
     extractedDate = dateNow.replace(microsecond=0, second=0, minute=0, hour=0)
 
     if datestr != "":
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
-            temp = temp.replace(year=extractedDate.year)
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+                temp = temp.replace(year=extractedDate.year)
+        except ValueError:
+            # an impossible calendar date like "30 בפברואר"; report nothing
+            # rather than a wrong guess
+            return None
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
         if not hasYear and extractedDate.replace(

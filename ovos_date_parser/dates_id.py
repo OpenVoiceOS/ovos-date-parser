@@ -200,11 +200,16 @@ def extract_datetime_id(text, anchorDate=None, default_time=None):
                 year = int(tokens[j])
                 consumed.add(j)
                 break
-        if year is None:
-            year = anchor.year
-            if datetime(year, month, day or 1).date() < anchor.date():
-                year += 1
-        result = result.replace(year=year, month=month, day=day or 1)
+        try:
+            if year is None:
+                year = anchor.year
+                if datetime(year, month, day or 1).date() < anchor.date():
+                    year += 1
+            result = result.replace(year=year, month=month, day=day or 1)
+        except ValueError:
+            # an impossible calendar date like "30 februari"; report nothing
+            # rather than a wrong guess
+            return None
         date_found = True
         consumed.add(i)
 

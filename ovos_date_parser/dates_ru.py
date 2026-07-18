@@ -1094,7 +1094,12 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 day=temp.day,
                 tzinfo=extracted_date.tzinfo)
         else:
-            temp = datetime.strptime(date_string, "%B %d %Y")
+            try:
+                temp = datetime.strptime(date_string, "%B %d %Y")
+            except ValueError:
+                # an impossible calendar date like "30 февраля"; report
+                # nothing rather than a wrong guess
+                return None
             extracted_date = extracted_date.replace(
                 year=int(temp.strftime("%Y")),
                 month=int(temp.strftime("%m")),

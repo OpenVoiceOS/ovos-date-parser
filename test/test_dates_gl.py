@@ -114,6 +114,16 @@ class TestExtractDatetimeGL(unittest.TestCase):
     def test_no_date(self):
         self.assertIsNone(self._dt("pon a mesa e limpa o chan"))
 
+    def test_impossible_dates_return_none(self):
+        for token in ["30 de febreiro", "31 de abril", "29 de febreiro",
+                      "31 de abril 2020"]:
+            with self.subTest(token=token):
+                self.assertIsNone(self._dt(token))
+
+    def test_leap_day_in_leap_year_parses(self):
+        dt, _ = self._dt("29 de febreiro 2020")
+        self.assertEqual(dt, datetime(2020, 2, 29, 0, 0))
+
 
 class TestExtractDurationGL(unittest.TestCase):
 

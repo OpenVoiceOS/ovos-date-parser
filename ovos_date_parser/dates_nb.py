@@ -479,14 +479,14 @@ def extract_datetime_nb(text, anchorDate=None, default_time=None):
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "time":
-                        strHH = word
+                        strHH = strNum
                         used += 1
                         isTime = True
                         if is_numeric(wordNextNext):
                             strMM = wordNextNext
                             used += 1
                     elif wordNext == timeQualifier:
-                        strHH = word
+                        strHH = strNum
                         strMM = "00"
                         isTime = True
                         if wordNext[:11] == "ettermiddag":

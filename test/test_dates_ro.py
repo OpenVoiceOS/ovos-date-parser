@@ -53,6 +53,16 @@ class TestExtractDatetimeRO(unittest.TestCase):
         for text in ["", "h", "ora", "la ora"]:
             self.assertIsNone(self._extract(text))
 
+    def test_impossible_dates_return_none(self):
+        for text in ["30 februarie", "31 aprilie", "29 februarie",
+                     "31 aprilie 2020"]:
+            with self.subTest(text=text):
+                self.assertIsNone(self._extract(text))
+
+    def test_leap_day_in_leap_year_parses(self):
+        result = self._extract("29 februarie 2020")
+        self.assertEqual(result[0], datetime(2020, 2, 29, 0, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

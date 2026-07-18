@@ -157,6 +157,19 @@ class TestAdversarialNb(unittest.TestCase):
             self.assertLess(dt.hour, 24)
             self.assertLess(dt.minute, 60)
 
+    def test_glued_clock_tokens_do_not_crash(self):
+        # digit-leading tokens with trailing letters or slashes must not raise
+        for token in ["20h", "klokka 20h", "3h30", "15/06/20", "3/0/0",
+                      "0/0/0", "10sept"]:
+            with self.subTest(token=token):
+                extract_datetime(token, "nb", anchorDate=ANCHOR)
+
+    def test_impossible_dates_return_none(self):
+        for token in ["30 februar", "31 april", "29 februar", "31 april 2020"]:
+            with self.subTest(token=token):
+                self.assertIsNone(
+                    extract_datetime(token, "nb", anchorDate=ANCHOR))
+
     def test_bare_number_no_unit(self):
         duration, remainder = extract_duration("42", "nb")
         self.assertIsNone(duration)

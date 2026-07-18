@@ -271,7 +271,9 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
             used += 1
             datestr = months_en[m]
             if wordPrev and (wordPrev[0].isdigit()):
-                datestr += " " + wordPrev
+                # keep only the leading digits so ordinals like "1er"
+                # ("1er janvier") do not leak letters into strptime
+                datestr += " " + re.match(r"\d+", wordPrev).group()
                 start -= 1
                 used += 1
             else:
@@ -506,18 +508,18 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                 words[idxHr] in ["minutes", "minute"]:
                             used += 1
                             idxHr += 1
-                elif wordNext == "minutes":
+                elif word.isdigit() and wordNext == "minutes":
                     # "dans 10 minutes"
                     if wordPrev in words_in:
                         minOffset = int(word)
                     else:
                         minAbs = int(word)
                     used = 2
-                elif wordNext == "secondes":
+                elif word.isdigit() and wordNext == "secondes":
                     # "dans 5 secondes"
                     secOffset = int(word)
                     used = 2
-                elif int(word) > 100:
+                elif word.isdigit() and int(word) > 100:
                     # format militaire
                     hrAbs = int(word) / 100
                     minAbs = int(word) - hrAbs * 100

@@ -572,7 +572,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                         minAbs = -1
 
                     elif wordNext == "time":
-                        strHH = word
+                        strHH = strNum
                         used += 1
                         isTime = True
                         if wordNextNext == timeQualifier:
@@ -639,7 +639,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                                         remainder = "am"
 
                     elif wordNext == timeQualifier:
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         isTime = True
                         if wordNext[:11] == "eftermiddag":

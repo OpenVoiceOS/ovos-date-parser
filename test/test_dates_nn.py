@@ -159,6 +159,12 @@ class TestAdversarialNn(unittest.TestCase):
             with self.subTest(token=token):
                 extract_datetime(token, "nn", anchorDate=ANCHOR)
 
+    def test_impossible_dates_return_none(self):
+        for token in ["30 februar", "31 april", "29 februar", "31 april 2020"]:
+            with self.subTest(token=token):
+                self.assertIsNone(
+                    extract_datetime(token, "nn", anchorDate=ANCHOR))
+
     def test_bare_number_no_unit(self):
         duration, remainder = extract_duration("42", "nn")
         self.assertIsNone(duration)

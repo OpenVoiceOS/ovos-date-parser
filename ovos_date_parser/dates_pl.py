@@ -1043,7 +1043,12 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                     try:
                         temp = datetime.strptime(datestr, "%B %Y")
                     except ValueError:
-                        temp = datetime.strptime(datestr, "%B")
+                        try:
+                            temp = datetime.strptime(datestr, "%B")
+                        except ValueError:
+                            # an impossible calendar date like "30 luty";
+                            # report nothing rather than a wrong guess
+                            return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         month = temp.month
         day = temp.day

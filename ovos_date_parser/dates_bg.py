@@ -549,7 +549,12 @@ def extract_datetime_bg(text, anchorDate=None, default_time=None):
             try:
                 temp = datetime.strptime(datestr, "%B %d %Y")
             except ValueError:
-                temp = datetime.strptime(datestr + " 1", "%B %d")
+                try:
+                    temp = datetime.strptime(datestr + " 1", "%B %d")
+                except ValueError:
+                    # an impossible calendar date; report nothing
+                    # rather than a wrong guess
+                    return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,

@@ -1,5 +1,100 @@
 # Changelog
 
+## [0.28.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.2a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a22...0.28.2a1)
+
+**Merged pull requests:**
+
+- fix: return None for impossible Romanian calendar dates instead of crashing [\#251](https://github.com/OpenVoiceOS/ovos-date-parser/pull/251) ([JarbasAl](https://github.com/JarbasAl))
+- fix: return None for impossible Galician calendar dates instead of crashing [\#250](https://github.com/OpenVoiceOS/ovos-date-parser/pull/250) ([JarbasAl](https://github.com/JarbasAl))
+- fix: return None for impossible Spanish calendar dates instead of crashing [\#249](https://github.com/OpenVoiceOS/ovos-date-parser/pull/249) ([JarbasAl](https://github.com/JarbasAl))
+- fix: guard Swedish datetime extractor against numeric time tokens with letter suffixes [\#248](https://github.com/OpenVoiceOS/ovos-date-parser/pull/248) ([JarbasAl](https://github.com/JarbasAl))
+- fix: guard Bokmål datetime extractor against malformed clock tokens and impossible dates [\#247](https://github.com/OpenVoiceOS/ovos-date-parser/pull/247) ([JarbasAl](https://github.com/JarbasAl))
+- fix: guard Nynorsk datetime extractor against malformed clock tokens and impossible dates [\#246](https://github.com/OpenVoiceOS/ovos-date-parser/pull/246) ([JarbasAl](https://github.com/JarbasAl))
+- fix: guard Danish datetime extractor against malformed clock tokens and impossible dates [\#245](https://github.com/OpenVoiceOS/ovos-date-parser/pull/245) ([JarbasAl](https://github.com/JarbasAl))
+- fix: guard French datetime extractor against malformed date and clock tokens [\#244](https://github.com/OpenVoiceOS/ovos-date-parser/pull/244) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.28.1a22](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a22) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a21...0.28.1a22)
+
+## [0.28.1a21](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a21) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a20...0.28.1a21)
+
+## [0.28.1a20](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a20) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a19...0.28.1a20)
+
+## [0.28.1a19](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a19) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a18...0.28.1a19)
+
+## [0.28.1a18](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a18) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a17...0.28.1a18)
+
+## [0.28.1a17](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a17) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a16...0.28.1a17)
+
+## [0.28.1a16](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a16) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a15...0.28.1a16)
+
+## [0.28.1a15](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a15) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a14...0.28.1a15)
+
+## [0.28.1a14](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a14) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a13...0.28.1a14)
+
+## [0.28.1a13](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a13) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a12...0.28.1a13)
+
+## [0.28.1a12](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a12) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a11...0.28.1a12)
+
+## [0.28.1a11](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a11) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a10...0.28.1a11)
+
+## [0.28.1a10](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a10) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a9...0.28.1a10)
+
+## [0.28.1a9](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a9) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a8...0.28.1a9)
+
+## [0.28.1a8](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a8) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a7...0.28.1a8)
+
+## [0.28.1a7](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a7) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a6...0.28.1a7)
+
+## [0.28.1a6](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a6) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a5...0.28.1a6)
+
+## [0.28.1a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a5) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a4...0.28.1a5)
+
+## [0.28.1a4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a4) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a3...0.28.1a4)
+
+## [0.28.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a3) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a2...0.28.1a3)
+
 ## [0.28.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.1a2) (2026-07-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.1a1...0.28.1a2)
@@ -330,10 +425,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a3...0.7.0a4)
 
-**Merged pull requests:**
-
-- chore\(deps\): update dependency python to 3.14 [\#102](https://github.com/OpenVoiceOS/ovos-date-parser/pull/102) ([renovate[bot]](https://github.com/apps/renovate))
-
 ## [0.7.0a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a3) (2025-12-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a2...0.7.0a3)
@@ -347,33 +438,17 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.7.0a1...0.7.0a2)
 
-**Merged pull requests:**
-
-- chore: Configure Renovate [\#101](https://github.com/OpenVoiceOS/ovos-date-parser/pull/101) ([renovate[bot]](https://github.com/apps/renovate))
-
 ## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.7.0a1) (2025-08-04)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.5...0.7.0a1)
-
-**Merged pull requests:**
-
-- feat: optional weekday in nice\_date [\#97](https://github.com/OpenVoiceOS/ovos-date-parser/pull/97) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.6.5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.5) (2025-08-04)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.5a1...0.6.5)
 
-**Merged pull requests:**
-
-- Release 0.6.5a1 [\#96](https://github.com/OpenVoiceOS/ovos-date-parser/pull/96) ([github-actions[bot]](https://github.com/apps/github-actions))
-
 ## [0.6.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.5a1) (2025-08-04)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.6.4...0.6.5a1)
-
-**Merged pull requests:**
-
-- fix: pt number grammatical gender [\#95](https://github.com/OpenVoiceOS/ovos-date-parser/pull/95) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.6.4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.6.4) (2025-08-03)
 

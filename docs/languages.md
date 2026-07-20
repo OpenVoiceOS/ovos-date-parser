@@ -93,6 +93,16 @@ plural declension may be imperfect (e.g. Slovenian dual forms).
 - Spoken numbers are understood in dates, times and durations
   ("peste trei zile", "douăzeci de minute").
 
+## Danish (da)
+
+- `nice_year` supports an explicit AD/CE marker via `nice_year(dt, "da",
+  ad=True)`, appending "e.Kr." the same way `bc=True` appends "f.Kr.". The two
+  are mutually exclusive; if both are passed, `bc` wins. Years are implicitly
+  AD when neither flag is set, as before.
+- The `ad` parameter is part of the generic `year_format` engine and is a
+  no-op for any locale that does not define an `"ad"` key in its
+  `year_format` resource, so it does not affect other languages.
+
 ## Known gaps
 
 - Relative *past* wording ("anoche", "bart", "last night") is not handled in

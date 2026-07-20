@@ -19,10 +19,62 @@ import unittest
 from ovos_config.locale import get_default_tz as default_timezone
 
 from ovos_date_parser import (
-    nice_time
+    nice_time, nice_year
 )
 
 class TestNiceDateFormat_da(unittest.TestCase):
+    def test_nice_year_da(self):
+        # ported from the previously-unused res/da/date_time_test.json
+        # fixtures (issue #7: missing Danish nice_year test coverage)
+        self.assertEqual(nice_year(datetime.datetime(2017, 1, 31), "da"),
+                         "to tusind og sytten")
+        self.assertEqual(nice_year(datetime.datetime(1984, 1, 31), "da"),
+                         "nitten hundrede og fire og firs")
+        self.assertEqual(nice_year(datetime.datetime(1906, 1, 31), "da"),
+                         "nitten hundrede og seks")
+        self.assertEqual(nice_year(datetime.datetime(1802, 1, 31), "da"),
+                         "atten hundrede og to")
+        self.assertEqual(nice_year(datetime.datetime(806, 1, 31), "da"),
+                         "otte hundrede og seks")
+        self.assertEqual(nice_year(datetime.datetime(1800, 1, 31), "da"),
+                         "atten hundrede")
+        self.assertEqual(nice_year(datetime.datetime(103, 1, 31), "da"),
+                         "et hundrede og tre")
+        self.assertEqual(nice_year(datetime.datetime(1000, 1, 31), "da"),
+                         "et tusind")
+        self.assertEqual(nice_year(datetime.datetime(2000, 1, 31), "da"),
+                         "to tusind")
+        self.assertEqual(
+            nice_year(datetime.datetime(99, 1, 31), "da", bc=True),
+            "ni og halvfems f.kr.")
+        self.assertEqual(
+            nice_year(datetime.datetime(5, 1, 31), "da", bc=True),
+            "fem f.kr.")
+        self.assertEqual(
+            nice_year(datetime.datetime(3120, 1, 31), "da", bc=True),
+            "tre tusind et hundrede og tyve f.kr.")
+
+    def test_nice_year_da_ad(self):
+        # issue #11: explicit AD/CE year notation for Danish
+        self.assertEqual(
+            nice_year(datetime.datetime(103, 1, 31), "da", ad=True),
+            "et hundrede og tre e.kr.")
+        self.assertEqual(
+            nice_year(datetime.datetime(806, 1, 31), "da", ad=True),
+            "otte hundrede og seks e.kr.")
+        # bc takes precedence if both are somehow passed together
+        self.assertEqual(
+            nice_year(datetime.datetime(103, 1, 31), "da", bc=True, ad=True),
+            "et hundrede og tre f.kr.")
+        # no explicit marker by default (implicit AD, as before)
+        self.assertEqual(
+            nice_year(datetime.datetime(1984, 1, 31), "da"),
+            "nitten hundrede og fire og firs")
+        # ad has no effect on locales without an "ad" resource key
+        self.assertEqual(
+            nice_year(datetime.datetime(103, 1, 31), "en", ad=True),
+            "one hundred three")
+
     def test_convert_times_da(self):
         dt = datetime.datetime(2017, 1, 31, 13, 22, 3, tzinfo=default_timezone())
 

@@ -2,6 +2,7 @@ import unittest
 from datetime import date, datetime
 
 from ovos_date_parser import (
+    AstroDate,
     Hemisphere, Season, DateTimeResolution,
     get_week_range, get_weekend_range, get_month_range, get_year_range,
     get_decade_range, get_century_range, get_millennium_range,
@@ -306,3 +307,106 @@ class TestDateOrdinals(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBeforePresentDeep(unittest.TestCase):
+    """Before Present past year 1: AstroDate instead of OverflowError.
+
+    Present = AD 1950 per Stuiver & Polach 1977 (papers/calendars/
+    stuiver_polach_1977_reporting_c14_data.pdf).
+    """
+
+    def test_in_range_unchanged(self):
+        # exact day arithmetic must match the old relativedelta behaviour
+        self.assertEqual(
+            get_date_ordinal(365, None, DateTimeResolution.BEFORE_PRESENT_DAY),
+            date(1949, 1, 1))
+        self.assertEqual(
+            get_date_ordinal(60, None, DateTimeResolution.BEFORE_PRESENT_DAY),
+            date(1949, 11, 2))
+        self.assertEqual(
+            get_date_ordinal(1, None, DateTimeResolution.BEFORE_PRESENT_MONTH),
+            date(1949, 12, 1))
+        self.assertEqual(
+            get_date_ordinal(25, None, DateTimeResolution.BEFORE_PRESENT_MONTH),
+            date(1947, 12, 1))
+        self.assertEqual(
+            get_date_ordinal(1, None, DateTimeResolution.BEFORE_PRESENT_CENTURY),
+            date(1850, 1, 1))
+        self.assertEqual(
+            get_date_ordinal(1, None,
+                             DateTimeResolution.BEFORE_PRESENT_MILLENNIUM),
+            date(950, 1, 1))
+        # weeks resolve to the Sunday of the containing week (legacy contract)
+        wk = get_date_ordinal(1, None, DateTimeResolution.BEFORE_PRESENT_WEEK)
+        self.assertEqual(wk.weekday(), 6)
+        self.assertEqual(wk, date(1949, 12, 25))
+
+    def test_boundary_year_one(self):
+        # 1949 years BP = AD 1: last representable date on this axis
+        self.assertEqual(
+            get_date_ordinal(1949, None,
+                             DateTimeResolution.BEFORE_PRESENT_YEAR),
+            date(1, 1, 1))
+        # one more year crosses into 1 BC = astronomical year 0
+        d = get_date_ordinal(1950, None,
+                             DateTimeResolution.BEFORE_PRESENT_YEAR)
+        self.assertEqual(d, AstroDate(0, 1, 1))
+        self.assertTrue(d.is_bc)
+        self.assertEqual(d.bc_year, 1)
+
+    def test_radiocarbon_depths(self):
+        # 10000 years BP -> 8051 BC (astronomical -8050)
+        d = get_date_ordinal(10000, None,
+                             DateTimeResolution.BEFORE_PRESENT_YEAR)
+        self.assertEqual(d, AstroDate(-8050, 1, 1))
+        self.assertEqual(d.bc_year, 8051)
+        self.assertEqual(
+            get_date_ordinal(4, None,
+                             DateTimeResolution.BEFORE_PRESENT_MILLENNIUM),
+            AstroDate(-2050, 1, 1))
+        self.assertEqual(
+            get_date_ordinal(25, None,
+                             DateTimeResolution.BEFORE_PRESENT_CENTURY),
+            AstroDate(-550, 1, 1))
+        self.assertEqual(
+            get_date_ordinal(200, None,
+                             DateTimeResolution.BEFORE_PRESENT_DECADE),
+            AstroDate(-50, 1, 1))
+
+    def test_deep_day_and_month_precision(self):
+        # exactly one proleptic-Gregorian year of days before AD 1:
+        # 1949 years + the 473 leap days between AD 1 and 1950 land on
+        # 0001-01-01; one more day is 1 BC December 31st
+        days_to_ad1 = (date(1950, 1, 1) - date(1, 1, 1)).days
+        self.assertEqual(
+            get_date_ordinal(days_to_ad1, None,
+                             DateTimeResolution.BEFORE_PRESENT_DAY),
+            date(1, 1, 1))
+        d = get_date_ordinal(days_to_ad1 + 1, None,
+                             DateTimeResolution.BEFORE_PRESENT_DAY)
+        self.assertEqual(d, AstroDate(0, 12, 31,
+                                      resolution=DateTimeResolution.DAY))
+        # month precision keeps its month across the boundary
+        d = get_date_ordinal(1950 * 12, None,
+                             DateTimeResolution.BEFORE_PRESENT_MONTH)
+        self.assertEqual(d, AstroDate(0, 1, 1,
+                                      resolution=DateTimeResolution.MONTH))
+        d = get_date_ordinal(1950 * 12 - 11, None,
+                             DateTimeResolution.BEFORE_PRESENT_MONTH)
+        self.assertEqual(d, AstroDate(0, 12, 1,
+                                      resolution=DateTimeResolution.MONTH))
+
+    def test_ordering_across_the_boundary(self):
+        newer = get_date_ordinal(1949, None,
+                                 DateTimeResolution.BEFORE_PRESENT_YEAR)
+        older = get_date_ordinal(1951, None,
+                                 DateTimeResolution.BEFORE_PRESENT_YEAR)
+        self.assertLess(older, newer)
+
+    def test_negative_bp_rejected(self):
+        for res in (DateTimeResolution.BEFORE_PRESENT_DAY,
+                    DateTimeResolution.BEFORE_PRESENT_YEAR,
+                    DateTimeResolution.BEFORE_PRESENT_MILLENNIUM):
+            with self.assertRaises(OverflowError):
+                get_date_ordinal(-1, None, res)

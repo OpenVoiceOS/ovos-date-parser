@@ -45,6 +45,16 @@ class TestNiceTimeNb(unittest.TestCase):
         self.assertEqual(nice_time(ANCHOR, "no", use_24hour=True),
                          "tretten null fire")
 
+    def test_no_alias_year_and_date(self):
+        # regression test: nice_year/nice_date/nice_date_time go through a
+        # separate generic JSON-driven engine from nice_time/extract_*, and
+        # previously had no "no" resource directory at all, raising a
+        # KeyError instead of falling back to Bokmål like the docs promise
+        self.assertEqual(nice_year(datetime(1984, 1, 1), "no"),
+                         nice_year(datetime(1984, 1, 1), "nb"))
+        self.assertEqual(nice_date(ANCHOR, "no"),
+                         nice_date(ANCHOR, "nb"))
+
 
 class TestNiceDateNb(unittest.TestCase):
     def test_weekday(self):

@@ -29,9 +29,9 @@ class TestNiceDateFormat_nl(unittest.TestCase):
                                13, 22, 3, tzinfo=default_timezone())
 
         self.assertEqual(nice_time(dt, lang="nl-nl"),
-                         "tweeentwintig over één")
+                         "tweeëntwintig over één")
         self.assertEqual(nice_time(dt, lang="nl-nl", use_ampm=True),
-                         "tweeentwintig over één 's middags")
+                         "tweeëntwintig over één 's middags")
         self.assertEqual(nice_time(dt, lang="nl-nl", speech=False),
                          "1:22")
         self.assertEqual(nice_time(dt, lang="nl-nl", speech=False,
@@ -45,10 +45,10 @@ class TestNiceDateFormat_nl(unittest.TestCase):
                          "13:22")
         self.assertEqual(nice_time(dt, lang="nl-nl", use_24hour=True,
                                    use_ampm=True),
-                         "dertien uur tweeentwintig")
+                         "dertien uur tweeëntwintig")
         self.assertEqual(nice_time(dt, lang="nl-nl", use_24hour=True,
                                    use_ampm=False),
-                         "dertien uur tweeentwintig")
+                         "dertien uur tweeëntwintig")
 
         dt = datetime.datetime(2017, 1, 31,
                                13, 0, 3, tzinfo=default_timezone())

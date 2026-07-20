@@ -8,12 +8,12 @@
     "default": "{number}"
   },
   "hundreds_format": {
-    "1": {"match": "^1\\d{2}$", "format": "et hundred"},
-    "2": {"match": "^\\d{3}$", "format": "{x_in_x00} hundred"},
+    "1": {"match": "^1\\d{2}$", "format": "et hundrede"},
+    "2": {"match": "^\\d{3}$", "format": "{x_in_x00} hundrede"},
     "default": "{number}"
   },
   "thousand_format": {
-    "1": {"match": "^1[1-9]\\d{2}$", "format": "{xx_in_xx00} hundred"},
+    "1": {"match": "^1[1-9]\\d{2}$", "format": "{xx_in_xx00} hundrede"},
     "2": {"match": "^1\\d{3}$", "format": "et tusind"},
     "3": {"match": "^\\d{4}$", "format": "{x_in_x000} tusind"},
     "default": "{number}"
@@ -120,7 +120,7 @@
     "30": "tredive",
     "40": "fyrre",
     "50": "halvtreds",
-    "60": "treds",
+    "60": "tres",
     "70": "halvfjerds",
     "80": "firs",
     "90": "halvfems",

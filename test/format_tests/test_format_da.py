@@ -170,10 +170,10 @@ class TestNiceDateFormat_da(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="da-dk"), "et femogfyrre")
 
         dt = datetime.datetime(2017, 1, 31, 4, 50, 00, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, lang="da-dk"), "fire halvtres")
+        self.assertEqual(nice_time(dt, lang="da-dk"), "fire halvtreds")
 
         dt = datetime.datetime(2017, 1, 31, 5, 55, 00, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, lang="da-dk"), "fem femoghalvtres")
+        self.assertEqual(nice_time(dt, lang="da-dk"), "fem femoghalvtreds")
 
         dt = datetime.datetime(2017, 1, 31, 5, 30, 00, tzinfo=default_timezone())
         self.assertEqual(nice_time(dt, lang="da-dk", use_ampm=True),

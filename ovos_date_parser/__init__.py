@@ -484,14 +484,19 @@ class DateTimeFormat:
 
     def cache(self, lang):
         lang = lang.split("-")[0]
+        # "no" is a common alias for Norwegian Bokmål (nb); the dedicated
+        # nice_time/extract_datetime/extract_duration functions already
+        # special-case it, but this generic JSON-driven engine (used by
+        # nice_year/nice_date/nice_date_time) didn't have its own resource
+        # directory for it - load Bokmål's data under the "no" key instead.
+        resource_lang = "nb" if lang == "no" else lang
         # TODO - find closest lang code
         if lang not in self.lang_config:
-            path = self.config_path + '/' + lang + '/date_time.json'
+            path = self.config_path + '/' + resource_lang + '/date_time.json'
             if not os.path.isfile(path):
                 LOG.warning(f"could not find '{path}'")
                 return
-            with open(self.config_path + '/' + lang + '/date_time.json',
-                      'r', encoding='utf8') as lang_config_file:
+            with open(path, 'r', encoding='utf8') as lang_config_file:
                 self.lang_config[lang] = json.loads(
                     lang_config_file.read())
 

@@ -166,7 +166,9 @@ generic word-table.
 | hu Hungarian    | 🚧 | ✅ |
 | it Italian      | ✅ | ✅ |
 | kab Kabyle      | ✅ | ✅ |
+| nb Norwegian Bokmål | ✅ | ✅ |
 | nl Dutch        | ✅ | ✅ |
+| nn Norwegian Nynorsk | ✅ | ✅ |
 | oc Occitan      | ✅ | ✅ |
 | pl Polish       | ✅ | ✅ |
 | pt Portuguese   | ✅ | ✅ |
@@ -202,7 +204,9 @@ generic word-table.
 | hu Hungarian    | ✅ | ✅ | ✅ | 🚧 |
 | it Italian      | ✅ | ✅ | ✅ | 🚧 |
 | kab Kabyle      | 🚧 | ✅ | ✅ | 🚧 |
+| nb Norwegian Bokmål | ✅ | ✅ | ✅ | 🚧 |
 | nl Dutch        | ✅ | ✅ | ✅ | 🚧 |
+| nn Norwegian Nynorsk | ✅ | ✅ | ✅ | 🚧 |
 | oc Occitan      | ✅ | ✅ | ✅ | 🚧 |
 | pl Polish       | ✅ | ✅ | ✅ | 🚧 |
 | pt Portuguese   | ✅ | ✅ | ✅ | 🚧 |

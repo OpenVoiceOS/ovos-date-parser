@@ -78,7 +78,9 @@ class TestNiceDateFormat_da(unittest.TestCase):
         self.assertEqual(
             nice_time(datetime.datetime(2017, 1, 31, 23, 45), lang="da",
                       use_ampm=True),
-            "elve femogfyrre om natten")
+            # Danish 11 is "elleve"; "elve" is not a standard spelling and
+            # was corrected in the number parser
+            "elleve femogfyrre om natten")
     def test_nice_date_ordinal_days_da(self):
         # issue #4/#9 follow-up (flagged by review on #257): the
         # day-of-month ordinal table is separate from the year/hundreds

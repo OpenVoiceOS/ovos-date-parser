@@ -19,11 +19,128 @@ import unittest
 from ovos_config.locale import get_default_tz as default_timezone
 
 from ovos_date_parser import (
-    nice_time
+    nice_time, nice_year, nice_date, nice_date_time
 )
 
 
 class TestNiceDateFormat_sv(unittest.TestCase):
+    def test_nice_year_sv(self):
+        # ported and verified against res/sv/date_time_test.json fixtures
+        # (issue #36: missing Swedish nice_year/nice_date test coverage)
+        self.assertEqual(
+            nice_year(datetime.datetime(1, 1, 31), "sv", bc=True),
+            "ett före kristus")
+        self.assertEqual(
+            nice_year(datetime.datetime(10, 1, 31), "sv", bc=True),
+            "tio före kristus")
+        self.assertEqual(
+            nice_year(datetime.datetime(92, 1, 31), "sv", bc=True),
+            "nittio två före kristus")
+        self.assertEqual(
+            nice_year(datetime.datetime(803, 1, 31), "sv"),
+            "åtta hundra tre")
+        self.assertEqual(
+            nice_year(datetime.datetime(811, 1, 31), "sv"),
+            "åtta hundra elva")
+        self.assertEqual(
+            nice_year(datetime.datetime(454, 1, 31), "sv"),
+            "fyra hundra femtio fyra")
+        self.assertEqual(
+            nice_year(datetime.datetime(1005, 1, 31), "sv"),
+            "ett tusen fem")
+        self.assertEqual(
+            nice_year(datetime.datetime(1012, 1, 31), "sv"),
+            "tio tolv")
+        self.assertEqual(
+            nice_year(datetime.datetime(1046, 1, 31), "sv"),
+            "tio fyrtio sex")
+        self.assertEqual(
+            nice_year(datetime.datetime(1807, 1, 31), "sv"),
+            "arton noll sju")
+        self.assertEqual(
+            nice_year(datetime.datetime(1717, 1, 31), "sv"),
+            "sjutton sjutton")
+        self.assertEqual(
+            nice_year(datetime.datetime(1988, 1, 31), "sv"),
+            "nitton åttio åtta")
+        self.assertEqual(
+            nice_year(datetime.datetime(2009, 1, 31), "sv"),
+            "två tusen nio")
+        self.assertEqual(
+            nice_year(datetime.datetime(2018, 1, 31), "sv"),
+            "tjugo arton")
+        self.assertEqual(
+            nice_year(datetime.datetime(2021, 1, 31), "sv"),
+            "tjugo tjugo ett")
+        self.assertEqual(
+            nice_year(datetime.datetime(2030, 1, 31), "sv"),
+            "tjugo trettio")
+        self.assertEqual(
+            nice_year(datetime.datetime(2100, 1, 31), "sv"),
+            "tjugo ett hundra")
+        self.assertEqual(
+            nice_year(datetime.datetime(1000, 1, 31), "sv"),
+            "ett tusen")
+        self.assertEqual(
+            nice_year(datetime.datetime(2000, 1, 31), "sv"),
+            "två tusen")
+        self.assertEqual(
+            nice_year(datetime.datetime(3120, 1, 31), "sv", bc=True),
+            "trettio ett tjugo före kristus")
+        self.assertEqual(
+            nice_year(datetime.datetime(3241, 1, 31), "sv", bc=True),
+            "trettio två fyrtio ett före kristus")
+        self.assertEqual(
+            nice_year(datetime.datetime(5200, 1, 31), "sv"),
+            "femtio två hundra")
+        self.assertEqual(
+            nice_year(datetime.datetime(1100, 1, 31), "sv"),
+            "elva hundra")
+        self.assertEqual(
+            nice_year(datetime.datetime(2100, 1, 31), "sv"),
+            "tjugo ett hundra")
+
+    def test_nice_date_sv(self):
+        # ported and verified against res/sv/date_time_test.json fixtures
+        self.assertEqual(
+            nice_date(datetime.datetime(2017, 1, 31, 0, 2, 3), "sv", now=None),
+            "tisdag, den trettiförsta januari, tjugo sjutton")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2017, 1, 1, 0, 2, 3)),
+            "söndag, den fjärde februari, tjugo arton")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2018, 1, 1, 0, 2, 3)),
+            "söndag, den fjärde februari")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2018, 2, 1, 0, 2, 3)),
+            "söndag, den fjärde")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2018, 2, 3, 0, 2, 3)),
+            "imorgon")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2018, 2, 4, 0, 2, 3)),
+            "idag")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2018, 2, 5, 0, 2, 3)),
+            "igår")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2018, 2, 6, 0, 2, 3)),
+            "söndag, den fjärde februari")
+        self.assertEqual(
+            nice_date(datetime.datetime(2018, 2, 4, 0, 2, 3), "sv", now=datetime.datetime(2019, 2, 6, 0, 2, 3)),
+            "söndag, den fjärde februari, tjugo arton")
+
+    def test_nice_date_time_sv(self):
+        # ported and verified against res/sv/date_time_test.json fixtures
+        self.assertEqual(
+            nice_date_time(datetime.datetime(2017, 1, 31, 13, 22, 3), "sv",
+                           now=None, use_24hour=False, use_ampm=True),
+            "tisdag, den trettiförsta januari, tjugo sjutton klockan tjugotvå minuter över ett på eftermiddagen")
+        self.assertEqual(
+            nice_date_time(datetime.datetime(2017, 1, 31, 13, 22, 3), "sv",
+                           now=None, use_24hour=True, use_ampm=False),
+            "tisdag, den trettiförsta januari, tjugo sjutton klockan tretton tjugotvå")
+
     def test_convert_times_sv(self):
         dt = datetime.datetime(2017, 1, 31, 13, 22, 3, tzinfo=default_timezone())
 

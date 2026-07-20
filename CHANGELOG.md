@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.6a1...0.28.7a1)
+
+**Merged pull requests:**
+
+- fix: keep Hebrew date fields masculine via explicit gender kwarg [\#268](https://github.com/OpenVoiceOS/ovos-date-parser/pull/268) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.28.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.6a1) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.5a1...0.28.6a1)
@@ -410,10 +418,6 @@
 ## [0.11.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.11.0a2) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.11.0a1...0.11.0a2)
-
-**Merged pull requests:**
-
-- feat: language parity test and display duration for polish, russian and ukrainian [\#116](https://github.com/OpenVoiceOS/ovos-date-parser/pull/116) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.11.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.11.0a1) (2026-07-16)
 

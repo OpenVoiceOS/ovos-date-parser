@@ -23,6 +23,63 @@ from ovos_date_parser import (
 )
 
 class TestNiceDateFormat_da(unittest.TestCase):
+    def test_nice_time_da_comprehensive(self):
+        # issue #7: morning (AM) period, 24-hour format, midnight/noon
+        # edge cases, and common minute intervals (00/15/30/45)
+
+        # midnight / noon are special-cased words in speech mode
+        midnight = datetime.datetime(2017, 1, 31, 0, 0, 0)
+        noon = datetime.datetime(2017, 1, 31, 12, 0, 0)
+        self.assertEqual(nice_time(midnight, lang="da"), "midnat")
+        self.assertEqual(nice_time(midnight, lang="da", use_ampm=True),
+                         "midnat")
+        self.assertEqual(nice_time(noon, lang="da"), "middag")
+        self.assertEqual(nice_time(noon, lang="da", use_ampm=True),
+                         "middag")
+        # the midnat/middag special case only applies to 12-hour speech;
+        # 24-hour mode and display mode just show the raw hour/clock
+        self.assertEqual(nice_time(midnight, lang="da", use_24hour=True),
+                         "nul")
+        self.assertEqual(nice_time(noon, lang="da", use_24hour=True),
+                         "tolv")
+        self.assertEqual(nice_time(midnight, lang="da", speech=False),
+                         "12:00")
+        self.assertEqual(nice_time(midnight, lang="da", speech=False,
+                                   use_24hour=True), "00:00")
+        self.assertEqual(nice_time(noon, lang="da", speech=False,
+                                   use_24hour=True), "12:00")
+
+        # morning (AM) period, quarter-hour intervals, use_ampm=True
+        for minute, spoken_minute in ((0, ""), (15, "femten"),
+                                      (30, "tredive"),
+                                      (45, "femogfyrre")):
+            dt = datetime.datetime(2017, 1, 31, 8, minute, 0)
+            expected = "otte" + (f" {spoken_minute}" if spoken_minute else "")
+            expected += " om morgenen"
+            self.assertEqual(nice_time(dt, lang="da", use_ampm=True),
+                             expected)
+
+        # 24-hour format, quarter-hour intervals, both morning and evening
+        for hour, hour_word in ((8, "otte"), (20, "tyve")):
+            for minute, spoken_minute in ((0, ""), (15, "femten"),
+                                          (30, "tredive"),
+                                          (45, "femogfyrre")):
+                dt = datetime.datetime(2017, 1, 31, hour, minute, 0)
+                expected = hour_word + (
+                    f" {spoken_minute}" if spoken_minute else "")
+                self.assertEqual(
+                    nice_time(dt, lang="da", use_24hour=True), expected)
+
+        # night period (00:xx-02:59 and 22:00-23:59) for completeness
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 2, 30), lang="da",
+                      use_ampm=True),
+            "to tredive om natten")
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 23, 45), lang="da",
+                      use_ampm=True),
+            "elve femogfyrre om natten")
+
     def test_convert_times_da(self):
         dt = datetime.datetime(2017, 1, 31, 13, 22, 3, tzinfo=default_timezone())
 

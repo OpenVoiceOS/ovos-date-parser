@@ -134,7 +134,12 @@ def nice_year_he(dt, bc=False):
     Returns:
         (str): the formatted year
     """
-    year = pronounce_number_he(dt.year)
+    # Hebrew date fields keep the masculine forms this formatter has always
+    # produced; the number parser now defaults to the feminine abstract
+    # counting form, so the gender is requested explicitly here. Whether a
+    # year (שנה, feminine) or day-of-month should instead be feminine is a
+    # separate Hebrew-dates question, deliberately not changed here.
+    year = pronounce_number_he(dt.year, feminine=False)
     if bc:
         return f"{year} לפני הספירה"
     return year
@@ -173,7 +178,7 @@ def nice_date_he(dt: datetime, now: datetime = None, include_weekday=True):
     Returns:
         (str): the formatted date
     """
-    day = pronounce_number_he(dt.day)
+    day = pronounce_number_he(dt.day, feminine=False)
     if now is not None:
         if dt.year == now.year and dt.month == now.month:
             if dt.day == now.day:

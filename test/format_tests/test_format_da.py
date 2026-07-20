@@ -19,10 +19,24 @@ import unittest
 from ovos_config.locale import get_default_tz as default_timezone
 
 from ovos_date_parser import (
-    nice_time, nice_year
+    nice_time, nice_date, nice_year
 )
 
 class TestNiceDateFormat_da(unittest.TestCase):
+    def test_nice_date_ordinal_days_da(self):
+        # issue #4/#9 follow-up (flagged by review on #257): the
+        # day-of-month ordinal table is separate from the year/hundreds
+        # table fixed there, and had its own spelling bugs
+        self.assertEqual(
+            nice_date(datetime.datetime(2017, 1, 3), "da"),
+            "tirsdag, den tredje januar, to tusind og sytten")
+        self.assertEqual(
+            nice_date(datetime.datetime(2017, 1, 9), "da"),
+            "mandag, den niende januar, to tusind og sytten")
+        self.assertEqual(
+            nice_date(datetime.datetime(2017, 1, 11), "da"),
+            "onsdag, den ellevte januar, to tusind og sytten")
+
     def test_nice_year_da(self):
         # ported from the previously-unused res/da/date_time_test.json
         # fixtures (issue #7: missing Danish nice_year test coverage)

@@ -484,14 +484,19 @@ class DateTimeFormat:
 
     def cache(self, lang):
         lang = lang.split("-")[0]
+        # "no" is a common alias for Norwegian Bokmål (nb); the dedicated
+        # nice_time/extract_datetime/extract_duration functions already
+        # special-case it, but this generic JSON-driven engine (used by
+        # nice_year/nice_date/nice_date_time) didn't have its own resource
+        # directory for it - load Bokmål's data under the "no" key instead.
+        resource_lang = "nb" if lang == "no" else lang
         # TODO - find closest lang code
         if lang not in self.lang_config:
-            path = self.config_path + '/' + lang + '/date_time.json'
+            path = self.config_path + '/' + resource_lang + '/date_time.json'
             if not os.path.isfile(path):
                 LOG.warning(f"could not find '{path}'")
                 return
-            with open(self.config_path + '/' + lang + '/date_time.json',
-                      'r', encoding='utf8') as lang_config_file:
+            with open(path, 'r', encoding='utf8') as lang_config_file:
                 self.lang_config[lang] = json.loads(
                     lang_config_file.read())
 
@@ -643,7 +648,7 @@ class DateTimeFormat:
         return self.lang_config[lang]['date_time_format']['date_time'].format(
             formatted_date=date_str, formatted_time=time_str)
 
-    def year_format(self, dt, lang, bc):
+    def year_format(self, dt, lang, bc, ad=False):
         lang = lang.split("-")[0]
         number_tuple = self._number_strings(dt.year, lang)
         formatted_bc = (
@@ -656,7 +661,7 @@ class DateTimeFormat:
             dt.year, number_tuple, lang, formatted_decade, formatted_hundreds)
 
         s = self._format_string(dt.year, 'year_format', lang)
-        return re.sub(' +', ' ',
+        result = re.sub(' +', ' ',
                       s.format(
                           year=str(dt.year),
                           century=str(int(dt.year / 100)),
@@ -665,6 +670,15 @@ class DateTimeFormat:
                           formatted_decade=formatted_decade,
                           formatted_thousand=formatted_thousand,
                           bc=formatted_bc)).strip()
+        # explicit AD/CE marker, mutually exclusive with bc.
+        # only applied for locales that define an "ad" suffix in their
+        # year_format resource (e.g. "e.Kr." in Danish); a no-op elsewhere
+        # so existing languages/callers are unaffected.
+        if ad and not bc:
+            formatted_ad = self.lang_config[lang]['year_format'].get('ad', '')
+            if formatted_ad:
+                result = f"{result} {formatted_ad}"
+        return result
 
 
 date_time_format = DateTimeFormat(os.path.join(os.path.dirname(__file__), 'res'))
@@ -854,7 +868,7 @@ def nice_month(dt, lang, date_format='MDY'):
     return month.capitalize()
 
 
-def nice_year(dt, lang, bc=False):
+def nice_year(dt, lang, bc=False, ad=False):
     """
         Format a datetime to a pronounceable year
 
@@ -866,6 +880,10 @@ def nice_year(dt, lang, bc=False):
                                   the default language will be used.
             bc (bool) pust B.C. after the year (python does not support dates
                 B.C. in datetime)
+            ad (bool) append an explicit AD/CE marker after the year (e.g.
+                "e.Kr." in Danish). Mutually exclusive with bc. Only has an
+                effect for locales that define an "ad" suffix in their
+                year_format resource; a no-op otherwise.
         Returns:
             (str): The formatted year string
     """
@@ -895,7 +913,7 @@ def nice_year(dt, lang, bc=False):
     if lang.startswith("et"):
         return nice_year_et(dt, bc)
     date_time_format.cache(lang)
-    return date_time_format.year_format(dt, lang, bc)
+    return date_time_format.year_format(dt, lang, bc, ad)
 
 
 def get_date_strings(dt, lang, date_format=None, time_format="full"):

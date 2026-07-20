@@ -137,10 +137,13 @@ Date and time combined ("tuesday, june fifth at half past one"). `now`,
 Day number, optionally with the month, ordered by `date_format` (`'DMY'`,
 `'MDY'` or `'YMD'`).
 
-### `nice_weekday(dt, lang)` / `nice_month(dt, lang, date_format='MDY')` / `nice_year(dt, lang, bc=False)`
+### `nice_weekday(dt, lang)` / `nice_month(dt, lang, date_format='MDY')` / `nice_year(dt, lang, bc=False, ad=False)`
 
 Individual components in speakable form. `nice_year` appends a B.C. marker when
-`bc=True` (Python `datetime` cannot itself represent B.C. years).
+`bc=True` (Python `datetime` cannot itself represent B.C. years). Some locales
+(currently Danish) also support an explicit A.D./C.E. marker via `ad=True`;
+`bc` takes precedence if both are set. `ad` is a no-op for locales that don't
+define one.
 
 ```python
 >>> nice_year(datetime(1984, 1, 1), "en")

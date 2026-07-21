@@ -212,14 +212,24 @@ def extract_datetime_nb(text, anchorDate=None, default_time=None):
             used += 1
         elif word == "dag" or word == "dager":
             if wordPrev and wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
+                # "N ... siden" = N periods in the past (Bokmålsordboka)
+                if wordNext == "siden":
+                    dayOffset -= int(wordPrev)
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
         elif (word == "uke" or word == "uker") and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
+                # "N ... siden" = N periods in the past (Bokmålsordboka)
+                if wordNext == "siden":
+                    dayOffset -= int(wordPrev) * 7
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev) * 7
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:5] == "neste":
                 dayOffset = 7
                 start -= 1
@@ -230,9 +240,14 @@ def extract_datetime_nb(text, anchorDate=None, default_time=None):
                 used = 2
         elif (word == "måned" or word == "måneder") and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
+                # "N ... siden" = N periods in the past (Bokmålsordboka)
+                if wordNext == "siden":
+                    monthOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    monthOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:5] == "neste":
                 monthOffset = 1
                 start -= 1
@@ -243,9 +258,14 @@ def extract_datetime_nb(text, anchorDate=None, default_time=None):
                 used = 2
         elif word == "år" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
+                # "N ... siden" = N periods in the past (Bokmålsordboka)
+                if wordNext == "siden":
+                    yearOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    yearOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:5] == "neste":
                 yearOffset = 1
                 start -= 1

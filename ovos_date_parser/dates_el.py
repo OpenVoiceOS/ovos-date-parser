@@ -358,6 +358,10 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
                        "ο", "ενασ", "μια", "ενα", "καποια", "καποιο"]
         for word in noise_words:
             s = s.replace(" " + word + " ", " ")
+
+        # "πριν από N" and "πριν N" are the same past idiom; fold the
+        # optional από so the marker sits directly before the number
+        s = re.sub(r"\bπριν απο\b", "πριν", s)
         return s
 
     def date_found():
@@ -443,9 +447,15 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
         elif word == "μερα":
             if wordPrev and wordPrev[0].isdigit() and \
                     wordNext not in months and wordNext not in monthsShort:
-                dayOffset += int(wordPrev)
-                start -= 1
-                used += 2
+                # "πριν (από) N ..." = N periods in the past (Τριανταφυλλίδης)
+                if wordPrevPrev == "πριν":
+                    dayOffset -= int(wordPrev)
+                    start -= 2
+                    used += 3
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used += 2
             elif wordNext and wordNext[0].isdigit() and \
                     wordNextNext not in months and \
                     wordNextNext not in monthsShort:
@@ -454,9 +464,15 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
                 used += 2
         elif word == "εβδομαδα" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
+                # "πριν (από) N ..." = N periods in the past (Τριανταφυλλίδης)
+                if wordPrevPrev == "πριν":
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 2
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     dayOffset = 7
@@ -479,9 +495,15 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
                     used = 2
         elif word == "μηνα" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "πριν (από) N ..." = N periods in the past (Τριανταφυλλίδης)
+                if wordPrevPrev == "πριν":
+                    monthOffset = -int(wordPrev)
+                    start -= 2
+                    used = 3
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     monthOffset = 1
@@ -504,9 +526,15 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
                     used = 2
         elif word == "χρονο" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "πριν (από) N ..." = N periods in the past (Τριανταφυλλίδης)
+                if wordPrevPrev == "πριν":
+                    yearOffset = -int(wordPrev)
+                    start -= 2
+                    used = 3
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     yearOffset = 1

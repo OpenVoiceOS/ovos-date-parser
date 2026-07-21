@@ -357,9 +357,15 @@ def extract_datetime_ro(text, anchorDate=None, default_time=None):
             if (wordPrev and wordPrev[0].isdigit() and
                     wordNext not in months and
                     wordNext not in monthsShort):
-                dayOffset += int(wordPrev)
-                start -= 1
-                used += 2
+                # "acum N ..." = N periods in the past (DEX/dexonline)
+                if wordPrevPrev == "acum":
+                    dayOffset -= int(wordPrev)
+                    start -= 2
+                    used += 3
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used += 2
             elif (wordNext and wordNext[0].isdigit() and
                   wordNextNext not in months and
                   wordNextNext not in monthsShort):
@@ -369,9 +375,15 @@ def extract_datetime_ro(text, anchorDate=None, default_time=None):
 
         elif word == "săptămână" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
+                # "acum N ..." = N periods in the past (DEX/dexonline)
+                if wordPrevPrev == "acum":
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 2
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     dayOffset = 7
@@ -395,9 +407,15 @@ def extract_datetime_ro(text, anchorDate=None, default_time=None):
         # 10 luni, luna viitoare, luna trecută
         elif word == "lună" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "acum N ..." = N periods in the past (DEX/dexonline)
+                if wordPrevPrev == "acum":
+                    monthOffset = -int(wordPrev)
+                    start -= 2
+                    used = 3
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     monthOffset = 1
@@ -421,9 +439,15 @@ def extract_datetime_ro(text, anchorDate=None, default_time=None):
         # 5 ani, anul viitor, anul trecut
         elif word == "an" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "acum N ..." = N periods in the past (DEX/dexonline)
+                if wordPrevPrev == "acum":
+                    yearOffset = -int(wordPrev)
+                    start -= 2
+                    used = 3
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     yearOffset = 1

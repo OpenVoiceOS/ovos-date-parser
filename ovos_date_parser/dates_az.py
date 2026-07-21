@@ -409,18 +409,30 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         # parse 5 gün, 10 həftə, keçən həftə, gələn həftə
         elif word == "gün":
             if wordPrev and wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
-                start -= 1
-                used = 2
-                if wordNext == "sonra":
-                    used += 1
+                # "N gün əvvəl/qabaq" = N days in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    dayOffset -= int(wordPrev)
+                    start -= 1
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used = 2
+                    if wordNext == "sonra":
+                        used += 1
         elif word == "həftə" and not fromFlag and wordPrev:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
-                if wordNext == "sonra":
-                    used += 1
+                # "N həftə əvvəl/qabaq" = N weeks in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 1
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
+                    if wordNext == "sonra":
+                        used += 1
             elif wordPrev == "gələn":
                 dayOffset = 7
                 start -= 1
@@ -434,9 +446,15 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         # parse 10 months, next month, last month
         elif word == "ay" and not fromFlag and wordPrev:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "N ay əvvəl/qabaq" = N months in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    monthOffset = -int(wordPrev)
+                    start -= 1
+                    used = 3
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordPrev == "gələn":
                 monthOffset = 1
                 start -= 1
@@ -448,9 +466,15 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         # parse 5 il, gələn il, keçən il
         elif word == "il" and not fromFlag and wordPrev:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "N il əvvəl/qabaq" = N years in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    yearOffset = -int(wordPrev)
+                    start -= 1
+                    used = 3
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordPrev == "gələn":
                 yearOffset = 1
                 start -= 1

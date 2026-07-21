@@ -197,14 +197,24 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dagen":
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    dayOffset -= int(wordPrev)
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
         elif word == "week" or word == "weken" and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    dayOffset -= int(wordPrev) * 7
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev) * 7
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "volgende":
                 dayOffset = 7
                 start -= 1
@@ -216,9 +226,14 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 # parse 10 months, next month, last month
         elif (word == "maand" or word == "maanden") and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    monthOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    monthOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "volgende":
                 monthOffset = 1
                 start -= 1
@@ -230,9 +245,14 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         # parse 5 years, next year, last year
         elif (word == "jaar" or word == "jaren") and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    yearOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    yearOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "volgend":
                 yearOffset = 1
                 start -= 1

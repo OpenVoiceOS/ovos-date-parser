@@ -216,15 +216,27 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word[:3] == "tag" and len(word) <= 5:
             num = is_number_de(wordPrev)
             if num:
-                dayOffset += num
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    dayOffset -= num
+                    start -= 2
+                    used = 3
+                else:
+                    dayOffset += num
+                    start -= 1
+                    used = 2
         elif word[:5] == "woche" and len(word) <= 7 and not fromFlag:
             num = is_number_de(wordPrev)
             if num:
-                dayOffset += num * 7
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    dayOffset -= num * 7
+                    start -= 2
+                    used = 3
+                else:
+                    dayOffset += num * 7
+                    start -= 1
+                    used = 2
             elif wordPrev[:6] == "nächst":
                 dayOffset = 7
                 start -= 1
@@ -237,9 +249,15 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word[:5] == "monat" and len(word) <= 7 and not fromFlag:
             num = is_number_de(wordPrev)
             if num:
-                monthOffset = num
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    monthOffset = -num
+                    start -= 2
+                    used = 3
+                else:
+                    monthOffset = num
+                    start -= 1
+                    used = 2
             elif wordPrev[:6] == "nächst":
                 monthOffset = 1
                 start -= 1
@@ -252,9 +270,15 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word[:4] == "jahr" and len(word) <= 6 and not fromFlag:
             num = is_number_de(wordPrev)
             if num:
-                yearOffset = num
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    yearOffset = -num
+                    start -= 2
+                    used = 3
+                else:
+                    yearOffset = num
+                    start -= 1
+                    used = 2
             elif wordPrev[:6] == "nächst":
                 yearOffset = 1
                 start -= 1

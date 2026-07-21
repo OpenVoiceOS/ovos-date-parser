@@ -501,6 +501,11 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 day_offset = -7
                 start -= 1
                 used = 2
+        elif word == "неделя" and not from_flag and is_numeric(word_prev) and word_next == "назад":
+            if word_prev[0].isdigit():
+                day_offset = -int(word_prev) * 7
+                start -= 1
+                used = 3
         elif word == "месяц" and not from_flag and preposition in ["через", "на"]:
             if word_prev[0].isdigit():
                 month_offset = int(word_prev)
@@ -514,6 +519,11 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 month_offset = -1
                 start -= 1
                 used = 2
+        elif word == "месяц" and not from_flag and is_numeric(word_prev) and word_next == "назад":
+            if word_prev[0].isdigit():
+                month_offset = -int(word_prev)
+                start -= 1
+                used = 3
         # parse 5 years, next year, last year
         elif word == "год" and not from_flag and preposition in ["через", "на"]:
             if word_prev[0].isdigit():
@@ -531,6 +541,11 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
             elif word_prev == "через":
                 year_offset = 1
                 used = 1
+        elif word == "год" and not from_flag and is_numeric(word_prev) and word_next == "назад":
+            if word_prev[0].isdigit():
+                year_offset = -int(word_prev)
+                start -= 1
+                used = 3
         # parse Monday, Tuesday, etc., and next Monday,
         # last Tuesday, etc.
         elif word in days and not from_flag:

@@ -155,6 +155,8 @@ _MINUTE_UNITS_FI = ("minuutti", "minuuttia", "minuutin")
 _SECOND_UNITS_FI = ("sekunti", "sekuntia", "sekunnin")
 # adpositions that mark "in X <unit>" / "after"
 _AFTER_MARKERS_FI = ("kuluttua", "päästä", "päähän")
+# postposition that marks "X <unit> ago"
+_AGO_MARKERS_FI = ("sitten",)
 _NEXT_FI = ("ensi", "seuraava", "seuraavana", "tuleva", "tulevana")
 _LAST_FI = ("viime", "edellinen", "edellisenä", "mennyt", "menneenä")
 
@@ -396,6 +398,31 @@ def extract_datetime_fi(text, anchorDate=None, default_time=None):
                     min_offset += num
                 elif unit in _SECOND_UNITS_FI:
                     sec_offset += num
+                else:
+                    continue
+                consumed[idx] = consumed[idx - 1] = consumed[idx - 2] = True
+                found = True
+                continue
+
+        # "N <unit> sitten" (X <unit> ago; unit in the partitive)
+        if word in _AGO_MARKERS_FI and idx >= 2:
+            unit = words[idx - 1]
+            num = _offset_number_fi(words[idx - 2])
+            if num is not None:
+                if unit in _DAY_UNITS_FI:
+                    day_offset = (day_offset or 0) - int(num)
+                elif unit in _WEEK_UNITS_FI:
+                    week_offset -= int(num)
+                elif unit in _MONTH_UNITS_FI:
+                    month_offset -= int(num)
+                elif unit in _YEAR_UNITS_FI:
+                    year_offset -= int(num)
+                elif unit in _HOUR_UNITS_FI:
+                    min_offset -= num * 60
+                elif unit in _MINUTE_UNITS_FI:
+                    min_offset -= num
+                elif unit in _SECOND_UNITS_FI:
+                    sec_offset -= num
                 else:
                     continue
                 consumed[idx] = consumed[idx - 1] = consumed[idx - 2] = True

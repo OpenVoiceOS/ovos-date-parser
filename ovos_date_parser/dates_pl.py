@@ -477,7 +477,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 for ordinal in ordinals:
                     if ordinal in word:
                         word = word.replace(ordinal, "")
-            wordList[idx] = word
+            wordList[idx] = _TIME_UNITS_NORMALIZATION.get(word, word)
 
         return wordList
 
@@ -534,6 +534,12 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
             used += 2
         if word == "temu" and dayOffset:
             dayOffset = - dayOffset
+            used += 1
+        elif word == "temu" and monthOffset:
+            monthOffset = - monthOffset
+            used += 1
+        elif word == "temu" and yearOffset:
+            yearOffset = - yearOffset
             used += 1
         if word == "teraz" and not datestr:
             resultStr = " ".join(words[idx + 1:])

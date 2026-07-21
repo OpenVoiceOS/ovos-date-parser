@@ -303,7 +303,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
         # the "de"/"d'" elision strips their connectors
         synonyms = {
             "vinient": ["que viene", "que vien"],
-            "pasadoman": ["pasau manyana", "pasau mañana",
+            "pasadoman": ["dimpués de manyana", "dimpués de mañana", "pasau manyana", "pasau mañana",
                           "dimpues de maitín", "despús demá",
                           "l'atro maitín"],
             "antesahiere": ["antes d'ahiere", "antes d'ahier",

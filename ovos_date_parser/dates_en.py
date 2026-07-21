@@ -1336,7 +1336,7 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     return _extract_datetime_en(text, anchorDate, default_time)[0]
 
 
-def extract_date_en(text, ref_date=None):
+def extract_date_en(text, ref_date=None, hemisphere=None):
     """Extract only the DATE component of a natural-language phrase.
 
     Runs the exact same clean -> date-scan -> time-scan -> assembly pipeline as
@@ -1368,12 +1368,20 @@ def extract_date_en(text, ref_date=None):
     hold are returned as :class:`~ovos_date_parser.eras.AstroDate` instead
     of failing; everything else stays a plain ``datetime.date``.
 
+    Calendar-scoped ordinals and seasons are recognised next ("the 3rd
+    week of june", "the 100th day of the year", "the first decade of the
+    21st century", "summer of 1969", "next winter" -- see
+    :mod:`ovos_date_parser.scoped_en`); ``hemisphere`` selects the season
+    tables (default northern).
+
     Returns:
         tuple[datetime.date | AstroDate, str] | None: ``(date, remainder)``
         when a date component matched, otherwise ``None``.  Never raises on
         garbage input.
     """
     from ovos_date_parser.eras_en import extract_era_date_en
+    from ovos_date_parser.ranges import Hemisphere
+    from ovos_date_parser.scoped_en import extract_scoped_date_en
     era = extract_era_date_en(text)
     if era is not None:
         value, remainder, _resolution = era
@@ -1382,6 +1390,13 @@ def extract_date_en(text, ref_date=None):
         return value, remainder
 
     anchorDate = _coerce_anchor(ref_date)
+    scoped = extract_scoped_date_en(text, anchorDate,
+                                    hemisphere=hemisphere or
+                                    Hemisphere.NORTH)
+    if scoped is not None:
+        value, remainder, _resolution = scoped
+        return value, remainder
+
     try:
         result, has_date, _has_time = _extract_datetime_en(text, anchorDate)
     except Exception:

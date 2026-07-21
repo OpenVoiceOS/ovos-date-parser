@@ -1,21 +1,41 @@
 """Language-agnostic era-phrase scanning machinery.
 
-A language module contributes only *vocabulary*: an ordered list of
-``(era_key, compiled_pattern)`` pairs plus an optional text normaliser
-(typically the language's spelled-number-to-digit function).  Everything
-else — value extraction, epoch resolution, the in-range/AstroDate return
-rule, remainder cleanup — lives here, so adding a language never means
-re-implementing era logic (the same core/vocabulary split used by the
-number parser's shared extractor engine).
+Surface forms are **translatable resources**: they live in ``.voc`` phrase
+sets under ``ovos_date_parser/locale/<lang>/`` and are loaded through
+``ovos-spec-tools`` (the OVOS-wide convention for localisable files), so
+adding or improving a language's era phrasing is a translation task, not a
+code change.  :func:`load_era_patterns` composes those phrase sets into
+the ordered pattern table the scanner consumes; a language module
+contributes only its spelled-number normaliser and any genuinely
+non-translatable guard patterns (e.g. English bare "HE" needing a 5+
+digit year so the pronoun never matches).
 
-Pattern contract:
+Recognised phrase-set files (all optional — a missing file just disables
+that form for the language):
+
+* ``era_bc_suffix.voc`` — "44 <form>" and "<year-ref> 44 <form>" -> BC
+* ``era_ad_prefix.voc`` / ``era_ad_suffix.voc`` — "<form> 500" / "500
+  <form>" -> common era
+* ``era_bp_suffix.voc`` — "2000 <form>" -> radiocarbon Before Present
+* ``era_unix_prefix.voc`` / ``era_julian_prefix.voc`` — fixed-epoch
+  counts ("unix time N", "julian day N")
+* ``era_holocene_prefix.voc`` / ``era_holocene_suffix.voc`` and
+  ``era_anno_mundi_prefix.voc`` / ``era_anno_mundi_suffix.voc``
+* ``era_year_ref.voc`` — "in the year"-style lead-ins, used both for
+  "<year-ref> N <bc>" and for out-of-range bare years ("in the year
+  12000")
+* ``unit_century.voc`` / ``unit_millennium.voc`` +
+  ``ordinal_suffixes.voc`` + ``marker_article.voc`` — BC-axis scoped
+  ordinals ("the 3rd century BC")
+
+Pattern contract (also for language-module extras):
 
 * exactly one capturing group must match, holding the digits of the value
   (multiple alternative groups are fine as long as a single one matches);
-* patterns are tried in order, first match wins — put longer, more
-  specific phrasing first;
-* ``era_key`` is either a key into :data:`ovos_date_parser.eras.ERAS` or
-  one of the pseudo-keys handled structurally for every language:
+* patterns are tried in order, first match wins — the builder orders
+  longer, more specific phrasing first;
+* the era key is a key into :data:`ovos_date_parser.eras.ERAS` or a
+  pseudo-key handled structurally for every language:
 
   - ``__bare_year__`` — "in the year N": claimed only when N is outside
     the ``datetime`` range (representable years belong to the ordinary
@@ -24,14 +44,113 @@ Pattern contract:
     BC axis; the earliest year of the period is returned, mirroring
     ``get_date_ordinal`` on the AD axis.
 """
+import os
 import re
 from datetime import date, datetime
 from typing import Callable, List, Optional, Pattern, Tuple, Union
+
+from ovos_spec_tools import LocaleResources
 
 from ovos_date_parser.eras import AstroDate, resolve_era
 from ovos_date_parser.ranges import DateTimeResolution
 
 EraPatterns = List[Tuple[str, Pattern]]
+
+#: root of the package's translatable resources
+LOCALE_DIR = os.path.join(os.path.dirname(__file__), "locale")
+
+_NUM = r"(\d+)"
+
+
+def _alt(phrases: List[str]) -> str:
+    """Alternation of literal phrases, longest first so no phrase is
+    shadowed by one of its own prefixes; internal spaces match any
+    whitespace run."""
+    escaped = [re.escape(p).replace(r"\ ", r"\s+")
+               for p in sorted(phrases, key=len, reverse=True)]
+    return "|".join(escaped)
+
+
+def load_era_patterns(lang: str,
+                      locale_dir: str = LOCALE_DIR) -> EraPatterns:
+    """Build a language's era pattern table from its ``.voc`` phrase sets.
+
+    Args:
+        lang: BCP-47 code matching a folder under ``locale_dir``.
+        locale_dir: resource root (default: the package's own locale dir).
+
+    Returns:
+        The ordered ``(era_key, pattern)`` table for
+        :func:`extract_era_date`.
+    """
+    res = LocaleResources(locale_dir)
+
+    def voc(name):
+        try:
+            phrases = res.load_vocabulary(name, lang)
+        except FileNotFoundError:
+            # a missing phrase set just disables that form for the language
+            return None
+        return _alt(phrases) if phrases else None
+
+    def rx(fragment):
+        return re.compile(rf"(?<![\w.]){fragment}(?=\W|$)", re.IGNORECASE)
+
+    bc = voc("era_bc_suffix")
+    ad_prefix, ad_suffix = voc("era_ad_prefix"), voc("era_ad_suffix")
+    bp = voc("era_bp_suffix")
+    unix, julian = voc("era_unix_prefix"), voc("era_julian_prefix")
+    holo_p, holo_s = voc("era_holocene_prefix"), voc("era_holocene_suffix")
+    am_p, am_s = (voc("era_anno_mundi_prefix"),
+                  voc("era_anno_mundi_suffix"))
+    year_ref = voc("era_year_ref")
+    century, millennium = voc("unit_century"), voc("unit_millennium")
+    ord_suf = voc("ordinal_suffixes")
+    article = voc("marker_article")
+
+    art = rf"(?:(?:{article})\s+)?" if article else ""
+    ordinal = rf"{_NUM}\s*(?:{ord_suf})?" if ord_suf else _NUM
+
+    patterns: EraPatterns = []
+
+    # BC-axis scoped ordinals first: "the 3rd century BC" must win over
+    # the shorter "3 BC" reading.  Both word orders are accepted
+    # ("3rd century BC" and "século 3 a.C.").
+    if bc and century:
+        patterns.append(("__century_bc__", rx(
+            rf"{art}(?:{ordinal}\s+(?:{century})|(?:{century})\s+{ordinal})"
+            rf"\s+(?:{bc})")))
+    if bc and millennium:
+        patterns.append(("__millennium_bc__", rx(
+            rf"{art}(?:{ordinal}\s+(?:{millennium})|(?:{millennium})\s+"
+            rf"{ordinal})\s+(?:{bc})")))
+    # longer suffix phrasing before the plain forms
+    if bp:
+        patterns.append(("before_present", rx(rf"{_NUM}\s*(?:{bp})")))
+    if unix:
+        patterns.append(("unix", rx(rf"(?:{unix})\s+(-?\d+)")))
+    if julian:
+        patterns.append(("julian_day", rx(rf"(?:{julian})\s+(-?\d+)")))
+    if holo_p:
+        patterns.append(("holocene", rx(rf"(?:{holo_p})\s+{_NUM}")))
+    if holo_s:
+        patterns.append(("holocene", rx(rf"{_NUM}\s+(?:{holo_s})")))
+    if am_p:
+        patterns.append(("anno_mundi", rx(rf"(?:{am_p})\s+{_NUM}")))
+    if am_s:
+        patterns.append(("anno_mundi", rx(rf"{_NUM}\s+(?:{am_s})")))
+    if bc:
+        if year_ref:
+            patterns.append(("before_christ",
+                             rx(rf"(?:{year_ref})\s+{_NUM}\s*(?:{bc})")))
+        patterns.append(("before_christ", rx(rf"{_NUM}\s*(?:{bc})")))
+    if ad_prefix:
+        patterns.append(("common_era", rx(rf"(?:{ad_prefix})\s+{_NUM}")))
+    if ad_suffix:
+        patterns.append(("common_era", rx(rf"{_NUM}\s*(?:{ad_suffix})")))
+    if year_ref:
+        patterns.append(("__bare_year__", rx(rf"(?:{year_ref})\s+{_NUM}")))
+    return patterns
 
 
 def extract_era_date(text: str, patterns: EraPatterns,
@@ -40,11 +159,13 @@ def extract_era_date(text: str, patterns: EraPatterns,
                                          str,
                                          DateTimeResolution]]:
     """Extract an era-qualified date from ``text`` using a language's
-    vocabulary.
+    pattern table.
 
     Args:
         text: phrase possibly containing an era-qualified year/count.
-        patterns: the language's ordered ``(era_key, pattern)`` vocabulary.
+        patterns: the language's ordered ``(era_key, pattern)`` table,
+            usually from :func:`load_era_patterns` (plus any language-
+            module extras).
         normalize: optional text normaliser applied first (typically the
             language's spelled-number-to-digits function).
 

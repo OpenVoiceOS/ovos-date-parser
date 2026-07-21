@@ -22,7 +22,10 @@ from ovos_date_parser.ranges import (
     get_season_range, get_week_number, get_date_ordinal,
     date_to_season, season_to_date, next_season_date, last_season_date,
 )
-from ovos_date_parser.eras_scan import extract_era_date
+from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
+from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
+                                          load_scoped_vocabulary)
+from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
 from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
 from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
 from ovos_date_parser.eras import (

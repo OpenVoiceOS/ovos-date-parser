@@ -535,12 +535,12 @@ register_duration_lexicon(DurationLexicon(
         "seconds": r"segundos?",
         "minutes": r"minutos?",
         "hours": r"horas?",
-        "days": r"dias?",
-        "weeks": r"si?emanas?",
+        "days": r"días?",
+        "weeks": r"semanas?",
         "months": r"mes(?:es)?",
         "years": r"anyos?",
         "decades": r"decadas?",
-        "centuries": r"sieglos?|siglos?",
+        "centuries": r"sieglos?",
         "millenniums": r"milenios?",
     }))
 

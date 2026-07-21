@@ -128,7 +128,7 @@ proven.
 3. **Calendar-scoped ordinals & seasons** — wire `get_date_ordinal` and the
    season helpers into `extract_date_en` ("the third century", "next summer").
 4. **Named eras & epochs** — "44 BC", "2000 before present", "anno domini",
-   BCE/CE, resolved via `eras.py`. Decide the BC representation (see below).
+   BCE/CE, resolved via `eras.py`. Out-of-range results are `AstroDate` (decision 1 below).
 5. **Named dates / holidays** — `get_named_dates_en`, location-scoped.
 6. **Per-language rollout** — port the scanner shape + name tables to the next
    languages, each gated byte-identical on its existing corpus before new
@@ -147,23 +147,30 @@ proven.
 - **Adversarial**: ambiguous era words, out-of-range years, mixed
   era+relative ("300 years after anno domini").
 
-## Open decisions (need a call before phase 4)
+## Decisions (resolved)
 
-1. **BC / years < 1 and > 9999.** `datetime.date` cannot represent them.
-   Options: return a sentinel `(year:int, resolution)` pair for out-of-range
-   years; carry a proleptic offset; or restrict to representable ranges and
-   surface the rest as "unsupported". #96 left this a TODO. **This is the main
-   blocker for full era support and should be decided first.**
-2. **Calendar plurality.** The era table mixes Gregorian-anchored reference
-   dates for non-Gregorian calendars (Armenian, Bahá'í, …). Ship
-   Gregorian-anchored only, or model calendar conversion? Recommend
-   Gregorian-anchored reference points now, conversion out of scope.
-3. **Location scope.** `location_code` gates holidays and some eras. Where does
-   it come from — Session config, an argument, or dropped for v1? Recommend an
-   optional argument defaulting to none (global eras only) for v1.
+1. **BC / years < 1 and > 9999 → `AstroDate`.** A frozen, date-like value
+   (`ovos_date_parser/eras.py`) with an unbounded year in **astronomical
+   numbering** (1 BC = year 0, X BC = 1 − X; the ISO 8601-expanded
+   convention), proleptic Gregorian, date-only precision, carrying the
+   `DateTimeResolution` the source text actually had. It orders against
+   `datetime.date`/`datetime`; `==`/`hash` stay AstroDate-only. **Return-type
+   rule:** every new API returns plain `date`/`datetime` whenever the value is
+   representable and an `AstroDate` only when it is not, so the voice-assistant
+   hot path never sees the new type; `extract_datetime` keeps returning `None`
+   for unrepresentable results and never raises `OverflowError`. Rejected:
+   bare `(year, resolution)` tuples (unorderable, method-less), proleptic
+   offsets (leak into every call site), restriction (defeats the feature),
+   astropy/convertdate dependencies (runtime deps stay tiny).
+2. **Calendar plurality.** Gregorian-anchored reference points only;
+   calendar conversion out of scope. Non-Gregorian era *names* still resolve
+   at year precision against their Gregorian anchor.
+3. **Location scope.** Optional argument defaulting to none (global eras
+   only) for v1; no Session coupling.
 4. **Ambiguity policy.** "may" (month vs modal), "BC" inside other tokens,
    era words that are also common words — reuse the number parser's
-   permissive-parse-then-validate stance.
+   permissive-parse-then-validate stance; unparseable era phrasing falls
+   through to the legacy scanner rather than raising.
 
 ## Non-goals
 

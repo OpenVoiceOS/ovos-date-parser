@@ -506,6 +506,45 @@ register_duration_lexicon(DurationLexicon(
         "weeks": r"we(?:ek(?:jes|je)?|ken)",
     }))
 
+register_duration_lexicon(DurationLexicon(
+    lang="fy",
+    units={
+        "microseconds": r"mikrosekonde[n]?",
+        "milliseconds": r"millisekonde[n]?",
+        "seconds": r"sekonde[n]?",
+        "minutes": r"minút(?:en)?|minut(?:en)?",
+        "hours": r"oere[n]?",
+        "days": r"dagen|dei",
+        "weeks": r"wike[n]?",
+        "months": r"moanne[n]?",
+        "years": r"jier(?:ren)?",
+        "decades": r"desennium[s]?",
+        "centuries": r"ieu(?:wen|w)?",
+        "millenniums": r"millennium[s]?",
+    }))
+
+# Aragonese: numbers_to_digits leaves the text unchanged (the Aragonese
+# number engine exposes no word->digit normaliser), which matches the
+# digit-only surface forms this lexicon targets.
+register_duration_lexicon(DurationLexicon(
+    lang="an",
+    normalize=lambda text: numbers_to_digits(_fold_iberian(text), "an"),
+    units={
+        "microseconds": r"microsegundos?",
+        "milliseconds": r"milisegundos?",
+        "seconds": r"segundos?",
+        "minutes": r"minutos?",
+        "hours": r"horas?",
+        "days": r"dias?",
+        "weeks": r"si?emanas?",
+        "months": r"mes(?:es)?",
+        "years": r"anyos?",
+        "decades": r"decadas?",
+        "centuries": r"sieglos?|siglos?",
+        "millenniums": r"milenios?",
+    }))
+
+
 def _normalize_da(text: str) -> str:
     # the Danish-specific normalizer keeps the article "en" intact
     from ovos_number_parser.numbers_da import numbers_to_digits_da

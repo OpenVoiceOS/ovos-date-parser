@@ -135,3 +135,175 @@ class TestAragoneseAdversarial(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# extract_datetime_an / extract_duration_an
+#
+# Temporal vocabulary is grounded in downloaded canonical sources:
+#   ~/AgentWorkspaces/papers/linguistics/an/wiktionary_hue.html,
+#   ~/AgentWorkspaces/papers/linguistics/an/glosbe_hoy.html    (hoy -> hue/güe)
+#   ~/AgentWorkspaces/papers/linguistics/an/wiktionary_ahiere.html,
+#   ~/AgentWorkspaces/papers/linguistics/an/glosbe_ayer.html   (ayer -> ahiere)
+#   ~/AgentWorkspaces/papers/linguistics/an/glosbe_manana.html (mañana -> demá)
+#   ~/AgentWorkspaces/papers/linguistics/an/glosbe_semana.html (semana)
+#   ~/AgentWorkspaces/papers/linguistics/an/glosbe_proximo.html(próximo->vinient)
+#   ~/AgentWorkspaces/papers/linguistics/an/glosbe_pasado.html (pasado -> pasau)
+#
+# The anchor is a Tuesday (2017-06-27 13:04). Past markers must resolve
+# strictly backwards.
+import ovos_date_parser as _odp
+from ovos_date_parser.dates_an import (
+    extract_datetime_an, extract_duration_an
+)
+
+_ANCHOR = datetime(2017, 6, 27, 13, 4)  # Tuesday
+
+
+def _ex(text, anchor=_ANCHOR):
+    return extract_datetime_an(text, anchorDate=anchor)
+
+
+def _dt(y, mo, d, h=0, mi=0, s=0):
+    return datetime(y, mo, d, h, mi, s)
+
+
+class TestAragoneseExtractDatetime(unittest.TestCase):
+    def test_today_hue(self):
+        self.assertEqual(_ex("qué femos hue"), [_dt(2017, 6, 27), "qué femos"])
+
+    def test_today_variant_gue(self):
+        self.assertEqual(_ex("güe")[0], _dt(2017, 6, 27))
+
+    def test_tomorrow(self):
+        self.assertEqual(_ex("veyremos demán"), [_dt(2017, 6, 28), "veyremos"])
+
+    def test_day_after_tomorrow(self):
+        self.assertEqual(_ex("pasadoman")[0], _dt(2017, 6, 29))
+
+    def test_yesterday_is_backward(self):
+        self.assertEqual(_ex("ahiere plevió"), [_dt(2017, 6, 26), "plevió"])
+
+    def test_yesterday_variant(self):
+        self.assertEqual(_ex("ayere")[0], _dt(2017, 6, 26))
+
+    def test_day_before_yesterday_is_backward(self):
+        self.assertEqual(_ex("antesahiere")[0], _dt(2017, 6, 25))
+
+    def test_day_before_yesterday_phrase(self):
+        self.assertEqual(_ex("antes de ahiere")[0], _dt(2017, 6, 25))
+
+    def test_offset_days(self):
+        self.assertEqual(_ex("en 3 días")[0], _dt(2017, 6, 30))
+
+    def test_offset_weeks(self):
+        self.assertEqual(_ex("2 semanas")[0], _dt(2017, 7, 11))
+
+    def test_offset_hours(self):
+        self.assertEqual(_ex("en 3 horas")[0], _dt(2017, 6, 27, 16, 4))
+
+    def test_offset_minutes(self):
+        self.assertEqual(_ex("en 5 minutos")[0], _dt(2017, 6, 27, 13, 9))
+
+    def test_next_week_vinient(self):
+        self.assertEqual(_ex("a semana vinient")[0], _dt(2017, 7, 4))
+
+    def test_next_week_que_viene(self):
+        self.assertEqual(_ex("a semana que viene")[0], _dt(2017, 7, 4))
+
+    def test_last_week_is_backward(self):
+        self.assertEqual(_ex("a semana pasada")[0], _dt(2017, 6, 20))
+
+    def test_next_month(self):
+        self.assertEqual(_ex("o mes vinient")[0], _dt(2017, 7, 27))
+
+    def test_last_month_is_backward(self):
+        self.assertEqual(_ex("o mes pasau")[0], _dt(2017, 5, 27))
+
+    def test_next_year(self):
+        self.assertEqual(_ex("l'anyo vinient")[0], _dt(2018, 6, 27))
+
+    def test_last_year_is_backward(self):
+        self.assertEqual(_ex("l'anyo pasau")[0], _dt(2016, 6, 27))
+
+    def test_plain_weekday(self):
+        self.assertEqual(_ex("o viernes")[0], _dt(2017, 6, 30))
+
+    def test_next_weekday(self):
+        self.assertEqual(_ex("o martes que viene")[0], _dt(2017, 7, 4))
+
+    def test_next_weekday_vinient(self):
+        self.assertEqual(_ex("o luns vinient")[0], _dt(2017, 7, 3))
+
+    def test_last_weekday_is_backward(self):
+        self.assertEqual(_ex("o viernes pasau")[0], _dt(2017, 6, 23))
+
+    def test_day_month_rolls_to_next_year(self):
+        self.assertEqual(_ex("o 5 de chunyo")[0], _dt(2018, 6, 5))
+
+    def test_day_month_this_year(self):
+        self.assertEqual(_ex("o 15 de chuliol")[0], _dt(2017, 7, 15))
+
+    def test_day_month_year(self):
+        self.assertEqual(_ex("o 15 de chuliol de 2018")[0], _dt(2018, 7, 15))
+
+    def test_month_bare_year_keeps_year(self):
+        self.assertEqual(_ex("chinero de 2020")[0], _dt(2020, 1, 1))
+
+    def test_colon_time(self):
+        self.assertEqual(_ex("a las 15:30")[0], _dt(2017, 6, 27, 15, 30))
+
+    def test_bare_hour_rolls_to_pm(self):
+        self.assertEqual(_ex("a las 8")[0], _dt(2017, 6, 27, 20))
+
+    def test_morning_qualifier(self):
+        self.assertEqual(_ex("a las 9 de la maitín")[0], _dt(2017, 6, 28, 9))
+
+    def test_afternoon_qualifier(self):
+        self.assertEqual(_ex("a las 5 de la tardi")[0], _dt(2017, 6, 27, 17))
+
+    def test_date_and_time(self):
+        self.assertEqual(
+            _ex("o 15 de chuliol de 2018 a las 9 de la maitín")[0],
+            _dt(2018, 7, 15, 9))
+
+    def test_remainder_kept(self):
+        self.assertEqual(_ex("reunión demán a las 5 de la tardi"),
+                         [_dt(2017, 6, 28, 17), "reunión"])
+
+
+class TestAragoneseExtractAdversarial(unittest.TestCase):
+    def test_empty(self):
+        self.assertIsNone(_ex(""))
+
+    def test_no_date(self):
+        self.assertIsNone(_ex("fabas con tomate"))
+
+    def test_impossible_calendar_date(self):
+        self.assertIsNone(_ex("o 31 de febrero"))
+
+    def test_out_of_range_clock(self):
+        self.assertIsNone(_ex("a las 25:00"))
+
+    def test_absurd_offset_does_not_crash(self):
+        _ex("en 999999999999 horas")
+
+
+class TestAragoneseExtractRouting(unittest.TestCase):
+    def test_routes_an(self):
+        self.assertEqual(
+            _odp.extract_datetime("demán", "an", anchorDate=_ANCHOR)[0],
+            _dt(2017, 6, 28))
+
+    def test_routes_an_region(self):
+        self.assertEqual(
+            _odp.extract_datetime("ahiere", "an-ES", anchorDate=_ANCHOR)[0],
+            _dt(2017, 6, 26))
+
+    def test_duration_routes_an(self):
+        dur, _rem = _odp.extract_duration("esperar 3 horas y 20 minutos", "an")
+        self.assertEqual(dur.total_seconds(), 3 * 3600 + 20 * 60)
+
+    def test_duration_an_direct(self):
+        dur, _rem = extract_duration_an("2 semanas")
+        self.assertEqual(dur.days, 14)

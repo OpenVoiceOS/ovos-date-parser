@@ -31,11 +31,12 @@ from ovos_date_parser.dates_ast import (
 )
 from ovos_date_parser.dates_an import (
     nice_year_an, nice_weekday_an, nice_month_an, nice_day_an, nice_date_an,
-    nice_time_an, nice_date_time_an
+    nice_time_an, nice_date_time_an, extract_datetime_an, extract_duration_an
 )
 from ovos_date_parser.dates_fy import (
     nice_year_fy, nice_weekday_fy, nice_month_fy, nice_day_fy,
-    nice_date_time_fy, nice_date_fy, nice_time_fy, nice_part_of_day_fy
+    nice_date_time_fy, nice_date_fy, nice_time_fy, nice_part_of_day_fy,
+    extract_datetime_fy, extract_duration_fy
 )
 from ovos_date_parser.dates_az import (
     extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
@@ -358,6 +359,8 @@ def extract_datetime(
         A tuple with the extracted date as datetime and the leftover string,
         or None if no date or time related text is found.
     """
+    if lang.startswith("an"):
+        return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ar"):
         return extract_datetime_ar(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ast"):
@@ -392,6 +395,8 @@ def extract_datetime(
         return extract_datetime_fi(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("fr"):
         return extract_datetime_fr(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.startswith("fy"):
+        return extract_datetime_fy(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("gl"):
         return extract_datetime_gl(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("el"):

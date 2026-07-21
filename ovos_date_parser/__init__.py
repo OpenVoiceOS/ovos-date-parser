@@ -28,6 +28,10 @@ from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
 from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
 from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
 from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
+from ovos_date_parser.eras_es import extract_era_date_es, ERA_PATTERNS_ES
+from ovos_date_parser.eras_fr import extract_era_date_fr, ERA_PATTERNS_FR
+from ovos_date_parser.eras_de import extract_era_date_de, ERA_PATTERNS_DE
+from ovos_date_parser.eras_it import extract_era_date_it, ERA_PATTERNS_IT
 from ovos_date_parser.eras import (
     AstroDate, Era, EraCounting, ERAS, astro_year_range, is_leap_year,
     julian_day_to_date, resolve_era,

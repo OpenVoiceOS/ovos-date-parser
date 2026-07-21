@@ -114,7 +114,7 @@ class TestRealSentencesMs(unittest.TestCase):
 
     def test_relative_day_sentences(self):
         self.assertEqual(self._dt("Jumpa esok pukul 9 pagi."),
-                         (datetime(2026, 7, 16, 9, 0), "jumpa pagi"))
+                         [datetime(2026, 7, 16, 9, 0), "jumpa pagi"])
         self.assertEqual(self._dt("Hari ini saya cuti.")[0],
                          datetime(2026, 7, 15, 0, 0))
         self.assertEqual(self._dt("Semalam hujan.")[0],
@@ -124,7 +124,7 @@ class TestRealSentencesMs(unittest.TestCase):
 
     def test_offset_sentences(self):
         self.assertEqual(self._dt("Ingatkan saya dua jam lagi."),
-                         (datetime(2026, 7, 15, 14, 0), "ingatkan saya"))
+                         [datetime(2026, 7, 15, 14, 0), "ingatkan saya"])
         self.assertEqual(self._dt("Lima hari lepas dia pergi.")[0],
                          datetime(2026, 7, 10, 0, 0))
         self.assertEqual(
@@ -133,7 +133,7 @@ class TestRealSentencesMs(unittest.TestCase):
 
     def test_weekday_sentences(self):
         self.assertEqual(self._dt("Mesyuarat Selasa depan."),
-                         (datetime(2026, 7, 21, 0, 0), "mesyuarat"))
+                         [datetime(2026, 7, 21, 0, 0), "mesyuarat"])
         self.assertEqual(self._dt("Jumaat lepas kami berjumpa.")[0],
                          datetime(2026, 7, 10, 0, 0))
         # "Ahad ini" resolves to the coming Sunday
@@ -142,7 +142,7 @@ class TestRealSentencesMs(unittest.TestCase):
 
     def test_period_sentences(self):
         self.assertEqual(self._dt("Minggu depan cuti."),
-                         (datetime(2026, 7, 22, 0, 0), "cuti"))
+                         [datetime(2026, 7, 22, 0, 0), "cuti"])
         self.assertEqual(self._dt("Bulan lepas kami berpindah.")[0],
                          datetime(2026, 6, 15, 0, 0))
         self.assertEqual(self._dt("Tahun depan saya bergraduasi.")[0],
@@ -156,7 +156,7 @@ class TestRealSentencesMs(unittest.TestCase):
 
     def test_month_date_sentences(self):
         self.assertEqual(self._dt("Hari lahir 17 Julai 2026."),
-                         (datetime(2026, 7, 17, 0, 0), "hari lahir"))
+                         [datetime(2026, 7, 17, 0, 0), "hari lahir"])
         # Malay month name "Mac" (March), distinct from Indonesian "Maret"
         self.assertEqual(self._dt("3 Mac 2027")[0],
                          datetime(2027, 3, 3, 0, 0))

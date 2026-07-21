@@ -214,4 +214,4 @@ def extract_datetime_kab(text: str, anchorDate: Optional[datetime] = None,
                                     microsecond=0)
     remainder = " ".join(t for idx, t in enumerate(tokens)
                          if idx not in consumed)
-    return result, remainder.strip()
+    return [result, remainder.strip()]

@@ -194,7 +194,7 @@ class TestRealSentencesTr(unittest.TestCase):
 
     def test_relative_day_sentences(self):
         self.assertEqual(self._dt("Toplantı yarın."),
-                         (datetime(2026, 7, 16, 0, 0), "toplantı"))
+                         [datetime(2026, 7, 16, 0, 0), "toplantı"])
         self.assertEqual(self._dt("Dün akşam geldim.")[0],
                          datetime(2026, 7, 14, 0, 0))
         self.assertEqual(self._dt("Öbür gün tatil.")[0],
@@ -206,9 +206,9 @@ class TestRealSentencesTr(unittest.TestCase):
 
     def test_offset_sentences(self):
         self.assertEqual(self._dt("Beni iki saat sonra uyandır."),
-                         (datetime(2026, 7, 15, 14, 0), "beni uyandır"))
+                         [datetime(2026, 7, 15, 14, 0), "beni uyandır"])
         self.assertEqual(self._dt("Üç gün önce geldi."),
-                         (datetime(2026, 7, 12, 0, 0), "geldi"))
+                         [datetime(2026, 7, 12, 0, 0), "geldi"])
         self.assertEqual(self._dt("On beş dakika sonra çıkıyoruz.")[0],
                          datetime(2026, 7, 15, 12, 15))
         # a whole-day-or-larger offset resolves to midnight of that day
@@ -217,17 +217,17 @@ class TestRealSentencesTr(unittest.TestCase):
 
     def test_weekday_sentences(self):
         self.assertEqual(self._dt("Gelecek salı görüşürüz."),
-                         (datetime(2026, 7, 21, 0, 0), "görüşürüz"))
+                         [datetime(2026, 7, 21, 0, 0), "görüşürüz"])
         self.assertEqual(self._dt("Geçen cuma oradaydım."),
-                         (datetime(2026, 7, 10, 0, 0), "oradaydım"))
+                         [datetime(2026, 7, 10, 0, 0), "oradaydım"])
         self.assertEqual(self._dt("Geçen pazartesi başladı.")[0],
                          datetime(2026, 7, 13, 0, 0))
         self.assertEqual(self._dt("Pazartesi spora gidiyorum."),
-                         (datetime(2026, 7, 20, 0, 0), "spora gidiyorum"))
+                         [datetime(2026, 7, 20, 0, 0), "spora gidiyorum"])
 
     def test_period_sentences(self):
         self.assertEqual(self._dt("Gelecek hafta tatildeyim."),
-                         (datetime(2026, 7, 22, 0, 0), "tatildeyim"))
+                         [datetime(2026, 7, 22, 0, 0), "tatildeyim"])
         self.assertEqual(self._dt("Geçen ay taşındık.")[0],
                          datetime(2026, 6, 15, 0, 0))
         self.assertEqual(self._dt("Gelecek yıl mezun oluyorum.")[0],
@@ -236,9 +236,9 @@ class TestRealSentencesTr(unittest.TestCase):
     def test_clock_sentences(self):
         # Turkish written locative suffix on the hour
         self.assertEqual(self._dt("Alarmı saat 7'ye kur."),
-                         (datetime(2026, 7, 15, 7, 0), "alarmı kur"))
+                         [datetime(2026, 7, 15, 7, 0), "alarmı kur"])
         self.assertEqual(self._dt("Randevu 15:30'da."),
-                         (datetime(2026, 7, 15, 15, 30), "randevu"))
+                         [datetime(2026, 7, 15, 15, 30), "randevu"])
         self.assertEqual(self._dt("Bugün saat 23:59")[0],
                          datetime(2026, 7, 15, 23, 59))
         # spelled-out clock hour
@@ -247,7 +247,7 @@ class TestRealSentencesTr(unittest.TestCase):
 
     def test_month_date_sentences(self):
         self.assertEqual(self._dt("Doğum günüm 26 Temmuz 2026."),
-                         (datetime(2026, 7, 26, 0, 0), "doğum günüm"))
+                         [datetime(2026, 7, 26, 0, 0), "doğum günüm"])
         # a past month rolls to next year
         self.assertEqual(self._dt("5 Nisan")[0], datetime(2027, 4, 5, 0, 0))
 

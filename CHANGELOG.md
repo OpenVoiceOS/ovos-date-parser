@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.28.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.10a1) (2026-07-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.9a1...0.28.10a1)
+
+**Merged pull requests:**
+
+- fix: past-marker offsets resolved forward across languages [\#278](https://github.com/OpenVoiceOS/ovos-date-parser/pull/278) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.28.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.9a1) (2026-07-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.8a1...0.28.9a1)
+
 ## [0.28.8a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.8a1) (2026-07-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.7a1...0.28.8a1)
@@ -196,10 +208,6 @@
 ## [0.28.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.0a1) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.27.1a1...0.28.0a1)
-
-**Merged pull requests:**
-
-- feat: Aragonese date formatting [\#140](https://github.com/OpenVoiceOS/ovos-date-parser/pull/140) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.27.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.27.1a1) (2026-07-17)
 

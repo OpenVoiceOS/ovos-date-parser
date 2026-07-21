@@ -71,12 +71,12 @@ class TestAragoneseFullDateSentences(unittest.TestCase):
         sentence = f"L'acto ye o {nice_date(WEEK['Martes'], 'an')}."
         self.assertEqual(
             sentence,
-            "L'acto ye o Martes, cinco de Chunyo de dos mil y deciueito.")
+            "L'acto ye o martes, cinco de chunyo de dos mil deciueito.")
 
     def test_full_date_without_weekday(self):
         dt = MONTH_FIRST["Chinero"]
         sentence = f"Naixió o {nice_date(dt, 'an', include_weekday=False)}."
-        self.assertEqual(sentence, "Naixió o un de Chinero de dos mil y decinueu.")
+        self.assertEqual(sentence, "Naixió o un de chinero de dos mil decinueu.")
 
     def test_relative_same_month_shortens(self):
         now = datetime(2018, 6, 1)
@@ -109,12 +109,12 @@ class TestAragoneseDayAndYearSentences(unittest.TestCase):
     def test_year_in_sentence(self):
         dt = datetime(2020, 1, 1)
         sentence = f"Estamos en l'anyo {nice_year(dt, 'an')}."
-        self.assertEqual(sentence, "Estamos en l'anyo dos mil y vinte.")
+        self.assertEqual(sentence, "Somos en l'anyo dos mil vinte.")
 
     def test_bc_year_in_sentence(self):
         dt = datetime(44, 3, 15)
-        sentence = f"Chulio Zesar morió en {nice_year(dt, 'an', bc=True)}."
-        self.assertEqual(sentence, "Chulio Zesar morió en cuaranta y cuatre a.C..")
+        sentence = f"Chulio César morió en {nice_year(dt, 'an', bc=True)}."
+        self.assertEqual(sentence, "Chulio César murió en cuaranta y cuatre a.C..")
         self.assertIn(" a.C.", sentence)
 
 
@@ -125,7 +125,7 @@ class TestAragoneseEdgeCasesInContext(unittest.TestCase):
         sentence = f"O {nice_date(dt, 'an', include_weekday=False)} ye bisiesto."
         # nice_date pronounces the day number ("vintinueu" = 29)
         self.assertEqual(
-            sentence, "O vintinueu de Febrero de dos mil y vinte ye bisiesto.")
+            sentence, "O vintinueu de Febrero de dos mil vinte ye bisiesto.")
 
     def test_lang_code_variants_route(self):
         for code in ("an", "an-ES", "AN", "an-es"):

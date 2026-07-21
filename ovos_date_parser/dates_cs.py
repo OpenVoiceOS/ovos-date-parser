@@ -397,6 +397,11 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
+                # "před N ..." = N periods in the past (SSJČ/IJP)
+                if wordPrevPrev == "před":
+                    dayOffset = -dayOffset
+                    used += 1
+                    start -= 1
             elif wordPrev == "další" or wordPrev == "příští":
                 dayOffset = 7
                 start -= 1
@@ -411,6 +416,11 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
+                # "před N ..." = N periods in the past (SSJČ/IJP)
+                if wordPrevPrev == "před":
+                    monthOffset = -monthOffset
+                    used += 1
+                    start -= 1
             elif wordPrev == "další" or wordPrev == "příští":
                 monthOffset = 1
                 start -= 1
@@ -425,6 +435,11 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
+                # "před N ..." = N periods in the past (SSJČ/IJP)
+                if wordPrevPrev == "před":
+                    yearOffset = -yearOffset
+                    used += 1
+                    start -= 1
             elif wordPrev == "další" or wordPrev == "příští":
                 yearOffset = 1
                 start -= 1

@@ -213,9 +213,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         # parse 5 jours, 10 semaines, semaine dernière, semaine prochaine
         elif word in ["jour", "jours"]:
             if wordPrev.isdigit():
-                dayOffset += int(wordPrev)
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    dayOffset -= int(wordPrev)
+                    start -= 4
+                    used = 5
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used = 2
             # "3e jour"
             elif _get_ordinal_fr(wordPrev) is not None:
                 dayOffset += _get_ordinal_fr(wordPrev) - 1
@@ -223,9 +229,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 used = 2
         elif word in ["semaine", "semaines"] and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 4
+                    used = 5
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
             elif wordNext in ["prochaine", "suivante"]:
                 dayOffset = 7
                 used = 2
@@ -235,9 +247,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         # parse 10 mois, mois prochain, mois dernier
         elif word == "mois" and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    monthOffset = -int(wordPrev)
+                    start -= 4
+                    used = 5
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordNext in ["prochain", "suivant"]:
                 monthOffset = 1
                 used = 2
@@ -247,9 +265,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         # parse 5 ans, an prochain, année dernière
         elif word in ["an", "ans", "année", "années"] and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    yearOffset = -int(wordPrev)
+                    start -= 4
+                    used = 5
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordNext in ["prochain", "prochaine", "suivant", "suivante"]:
                 yearOffset = 1
                 used = 2

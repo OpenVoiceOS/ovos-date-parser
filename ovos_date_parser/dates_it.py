@@ -225,6 +225,10 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                                           word_next in day_multiples):
             multiplier = int(extract_number_it(word))
             used += 2
+            # "N <periodo> fa" = N periods in the past (Treccani)
+            if word_next_next == 'fa':
+                multiplier = -multiplier
+                used += 1
             if word_next == 'decenni':
                 year_offset = multiplier * 10
             elif word_next == 'secolo':
@@ -257,9 +261,14 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             used += 2
         elif word == 'giorno':
             if word_prev[0].isdigit():
-                day_offset += int(word_prev)
+                # "N giorni fa" = N days in the past (Treccani)
+                if word_next == 'fa':
+                    day_offset -= int(word_prev)
+                    used += 1
+                else:
+                    day_offset += int(word_prev)
                 start -= 1
-                used = 2
+                used += 2
                 if word_next == 'dopo' and word_next_next == 'domani':
                     day_offset += 1
                     used += 2

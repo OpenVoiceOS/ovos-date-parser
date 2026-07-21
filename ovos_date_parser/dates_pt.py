@@ -396,9 +396,15 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
             elif (wordPrev and wordPrev[0].isdigit() and
                   wordNext not in months and
                   wordNext not in monthsShort):
-                dayOffset += int(wordPrev)
-                start -= 1
-                used += 2
+                # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
+                if wordPrevPrev == "ha" or wordNext == "atras":
+                    dayOffset -= int(wordPrev)
+                    start -= 2 if wordPrevPrev == "ha" else 1
+                    used += 3
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used += 2
             elif wordNext and wordNext[0].isdigit() and wordNextNext not in \
                     months and wordNextNext not in monthsShort:
                 dayOffset += int(wordNext)
@@ -407,9 +413,15 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
 
         elif word == "semana" and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
+                # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
+                if wordPrevPrev == "ha" or wordNext == "atras":
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 2 if wordPrevPrev == "ha" else 1
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     dayOffset = 7
@@ -433,9 +445,15 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
+                if wordPrevPrev == "ha" or wordNext == "atras":
+                    monthOffset = -int(wordPrev)
+                    start -= 2 if wordPrevPrev == "ha" else 1
+                    used = 3
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     monthOffset = 7
@@ -459,9 +477,15 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         # parse 5 years, next year, last year
         elif word == "ano" and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
+                if wordPrevPrev == "ha" or wordNext == "atras":
+                    yearOffset = -int(wordPrev)
+                    start -= 2 if wordPrevPrev == "ha" else 1
+                    used = 3
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     yearOffset = 7

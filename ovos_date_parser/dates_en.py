@@ -916,6 +916,10 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                             start -= 1
                             used += 1
                             hrOffset = hrOffset * -1
+                        # "N hours ago/earlier" = N in the past
+                        elif wordNextNext in earlier_markers:
+                            used += 1
+                            hrOffset = hrOffset * -1
 
                     elif wordNext == "minutes" or wordNext == "minute" or \
                             remainder == "minutes" or remainder == "minute":
@@ -930,6 +934,10 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                             start -= 1
                             used += 1
                             minOffset = minOffset * -1
+                        # "N minutes ago/earlier" = N in the past
+                        elif wordNextNext in earlier_markers:
+                            used += 1
+                            minOffset = minOffset * -1
                     elif wordNext == "seconds" or wordNext == "second" \
                             or remainder == "seconds" or remainder == "second":
                         # in 5 seconds
@@ -941,6 +949,10 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                         # in last N seconds
                         if wordPrev in past_markers:
                             start -= 1
+                            used += 1
+                            secOffset = secOffset * -1
+                        # "N seconds ago/earlier" = N in the past
+                        elif wordNextNext in earlier_markers:
                             used += 1
                             secOffset = secOffset * -1
                     elif int(strNum) > 100:

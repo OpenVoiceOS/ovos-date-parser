@@ -239,14 +239,24 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dage":
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    dayOffset -= int(wordPrev)
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
         elif word == "uge" or word == "uger" and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    dayOffset -= int(wordPrev) * 7
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev) * 7
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:6] == "næste":
                 dayOffset = 7
                 start -= 1
@@ -258,9 +268,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 # parse 10 months, next month, last month
         elif (word == "måned" or word == "måneder") and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    monthOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    monthOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:6] == "næste":
                 monthOffset = 1
                 start -= 1
@@ -272,9 +287,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 # parse 5 years, next year, last year
         elif word == "år" and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    yearOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    yearOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:6] == " næste":
                 yearOffset = 1
                 start -= 1

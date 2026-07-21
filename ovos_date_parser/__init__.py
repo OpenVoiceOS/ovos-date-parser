@@ -72,7 +72,8 @@ from ovos_date_parser.dates_nn import (
     extract_datetime_nn, extract_duration_nn, nice_time_nn,
 )
 from ovos_date_parser.dates_en import (
-    extract_datetime_en, extract_duration_en, nice_time_en
+    extract_datetime_en, extract_date_en, extract_time_en,
+    extract_duration_en, nice_time_en
 )
 from ovos_date_parser.dates_es import (
     extract_datetime_es, extract_duration_es, nice_time_es, nice_date_time_es, nice_date_es,

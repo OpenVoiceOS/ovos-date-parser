@@ -22,6 +22,9 @@ from ovos_date_parser.ranges import (
     get_season_range, get_week_number, get_date_ordinal,
     date_to_season, season_to_date, next_season_date, last_season_date,
 )
+from ovos_date_parser.eras_scan import extract_era_date
+from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
+from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
 from ovos_date_parser.eras import (
     AstroDate, Era, EraCounting, ERAS, astro_year_range, is_leap_year,
     julian_day_to_date, resolve_era,

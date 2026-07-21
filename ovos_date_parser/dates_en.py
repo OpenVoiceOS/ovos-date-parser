@@ -1361,10 +1361,26 @@ def extract_date_en(text, ref_date=None):
             "tomorrow".  A bare ``date`` is coerced to midnight of that day; if
             omitted the current local time is used.
 
+    Era-qualified phrases are recognised before the ordinary scanner runs
+    ("44 BC", "500 AD", "2000 years before present", "julian day 2451545",
+    "in the year 12000", "the 3rd century BC" -- see
+    :mod:`ovos_date_parser.eras_en`).  Results the ``datetime`` range cannot
+    hold are returned as :class:`~ovos_date_parser.eras.AstroDate` instead
+    of failing; everything else stays a plain ``datetime.date``.
+
     Returns:
-        tuple[datetime.date, str] | None: ``(date, remainder)`` when a date
-        component matched, otherwise ``None``.  Never raises on garbage input.
+        tuple[datetime.date | AstroDate, str] | None: ``(date, remainder)``
+        when a date component matched, otherwise ``None``.  Never raises on
+        garbage input.
     """
+    from ovos_date_parser.eras_en import extract_era_date_en
+    era = extract_era_date_en(text)
+    if era is not None:
+        value, remainder, _resolution = era
+        if isinstance(value, datetime):
+            value = value.date()
+        return value, remainder
+
     anchorDate = _coerce_anchor(ref_date)
     try:
         result, has_date, _has_time = _extract_datetime_en(text, anchorDate)

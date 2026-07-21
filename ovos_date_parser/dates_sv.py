@@ -231,7 +231,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
-        elif word == "månad" and not fromFlag:
+        elif (word == "månad" or word == "månader") and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1

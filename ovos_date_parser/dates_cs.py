@@ -1092,6 +1092,8 @@ def _text_cs_inflection_normalize(word, arg):
             word = "den"
         if word == "dny":
             word = "den"
+        if word == "dnech":
+            word = "den"
         if word == "týdny":
             word = "týden"
         if word == "týdnů":
@@ -1107,6 +1109,8 @@ def _text_cs_inflection_normalize(word, arg):
         if word == "roků":
             word = "rok"
         if word == "let":
+            word = "rok"
+        if word == "lety":
             word = "rok"
         if word == "včerejšku":
             word = "včera"

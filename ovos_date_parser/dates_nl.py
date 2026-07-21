@@ -214,7 +214,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
-        elif word == "maand" and not fromFlag:
+        elif (word == "maand" or word == "maanden") and not fromFlag:
             if wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
@@ -228,7 +228,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
         # parse 5 years, next year, last year
-        elif word == "jaar" and not fromFlag:
+        elif (word == "jaar" or word == "jaren") and not fromFlag:
             if wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1

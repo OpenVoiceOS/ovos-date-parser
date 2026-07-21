@@ -256,7 +256,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
-        elif word == "måned" and not fromFlag:
+        elif (word == "måned" or word == "måneder") and not fromFlag:
             if wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1

@@ -214,7 +214,7 @@ def extract_datetime_fa(text, anchorDate=None, default_time=None):
         result = anchorDate + delta_seen
     if result is None:
         return None
-    return (result, " ".join(remainder))
+    return [result, " ".join(remainder)]
 
 
 def nice_time_fa(dt, speech=True, use_24hour=False, use_ampm=False):

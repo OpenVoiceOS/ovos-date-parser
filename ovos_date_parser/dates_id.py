@@ -247,7 +247,7 @@ def extract_datetime_id(text, anchorDate=None, default_time=None):
             result = result.replace(hour=0, minute=0, second=0, microsecond=0)
     remainder = " ".join(t for idx, t in enumerate(tokens)
                          if idx not in consumed)
-    return result, remainder.strip()
+    return [result, remainder.strip()]
 
 
 def _period_id(hour):

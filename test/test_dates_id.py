@@ -178,7 +178,7 @@ class TestRealSentencesId(unittest.TestCase):
 
     def test_relative_day_sentences(self):
         self.assertEqual(self._dt("Meeting besok jam 10 pagi."),
-                         (datetime(2026, 7, 16, 10, 0), "meeting pagi"))
+                         [datetime(2026, 7, 16, 10, 0), "meeting pagi"])
         self.assertEqual(self._dt("Hari ini saya libur.")[0],
                          datetime(2026, 7, 15, 0, 0))
         self.assertEqual(self._dt("Kemarin hujan.")[0],
@@ -190,7 +190,7 @@ class TestRealSentencesId(unittest.TestCase):
 
     def test_offset_sentences(self):
         self.assertEqual(self._dt("Ingatkan saya dua jam lagi."),
-                         (datetime(2026, 7, 15, 14, 0), "ingatkan saya"))
+                         [datetime(2026, 7, 15, 14, 0), "ingatkan saya"])
         self.assertEqual(self._dt("Tiga hari yang lalu dia pergi.")[0],
                          datetime(2026, 7, 12, 0, 0))
         self.assertEqual(
@@ -199,13 +199,13 @@ class TestRealSentencesId(unittest.TestCase):
 
     def test_weekday_sentences(self):
         self.assertEqual(self._dt("Ada acara Selasa depan."),
-                         (datetime(2026, 7, 21, 0, 0), "ada acara"))
+                         [datetime(2026, 7, 21, 0, 0), "ada acara"])
         self.assertEqual(self._dt("Jumat lalu kami bertemu.")[0],
                          datetime(2026, 7, 10, 0, 0))
 
     def test_period_sentences(self):
         self.assertEqual(self._dt("Minggu depan libur."),
-                         (datetime(2026, 7, 22, 0, 0), "libur"))
+                         [datetime(2026, 7, 22, 0, 0), "libur"])
         self.assertEqual(self._dt("Bulan depan gajian.")[0],
                          datetime(2026, 8, 15, 0, 0))
         self.assertEqual(self._dt("Tahun lalu kami menikah.")[0],
@@ -221,7 +221,7 @@ class TestRealSentencesId(unittest.TestCase):
 
     def test_month_date_sentences(self):
         self.assertEqual(self._dt("Ulang tahun 17 Agustus 2026!"),
-                         (datetime(2026, 8, 17, 0, 0), "ulang tahun"))
+                         [datetime(2026, 8, 17, 0, 0), "ulang tahun"])
 
     def test_combined_date_and_time(self):
         self.assertEqual(self._dt("Besok pukul 8 ada kelas.")[0],

@@ -695,7 +695,7 @@ def extract_datetime_ar(text, anchorDate=None, default_time=None):
                                           minute=default_time.minute,
                                           second=default_time.second)
 
-    return result_date, " ".join(remainder).strip()
+    return [result_date, " ".join(remainder).strip()]
 
 
 def _parse_duration_span(tokens, i):

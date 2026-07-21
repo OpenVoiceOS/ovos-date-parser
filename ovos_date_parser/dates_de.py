@@ -192,6 +192,15 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         if word in timeQualifiersList:
             timeQualifier = word
             # parse today, tomorrow, day after tomorrow
+        # "gestern": an dem Tag, der dem heutigen unmittelbar
+        # vorausgegangen ist (Duden,
+        # papers/linguistics/german/duden_gestern.html)
+        elif word == "vorgestern" and not fromFlag:
+            dayOffset = -2
+            used += 1
+        elif word == "gestern" and not fromFlag:
+            dayOffset = -1
+            used += 1
         elif word == "heute" and not fromFlag:
             dayOffset = 0
             used += 1

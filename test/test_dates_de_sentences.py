@@ -172,5 +172,37 @@ class TestLeapDate(unittest.TestCase):
         self.assertEqual(extract("am 29. februar 2024")[0], dt(2024, 2, 29))
 
 
+class TestYesterdayWords(unittest.TestCase):
+    """"gestern": an dem Tag, der dem heutigen unmittelbar vorausgegangen
+    ist (Duden, papers/linguistics/german/duden_gestern.html).  Regression
+    for the three-way differential lead: "gestern"/"vorgestern" returned
+    None while today/tomorrow worked."""
+
+    def test_gestern(self):
+        self.assertEqual(extract("gestern")[0], dt(2117, 9, 2))
+        self.assertEqual(extract("vorgestern")[0], dt(2117, 9, 1))
+
+    def test_in_sentences(self):
+        self.assertEqual(extract("was ist gestern passiert")[0],
+                         dt(2117, 9, 2))
+        self.assertEqual(extract("das spiel von vorgestern")[0],
+                         dt(2117, 9, 1))
+
+    def test_gestern_with_time(self):
+        self.assertEqual(extract("gestern um 17 uhr")[0],
+                         dt(2117, 9, 2, 17, 0))
+
+    def test_morgen_still_tomorrow_and_morning(self):
+        # "morgen" (tomorrow) and "am morgen" (in the morning) untouched;
+        # 8:00 has already passed at the 13:30 anchor, so "am morgen"
+        # rolls to the next morning (legacy roll-forward behaviour)
+        self.assertEqual(extract("morgen")[0], dt(2117, 9, 4))
+        self.assertEqual(extract("am morgen")[0], dt(2117, 9, 4, 8, 0))
+
+    def test_symmetry(self):
+        self.assertEqual((extract("morgen")[0] - extract("gestern")[0]).days,
+                         2)
+
+
 if __name__ == "__main__":
     unittest.main()

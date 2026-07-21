@@ -190,11 +190,14 @@ _DAY_VARIANTS_SK = {
 # unit words normalized to a canonical form
 _UNIT_VARIANTS_SK = {
     'dni': 'deň', 'dní': 'deň', 'dňa': 'deň', 'dňom': 'deň', 'dňoch': 'deň',
+    'dňami': 'deň',
     'týždne': 'týždeň', 'týždňa': 'týždeň', 'týždňov': 'týždeň',
-    'týždni': 'týždeň', 'týždňoch': 'týždeň',
+    'týždni': 'týždeň', 'týždňoch': 'týždeň', 'týždňami': 'týždeň',
     'mesiace': 'mesiac', 'mesiaca': 'mesiac', 'mesiacov': 'mesiac',
-    'mesiaci': 'mesiac', 'mesiacoch': 'mesiac',
+    'mesiaci': 'mesiac', 'mesiacoch': 'mesiac', 'mesiacmi': 'mesiac',
+    'mesiacami': 'mesiac',
     'roky': 'rok', 'roka': 'rok', 'rokov': 'rok', 'rokoch': 'rok',
+    'rokmi': 'rok', 'rokami': 'rok',
     'minúta': 'minút', 'minúty': 'minút', 'minútu': 'minút',
     'minútach': 'minút', 'minúit': 'minút',
     'hodina': 'hodín', 'hodiny': 'hodín', 'hodinu': 'hodín',

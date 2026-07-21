@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_da import pronounce_ordinal_da, pronounce_number_da, is_ordinal_da, numbers_to_digits_da
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 _MONTHS_DA = ['januar', 'februar', 'marts', 'april', 'maj', 'juni',
@@ -130,6 +133,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             for 12 hour date format
         """
 
+        s = numbers_to_digits_da(s)
         s = s.lower().replace('?', '').replace('.', '').replace(',', '') \
             .replace(' den ', ' ').replace(' det ', ' ').replace(' om ',
                                                                  ' ').replace(
@@ -211,7 +215,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
         start = idx
         used = 0
         # save timequalifier for later
-        if word in timeQualifiersList:
+        if word == "morgen" and wordPrev == "i" and not fromFlag:
+            # "i morgen" = tomorrow, while bare "morgen" = morning
+            dayOffset = 1
+            used += 1
+        elif word == "overmorgen" and wordPrev == "i" and not fromFlag:
+            dayOffset = 2
+            used += 1
+        elif word in timeQualifiersList:
             timeQualifier = word
             # parse today, tomorrow, day after tomorrow
         elif word == "dag" and not fromFlag:
@@ -228,14 +239,24 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dage":
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    dayOffset -= int(wordPrev)
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
         elif word == "uge" or word == "uger" and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    dayOffset -= int(wordPrev) * 7
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev) * 7
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:6] == "næste":
                 dayOffset = 7
                 start -= 1
@@ -245,11 +266,16 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
-        elif word == "måned" and not fromFlag:
+        elif (word == "måned" or word == "måneder") and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    monthOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    monthOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:6] == "næste":
                 monthOffset = 1
                 start -= 1
@@ -261,9 +287,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 # parse 5 years, next year, last year
         elif word == "år" and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
+                # "N ... siden" = N periods in the past (DDO)
+                if wordNext == "siden":
+                    yearOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    yearOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev[:6] == " næste":
                 yearOffset = 1
                 start -= 1
@@ -538,21 +569,21 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                     remainder = "am"
                     used = 1
                 else:
-                    if wordNext == "time" and int(word) < 100:
+                    if wordNext in ("time", "timer") and int(word) < 100:
                         # "in 3 hours"
                         hrOffset = int(word)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext == "minut":
+                    elif wordNext in ("minut", "minutter"):
                         # "in 10 minutes"
                         minOffset = int(word)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext == "sekund":
+                    elif wordNext in ("sekund", "sekunder"):
                         # in 5 seconds
                         secOffset = int(word)
                         used = 2
@@ -561,7 +592,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                         minAbs = -1
 
                     elif wordNext == "time":
-                        strHH = word
+                        strHH = strNum
                         used += 1
                         isTime = True
                         if wordNextNext == timeQualifier:
@@ -628,14 +659,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                                         remainder = "am"
 
                     elif wordNext == timeQualifier:
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         isTime = True
-                        if wordNext[:10] == "eftermidag":
+                        if wordNext[:11] == "eftermiddag":
                             used += 1
                             remainder = "pm"
                         elif wordNext == "om" and \
-                                wordNextNext == "eftermiddanen":
+                                wordNextNext == "eftermiddagen":
                             used += 2
                             remainder = "pm"
                         elif wordNext[:7] == "aftenen":
@@ -704,10 +735,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("om 2 timer") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',
@@ -716,11 +751,19 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                           'aug',
                           'sept', 'oct', 'nov', 'dec']
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
         for idx, en_month in enumerate(en_monthsShort):
-            datestr = datestr.replace(monthsShort[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+        except ValueError:
+            # an impossible calendar date like "30 februar"; report nothing
+            # rather than a wrong guess
+            return None
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
@@ -784,97 +827,23 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
 
     return [extractedDate, resultStr]
 
-def extract_duration_da(text):
-    """Convert a danish phrase into a number of seconds
+def extract_duration_da(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
+    """
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minutes"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None, ''
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    da_translations = {
-        'microseconds': ["mikrosekund", "mikrosekunder", "mikrosekunds", "mikrosekunders"],
-        'milliseconds': ["millisekund", "millisekunder", "millisekunds"],
-        'seconds': ["sekund", "sekunder", "sekunds", "sekunders"],
-        'minutes': ["minut", "minutter", "minuts", "minutters"],
-        'hours': ["time", "timer", "times", "timers"],
-        'days': ["dag", "dage", "dags", "dages"],
-        'weeks': ["uge", "uges", "uger", "ugers"]
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)\s+{unit}"
-    text = numbers_to_digits_da(text)
-
-    for unit in time_units:
-        unit_da_words = da_translations[unit]
-        unit_da_words.sort(key=len, reverse=True)
-        for unit_da in unit_da_words:
-            unit_pattern = pattern.format(unit=unit_da)
-            matches = re.findall(unit_pattern, text)
-            value = sum(map(float, matches))
-            time_units[unit] = time_units[unit] + value
-            text = re.sub(unit_pattern, '', text)
-
-    # Non-standard time units
-    non_std_unit = {
-        'months': ["måned", "måneder", "måneds", "måneders"],
-        'decades': ["årti", "årtier", "årtis"],
-        'centuries': ["århundrede", "århundreder", "århundredes"],
-        'millennia': ["årtusinde", "årtusinder", "årtusindes"],
-        'years': ["år", "års"]  # must be last to avoid matching on centuries and millennia
-    }
-
-    for unit in non_std_unit.keys():
-        unit_da_words = non_std_unit[unit]
-        unit_da_words.sort(key=len, reverse=True)
-        for unit_da in unit_da_words:
-            unit_pattern = pattern.format(unit=unit_da)
-            matches = re.findall(unit_pattern, text)
-            val = sum(map(float, matches))
-            if unit == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit == "centuries":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit == "millennia":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            text = re.sub(unit_pattern, '', text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["da"],
+                                    resolution, replace_token)

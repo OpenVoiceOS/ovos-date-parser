@@ -6,6 +6,9 @@ from ovos_number_parser.numbers_cs import pronounce_number_cs, _ORDINAL_BASE_CS,
     numbers_to_digits_cs
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _MONTHS_CONVERSION = {
     0: "january",
@@ -132,64 +135,26 @@ def nice_time_cs(dt, speech=True, use_24hour=True, use_ampm=False):
         return speak
 
 
-def extract_duration_cs(text):
+def extract_duration_cs(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    # Czech inflection for time: minuta,minuty,minut - safe to use minut as pattern
-    # For day: den, dny, dnů - short patern not applicable, list all
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[ay]?"
-    text = numbers_to_digits_cs(text)
-
-    for (unit_cs, unit_en) in _TIME_UNITS_CONVERSION.items():
-        unit_pattern = pattern.format(unit=unit_cs)
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["cs"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_cs(text, anchorDate=None, default_time=None):
@@ -313,7 +278,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
     timeQualifiersAM = ['ráno', 'dopoledne']
     timeQualifiersPM = ['odpoledne', 'večer', 'noc', 'noci']
     timeQualifiersList = set(timeQualifiersAM + timeQualifiersPM)
-    markers = ['na', 'v', 'do', 'na', 'tento',
+    markers = ['na', 'v', 've', 'do', 'na', 'tento',
                'okolo', 'toto', 'během', 'za', 'této']
     days = ['pondělí', 'úterý', 'středa',
             'čtvrtek', 'pátek', 'sobota', 'neděle']
@@ -432,6 +397,11 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
+                # "před N ..." = N periods in the past (SSJČ/IJP)
+                if wordPrevPrev == "před":
+                    dayOffset = -dayOffset
+                    used += 1
+                    start -= 1
             elif wordPrev == "další" or wordPrev == "příští":
                 dayOffset = 7
                 start -= 1
@@ -446,6 +416,11 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
+                # "před N ..." = N periods in the past (SSJČ/IJP)
+                if wordPrevPrev == "před":
+                    monthOffset = -monthOffset
+                    used += 1
+                    start -= 1
             elif wordPrev == "další" or wordPrev == "příští":
                 monthOffset = 1
                 start -= 1
@@ -460,6 +435,11 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
+                # "před N ..." = N periods in the past (SSJČ/IJP)
+                if wordPrevPrev == "před":
+                    yearOffset = -yearOffset
+                    used += 1
+                    start -= 1
             elif wordPrev == "další" or wordPrev == "příští":
                 yearOffset = 1
                 start -= 1
@@ -1005,7 +985,12 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
             temp = datetime.strptime(datestr, "%B %d")
         except ValueError:
             # Try again, allowing the year
-            temp = datetime.strptime(datestr, "%B %d %Y")
+            try:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            except ValueError:
+                # an impossible calendar date like "30 únor"; report nothing
+                # rather than a wrong guess
+                return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,
@@ -1122,6 +1107,8 @@ def _text_cs_inflection_normalize(word, arg):
             word = "den"
         if word == "dny":
             word = "den"
+        if word == "dnech":
+            word = "den"
         if word == "týdny":
             word = "týden"
         if word == "týdnů":
@@ -1137,6 +1124,8 @@ def _text_cs_inflection_normalize(word, arg):
         if word == "roků":
             word = "rok"
         if word == "let":
+            word = "rok"
+        if word == "lety":
             word = "rok"
         if word == "včerejšku":
             word = "včera"
@@ -1156,6 +1145,14 @@ def _text_cs_inflection_normalize(word, arg):
             word = "večer"
         if word == "noční":
             word = "noc"
+        # Accusative weekday forms ("v neděli", "v sobotu", "ve středu")
+        if word == "neděli":
+            word = "neděle"
+        if word == "sobotu":
+            word = "sobota"
+        if word == "středu":
+            word = "středa"
+
         if word == "víkendech":
             word = "víkend"
         if word == "víkendu":
@@ -1167,6 +1164,8 @@ def _text_cs_inflection_normalize(word, arg):
 
         # Months
         if word == "únoru":
+            word = "únor"
+        elif word == "února":
             word = "únor"
         elif word == "červenci":
             word = "červenec"

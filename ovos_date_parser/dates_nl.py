@@ -5,73 +5,31 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_nl import pronounce_number_nl, extract_number_nl, numbers_to_digits_nl
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
-def extract_duration_nl(text):
-    """Convert an english phrase into a number of seconds
+def extract_duration_nl(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
+    """
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    nl_translations = {
-        'microseconds': ["microsecond", "microseconde", "microseconden", "microsecondje", "microsecondjes"],
-        'milliseconds': ["millisecond", "milliseconde", "milliseconden", "millisecondje", "millisecondjes"],
-        'seconds': ["second", "seconde", "seconden", "secondje", "secondjes"],
-        'minutes': ["minuut", "minuten", "minuutje", "minuutjes"],
-        'hours': ["uur", "uren", "uurtje", "uurtjes"],
-        'days': ["dag", "dagen", "dagje", "dagjes"],
-        'weeks': ["week", "weken", "weekje", "weekjes"]
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)\s+{unit}"
-    text = numbers_to_digits_nl(text)
-
-    for unit in time_units:
-        unit_nl_words = nl_translations[unit]
-        unit_nl_words.sort(key=len, reverse=True)
-        for unit_nl in unit_nl_words:
-            unit_pattern = pattern.format(unit=unit_nl)
-            matches = re.findall(unit_pattern, text)
-            value = sum(map(float, matches))
-            time_units[unit] = time_units[unit] + value
-            text = re.sub(unit_pattern, '', text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["nl"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_nl(text, anchorDate=None, default_time=None):
@@ -169,6 +127,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     'sep', 'okt', 'nov', 'dec']
     year_multiples = ["decennium", "eeuw", "millennium"]
     day_multiples = ["dagen", "weken", "maanden", "jaren"]
+    time_units = ["uur", "uren", "minuut", "minuten", "seconde", "seconden"]
 
     words = clean_string(text)
 
@@ -238,14 +197,24 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dagen":
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    dayOffset -= int(wordPrev)
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
         elif word == "week" or word == "weken" and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    dayOffset -= int(wordPrev) * 7
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev) * 7
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "volgende":
                 dayOffset = 7
                 start -= 1
@@ -255,11 +224,16 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
-        elif word == "maand" and not fromFlag:
+        elif (word == "maand" or word == "maanden") and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    monthOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    monthOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "volgende":
                 monthOffset = 1
                 start -= 1
@@ -269,11 +243,16 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
         # parse 5 years, next year, last year
-        elif word == "jaar" and not fromFlag:
+        elif (word == "jaar" or word == "jaren") and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
+                # "N ... geleden" = N periods in the past (Van Dale)
+                if wordNext == "geleden":
+                    yearOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    yearOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "volgend":
                 yearOffset = 1
                 start -= 1
@@ -323,7 +302,10 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if wordNext and wordNext[0].isdigit() and \
+                        wordNextNext not in time_units:
+                    # a bare clock hour following the date ("15 juni 3 uur")
+                    # must not be swallowed as the year
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -610,7 +592,16 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     strHH = strNum
                     used = 1
                 else:
+                    # "3 uur 's middags" is a clock time, not "in 3 hours";
+                    # a part-of-day right after the hour disambiguates it
+                    _after_uur = words[idx + 2] if idx + 2 < len(words) else ""
+                    _after_uur2 = words[idx + 3] if idx + 3 < len(words) else ""
+                    pod_follows = (
+                        (_after_uur == "'s" and _after_uur2 in
+                         ("ochtends", "middags", "avonds", "nachts")) or
+                        _after_uur in timeQualifiersList)
                     if (
+                            not pod_follows and
                             (wordNext == "uren" or wordNext == "uur" or
                              remainder == "uren" or remainder == "uur") and
                             word[0] != '0' and
@@ -674,6 +665,18 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                         if wordNext == "uur":
                             used += 1
 
+                        # part of day expressed genitively after the hour:
+                        # "3 uur 's middags" -> pm, "8 uur 's avonds" -> pm
+                        genitive_pod = {"ochtends": "am", "middags": "pm",
+                                        "avonds": "pm", "nachts": "am"}
+                        _pod_i = idx + used + 1
+                        _pod_next = words[_pod_i + 1] \
+                            if _pod_i + 1 < len(words) else ""
+                        if _pod_i < len(words) and words[_pod_i] == "'s" \
+                                and _pod_next in genitive_pod:
+                            remainder = genitive_pod[_pod_next]
+                            used += 2
+
                         if wordNext == "in" or wordNextNext == "in":
                             used += (1 if wordNext == "in" else 2)
                             wordNextNextNext = words[idx + 3] \
@@ -729,7 +732,9 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             if timeQualifier in timeQualifiersPM and HH < 12:
                 HH += 12
 
-            if HH > 24 or MM > 59:
+            if HH > 23 or MM > 59:
+                # a clock value like "24:00" or "25:30" is not a real time;
+                # reject it rather than building an out-of-range datetime
                 isTime = False
                 used = 0
             if isTime:
@@ -775,12 +780,21 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
     extractedDate = anchorDate.replace(microsecond=0)
 
     if datestr != "":
-        # date included an explicit date, e.g. "june 5" or "june 2, 2017"
+        # date included an explicit date, e.g. "juni 5" or "juni 2 2017".
+        # parse against the Dutch month names directly; strptime's "%B"
+        # only knows C-locale English names and would reject "juni",
+        # "maart", "augustus", etc.
+        date_parts = datestr.split()
+        month_num = months.index(date_parts[0]) + 1
+        day_num = int(date_parts[1]) if len(date_parts) > 1 else 1
+        year_num = int(date_parts[2]) if len(date_parts) > 2 else 1900
         try:
-            temp = datetime.strptime(datestr, "%B %d")
+            temp = datetime(year_num, month_num, day_num)
         except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(datestr, "%B %d %Y")
+            # an explicit date was spoken but it does not exist on the
+            # calendar (e.g. "30 februari" or "29 februari 2019"); report
+            # nothing rather than a wrong guess
+            return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,
@@ -808,12 +822,17 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         if hrOffset == 0 and minOffset == 0 and secOffset == 0:
             extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
 
-    if yearOffset != 0:
-        extractedDate = extractedDate + relativedelta(years=yearOffset)
-    if monthOffset != 0:
-        extractedDate = extractedDate + relativedelta(months=monthOffset)
-    if dayOffset != 0:
-        extractedDate = extractedDate + relativedelta(days=dayOffset)
+    try:
+        if yearOffset != 0:
+            extractedDate = extractedDate + relativedelta(years=yearOffset)
+        if monthOffset != 0:
+            extractedDate = extractedDate + relativedelta(months=monthOffset)
+        if dayOffset != 0:
+            extractedDate = extractedDate + relativedelta(days=dayOffset)
+    except (OverflowError, ValueError):
+        # an absurd offset like "999999999999 uur" overflows the datetime
+        # range; report nothing rather than crashing
+        return None
     if hrAbs != -1 and minAbs != -1:
         # If no time was supplied in the string set the time to default
         # time if it's available
@@ -828,12 +847,17 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         if (hrAbs != 0 or minAbs != 0) and datestr == "":
             if not daySpecified and anchorDate > extractedDate:
                 extractedDate = extractedDate + relativedelta(days=1)
-    if hrOffset != 0:
-        extractedDate = extractedDate + relativedelta(hours=hrOffset)
-    if minOffset != 0:
-        extractedDate = extractedDate + relativedelta(minutes=minOffset)
-    if secOffset != 0:
-        extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    try:
+        if hrOffset != 0:
+            extractedDate = extractedDate + relativedelta(hours=hrOffset)
+        if minOffset != 0:
+            extractedDate = extractedDate + relativedelta(minutes=minOffset)
+        if secOffset != 0:
+            extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    except (OverflowError, ValueError):
+        # an absurd offset like "999999999999 uur" overflows the datetime
+        # range; report nothing rather than crashing
+        return None
     for idx, word in enumerate(words):
         if words[idx] == "en" and \
                 words[idx - 1] == "" and words[idx + 1] == "":

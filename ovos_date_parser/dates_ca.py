@@ -5,6 +5,9 @@ from enum import IntEnum
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_ca import pronounce_number_ca, numbers_to_digits_ca
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 class TimeVariantCA(IntEnum):
@@ -14,90 +17,73 @@ class TimeVariantCA(IntEnum):
     SPANISH_LIKE = 3
 
 
-def extract_duration_ca(text):
+# Human-friendly aliases so callers can pick a time-telling register by name
+# instead of importing the enum. Catalan has two well-known ways to tell time:
+#   - the "standard"/central register: "les quatre i quart", "les quatre i
+#     mitja", "les cinc menys quart" (mapped to SPANISH_LIKE)
+#   - the traditional "quarts" register: quarters counted toward the *next*
+#     hour, "un quart de cinc" (4:15), "dos quarts de cinc" (4:30), "tres
+#     quarts de cinc" (4:45), with the finer "mig quart" / "un quart i mig"
+#     refinements (mapped to BELL, or FULL_BELL for the exhaustive gradation)
+_TIME_VARIANT_ALIASES_CA = {
+    "default": TimeVariantCA.DEFAULT,
+    "watch": TimeVariantCA.DEFAULT,
+    "standard": TimeVariantCA.SPANISH_LIKE,
+    "central": TimeVariantCA.SPANISH_LIKE,
+    "spanish_like": TimeVariantCA.SPANISH_LIKE,
+    "quarts": TimeVariantCA.BELL,
+    "bell": TimeVariantCA.BELL,
+    "quarts_full": TimeVariantCA.FULL_BELL,
+    "full_bell": TimeVariantCA.FULL_BELL,
+}
+
+
+def _resolve_time_variant_ca(variant):
+    """Resolve a variant given as an enum member, an enum name, or a
+    human-friendly alias string into a ``TimeVariantCA``.
+
+    Anything unrecognised (including ``None``) falls back to
+    ``TimeVariantCA.DEFAULT`` so existing callers keep the current behaviour.
     """
-    Converteix una frase en català en un nombre de segons.
-    Converteix coses com:
-        "10 Minuts"
-        "3 dies 8 hores 10 Minuts i 49 Segons"
-    en un enter, que representa el nombre total de segons.
-    Les paraules utilitzades en la durada seran consumides, i
-    el restant es retornarà.
-    Com a exemple, "posa un temporitzador per 5 minuts" retornaria
-    (300, "posa un temporitzador per").
+    if isinstance(variant, TimeVariantCA):
+        return variant
+    if isinstance(variant, str):
+        key = variant.strip().lower()
+        if key in _TIME_VARIANT_ALIASES_CA:
+            return _TIME_VARIANT_ALIASES_CA[key]
+        # also accept the exact enum member name, e.g. "FULL_BELL"
+        try:
+            return TimeVariantCA[variant.strip().upper()]
+        except KeyError:
+            return TimeVariantCA.DEFAULT
+    if isinstance(variant, int):
+        try:
+            return TimeVariantCA(variant)
+        except ValueError:
+            return TimeVariantCA.DEFAULT
+    return TimeVariantCA.DEFAULT
+
+
+def extract_duration_ca(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
+    """
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): cadena que conté una durada.
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    Una tupla que conté la durada i el text restant
-                    no consumit en l'anàlisi. El primer valor serà
-                    None si no es troba cap durada. El text retornat
-                    tindrà els espais en blanc eliminats dels extrems.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = text.lower().replace("í", "i")
-    time_units = {
-        'microseconds': 'microsegons',
-        'milliseconds': 'mil·lisegons',
-        'seconds': 'segons',
-        'minutes': 'minuts',
-        'hours': 'hores',
-        'days': 'dies',
-        'weeks': 'setmanes'
-    }
-    # NOTE: alguns d'aquests unitats angleses estan escrites incorrectament a propòsit per al bucle següent que elimina la s
-    non_std_un = {
-        "months": "mesos",
-        "years": "anys",
-        'decades': "dècades",
-        'centurys': "segles",
-        'millenniums': "mil·lenis"
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[s]?"
-
-    text = text.replace("í", "i").replace("é", "e").replace("ñ", "n").replace("mesos", "mes")
-    text = numbers_to_digits_ca(text)
-
-    for (unit_en, unit_ca) in time_units.items():
-        unit_pattern = pattern.format(
-            unit=unit_ca[:-1])  # remove 's' from unit
-        time_units[unit_en] = 0
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    for (unit_en, unit_ca) in non_std_un.items():
-        unit_pattern = pattern.format(
-            unit=unit_ca[:-1])  # remove 's' from unit
-
-        def repl_non_std(match):
-            val = float(match.group(1))
-            if unit_en == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit_en == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit_en == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit_en == "centurys":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit_en == "millenniums":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            return ''
-
-        text = re.sub(unit_pattern, repl_non_std, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["ca"],
+                                    resolution, replace_token)
 
 
 def nice_time_ca(dt, speech=True, use_24hour=False, use_ampm=False,
@@ -111,10 +97,17 @@ def nice_time_ca(dt, speech=True, use_24hour=False, use_ampm=False,
         speech (bool): format for speech (default/True) or display (False)=Fal
         use_24hour (bool): output in 24-hour/military or 12-hour format
         use_ampm (bool): include the am/pm for 12-hour format
+        variant (TimeVariantCA|str): time-telling register. Accepts a
+            TimeVariantCA member or a friendly alias string. Notable aliases:
+            "standard"/"central" (i quart / i mitja / menys quart),
+            "quarts" (traditional quarters-toward-next-hour: "un quart de
+            cinc"), "quarts_full" (fine-grained quarts gradation) and
+            "default" (plain watch time). Unknown values fall back to the
+            default watch-time register, preserving existing behaviour.
     Returns:
         (str): The formatted time string
     """
-    variant = variant or TimeVariantCA.DEFAULT
+    variant = _resolve_time_variant_ca(variant)
 
     if use_24hour:
         # e.g. "03:01" or "14:22"
@@ -726,9 +719,15 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
             elif (wordPrev and wordPrev[0].isdigit() and
                   wordNext not in months and
                   wordNext not in monthsShort):
-                dayOffset += int(wordPrev)
-                start -= 1
-                used += 2
+                # "fa N dies" = N periods in the past (DIEC2/GDLC)
+                if wordPrevPrev == "fa":
+                    dayOffset -= int(wordPrev)
+                    start -= 2
+                    used += 3
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used += 2
             elif wordNext and wordNext[0].isdigit() and wordNextNext not in \
                     months and wordNextNext not in monthsShort:
                 dayOffset += int(wordNext)
@@ -737,9 +736,15 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
 
         elif word == "setmana" and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
+                # "fa N ..." = N periods in the past (DIEC2/GDLC)
+                if wordPrevPrev == "fa":
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 2
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     dayOffset = 7
@@ -763,9 +768,15 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "fa N ..." = N periods in the past (DIEC2/GDLC)
+                if wordPrevPrev == "fa":
+                    monthOffset = -int(wordPrev)
+                    start -= 2
+                    used = 3
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     monthOffset = 7
@@ -789,9 +800,15 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
         # parse 5 years, next year, last year
         elif word == "any" and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "fa N ..." = N periods in the past (DIEC2/GDLC)
+                if wordPrevPrev == "fa":
+                    yearOffset = -int(wordPrev)
+                    start -= 2
+                    used = 3
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     yearOffset = 7
@@ -1162,28 +1179,28 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                         strHH = strNum
                         remainder = "am"
                         used = 1
-                    elif (int(word) > 100 and
+                    elif (strNum and int(strNum) > 100 and
                           (
                                   wordPrev == "o" or
                                   wordPrev == "oh" or
                                   wordPrev == "zero"
                           )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         military = True
                         if wordNext == "hora":
                             used += 1
                     elif (
                             wordNext == "hora" and
-                            word[0] != '0' and
+                            word[0] != '0' and strNum and
                             (
-                                    int(word) < 100 and
-                                    int(word) > 2400
+                                    int(strNum) < 100 or
+                                    int(strNum) > 2400
                             )):
                         # ignores military time
                         # "in 3 hours"
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
@@ -1191,28 +1208,28 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
 
                     elif wordNext == "minut":
                         # "in 10 minutes"
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "segon":
                         # in 5 seconds
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif strNum and int(strNum) > 100:
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         military = True
                         if wordNext == "hora":
                             used += 1
 
                     elif wordNext == "" or (
                             wordNext == "en" and wordNextNext == "punt"):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punt":
                             used += 2
@@ -1230,7 +1247,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                                 used += 1
 
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         military = True
                         used += 1
@@ -1270,7 +1287,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
             found = True
 
     # check that we found a date
-    if not date_found:
+    if not date_found():
         return None
 
     if dayOffset is False:
@@ -1279,10 +1296,14 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("d'aquí a dues hores") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',
@@ -1291,11 +1312,18 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                           'aug',
                           'sept', 'oct', 'nov', 'dec']
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
         for idx, en_month in enumerate(en_monthsShort):
-            datestr = datestr.replace(monthsShort[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+        except ValueError:
+            # impossible calendar date ("el 31 de febrer") -> not a valid date
+            return None
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
@@ -1355,7 +1383,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
 
 def _ca_pruning(text, symbols=True, accents=False, agressive=True):
     # agressive ca word pruning
-    words = ["l", "la", "el", "els", "les", "de", "dels",
+    words = ["l", "la", "el", "els", "les", "de", "dels", "d", "aquí",
              "ell", "ells", "me", "és", "som", "al", "a", "dins", "per",
              "aquest", "aquesta", "això", "aixina", "en", "aquell", "aquella",
              "va", "vam", "vaig", "quin", "quina"]

@@ -1,8 +1,13 @@
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_it import extract_number_it, pronounce_number_it
-from ovos_utils.time import now_local
+from ovos_utils.time import now_local, DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
+from ovos_number_parser import numbers_to_digits
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 def nice_time_it(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -220,6 +225,10 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                                           word_next in day_multiples):
             multiplier = int(extract_number_it(word))
             used += 2
+            # "N <periodo> fa" = N periods in the past (Treccani)
+            if word_next_next == 'fa':
+                multiplier = -multiplier
+                used += 1
             if word_next == 'decenni':
                 year_offset = multiplier * 10
             elif word_next == 'secolo':
@@ -252,9 +261,14 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             used += 2
         elif word == 'giorno':
             if word_prev[0].isdigit():
-                day_offset += int(word_prev)
+                # "N giorni fa" = N days in the past (Treccani)
+                if word_next == 'fa':
+                    day_offset -= int(word_prev)
+                    used += 1
+                else:
+                    day_offset += int(word_prev)
                 start -= 1
-                used = 2
+                used += 2
                 if word_next == 'dopo' and word_next_next == 'domani':
                     day_offset += 1
                     used += 2
@@ -354,8 +368,11 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 datestr += ' ' + str(int(extract_number_it(word_prev)))
                 start -= 1
                 used += 1
-                if word_next and extract_number_it(word_next):
-                    datestr += ' ' + str(int(extract_number_it(word_next)))
+                # only a value large enough to be a year (never a clock
+                # hour or a day-of-month) may follow the day as the year
+                _yr = extract_number_it(word_next) if word_next else False
+                if _yr and int(_yr) >= 100:
+                    datestr += ' ' + str(int(_yr))
                     used += 1
                     has_year = True
                 else:
@@ -363,7 +380,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             elif word_next and word_next[0].isdigit():
                 datestr += ' ' + word_next
                 used += 1
-                if word_next_next and word_next_next[0].isdigit():
+                if word_next_next and word_next_next[0].isdigit() \
+                        and int(word_next_next) >= 100:
                     datestr += ' ' + word_next_next
                     used += 1
                     has_year = True
@@ -421,6 +439,23 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 words[start - 1] = ''
             found = True
             day_specified = True
+
+    # spoken clock hours ("alle tre", "domani alle otto") must reach the
+    # digit-based time parser just like "alle 3" does; the indefinite
+    # article and the fraction words keep their own meaning and are left
+    # untouched
+    # the duration-unit words must survive: "secondo" is also the ordinal
+    # "second", so converting it to a digit would turn "15 secondo" into
+    # "15 2" and lose the seconds offset
+    _keep_words = {'un', 'uno', 'una', "un'", 'mezzo', 'mezza', 'mezzora',
+                   'quarto', 'quarti', 'paio', 'secondo', 'minuto', 'ora'}
+    for _i, _w in enumerate(words):
+        if not _w or _w[0].isdigit() or _w in _keep_words:
+            continue
+        _n = extract_number_it(_w)
+        if _n is not False and _n is not None and float(_n) == int(_n) \
+                and 1 <= int(_n) <= 24:
+            words[_i] = str(int(_n))
 
     # parse time
     time_str = ''
@@ -530,6 +565,14 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             str_hh = ''
             str_mm = ''
             remainder = ''
+            # digits-only prefix, so tokens like "20h" or "21h30" that glue a
+            # letter suffix onto a number do not crash int() below
+            str_num = ''
+            for ch in word:
+                if ch.isdigit():
+                    str_num += ch
+                else:
+                    break
             if ':' in word:
                 # parse colons
                 # '3:00 in the morning'
@@ -541,13 +584,13 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                             and 0 <= num0 <= 23 and 0 <= num1 <= 59:
                         str_hh = str(num0)
                         str_mm = str(num1)
-            elif 0 < int(extract_number_it(word)) < 24 \
+            elif str_num and 0 < int(str_num) < 24 \
                     and word_next != 'quarto':
-                str_hh = str(int(word))
+                str_hh = str(int(str_num))
                 str_mm = '00'
-            elif 100 <= int(word) <= 2400:
-                str_hh = int(word) / 100
-                str_mm = int(word) - str_hh * 100
+            elif str_num and 100 <= int(str_num) <= 2400:
+                str_hh = int(str_num) / 100
+                str_mm = int(str_num) - str_hh * 100
                 military = True
                 isTime = False
             if extract_number_it(word) and word_next \
@@ -565,7 +608,13 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                     and word_next == 'in_punto':
                 str_hh = str(int(extract_number_it(word)))
                 used = 2
-            if word_next == 'pm':
+            if str_hh == '':
+                # a bare number that is not a valid clock value
+                # (e.g. "99", "25:99", "24:00", out-of-range hours/minutes)
+                # is not a time - ignore it rather than crashing on int('')
+                isTime = False
+                used = 0
+            elif word_next == 'pm':
                 remainder = 'pm'
                 hr_abs = int(str_hh)
                 min_abs = int(str_mm)
@@ -704,7 +753,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             found = True
 
     # check that we found a date
-    if not date_found:
+    if not date_found():
         return None
 
     if day_offset is False:
@@ -722,18 +771,25 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                            'aug', 'sept', 'oct', 'nov', 'dec']
 
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
 
         for idx, en_month in enumerate(en_months_short):
             datestr = datestr.replace(months_short[idx], en_month)
 
-        try:
-            temp = datetime.strptime(datestr, '%B %d')
-        except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(datestr, '%B %d %Y')
+        temp = None
+        for _fmt in ('%B %d', '%B %d %Y', '%B'):
+            try:
+                temp = datetime.strptime(datestr, _fmt)
+                # a bare month with no day ("a giugno"): first of the month
+                has_year = has_year and _fmt == '%B %d %Y'
+                break
+            except ValueError:
+                continue
         extracted_date = extracted_date.replace(hour=0, minute=0, second=0)
-        if not has_year:
+        if temp is None:
+            # unparseable day/month ("il 99 dicembre"): leave the date alone
+            pass
+        elif not has_year:
             temp = temp.replace(year=extracted_date.year,
                                 tzinfo=extracted_date.tzinfo)
             if extracted_date < temp:
@@ -791,3 +847,25 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
     result_str = ' '.join(words)
 
     return [extracted_date, result_str]
+
+
+def extract_duration_it(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
+    """
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
+
+    Args:
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
+    Returns:
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
+    """
+    return extract_duration_generic(text, DURATION_LEXICONS["it"],
+                                    resolution, replace_token)

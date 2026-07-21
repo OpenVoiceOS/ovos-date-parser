@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_de import pronounce_number_de, _get_ordinal_index, is_number_de, is_numeric_de, \
     numbers_to_digits_de
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 def nice_time_de(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -72,62 +75,26 @@ def nice_time_de(dt, speech=True, use_24hour=False, use_ampm=False):
     return string
 
 
-def extract_duration_de(text):
+def extract_duration_de(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert a german phrase into a number of seconds
-    Convert things like:
-        "10 Minuten"
-        "3 Tage 8 Stunden 10 Minuten und 49 Sekunden"
-    into an int, representing the total number of seconds.
-    The words used in the duration will be consumed, and
-    the remainder returned.
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
+
     Args:
-        text (str): string containing a duration
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = text.lower()
-    # die time_unit values werden für timedelta() mit dem jeweiligen Wert überschrieben
-    time_units = {
-        'microseconds': 'mikrosekunden',
-        'milliseconds': 'millisekunden',
-        'seconds': 'sekunden',
-        'minutes': 'minuten',
-        'hours': 'stunden',
-        'days': 'tage',
-        'weeks': 'wochen'
-    }
-
-    # Einzahl und Mehrzahl
-    pattern = r"(?:^|\s)(?P<value>\d+(?:[.,]?\d+)?\b)(?:\s+|\-)(?P<unit>{unit}[nes]?[sn]?\b)"
-
-    text = numbers_to_digits_de(text)
-
-    for (unit_en, unit_de) in time_units.items():
-        unit_pattern = pattern.format(
-            unit=unit_de[:-1])  # remove 'n'/'e' from unit
-        time_units[unit_en] = 0
-
-        def repl(match):
-            value = match.group("value").replace(",", ".")
-            time_units[unit_en] += float(value)
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["de"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_de(text, anchorDate=None, default_time=None):
@@ -225,6 +192,15 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         if word in timeQualifiersList:
             timeQualifier = word
             # parse today, tomorrow, day after tomorrow
+        # "gestern": an dem Tag, der dem heutigen unmittelbar
+        # vorausgegangen ist (Duden,
+        # papers/linguistics/german/duden_gestern.html)
+        elif word == "vorgestern" and not fromFlag:
+            dayOffset = -2
+            used += 1
+        elif word == "gestern" and not fromFlag:
+            dayOffset = -1
+            used += 1
         elif word == "heute" and not fromFlag:
             dayOffset = 0
             used += 1
@@ -240,15 +216,27 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word[:3] == "tag" and len(word) <= 5:
             num = is_number_de(wordPrev)
             if num:
-                dayOffset += num
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    dayOffset -= num
+                    start -= 2
+                    used = 3
+                else:
+                    dayOffset += num
+                    start -= 1
+                    used = 2
         elif word[:5] == "woche" and len(word) <= 7 and not fromFlag:
             num = is_number_de(wordPrev)
             if num:
-                dayOffset += num * 7
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    dayOffset -= num * 7
+                    start -= 2
+                    used = 3
+                else:
+                    dayOffset += num * 7
+                    start -= 1
+                    used = 2
             elif wordPrev[:6] == "nächst":
                 dayOffset = 7
                 start -= 1
@@ -261,9 +249,15 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word[:5] == "monat" and len(word) <= 7 and not fromFlag:
             num = is_number_de(wordPrev)
             if num:
-                monthOffset = num
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    monthOffset = -num
+                    start -= 2
+                    used = 3
+                else:
+                    monthOffset = num
+                    start -= 1
+                    used = 2
             elif wordPrev[:6] == "nächst":
                 monthOffset = 1
                 start -= 1
@@ -276,9 +270,15 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word[:4] == "jahr" and len(word) <= 6 and not fromFlag:
             num = is_number_de(wordPrev)
             if num:
-                yearOffset = num
-                start -= 1
-                used = 2
+                # "vor N <Zeitraum>" = N periods in the past (Duden, vor + Dativ)
+                if wordPrevPrev == "vor":
+                    yearOffset = -num
+                    start -= 2
+                    used = 3
+                else:
+                    yearOffset = num
+                    start -= 1
+                    used = 2
             elif wordPrev[:6] == "nächst":
                 yearOffset = 1
                 start -= 1
@@ -324,7 +324,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                     datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if wordNext and wordNext.isdigit() and len(wordNext) == 4:
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -334,7 +334,8 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
             elif wordNext and wordNext[0].isdigit():
                 datestr += " " + wordNext
                 used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
+                if wordNextNext and wordNextNext.isdigit() and \
+                        len(wordNextNext) == 4:
                     datestr += " " + wordNextNext
                     used += 1
                     hasYear = True
@@ -732,10 +733,14 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',
@@ -744,32 +749,49 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                           'aug',
                           'sept', 'oct', 'nov', 'dec']
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
         for idx, en_month in enumerate(en_monthsShort):
-            datestr = datestr.replace(monthsShort[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        if hasYear:
-            temp = datetime.strptime(datestr, "%B %d %Y")
-        else:
-            temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                # parse against a leap year so "29. februar" is a valid reference
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+        except ValueError:
+            # impossible calendar date (e.g. "31. juni", "0. januar",
+            # "29. februar 2021") - null beats a wrong guess
+            return None
 
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
         if not hasYear:
-            temp = temp.replace(year=extractedDate.year)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(year=int(currentYear),
-                                                      month=int(
-                                                          temp.strftime(
-                                                              "%m")),
-                                                      day=int(temp.strftime(
-                                                          "%d")))
+            month = temp.month
+            day = temp.day
+
+            def _valid_date(year):
+                # a calendar day may be missing in a given year (e.g. 29 Feb)
+                try:
+                    return extractedDate.replace(year=year, month=month, day=day)
+                except ValueError:
+                    return None
+
+            candidate = _valid_date(extractedDate.year)
+            if candidate is not None and extractedDate < candidate:
+                extractedDate = candidate
             else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")))
+                # search a bounded span of years for the next valid occurrence
+                candidate = None
+                for year in range(extractedDate.year + 1,
+                                  extractedDate.year + 9):
+                    candidate = _valid_date(year)
+                    if candidate is not None:
+                        break
+                if candidate is None:
+                    return None
+                extractedDate = candidate
         else:
             extractedDate = extractedDate.replace(
                 year=int(temp.strftime("%Y")),

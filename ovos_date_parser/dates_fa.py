@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import re
 from ovos_number_parser.numbers_fa import pronounce_number_fa, _parse_sentence
 from ovos_utils.time import now_local
 
@@ -94,7 +95,7 @@ def extract_datetime_fa(text, anchorDate=None, default_time=None):
                          text not consumed in the parsing, or None if no
                          date or time related text was found.
     """
-    if text == "":
+    if not text:
         return None
     text = text.lower().replace('‌', ' ').replace('.', '').replace('،', '') \
         .replace('?', '').replace("پس فردا", "پسفردا") \
@@ -178,16 +179,24 @@ def extract_datetime_fa(text, anchorDate=None, default_time=None):
                 number_seen = None
             delta_seen += _time_units[x] * k
             mode = 'delta_time'
+        elif isinstance(x, str) and re.match(r'^\d{1,2}:\d{2}$', x):
+            h, m = map(int, x.split(':'))
+            if 0 <= h < 24 and 0 <= m < 60:
+                base = result if result is not None else today
+                result = base.replace(hour=h, minute=m)
+                mode = 'finished'
+            else:
+                handled = 0
         elif x in nextWords or x in prevWords:
             # Give up instead of incorrect result
             if mode == 'time':
                 return None
             sign = 1 if x in nextWords else -1
             if mode == 'delta_date':
-                result = today + delta_seen
+                result = today + sign * delta_seen
                 mode = 'time'
             elif mode == 'delta_time':
-                result = anchorDate + delta_seen
+                result = anchorDate + sign * delta_seen
                 mode = 'finished'
             else:
                 handled = 0
@@ -199,7 +208,13 @@ def extract_datetime_fa(text, anchorDate=None, default_time=None):
             remainder.extend(number_seen[1])
             number_seen = None
         remainder.append(x)
-    return (result, " ".join(remainder))
+    if result is None and mode == 'delta_date' and delta_seen:
+        result = today + delta_seen
+    elif result is None and mode == 'delta_time' and delta_seen:
+        result = anchorDate + delta_seen
+    if result is None:
+        return None
+    return [result, " ".join(remainder)]
 
 
 def nice_time_fa(dt, speech=True, use_24hour=False, use_ampm=False):

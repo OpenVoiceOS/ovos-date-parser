@@ -172,7 +172,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
     timeQualifier = ""
 
     timeQualifiersList = ['morgon', 'förmiddag', 'eftermiddag', 'kväll']
-    markers = ['på', 'i', 'den här', 'kring', 'efter']
+    markers = ['på', 'i', 'den här', 'kring', 'efter', 'om']
     days = ['måndag', 'tisdag', 'onsdag', 'torsdag',
             'fredag', 'lördag', 'söndag']
     months = ['januari', 'februari', 'mars', 'april', 'maj', 'juni',
@@ -213,15 +213,25 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
             used += 1
         # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dagar":
-            if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
+            if wordPrev and wordPrev[0].isdigit():
+                # "N ... sedan" = N periods in the past (SAOL)
+                if wordNext == "sedan":
+                    dayOffset -= int(wordPrev)
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
         elif word == "vecka" or word == "veckor" and not fromFlag:
-            if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
+            if wordPrev and wordPrev[0].isdigit():
+                # "N ... sedan" = N periods in the past (SAOL)
+                if wordNext == "sedan":
+                    dayOffset -= int(wordPrev) * 7
+                    used += 1
+                else:
+                    dayOffset += int(wordPrev) * 7
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "nästa":
                 dayOffset = 7
                 start -= 1
@@ -231,11 +241,16 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
-        elif word == "månad" and not fromFlag:
-            if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
+        elif (word == "månad" or word == "månader") and not fromFlag:
+            if wordPrev and wordPrev[0].isdigit():
+                # "N ... sedan" = N periods in the past (SAOL)
+                if wordNext == "sedan":
+                    monthOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    monthOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "nästa":
                 monthOffset = 1
                 start -= 1
@@ -246,10 +261,15 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 5 years, next year, last year
         elif word == "år" and not fromFlag:
-            if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
+            if wordPrev and wordPrev[0].isdigit():
+                # "N ... sedan" = N periods in the past (SAOL)
+                if wordNext == "sedan":
+                    yearOffset = -int(wordPrev)
+                    used += 1
+                else:
+                    yearOffset = int(wordPrev)
                 start -= 1
-                used = 2
+                used += 2
             elif wordPrev == "nästa":
                 yearOffset = 1
                 start -= 1
@@ -395,13 +415,21 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 hrAbs = 19
             used += 1
             # parse half an hour, quarter hour
-        elif wordPrev in markers or wordPrevPrev in markers:
+        elif word in ("halvtimme", "halvtimma", "kvart", "timme", "timma",
+                      "minut", "sekund") \
+                and (wordPrev in markers or wordPrevPrev in markers):
             if word == "halvtimme" or word == "halvtimma":
                 minOffset = 30
             elif word == "kvart":
                 minOffset = 15
             elif word == "timme" or word == "timma":
                 hrOffset = 1
+            elif word == "minut":
+                minOffset = 1
+            elif word == "sekund":
+                secOffset = 1
+            if wordPrevPrev in markers:
+                words[idx - 2] = ""
             words[idx - 1] = ""
             used += 1
             hrAbs = -1
@@ -526,51 +554,46 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                         remainder = "am"
                         used = 1
                     elif (
-                            int(word) > 100 and
+                            int(strNum) > 100 and
                             (
                                     wordPrev == "o" or
                                     wordPrev == "oh"
                             )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) / 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hours":
                             used += 1
-                    elif (
-                            wordNext == "hours" and
-                            word[0] != '0' and
-                            (
-                                    int(word) < 100 and
-                                    int(word) > 2400
-                            )):
-                        # "in 3 hours"
-                        hrOffset = int(word)
+                    elif wordNext in ("timme", "timma", "timmar") and \
+                            int(strNum) < 100:
+                        # "om 3 timmar" = "in 3 hours"
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
 
-                    elif wordNext == "minutes":
-                        # "in 10 minutes"
-                        minOffset = int(word)
+                    elif wordNext in ("minut", "minuter"):
+                        # "om 10 minuter" = "in 10 minutes"
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext == "seconds":
-                        # in 5 seconds
-                        secOffset = int(word)
+                    elif wordNext in ("sekund", "sekunder"):
+                        # "om 5 sekunder" = "in 5 seconds"
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif int(strNum) > 100:
+                        strHH = int(strNum) / 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hours":
                             used += 1
-                    elif wordNext[0].isdigit():
-                        strHH = word
+                    elif wordNext and wordNext[0].isdigit():
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "hours":
@@ -584,7 +607,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                                             wordNextNext == timeQualifier
                                     )
                             )):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "o'clock":
                             used += 1
@@ -661,31 +684,56 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("om 2 timmar") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
-        temp = datetime.strptime(datestr, "%B %d")
-        if not hasYear:
-            temp = temp.replace(year=extractedDate.year)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(year=int(currentYear),
-                                                      month=int(
-                                                          temp.strftime(
-                                                              "%m")),
-                                                      day=int(temp.strftime(
-                                                          "%d")))
-            else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")))
-        else:
+        # datestr is built from Swedish month names (e.g. "juni 15"),
+        # which strptime("%B") cannot parse, so map the month directly.
+        dateparts = datestr.split()
+        month_num = months.index(dateparts[0]) + 1
+        day_num = int(dateparts[1])
+        if hasYear:
+            try:
+                temp = datetime(int(dateparts[2]), month_num, day_num)
+            except ValueError:
+                # impossible date such as "31 april 2020"
+                return None
             extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")))
+                year=temp.year, month=temp.month, day=temp.day)
+        else:
+            # find the soonest year in which this day/month exists (handles
+            # "29 februari" when the current year is not a leap year) and
+            # keep the existing "next occurrence" semantics
+            base_year = extractedDate.year
+            try:
+                this_year = datetime(base_year, month_num, day_num)
+                use_this_year = extractedDate < this_year
+            except ValueError:
+                use_this_year = False
+            if use_this_year:
+                year = base_year
+            else:
+                # search a bounded window (any leap cycle resolves within a
+                # few years); an impossible day/month such as "31 april" never
+                # resolves, so give up and report no date instead of looping
+                year = None
+                for candidate in range(base_year + 1, base_year + 9):
+                    try:
+                        datetime(candidate, month_num, day_num)
+                        year = candidate
+                        break
+                    except ValueError:
+                        continue
+                if year is None:
+                    return None
+            extractedDate = extractedDate.replace(
+                year=year, month=month_num, day=day_num)
 
     if timeStr != "":
         temp = datetime(timeStr)
@@ -755,6 +803,10 @@ def extract_duration_sv(text):
     """
     tokens = tokenize(text)
     number_tok_map = _find_numbers_in_text(tokens)
+    if not number_tok_map:
+        # No numbers means no duration; also avoids indexing an empty
+        # token list downstream when the input is empty or whitespace.
+        return None
     # Combine adjacent numbers
     simplified = _combine_adjacent_numbers(number_tok_map)
 

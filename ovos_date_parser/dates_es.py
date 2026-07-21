@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_es import pronounce_number_es, numbers_to_digits_es
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 WEEKDAYS_ES = {
     0: "lunes",
@@ -89,7 +92,7 @@ def nice_date_time_es(dt, now=None, use_24hour=False,
     return f"{nice_date_es(dt, now)} a las {nice_time_es(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
-def nice_date_es(dt: datetime, now: datetime = None):
+def nice_date_es(dt: datetime, now: datetime = None, include_weekday=True):
     """
     Formatea una fecha en una forma pronunciable.
 
@@ -100,14 +103,14 @@ def nice_date_es(dt: datetime, now: datetime = None):
         now (datetime): Fecha actual. Si se proporciona, la fecha devuelta se acortará en consecuencia:
             No se devuelve el año si ahora está en el mismo año que `dt`, no se devuelve el mes
             si ahora está en el mismo mes que `dt`. Si `now` y `dt` son el mismo día, se devuelve 'hoy'.
+        include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
 
     Returns:
         (str): La cadena de fecha formateada
     """
-    weekday = nice_weekday_es(dt)
     day = pronounce_number_es(dt.day)
     if now is not None:
-        nice = f"{weekday}, {day}"
+        nice = day
         if dt.day == now.day:
             return "hoy"
         if dt.day == now.day + 1:
@@ -119,7 +122,11 @@ def nice_date_es(dt: datetime, now: datetime = None):
         if dt.year != now.year:
             nice = nice + ", " + nice_year_es(dt)
     else:
-        nice = f"{weekday}, {day} de {nice_month_es(dt)}, {nice_year_es(dt)}"
+        nice = f"{day} de {nice_month_es(dt)}, {nice_year_es(dt)}"
+
+    if include_weekday:
+        weekday = nice_weekday_es(dt)
+        nice = f"{weekday}, {nice}"
     return nice
 
 
@@ -248,6 +255,13 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                        "para", "una", "cualquier", "a",
                        "e'", "esta", "este"]
 
+        s = s.lower()
+        # "la una" is the canonical way to say one o'clock; "una" alone is an
+        # article and must not be treated as a number elsewhere
+        s = re.sub(r"\bla una\b", "la 1", s)
+        # turn spelled-out numbers ("tres", "quince") into digits so the
+        # numeric time/date parser below can consume them
+        s = numbers_to_digits_es(s)
         for word in symbols:
             s = s.replace(word, "")
         for word in noise_words:
@@ -289,7 +303,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     minAbs or secOffset != 0
             )
 
-    if text == "":
+    if not text:
         return None
     if anchorDate is None:
         anchorDate = now_local()
@@ -387,9 +401,15 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
             elif (wordPrev and wordPrev[0].isdigit() and
                   wordNext not in months and
                   wordNext not in monthsShort):
-                dayOffset += int(wordPrev)
-                start -= 1
-                used += 2
+                # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
+                if wordPrevPrev == "hace" or wordNext == "atras":
+                    dayOffset -= int(wordPrev)
+                    start -= 2 if wordPrevPrev == "hace" else 1
+                    used += 3
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used += 2
             elif wordNext and wordNext[0].isdigit() and wordNextNext not in \
                     months and wordNextNext not in monthsShort:
                 dayOffset += int(wordNext)
@@ -398,9 +418,15 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
 
         elif word == "semana" and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
+                # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
+                if wordPrevPrev == "hace" or wordNext == "atras":
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 2 if wordPrevPrev == "hace" else 1
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     dayOffset = 7
@@ -424,9 +450,15 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
+                if wordPrevPrev == "hace" or wordNext == "atras":
+                    monthOffset = -int(wordPrev)
+                    start -= 2 if wordPrevPrev == "hace" else 1
+                    used = 3
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     monthOffset = 7
@@ -450,9 +482,15 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
         # parse 5 years, next year, last year
         elif word == "año" and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
+                if wordPrevPrev == "hace" or wordNext == "atras":
+                    yearOffset = -int(wordPrev)
+                    start -= 2 if wordPrevPrev == "hace" else 1
+                    used = 3
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             for w in nexts:
                 if wordPrev == w:
                     yearOffset = 7
@@ -814,27 +852,27 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                         strHH = strNum
                         remainder = "am"
                         used = 1
-                    elif (int(word) > 100 and
+                    elif (strNum and int(strNum) > 100 and
                           (
                                   # wordPrev == "o" or
                                   # wordPrev == "oh" or
                                   wordPrev == "cero"
                           )):
                         # 0800 hours (pronounced oh-eight-hundred)
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hora":
                             used += 1
                     elif (
                             wordNext == "hora" and
-                            word[0] != '0' and
+                            word[0] != '0' and strNum and
                             (
-                                    int(word) < 100 and
-                                    int(word) > 2400
+                                    int(strNum) < 100 or
+                                    int(strNum) > 2400
                             )):
                         # ignores military time
                         # "in 3 hours"
-                        hrOffset = int(word)
+                        hrOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
@@ -842,27 +880,48 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
 
                     elif wordNext == "minuto":
                         # "in 10 minutes"
-                        minOffset = int(word)
+                        minOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "segundo":
                         # in 5 seconds
-                        secOffset = int(word)
+                        secOffset = int(strNum)
                         used = 2
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif int(word) > 100:
-                        strHH = int(word) / 100
-                        strMM = int(word) - strHH * 100
+                    elif strNum and int(strNum) > 100:
+                        strHH = int(strNum) // 100
+                        strMM = int(strNum) - strHH * 100
                         if wordNext == "hora":
+                            used += 1
+
+                    elif wordNext == "y" and (
+                            wordNextNext in ("cuarto", "media") or
+                            (wordNextNext and wordNextNext[0].isdigit())):
+                        # "tres y cuarto", "tres y media", "tres y veinte"
+                        strHH = strNum
+                        if wordNextNext == "cuarto":
+                            strMM = 15
+                        elif wordNextNext == "media":
+                            strMM = 30
+                        else:
+                            strMM = int(wordNextNext)
+                        used += 2
+                        # optional part-of-day right after the minutes
+                        if wordNextNextNext == "tarde" or \
+                                wordNextNextNext == "noche":
+                            remainder = "pm"
+                            used += 1
+                        elif wordNextNextNext in ("mañana", "madrugada"):
+                            remainder = "am"
                             used += 1
 
                     elif wordNext == "" or (
                             wordNext == "en" and wordNextNext == "punto"):
-                        strHH = word
+                        strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punto":
                             used += 2
@@ -873,14 +932,14 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                                 remainder = "am"
                                 used += 1
                             elif wordNextNextNext == "noche":
-                                if 0 > strHH > 6:
+                                if 0 > int(strHH) > 6:
                                     remainder = "am"
                                 else:
                                     remainder = "pm"
                                 used += 1
 
                     elif wordNext[0].isdigit():
-                        strHH = word
+                        strHH = strNum
                         strMM = wordNext
                         used += 1
                         if wordNextNext == "hora":
@@ -928,10 +987,14 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     # perform date manipulation
 
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("dentro de dos horas") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
         en_months = ['january', 'february', 'march', 'april', 'may', 'june',
                      'july', 'august', 'september', 'october', 'november',
@@ -940,11 +1003,19 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                           'aug',
                           'sept', 'oct', 'nov', 'dec']
         for idx, en_month in enumerate(en_months):
-            datestr = datestr.replace(months[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(months[idx]) + r"\b", en_month, datestr)
         for idx, en_month in enumerate(en_monthsShort):
-            datestr = datestr.replace(monthsShort[idx], en_month)
+            datestr = re.sub(r"\b" + re.escape(monthsShort[idx]) + r"\b", en_month, datestr)
 
-        temp = datetime.strptime(datestr, "%B %d")
+        try:
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                temp = datetime.strptime(datestr, "%B %d")
+        except ValueError:
+            # an impossible calendar date like "30 de febrero"; report nothing
+            # rather than a wrong guess
+            return None
         if extractedDate.tzinfo:
             temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
@@ -997,86 +1068,23 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     return [extractedDate, resultStr]
 
 
-def extract_duration_es(text):
+def extract_duration_es(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an spanish phrase into a number of seconds
-    Convert things like:
-        "10 Minutos"
-        "3 dias 8 horas 10 Minutos e 49 Segundos"
-    into an int, representing the total number of seconds.
-    The words used in the duration will be consumed, and
-    the remainder returned.
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
+
     Args:
-        text (str): string containing a duration
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    text = text.lower().replace("í", "i")
-    time_units = {
-        'microseconds': 'microsegundos',
-        'milliseconds': 'milisegundos',
-        'seconds': 'segundos',
-        'minutes': 'minutos',
-        'hours': 'horas',
-        'days': 'dias',
-        'weeks': 'semanas'
-    }
-    # NOTE: some of these english units are spelled wrong on purpose because of the loop below that strips the s
-    non_std_un = {
-        "months": "mes",
-        "years": "anos",
-        'decades': "decadas",
-        'centurys': "siglos",
-        'millenniums': "milenios"
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[s]?"
-
-    text = text.replace("í", "i").replace("é", "e").replace("ñ", "n").replace("meses", "mes")
-    text = numbers_to_digits_es(text)
-
-    for (unit_en, unit_es) in time_units.items():
-        unit_pattern = pattern.format(
-            unit=unit_es[:-1])  # remove 's' from unit
-        time_units[unit_en] = 0
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    for (unit_en, unit_es) in non_std_un.items():
-        unit_pattern = pattern.format(
-            unit=unit_es[:-1])  # remove 's' from unit
-
-        def repl_non_std(match):
-            val = float(match.group(1))
-            if unit_en == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit_en == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit_en == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit_en == "centurys":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit_en == "millenniums":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            return ''
-
-        text = re.sub(unit_pattern, repl_non_std, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["es"],
+                                    resolution, replace_token)

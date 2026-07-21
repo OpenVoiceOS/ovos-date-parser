@@ -1,9 +1,14 @@
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_fr import _number_ordinal_fr, pronounce_number_fr, _get_ordinal_fr, \
     _number_parse_fr
-from ovos_utils.time import now_local
+from ovos_utils.time import now_local, DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
+from ovos_number_parser import numbers_to_digits
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _ARTICLES_FR = ["le", "la", "du", "de", "les", "des"]
 
@@ -187,7 +192,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
             if wordPrev in ["ce", "cet", "cette"]:
                 used = 2
                 start -= 1
-        # parse aujourd'hui, demain, après-demain
+        # parse avant-hier, hier, aujourd'hui, demain, après-demain
+        # "hier": jour qui précède immédiatement celui où l'on est
+        # (Larousse, papers/linguistics/french/larousse_hier.html)
+        elif word == "avant-hier" and not fromFlag:
+            dayOffset = -2
+            used += 1
+        elif word == "hier" and not fromFlag:
+            dayOffset = -1
+            used += 1
         elif word == "aujourd'hui" and not fromFlag:
             dayOffset = 0
             used += 1
@@ -200,9 +213,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         # parse 5 jours, 10 semaines, semaine dernière, semaine prochaine
         elif word in ["jour", "jours"]:
             if wordPrev.isdigit():
-                dayOffset += int(wordPrev)
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    dayOffset -= int(wordPrev)
+                    start -= 4
+                    used = 5
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used = 2
             # "3e jour"
             elif _get_ordinal_fr(wordPrev) is not None:
                 dayOffset += _get_ordinal_fr(wordPrev) - 1
@@ -210,9 +229,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 used = 2
         elif word in ["semaine", "semaines"] and not fromFlag:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 4
+                    used = 5
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
             elif wordNext in ["prochaine", "suivante"]:
                 dayOffset = 7
                 used = 2
@@ -222,9 +247,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         # parse 10 mois, mois prochain, mois dernier
         elif word == "mois" and not fromFlag:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    monthOffset = -int(wordPrev)
+                    start -= 4
+                    used = 5
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordNext in ["prochain", "suivant"]:
                 monthOffset = 1
                 used = 2
@@ -234,9 +265,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         # parse 5 ans, an prochain, année dernière
         elif word in ["an", "ans", "année", "années"] and not fromFlag:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "il y a N ..." = N periods in the past (Larousse)
+                if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
+                    yearOffset = -int(wordPrev)
+                    start -= 4
+                    used = 5
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordNext in ["prochain", "prochaine", "suivant", "suivante"]:
                 yearOffset = 1
                 used = 2
@@ -266,7 +303,9 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
             used += 1
             datestr = months_en[m]
             if wordPrev and (wordPrev[0].isdigit()):
-                datestr += " " + wordPrev
+                # keep only the leading digits so ordinals like "1er"
+                # ("1er janvier") do not leak letters into strptime
+                datestr += " " + re.match(r"\d+", wordPrev).group()
                 start -= 1
                 used += 1
             else:
@@ -358,7 +397,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 if wordNextNext == "quart":
                     minAbs = 15
                     used += 2
-                elif wordNextNext == "demi":
+                elif wordNextNext in ["demi", "demie"]:
                     minAbs = 30
                     used += 2
             elif wordNext == "moins":
@@ -468,7 +507,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                     minAbs = 15
                                 used += 2
                                 idxHr += 2
-                            elif words[idxHr + 1] == "demi":
+                            elif words[idxHr + 1] in ["demi", "demie"]:
                                 if wordPrev in words_in:
                                     minOffset = 30
                                 else:
@@ -501,18 +540,18 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                 words[idxHr] in ["minutes", "minute"]:
                             used += 1
                             idxHr += 1
-                elif wordNext == "minutes":
+                elif word.isdigit() and wordNext == "minutes":
                     # "dans 10 minutes"
                     if wordPrev in words_in:
                         minOffset = int(word)
                     else:
                         minAbs = int(word)
                     used = 2
-                elif wordNext == "secondes":
+                elif word.isdigit() and wordNext == "secondes":
                     # "dans 5 secondes"
                     secOffset = int(word)
                     used = 2
-                elif int(word) > 100:
+                elif word.isdigit() and int(word) > 100:
                     # format militaire
                     hrAbs = int(word) / 100
                     minAbs = int(word) - hrAbs * 100
@@ -567,6 +606,20 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
             idx += used - 1
             found = True
 
+    # a bare part-of-day qualifier ("cet après-midi", "ce soir") is consumed
+    # while scanning for dates, so apply its default hour once no explicit
+    # time was given
+    if hrAbs is None and minAbs is None and timeQualifier and \
+            not (hrOffset or minOffset or secOffset):
+        if timeQualifier == "matin":
+            hrAbs = 8
+        elif timeQualifier == "après-midi":
+            hrAbs = 15
+        elif timeQualifier == "soir":
+            hrAbs = 19
+        elif timeQualifier == "nuit":
+            hrAbs = 2
+
     # check that we found a date
     if not date_found():
         return None
@@ -576,13 +629,23 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
 
     # perform date manipulation
     extractedDate = dateNow
-    extractedDate = extractedDate.replace(microsecond=0,
-                                          second=0,
-                                          minute=0,
-                                          hour=0)
+    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+        # purely relative time ("dans deux heures") keeps the anchor time of day
+        extractedDate = extractedDate.replace(microsecond=0, second=0)
+    else:
+        extractedDate = extractedDate.replace(microsecond=0,
+                                              second=0,
+                                              minute=0,
+                                              hour=0)
     if datestr != "":
+        try:
+            temp = datetime.strptime(datestr,
+                                     "%B %d %Y" if hasYear else "%B %d")
+        except ValueError:
+            # an impossible calendar date like "30 février"; report nothing
+            # rather than a wrong guess
+            return None
         if not hasYear:
-            temp = datetime.strptime(datestr, "%B %d")
             if extractedDate.tzinfo:
                 temp = temp.replace(tzinfo=extractedDate.tzinfo)
             temp = temp.replace(year=extractedDate.year)
@@ -599,7 +662,6 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                     month=int(temp.strftime("%m")),
                     day=int(temp.strftime("%d")))
         else:
-            temp = datetime.strptime(datestr, "%B %d %Y")
             extractedDate = extractedDate.replace(
                 year=int(temp.strftime("%Y")),
                 month=int(temp.strftime("%m")),
@@ -672,3 +734,25 @@ def normalize_fr(text, remove_articles=True):
         i += 1
 
     return normalized[1:]  # strip the initial space
+
+
+def extract_duration_fr(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
+    """
+    Convert a phrase into a duration and return the remainder text.
+
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
+
+    Args:
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
+    Returns:
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
+    """
+    return extract_duration_generic(text, DURATION_LEXICONS["fr"],
+                                    resolution, replace_token)

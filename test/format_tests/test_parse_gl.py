@@ -1,6 +1,7 @@
 import unittest
 from datetime import timedelta
 from ovos_date_parser.dates_gl import extract_duration_gl
+from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
 
 
 class TestExtractDurationGL(unittest.TestCase):
@@ -17,21 +18,32 @@ class TestExtractDurationGL(unittest.TestCase):
                          (timedelta(weeks=2, days=5), ""))
 
     def test_with_extra_text(self):
+        # the number normalizer folds the article "un" to "1" in the
+        # remainder, matching the Spanish and Portuguese behaviour
         self.assertEqual(extract_duration_gl("pon un temporizador de 5 minutos"),
-                         (timedelta(minutes=5), "pon un temporizador de"))
+                         (timedelta(minutes=5), "pon 1 temporizador de"))
         self.assertEqual(extract_duration_gl("avisame en 1 hora"),
                          (timedelta(hours=1), "avisame en"))
 
+    def test_spelled_out_numbers(self):
+        # spelled-out numbers must be converted before matching
+        self.assertEqual(extract_duration_gl("dez minutos"),
+                         (timedelta(minutes=10), ""))
+        self.assertEqual(extract_duration_gl("dúas horas"),
+                         (timedelta(hours=2), ""))
+        self.assertEqual(extract_duration_gl("corenta e cinco segundos"),
+                         (timedelta(seconds=45), ""))
+
     def test_non_standard_units(self):
-        self.assertEqual(extract_duration_gl("2 meses"), (timedelta(days=60), ""))
-        self.assertEqual(extract_duration_gl("1 ano"), (timedelta(days=365), ""))
-        self.assertEqual(extract_duration_gl("1 década"), (timedelta(days=10 * 365), ""))
-        self.assertEqual(extract_duration_gl("1 século"), (timedelta(days=100 * 365), ""))
-        self.assertEqual(extract_duration_gl("1 milenio"), (timedelta(days=1000 * 365), ""))
+        self.assertEqual(extract_duration_gl("2 meses"), (timedelta(days=DAYS_IN_1_MONTH * 2), ""))
+        self.assertEqual(extract_duration_gl("1 ano"), (timedelta(days=DAYS_IN_1_YEAR), ""))
+        self.assertEqual(extract_duration_gl("1 década"), (timedelta(days=10 * DAYS_IN_1_YEAR), ""))
+        self.assertEqual(extract_duration_gl("1 século"), (timedelta(days=100 * DAYS_IN_1_YEAR), ""))
+        self.assertEqual(extract_duration_gl("1 milenio"), (timedelta(days=1000 * DAYS_IN_1_YEAR), ""))
 
     def test_no_duration_found(self):
         self.assertEqual(extract_duration_gl("isto non ten tempo"), (None, "isto non ten tempo"))
-        self.assertEqual(extract_duration_gl(""), (None, ""))
+        self.assertEqual(extract_duration_gl(""), None)
 
 
 if __name__ == "__main__":

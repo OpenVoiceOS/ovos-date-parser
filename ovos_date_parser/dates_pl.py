@@ -1,3 +1,4 @@
+import calendar
 import re
 from datetime import datetime, timedelta
 
@@ -5,6 +6,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pl import pronounce_number_pl, extract_number_pl, numbers_to_digits_pl
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _TIME_UNITS_CONVERSION = {
     'mikrosekund': 'microseconds',
@@ -296,7 +300,23 @@ def nice_duration_pl(duration, speech=True):
         str: timespan as a string
     """
     if not speech:
-        raise NotImplementedError
+        # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
+        _days = int(duration // 86400)
+        _hours = int(duration // 3600 % 24)
+        _minutes = int(duration // 60 % 60)
+        _seconds = int(duration % 60)
+        out = ""
+        if _days > 0:
+            out = str(_days) + "d "
+        if _hours > 0 or _days > 0:
+            out += str(_hours) + ":"
+        if _minutes < 10 and (_hours > 0 or _days > 0):
+            out += "0"
+        out += str(_minutes) + ":"
+        if _seconds < 10:
+            out += "0"
+        out += str(_seconds)
+        return out
 
     days = int(duration // 86400)
     hours = int(duration // 3600 % 24)
@@ -356,61 +376,56 @@ def get_pronounce_number_for_duration(num):
     return 'jedna' if pronounced == 'jeden' else pronounced
 
 
-def extract_duration_pl(text):
+def extract_duration_pl(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
+    return extract_duration_generic(text, DURATION_LEXICONS["pl"],
+                                    resolution, replace_token)
 
-    time_units = {
-        'microseconds': None,
-        'milliseconds': None,
-        'seconds': None,
-        'minutes': None,
-        'hours': None,
-        'days': None,
-        'weeks': None
-    }
 
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}[ayeę]?"
-    text = numbers_to_digits_pl(text)
+# Ordinal day-of-month words in the genitive case Polish uses for dates,
+# e.g. "piętnastego stycznia" -> 15 January. Mapped to the day number so the
+# date parser can treat them like a numeric day.
+_ORDINAL_DAY_UNITS_PL = {
+    1: 'pierwszego', 2: 'drugiego', 3: 'trzeciego', 4: 'czwartego',
+    5: 'piątego', 6: 'szóstego', 7: 'siódmego', 8: 'ósmego',
+    9: 'dziewiątego', 10: 'dziesiątego', 11: 'jedenastego', 12: 'dwunastego',
+    13: 'trzynastego', 14: 'czternastego', 15: 'piętnastego',
+    16: 'szesnastego', 17: 'siedemnastego', 18: 'osiemnastego',
+    19: 'dziewiętnastego', 20: 'dwudziestego', 30: 'trzydziestego',
+}
 
-    for unit in _TIME_UNITS_CONVERSION:
-        unit_pattern = pattern.format(unit=unit)
-        matches = re.findall(unit_pattern, text)
-        value = sum(map(float, matches))
-        unit_en = _TIME_UNITS_CONVERSION.get(unit)
-        if time_units[unit_en] is None or time_units.get(unit_en) == 0:
-            time_units[unit_en] = value
-        text = re.sub(unit_pattern, '', text)
 
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
+def _build_ordinal_days_pl():
+    phrases = {}
+    for day in range(1, 32):
+        if day in _ORDINAL_DAY_UNITS_PL:
+            phrase = _ORDINAL_DAY_UNITS_PL[day]
+        elif 21 <= day <= 29:
+            phrase = _ORDINAL_DAY_UNITS_PL[20] + ' ' \
+                + _ORDINAL_DAY_UNITS_PL[day - 20]
+        else:  # 31
+            phrase = _ORDINAL_DAY_UNITS_PL[30] + ' ' + _ORDINAL_DAY_UNITS_PL[1]
+        phrases[phrase] = day
+    return phrases
 
-    return (duration, text)
+
+_ORDINAL_DAYS_PL = _build_ordinal_days_pl()
 
 
 def extract_datetime_pl(string, anchorDate=None, default_time=None):
@@ -449,6 +464,12 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
         s = s.lower().replace('?', '').replace('.', '').replace(',', '') \
             .replace("para", "2")
 
+        # spoken ordinal day-of-month ("piętnastego stycznia") -> "15 stycznia"
+        # longest phrase first so "dwudziestego pierwszego" wins over "dwudziestego"
+        for phrase in sorted(_ORDINAL_DAYS_PL, key=len, reverse=True):
+            s = re.sub(r'\b' + phrase + r'\b',
+                       str(_ORDINAL_DAYS_PL[phrase]), s)
+
         wordList = s.split()
         for idx, word in enumerate(wordList):
             ordinals = ["ci", "szy", "gi"]
@@ -456,7 +477,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 for ordinal in ordinals:
                     if ordinal in word:
                         word = word.replace(ordinal, "")
-            wordList[idx] = word
+            wordList[idx] = _TIME_UNITS_NORMALIZATION.get(word, word)
 
         return wordList
 
@@ -513,6 +534,12 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
             used += 2
         if word == "temu" and dayOffset:
             dayOffset = - dayOffset
+            used += 1
+        elif word == "temu" and monthOffset:
+            monthOffset = - monthOffset
+            used += 1
+        elif word == "temu" and yearOffset:
+            yearOffset = - yearOffset
             used += 1
         if word == "teraz" and not datestr:
             resultStr = " ".join(words[idx + 1:])
@@ -1010,30 +1037,44 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
         try:
             temp = datetime.strptime(datestr, "%B %d")
         except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(datestr, "%B %d %Y")
+            # Try again, allowing the year, then a leap-safe day, then a
+            # bare month. "February 29" has no valid date in the default
+            # year 1900, so parse the day against a known leap year.
+            try:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            except ValueError:
+                try:
+                    temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
+                except ValueError:
+                    try:
+                        temp = datetime.strptime(datestr, "%B %Y")
+                    except ValueError:
+                        try:
+                            temp = datetime.strptime(datestr, "%B")
+                        except ValueError:
+                            # an impossible calendar date like "30 luty";
+                            # report nothing rather than a wrong guess
+                            return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
-        if not hasYear:
-            temp = temp.replace(year=extractedDate.year,
-                                tzinfo=extractedDate.tzinfo)
-            if extractedDate < temp:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear),
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extractedDate.tzinfo)
-            else:
-                extractedDate = extractedDate.replace(
-                    year=int(currentYear) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extractedDate.tzinfo)
+        month = temp.month
+        day = temp.day
+        if hasYear:
+            year = temp.year
+        elif month == 2 and day == 29:
+            # 29 February only exists in leap years: pick the next leap
+            # year on or after the reference date
+            year = int(currentYear)
+            while not (calendar.isleap(year) and
+                       datetime(year, 2, 29, tzinfo=extractedDate.tzinfo)
+                       >= extractedDate):
+                year += 1
         else:
-            extractedDate = extractedDate.replace(
-                year=int(temp.strftime("%Y")),
-                month=int(temp.strftime("%m")),
-                day=int(temp.strftime("%d")),
-                tzinfo=extractedDate.tzinfo)
+            year = int(currentYear)
+            candidate = extractedDate.replace(year=year, month=month, day=day)
+            if not extractedDate < candidate:
+                year += 1
+        extractedDate = extractedDate.replace(
+            year=year, month=month, day=day, tzinfo=extractedDate.tzinfo)
     else:
         # ignore the current HH:MM:SS if relative using days or greater
         if hrOffset == 0 and minOffset == 0 and secOffset == 0:

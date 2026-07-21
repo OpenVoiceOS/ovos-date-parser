@@ -6,6 +6,9 @@ from ovos_number_parser.numbers_uk import extract_number_uk, numbers_to_digits_u
     _NUM_STRING_UK
 from ovos_number_parser.util import invert_dict, is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 # hours
 HOURS_UK = {
@@ -163,69 +166,26 @@ _STRING_NUM_UK.update({
 })
 
 
-def extract_duration_uk(text):
+def extract_duration_uk(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    # Ukrainian inflection for time: хвилина, хвилини, хвилин - safe to use хвилина as pattern
-    # For day: день, дня, днів - short pattern not applicable, list all
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}(?:ів|я|и|ин|і|унд|ни|ну|ку|дні|у|днів)?"
-    text = numbers_to_digits_uk(text)
-
-    for (unit_uk, unit_en) in _TIME_UNITS_CONVERSION.items():
-        unit_pattern = pattern.format(unit=unit_uk)
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    new_text = []
-    tokens_in_result_text = text.split(' ')
-    for token in tokens_in_result_text:
-        if not token.isdigit():
-            new_text.append(token)
-    text = " ".join(new_text).strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return duration, text
+    return extract_duration_generic(text, DURATION_LEXICONS["uk"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_uk(text, anchor_date=None, default_time=None):
@@ -469,6 +429,11 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
                 day_offset = -7
                 start -= 1
                 used = 2
+        elif word == "тиждень" and not from_flag and is_numeric(word_prev) and word_next == "тому":
+            if word_prev[0].isdigit():
+                day_offset = -int(word_prev) * 7
+                start -= 1
+                used = 3
         elif word == "місяць" and not from_flag and preposition in ["через", "на"]:
             if word_prev[0].isdigit():
                 month_offset = int(word_prev)
@@ -482,6 +447,11 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
                 month_offset = -1
                 start -= 1
                 used = 2
+        elif word == "місяць" and not from_flag and is_numeric(word_prev) and word_next == "тому":
+            if word_prev[0].isdigit():
+                month_offset = -int(word_prev)
+                start -= 1
+                used = 3
         # parse 5 years, next year, last year
         elif word == "рік" and not from_flag and preposition in ["через", "на"]:
             if word_prev[0].isdigit():
@@ -502,6 +472,11 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
             elif word_prev == "через":
                 year_offset = 1
                 used = 1
+        elif word == "рік" and not from_flag and is_numeric(word_prev) and word_next == "тому":
+            if word_prev[0].isdigit():
+                year_offset = -int(word_prev)
+                start -= 1
+                used = 3
         # parse Monday, Tuesday, etc., and next Monday,
         # last Tuesday, etc.
         elif word in days and not from_flag:
@@ -537,7 +512,9 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
                     date_string += " " + word_prev
                 start -= 1
                 used += 1
-                if word_next and word_next[0].isdigit():
+                # only a full four-digit number is a year; a shorter trailing
+                # number (e.g. a clock hour) is left for the time parser
+                if word_next and word_next.isdigit() and len(word_next) == 4:
                     date_string += " " + word_next
                     used += 1
                     has_year = True
@@ -547,7 +524,7 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
             elif word_next and word_next[0].isdigit():
                 date_string += " " + word_next
                 used += 1
-                if word_next_next and word_next_next[0].isdigit():
+                if word_next_next and word_next_next.isdigit() and len(word_next_next) == 4:
                     date_string += " " + word_next_next
                     used += 1
                     has_year = True
@@ -847,7 +824,11 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
                         remainder == "ночі" or
                         word_next == "ночі" or
                         remainder == "ранку" or
-                        word_next == "ранку"):
+                        word_next == "ранку" or
+                        # "ранку" is normalized to "вранці" before this point,
+                        # so match the whole morning group, not just one form
+                        remainder in _WORDS_MORNING_UK or
+                        word_next in _WORDS_MORNING_UK):
                     str_hh = str_num
                     remainder = "am"
                     used = 1
@@ -1049,7 +1030,12 @@ def extract_datetime_uk(text, anchor_date=None, default_time=None):
             temp = datetime.strptime(date_string, "%B %d")
         except ValueError:
             # Try again, allowing the year
-            temp = datetime.strptime(date_string, "%B %d %Y")
+            try:
+                temp = datetime.strptime(date_string, "%B %d %Y")
+            except ValueError:
+                # an impossible calendar date like "30 лютий"; report nothing
+                # rather than a wrong guess
+                return None
         extracted_date = extracted_date.replace(hour=0, minute=0, second=0)
         if not has_year:
             temp = temp.replace(year=extracted_date.year,
@@ -1230,7 +1216,23 @@ def nice_duration_uk(duration, speech=True):
     """
 
     if not speech:
-        raise NotImplementedError
+        # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
+        _days = int(duration // 86400)
+        _hours = int(duration // 3600 % 24)
+        _minutes = int(duration // 60 % 60)
+        _seconds = int(duration % 60)
+        out = ""
+        if _days > 0:
+            out = str(_days) + "d "
+        if _hours > 0 or _days > 0:
+            out += str(_hours) + ":"
+        if _minutes < 10 and (_hours > 0 or _days > 0):
+            out += "0"
+        out += str(_minutes) + ":"
+        if _seconds < 10:
+            out += "0"
+        out += str(_seconds)
+        return out
 
     days = int(duration // 86400)
     hours = int(duration // 3600 % 24)

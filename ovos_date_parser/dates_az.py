@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_az import pronounce_number_az, extract_number_az, numbers_to_digits_az
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _HARD_VOWELS = ['a', 'ı', 'o', 'u']
 _SOFT_VOWELS = ['e', 'ə', 'i', 'ö', 'ü']
@@ -213,70 +216,26 @@ def nice_duration_az(duration, speech=True):
     return out
 
 
-def extract_duration_az(text):
+def extract_duration_az(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an azerbaijani phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 dəqiqə"
-        "2 yarım saat"
-        "3 gün 8 saat 10 dəqiqə 49 saniyə"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "5 dəqiqəyə taymer qur" would return
-    (300, "taymer qur").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    time_units_az = {
-        'mikrosaniyə': 'microseconds',
-        'milisaniyə': 'milliseconds',
-        'saniyə': 'seconds',
-        'dəqiqə': 'minutes',
-        'saat': 'hours',
-        'gün': 'days',
-        'həftə': 'weeks'
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}?(?:yə|a|ə)?(?:(?:\s|,)+)?(?P<half>yarım|0\.5)?(?:a)?"
-    text = numbers_to_digits_az(text)
-    for unit_az in time_units_az:
-        unit_pattern = pattern.format(unit=unit_az)
-
-        def repl(match):
-            time_units[time_units_az[unit_az]] += float(match.group(1)) + (0.5 if match.group(2) else 0)
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["az"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_az(text, anchorDate=None, default_time=None):
@@ -450,18 +409,30 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         # parse 5 gün, 10 həftə, keçən həftə, gələn həftə
         elif word == "gün":
             if wordPrev and wordPrev[0].isdigit():
-                dayOffset += int(wordPrev)
-                start -= 1
-                used = 2
-                if wordNext == "sonra":
-                    used += 1
+                # "N gün əvvəl/qabaq" = N days in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    dayOffset -= int(wordPrev)
+                    start -= 1
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev)
+                    start -= 1
+                    used = 2
+                    if wordNext == "sonra":
+                        used += 1
         elif word == "həftə" and not fromFlag and wordPrev:
             if wordPrev[0].isdigit():
-                dayOffset += int(wordPrev) * 7
-                start -= 1
-                used = 2
-                if wordNext == "sonra":
-                    used += 1
+                # "N həftə əvvəl/qabaq" = N weeks in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    dayOffset -= int(wordPrev) * 7
+                    start -= 1
+                    used = 3
+                else:
+                    dayOffset += int(wordPrev) * 7
+                    start -= 1
+                    used = 2
+                    if wordNext == "sonra":
+                        used += 1
             elif wordPrev == "gələn":
                 dayOffset = 7
                 start -= 1
@@ -475,9 +446,15 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         # parse 10 months, next month, last month
         elif word == "ay" and not fromFlag and wordPrev:
             if wordPrev[0].isdigit():
-                monthOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "N ay əvvəl/qabaq" = N months in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    monthOffset = -int(wordPrev)
+                    start -= 1
+                    used = 3
+                else:
+                    monthOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordPrev == "gələn":
                 monthOffset = 1
                 start -= 1
@@ -489,9 +466,15 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         # parse 5 il, gələn il, keçən il
         elif word == "il" and not fromFlag and wordPrev:
             if wordPrev[0].isdigit():
-                yearOffset = int(wordPrev)
-                start -= 1
-                used = 2
+                # "N il əvvəl/qabaq" = N years in the past (İzahlı lüğət)
+                if wordNext in ("əvvəl", "qabaq"):
+                    yearOffset = -int(wordPrev)
+                    start -= 1
+                    used = 3
+                else:
+                    yearOffset = int(wordPrev)
+                    start -= 1
+                    used = 2
             elif wordPrev == "gələn":
                 yearOffset = 1
                 start -= 1
@@ -533,7 +516,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                 datestr += " " + wordPrev
                 start -= 1
                 used += 1
-                if wordNext and wordNext[0].isdigit():
+                if wordNext and wordNext[0].isdigit() and len(wordNext) == 4:
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -547,7 +530,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
             elif wordNext and wordNext[0].isdigit():
                 datestr += " " + wordNext
                 used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
+                if wordNextNext and wordNextNext[0].isdigit() and len(wordNextNext) == 4:
                     datestr += " " + wordNextNext
                     used += 1
                     hasYear = True
@@ -616,13 +599,30 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
         elif word == "saat":
             if wordPrev == "yarım":
                 minOffset = 30
-            if wordNext in markers:
+                words[idx - 1] = ""
+                hrAbs = -1
+                minAbs = -1
                 used += 1
-
-            words[idx - 1] = ""
-            used += 1
-            hrAbs = -1
-            minAbs = -1
+                if wordNext in markers:
+                    used += 1
+            elif wordNext and wordNext[0].isdigit() and ":" not in wordNext:
+                # explicit clock hour, e.g. "saat 8" or "axşam saat 8"
+                digits = "".join(c for c in wordNext if c.isdigit())
+                hh = int(digits)
+                if timeQualifier in timeQualifiersPM and hh < 12:
+                    hh += 12
+                if hh <= 24:
+                    hrAbs = hh
+                    minAbs = 0
+                used += 2
+                if wordNextNext in markers:
+                    used += 1
+            else:
+                hrAbs = -1
+                minAbs = -1
+                used += 1
+                if wordNext in markers:
+                    used += 1
         # parse 5:00 am, 12:00 p.m., etc
         elif word[0].isdigit():
             isTime = True
@@ -773,10 +773,16 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
     if datestr != "":
         # date included an explicit date, e.g. "iyun 5" or "iyun 2, 2017"
         try:
-            temp = datetime.strptime(datestr, "%B %d")
+            if hasYear:
+                temp = datetime.strptime(datestr, "%B %d %Y")
+            else:
+                # anchor to a leap year so "29 fevral" parses; the real
+                # year is applied below
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
         except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(datestr, "%B %d %Y")
+            # an impossible calendar date like "30 fevral"; report nothing
+            # rather than a wrong guess
+            return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,

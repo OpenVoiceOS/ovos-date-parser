@@ -5,6 +5,9 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_en import extract_number_en, numbers_to_digits_en, pronounce_number_en
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 
 def nice_time_en(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -91,85 +94,26 @@ def nice_time_en(dt, speech=True, use_24hour=False, use_ampm=False):
         return speak
 
 
-def extract_duration_en(text):
+def extract_duration_en(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-    # NOTE: these are spelled wrong on purpose because of the loop below that strips the s
-    units = ['months', 'years', 'decades', 'centurys', 'millenniums'] + \
-            list(time_units.keys())
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}s?"
-    text = numbers_to_digits_en(text)
-    text = text.replace("centuries", "century").replace("millenia", "millennium")
-    for word in ('day', 'month', 'year', 'decade', 'century', 'millennium'):
-        text = text.replace(f'a {word}', f'1 {word}')
-
-    for unit_en in units:
-        unit_pattern = pattern.format(unit=unit_en[:-1])  # remove 's' from unit
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        def repl_non_std(match):
-            val = float(match.group(1))
-            if unit_en == "months":
-                val = DAYS_IN_1_MONTH * val
-            if unit_en == "years":
-                val = DAYS_IN_1_YEAR * val
-            if unit_en == "decades":
-                val = 10 * DAYS_IN_1_YEAR * val
-            if unit_en == "centurys":
-                val = 100 * DAYS_IN_1_YEAR * val
-            if unit_en == "millenniums":
-                val = 1000 * DAYS_IN_1_YEAR * val
-            time_units["days"] += val
-            return ''
-
-        if unit_en not in time_units:
-            text = re.sub(unit_pattern, repl_non_std, text)
-        else:
-            text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return (duration, text)
+    return extract_duration_generic(text, DURATION_LEXICONS["en"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_en(text, anchorDate=None, default_time=None):
@@ -245,6 +189,25 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     if text == "":
         return None
     default_time = default_time or time(0, 0, 0)
+
+    # ISO 8601 calendar-date pre-pass, run before tokenisation because the
+    # tokeniser splits on whitespace and would otherwise mishandle the
+    # hyphenated form. Supports the extended format YYYY-MM-DD and the
+    # slash variant YYYY/MM/DD; month/day are validated by constructing the
+    # datetime, so impossible dates (e.g. "2017-13-45", "2023-02-29") and
+    # non-date digit runs (e.g. phone numbers "123-45-6789") are left
+    # untouched. Ref: ISO 8601-1:2019 calendar date, 5.2.2.1.
+    iso_datestr = None
+    _iso_match = re.search(r"\b(\d{4})([-/])(\d{1,2})\2(\d{1,2})\b", text)
+    if _iso_match:
+        _y, _, _mo, _d = _iso_match.groups()
+        try:
+            iso_datestr = datetime(int(_y), int(_mo),
+                                   int(_d)).strftime("%B %d %Y")
+            text = text[:_iso_match.start()] + " " + text[_iso_match.end():]
+        except ValueError:
+            iso_datestr = None
+
     found = False
     daySpecified = False
     dayOffset = False
@@ -254,8 +217,8 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     wkday = anchorDate.weekday()  # 0 - monday
     currentYear = anchorDate.strftime("%Y")
     fromFlag = False
-    datestr = ""
-    hasYear = False
+    datestr = iso_datestr or ""
+    hasYear = bool(iso_datestr)
     timeQualifier = ""
 
     timeQualifiersAM = ['morning']
@@ -605,14 +568,21 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                     hasYear = False
 
             elif wordNext and wordNext[0].isdigit():
-                datestr += " " + wordNext
-                used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
-                    datestr += " " + wordNextNext
+                if len(wordNext) == 4:
+                    # month followed by a bare 4-digit year and no day,
+                    # e.g. "june 2027" -> 1st of that month in that year
+                    datestr += " " + wordNext
                     used += 1
                     hasYear = True
                 else:
-                    hasYear = False
+                    datestr += " " + wordNext
+                    used += 1
+                    if wordNextNext and wordNextNext[0].isdigit():
+                        datestr += " " + wordNextNext
+                        used += 1
+                        hasYear = True
+                    else:
+                        hasYear = False
             # if no date indicators found, it may not be the month of May
             # may "i/we" ...
             # "... may be"
@@ -946,6 +916,10 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                             start -= 1
                             used += 1
                             hrOffset = hrOffset * -1
+                        # "N hours ago/earlier" = N in the past
+                        elif wordNextNext in earlier_markers:
+                            used += 1
+                            hrOffset = hrOffset * -1
 
                     elif wordNext == "minutes" or wordNext == "minute" or \
                             remainder == "minutes" or remainder == "minute":
@@ -960,6 +934,10 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                             start -= 1
                             used += 1
                             minOffset = minOffset * -1
+                        # "N minutes ago/earlier" = N in the past
+                        elif wordNextNext in earlier_markers:
+                            used += 1
+                            minOffset = minOffset * -1
                     elif wordNext == "seconds" or wordNext == "second" \
                             or remainder == "seconds" or remainder == "second":
                         # in 5 seconds
@@ -971,6 +949,10 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                         # in last N seconds
                         if wordPrev in past_markers:
                             start -= 1
+                            used += 1
+                            secOffset = secOffset * -1
+                        # "N seconds ago/earlier" = N in the past
+                        elif wordNextNext in earlier_markers:
                             used += 1
                             secOffset = secOffset * -1
                     elif int(strNum) > 100:
@@ -1107,21 +1089,22 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
 
     extractedDate = anchorDate.replace(microsecond=0)
 
+    temp = None
     if datestr != "":
         # date included an explicit date, e.g. "june 5" or "june 2, 2017"
-        try:
-            temp = datetime.strptime(datestr, "%B %d")
-        except ValueError:
-            # Try again, allowing the year
+        for fmt in ("%B %d", "%B %d %Y", "%B %Y", "%B"):
             try:
-                temp = datetime.strptime(datestr, "%B %d %Y")
+                temp = datetime.strptime(datestr, fmt)
+                break
             except ValueError:
-                # Try again, without day
-                try:
-                    temp = datetime.strptime(datestr, "%B %Y")
-                except ValueError:
-                    # Try again, with only month
-                    temp = datetime.strptime(datestr, "%B")
+                # e.g. an impossible calendar date like "february 29 2019"
+                # falls through every format and leaves temp as None
+                continue
+    if datestr != "" and temp is None:
+        # an explicit date was spoken but it does not exist on the calendar
+        # (e.g. "february 29 2019"); report nothing rather than a wrong guess
+        return None
+    if temp is not None:
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
             temp = temp.replace(year=extractedDate.year,
@@ -1151,18 +1134,23 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                                                   minute=default_time.minute,
                                                   second=default_time.second)
 
-    if yearOffset != 0:
-        extractedDate = extractedDate + relativedelta(years=yearOffset)
-    if monthOffset != 0:
-        extractedDate = extractedDate + relativedelta(months=monthOffset)
-    if dayOffset != 0:
-        extractedDate = extractedDate + relativedelta(days=dayOffset)
-    if hrOffset != 0:
-        extractedDate = extractedDate + relativedelta(hours=hrOffset)
-    if minOffset != 0:
-        extractedDate = extractedDate + relativedelta(minutes=minOffset)
-    if secOffset != 0:
-        extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    try:
+        if yearOffset != 0:
+            extractedDate = extractedDate + relativedelta(years=yearOffset)
+        if monthOffset != 0:
+            extractedDate = extractedDate + relativedelta(months=monthOffset)
+        if dayOffset != 0:
+            extractedDate = extractedDate + relativedelta(days=dayOffset)
+        if hrOffset != 0:
+            extractedDate = extractedDate + relativedelta(hours=hrOffset)
+        if minOffset != 0:
+            extractedDate = extractedDate + relativedelta(minutes=minOffset)
+        if secOffset != 0:
+            extractedDate = extractedDate + relativedelta(seconds=secOffset)
+    except (OverflowError, ValueError):
+        # a relative offset so large it cannot be represented as a datetime
+        # (e.g. "999999999999 hours"); report nothing rather than a wrong guess
+        return None
 
     if hrAbs != -1 and minAbs != -1 and not hrOffset and not minOffset and not secOffset:
         # If no time was supplied in the string set the time to default
@@ -1173,8 +1161,13 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
             hrAbs = hrAbs or 0
             minAbs = minAbs or 0
 
-        extractedDate = extractedDate.replace(hour=hrAbs,
-                                              minute=minAbs)
+        try:
+            extractedDate = extractedDate.replace(hour=hrAbs,
+                                                  minute=minAbs)
+        except ValueError:
+            # an out-of-range clock value such as "2400" or "24:00" that maps
+            # to hour 24 or beyond; report nothing rather than a wrong guess
+            return None
 
         if (hrAbs != 0 or minAbs != 0) and datestr == "":
             if not daySpecified and anchorDate > extractedDate:

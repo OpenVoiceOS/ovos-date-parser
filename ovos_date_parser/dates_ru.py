@@ -6,6 +6,9 @@ from ovos_number_parser.numbers_ru import pronounce_number_ru, _ORDINAL_BASE_RU,
     numbers_to_digits_ru
 from ovos_number_parser.util import is_numeric
 from ovos_utils.time import now_local
+from ovos_date_parser.duration import (
+    DurationResolution, DURATION_LEXICONS, extract_duration_generic
+)
 
 _MONTHS_CONVERSION = {
     0: "january",
@@ -190,7 +193,23 @@ def nice_duration_ru(duration, speech=True):
     """
 
     if not speech:
-        raise NotImplementedError
+        # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
+        _days = int(duration // 86400)
+        _hours = int(duration // 3600 % 24)
+        _minutes = int(duration // 60 % 60)
+        _seconds = int(duration % 60)
+        out = ""
+        if _days > 0:
+            out = str(_days) + "d "
+        if _hours > 0 or _days > 0:
+            out += str(_hours) + ":"
+        if _minutes < 10 and (_hours > 0 or _days > 0):
+            out += "0"
+        out += str(_minutes) + ":"
+        if _seconds < 10:
+            out += "0"
+        out += str(_seconds)
+        return out
 
     days = int(duration // 86400)
     hours = int(duration // 3600 % 24)
@@ -227,64 +246,26 @@ def pronounce_hour_ru(num):
     return pronounce_number_ru(num)
 
 
-def extract_duration_ru(text):
+def extract_duration_ru(text, resolution=DurationResolution.TIMEDELTA,
+                        replace_token=""):
     """
-    Convert an english phrase into a number of seconds
+    Convert a phrase into a duration and return the remainder text.
 
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
+    The words used in the duration are consumed, the remainder of the
+    text is returned. Returns None for empty input; the duration is
+    None if no duration was found.
 
     Args:
-        text (str): string containing a duration
-
+        text (str): string containing a duration.
+        resolution (DurationResolution): format to return the duration in.
+        replace_token (str): string each consumed duration is replaced with.
     Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
+        (duration, str): the duration (timedelta, relativedelta or float
+                         depending on resolution) and the remaining
+                         unconsumed text.
     """
-    if not text:
-        return None
-
-    # Russian inflection for time: минута, минуты, минут - safe to use минута as pattern
-    # For day: день, дня, дней - short pattern not applicable, list all
-
-    time_units = {
-        'microseconds': 0,
-        'milliseconds': 0,
-        'seconds': 0,
-        'minutes': 0,
-        'hours': 0,
-        'days': 0,
-        'weeks': 0
-    }
-
-    pattern = r"(?P<value>\d+(?:\.?\d+)?)(?:\s+|\-){unit}(?:а|ов|у|ут|уту)?"
-    text = numbers_to_digits_ru(text)
-
-    for (unit_ru, unit_en) in _TIME_UNITS_CONVERSION.items():
-        unit_pattern = pattern.format(unit=unit_ru)
-
-        def repl(match):
-            time_units[unit_en] += float(match.group(1))
-            return ''
-
-        text = re.sub(unit_pattern, repl, text)
-
-    text = text.strip()
-    duration = timedelta(**time_units) if any(time_units.values()) else None
-
-    return duration, text
+    return extract_duration_generic(text, DURATION_LEXICONS["ru"],
+                                    resolution, replace_token)
 
 
 def extract_datetime_ru(text, anchor_date=None, default_time=None):
@@ -520,6 +501,11 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 day_offset = -7
                 start -= 1
                 used = 2
+        elif word == "неделя" and not from_flag and is_numeric(word_prev) and word_next == "назад":
+            if word_prev[0].isdigit():
+                day_offset = -int(word_prev) * 7
+                start -= 1
+                used = 3
         elif word == "месяц" and not from_flag and preposition in ["через", "на"]:
             if word_prev[0].isdigit():
                 month_offset = int(word_prev)
@@ -533,6 +519,11 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 month_offset = -1
                 start -= 1
                 used = 2
+        elif word == "месяц" and not from_flag and is_numeric(word_prev) and word_next == "назад":
+            if word_prev[0].isdigit():
+                month_offset = -int(word_prev)
+                start -= 1
+                used = 3
         # parse 5 years, next year, last year
         elif word == "год" and not from_flag and preposition in ["через", "на"]:
             if word_prev[0].isdigit():
@@ -550,6 +541,11 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
             elif word_prev == "через":
                 year_offset = 1
                 used = 1
+        elif word == "год" and not from_flag and is_numeric(word_prev) and word_next == "назад":
+            if word_prev[0].isdigit():
+                year_offset = -int(word_prev)
+                start -= 1
+                used = 3
         # parse Monday, Tuesday, etc., and next Monday,
         # last Tuesday, etc.
         elif word in days and not from_flag:
@@ -1082,28 +1078,43 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
     extracted_date = anchor_date.replace(microsecond=0)
     if date_string != "":
         # date included an explicit date, e.g. "june 5" or "june 2, 2017"
-        try:
-            temp = datetime.strptime(date_string, "%B %d")
-        except ValueError:
-            # Try again, allowing the year
-            temp = datetime.strptime(date_string, "%B %d %Y")
         extracted_date = extracted_date.replace(hour=0, minute=0, second=0)
         if not has_year:
-            temp = temp.replace(year=extracted_date.year,
-                                tzinfo=extracted_date.tzinfo)
-            if extracted_date < temp:
-                extracted_date = extracted_date.replace(
-                    year=int(current_year),
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extracted_date.tzinfo)
-            else:
-                extracted_date = extracted_date.replace(
-                    year=int(current_year) + 1,
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")),
-                    tzinfo=extracted_date.tzinfo)
+            # Resolve the month/day against a real year rather than
+            # strptime's default 1900, which is not a leap year and would
+            # reject a valid "29 february". Pick the next year in which the
+            # day exists, so "29 february" lands on the next leap year.
+            def _resolve_year(base_year):
+                # search a bounded window so an impossible day (e.g. "45
+                # february") stops instead of looping forever
+                for year in range(base_year, base_year + 9):
+                    try:
+                        return datetime.strptime(
+                            "{} {}".format(date_string, year), "%B %d %Y")
+                    except ValueError:
+                        continue
+                return None
+
+            temp = _resolve_year(int(current_year))
+            if temp is None:
+                return None
+            temp = temp.replace(tzinfo=extracted_date.tzinfo)
+            if extracted_date >= temp:
+                later = _resolve_year(int(current_year) + 1)
+                if later is not None:
+                    temp = later.replace(tzinfo=extracted_date.tzinfo)
+            extracted_date = extracted_date.replace(
+                year=temp.year,
+                month=temp.month,
+                day=temp.day,
+                tzinfo=extracted_date.tzinfo)
         else:
+            try:
+                temp = datetime.strptime(date_string, "%B %d %Y")
+            except ValueError:
+                # an impossible calendar date like "30 февраля"; report
+                # nothing rather than a wrong guess
+                return None
             extracted_date = extracted_date.replace(
                 year=int(temp.strftime("%Y")),
                 month=int(temp.strftime("%m")),

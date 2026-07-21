@@ -31,12 +31,12 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version: [ 3.9, "3.10" ]
+        python-version: [ "3.10", "3.11", "3.12" ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Set up python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install System Dependencies
@@ -52,10 +52,15 @@ jobs:
           pip install pytest pytest-timeout pytest-cov
       - name: Run unittests
         run: |
-          pytest --cov=ovos_utils --cov-report xml test/format_tests/
+          pytest --cov=ovos_date_parser --cov-report xml test/format_tests/
           # NOTE: additional pytest invocations should also add the --cov-append flag
           #       or they will overwrite previous invocations' coverage reports
           #       (for an example, see OVOS Skill Manager's workflow)
+          pytest --cov=ovos_date_parser --cov-append --cov-report xml test/parse_tests/
+          pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_dates_pt.py
+          pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_multilang_invariants.py
+          pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_lang_parity.py
+          pytest --cov=ovos_date_parser --cov-append --cov-report xml test/test_packaging.py
       - name: Upload coverage
         if: "${{ matrix.python-version == '3.9' }}"
         env:

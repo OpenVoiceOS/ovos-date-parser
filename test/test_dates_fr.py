@@ -101,5 +101,30 @@ class TestAdversarial(unittest.TestCase):
         self.assertEqual(extract("15 juillet 2020")[0], dt(2020, 7, 15))
 
 
+class TestYesterdayWords(unittest.TestCase):
+    """"hier": le jour qui précède immédiatement celui où l'on est
+    (Larousse, papers/linguistics/french/larousse_hier.html).  Regression
+    for the three-way differential lead: "hier"/"avant-hier" returned
+    None while "ontem"/"ayer" worked in the sibling languages."""
+
+    def test_hier(self):
+        self.assertEqual(extract("hier")[0], dt(2117, 9, 2))
+        self.assertEqual(extract("avant-hier")[0], dt(2117, 9, 1))
+
+    def test_in_sentences(self):
+        res = extract("que s'est-il passé hier")
+        self.assertEqual(res[0], dt(2117, 9, 2))
+        res = extract("le match d'avant-hier")
+        self.assertEqual(res[0], dt(2117, 9, 1))
+
+    def test_hier_with_time(self):
+        self.assertEqual(extract("hier à 17 heures")[0],
+                         dt(2117, 9, 2, 17, 0))
+
+    def test_symmetry_with_demain(self):
+        # demain/hier must be symmetric around the anchor day
+        self.assertEqual((extract("demain")[0] - extract("hier")[0]).days, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

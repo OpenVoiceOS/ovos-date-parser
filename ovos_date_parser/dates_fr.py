@@ -192,7 +192,15 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
             if wordPrev in ["ce", "cet", "cette"]:
                 used = 2
                 start -= 1
-        # parse aujourd'hui, demain, après-demain
+        # parse avant-hier, hier, aujourd'hui, demain, après-demain
+        # "hier": jour qui précède immédiatement celui où l'on est
+        # (Larousse, papers/linguistics/french/larousse_hier.html)
+        elif word == "avant-hier" and not fromFlag:
+            dayOffset = -2
+            used += 1
+        elif word == "hier" and not fromFlag:
+            dayOffset = -1
+            used += 1
         elif word == "aujourd'hui" and not fromFlag:
             dayOffset = 0
             used += 1

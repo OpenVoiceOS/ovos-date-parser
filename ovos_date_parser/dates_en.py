@@ -189,6 +189,25 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     if text == "":
         return None
     default_time = default_time or time(0, 0, 0)
+
+    # ISO 8601 calendar-date pre-pass, run before tokenisation because the
+    # tokeniser splits on whitespace and would otherwise mishandle the
+    # hyphenated form. Supports the extended format YYYY-MM-DD and the
+    # slash variant YYYY/MM/DD; month/day are validated by constructing the
+    # datetime, so impossible dates (e.g. "2017-13-45", "2023-02-29") and
+    # non-date digit runs (e.g. phone numbers "123-45-6789") are left
+    # untouched. Ref: ISO 8601-1:2019 calendar date, 5.2.2.1.
+    iso_datestr = None
+    _iso_match = re.search(r"\b(\d{4})([-/])(\d{1,2})\2(\d{1,2})\b", text)
+    if _iso_match:
+        _y, _, _mo, _d = _iso_match.groups()
+        try:
+            iso_datestr = datetime(int(_y), int(_mo),
+                                   int(_d)).strftime("%B %d %Y")
+            text = text[:_iso_match.start()] + " " + text[_iso_match.end():]
+        except ValueError:
+            iso_datestr = None
+
     found = False
     daySpecified = False
     dayOffset = False
@@ -198,8 +217,8 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     wkday = anchorDate.weekday()  # 0 - monday
     currentYear = anchorDate.strftime("%Y")
     fromFlag = False
-    datestr = ""
-    hasYear = False
+    datestr = iso_datestr or ""
+    hasYear = bool(iso_datestr)
     timeQualifier = ""
 
     timeQualifiersAM = ['morning']
@@ -549,14 +568,21 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
                     hasYear = False
 
             elif wordNext and wordNext[0].isdigit():
-                datestr += " " + wordNext
-                used += 1
-                if wordNextNext and wordNextNext[0].isdigit():
-                    datestr += " " + wordNextNext
+                if len(wordNext) == 4:
+                    # month followed by a bare 4-digit year and no day,
+                    # e.g. "june 2027" -> 1st of that month in that year
+                    datestr += " " + wordNext
                     used += 1
                     hasYear = True
                 else:
-                    hasYear = False
+                    datestr += " " + wordNext
+                    used += 1
+                    if wordNextNext and wordNextNext[0].isdigit():
+                        datestr += " " + wordNextNext
+                        used += 1
+                        hasYear = True
+                    else:
+                        hasYear = False
             # if no date indicators found, it may not be the month of May
             # may "i/we" ...
             # "... may be"

@@ -236,9 +236,9 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
         anchorDate = datetime.now()
 
     def is_numeric_day(tok):
-        # a bare day number ("25"), not a clock ("15:00") or a
-        # case-inflected number ("3etan")
-        return bool(tok) and tok.isdigit()
+        # a bare day number ("25"), not a clock ("15:00"), a
+        # case-inflected number ("3etan") or a 4 digit year
+        return bool(tok) and tok.isdigit() and 1 <= len(tok) <= 2
 
     def is_numeric_year(tok):
         # only a 4 digit token is treated as a year, so a trailing
@@ -281,6 +281,45 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
     thises = ["hau"]
     froms += thises
     lists = nxts + prevs + froms + time_indicators
+
+    # --- normalize Basque case-inflected date tokens to their bare forms ---
+    # Basque marks the date word, not a preposition: months take the
+    # genitive ("ekainaren 5a" = the 5th of June) or, with a day, the
+    # absolutive/inessive; the day carries the inessive ("5ean" = on the
+    # 5th); years take the relational -ko ("2027ko ekaina").  The scanner
+    # below only knows the bare stems, so fold the natural suffixed forms
+    # back onto them first.  See Euskaltzaindia EGLU-I declension tables
+    # and the Hiztegia month entries (papers/linguistics/eu/).
+    def _stem(base):
+        return base[:-1] if base.endswith("a") else base
+
+    _month_infl = {}
+    for _m in months:
+        _s = _stem(_m)
+        for _v in (_m + "k", _m + "ren", _s + "ean", _s + "an", _s + "ko"):
+            _month_infl.setdefault(_v, _m)
+    _day_infl = {}
+    for _d in days:
+        _s = _stem(_d)
+        for _v in (_s + "ean", _s + "an", _d + "ren", _s + "ko"):
+            _day_infl.setdefault(_v, _d)
+
+    for _i, _w in enumerate(words):
+        if not _w:
+            continue
+        if _w in months or _w in days:
+            continue
+        if _w in _month_infl:
+            words[_i] = _month_infl[_w]
+        elif _w in _day_infl:
+            words[_i] = _day_infl[_w]
+        elif re.match(r"^\d{4}ko$", _w):
+            # year with the relational suffix: "2027ko" -> "2027"
+            words[_i] = _w[:-2]
+        elif re.match(r"^\d{1,2}(?:an|ean|garren|garrena|garrenean)$", _w):
+            # day in the inessive: "5ean" -> "5", "20an" -> "20"
+            words[_i] = re.match(r"^(\d{1,2})", _w).group(1)
+
     for idx, word in enumerate(words):
         if word == "":
             continue
@@ -431,11 +470,13 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
             used = 1
             if dayOffset < 0:
                 dayOffset += 7
-            if wordPrev == "hurrengo":
+            if wordPrev in nexts:
+                # "datorren / hurrengo / ondorengo ostirala" = next Friday
                 dayOffset += 7
                 used += 1
                 start -= 1
-            elif wordPrev == "aurreko":
+            elif wordPrev in prevs:
+                # "aurreko / duela ... ostirala" = last Friday
                 dayOffset -= 7
                 used += 1
                 start -= 1
@@ -452,53 +493,46 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
             except ValueError:
                 m = monthsShort.index(word)
             used += 1
-            datestr = months[m]
+            month_name = months[m]
+            day_tok = ""
+            year_tok = ""
+            # a day sits right before or after the month:
+            # "ekainaren 5a" / "5 ekaina" / "ekaina 5"
             if is_numeric_day(wordPrev):
-                # 13 mayo
-                datestr += " " + wordPrev
+                day_tok = wordPrev
                 start -= 1
                 used += 1
-                if is_numeric_year(wordNext):
-                    datestr += " " + wordNext
-                    used += 1
-                    hasYear = True
-                else:
-                    hasYear = False
-
             elif is_numeric_day(wordNext):
-                # mayo 13
-                datestr += " " + wordNext
+                day_tok = wordNext
                 used += 1
-                if is_numeric_year(wordNextNext):
-                    datestr += " " + wordNextNext
-                    used += 1
+            # a 4 digit year can flank the month on either side; the
+            # natural Basque order is "<year> <month> <day>"
+            # ("2027ko ekainaren 5ean" -> "2027 ekaina 5")
+            if is_numeric_year(wordPrev) and wordPrev != day_tok:
+                year_tok = wordPrev
+                start -= 1
+                used += 1
+            elif is_numeric_year(wordNext) and wordNext != day_tok:
+                year_tok = wordNext
+                used += 1
+            elif is_numeric_year(wordNextNext) and day_tok == wordNext:
+                year_tok = wordNextNext
+                used += 1
+
+            if day_tok:
+                datestr = month_name + " " + day_tok
+                if year_tok:
+                    datestr += " " + year_tok
                     hasYear = True
                 else:
                     hasYear = False
-
-            elif is_numeric_day(wordPrevPrev):
-                # 13 dia mayo
-                datestr += " " + wordPrevPrev
-
-                start -= 2
-                used += 2
-                if is_numeric_year(wordNext):
-                    datestr += " " + wordNext
-                    used += 1
-                    hasYear = True
-                else:
-                    hasYear = False
-
-            elif is_numeric_day(wordNextNext):
-                # mayo dia 13
-                datestr += " " + wordNextNext
-                used += 2
-                if is_numeric_year(wordNextNextNext):
-                    datestr += " " + wordNextNextNext
-                    used += 1
-                    hasYear = True
-                else:
-                    hasYear = False
+            elif year_tok:
+                # month + year with no day ("2027ko ekainean"): the
+                # first of the month stands in for the missing day
+                datestr = month_name + " 1 " + year_tok
+                hasYear = True
+            else:
+                datestr = month_name
 
             if datestr in months:
                 datestr = ""

@@ -248,8 +248,8 @@ def nice_date_time_an(dt, now=None, use_24hour=False, use_ampm=False):
 #     (hace [temporal, "en el pasado"] -> fa; the ago-marker "fa dos
 #      semanas" precedes and negates the numeric offset)
 #   Biquipedia "Mes"/"Tiempo" (mes, anyo, día, hora, minuto, segundo, pasau)
-_NEXTS_AN = ["vinient", "benient", "proximo", "próximo"]
-_LASTS_AN = ["pasau", "pasada", "pasato", "pasada", "zaguer", "zaguera"]
+_NEXTS_AN = ["venient", "vinient", "siguient", "proximo", "proxima"]
+_LASTS_AN = ["pasau", "pasada", "pasato", "pasata", "zaguer", "zaguera"]
 
 
 def extract_duration_an(text, resolution=DurationResolution.TIMEDELTA,
@@ -274,9 +274,9 @@ def extract_duration_an(text, resolution=DurationResolution.TIMEDELTA,
 def extract_datetime_an(text, anchorDate=None, default_time=None):
     """Convert an Aragonese date reference into an exact datetime.
 
-    Handles "hue" (today), "demán" (tomorrow), "ahiere" (yesterday) and
+    Handles "hue" (today), "manyana" (tomorrow), "ahiere" (yesterday) and
     their compounds, numeric future offsets ("3 días", "2 semanas"),
-    next/last week/month/year and weekday ("a semana vinient", "o luns
+    next/last week/month/year and weekday ("la semana vinient", "lo luns
     pasau"), month + day (+ year), a month with a bare year, and clock
     times ("a las cinco", "15:30"). Past markers ("ahiere", "pasau",
     "pasada") resolve backwards. Also consumes the words it used,
@@ -288,7 +288,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
 
     Args:
         text (str): string containing date words
-        anchorDate (datetime): reference date for "demán", etc.
+        anchorDate (datetime): reference date for "manyana", etc.
         default_time (time): time to set if none was found in the string
 
     Returns:
@@ -302,12 +302,12 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
         # collapse multi-word relative expressions to single tokens before
         # the "de"/"d'" elision strips their connectors
         synonyms = {
-            "vinient": ["que viene", "que vien", "que biene"],
-            "pasadoman": ["pasado mañana", "pasado manyana",
-                          "dimpues de maitin", "dimpues maitin",
-                          "l'otro maitin"],
-            "antesahiere": ["antes de ahiere", "antes d'ahiere",
-                            "antes ahiere", "antis ahiere", "antiahier"],
+            "vinient": ["que viene", "que vien"],
+            "pasadoman": ["pasau manyana", "pasau mañana",
+                          "dimpues de maitín", "despús demá",
+                          "l'atro maitín"],
+            "antesahiere": ["antes d'ahiere", "antes d'ahier",
+                            "antes ahiere", "antis d'ahier", "antiahier"],
         }
         s = " " + s + " "
         for canon, variants in synonyms.items():
@@ -317,9 +317,9 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
         s = s.replace(" de ", " ").replace(" d'", " ").replace(" l'", " ") \
             .replace("d'", " ").replace("l'", " ").replace("'", " ")
         # drop the standalone articles so a clock hour and its part-of-day
-        # qualifier become adjacent ("a las 9 de la maitín" -> "9 maitín")
+        # qualifier become adjacent ("a las 9 d'o maitín" -> "9 maitín")
         for article in (" o ", " a ", " os ", " as ",
-                        " lo ", " la ", " los ", " las "):
+                        " lo ", " la ", " los ", " las ", "es"):
             while article in s:
                 s = s.replace(article, " ")
         return s.split()
@@ -350,12 +350,12 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
     hasYear = False
     timeQualifier = ""
 
-    timeQualifiersAM = ['maitín', 'maitin', 'maitino']
-    timeQualifiersPM = ['tardi', 'tarde', 'nueit', 'nuei', 'nueyt']
+    timeQualifiersAM = ['maitín', 'maitino']
+    timeQualifiersPM = ['tardi', 'tarde', 'nueit', 'nuei', 'nuet', 'nit']
     timeQualifiersList = timeQualifiersAM + timeQualifiersPM
     markers = ['a', 'en', 'o', 'os', 'as', 'ta', 'pa', 'enta',
                'iste', 'ista', 'este', 'esta', 'ixe', 'ixa',
-               'lo', 'la', 'los', 'las']
+               'lo', 'la', 'los', 'las', 'es']
     days = ["luns", "martes", "miercres", "chueves", "viernes",
             "sabado", "dominche"]
     day_parts = [a + b for a in days for b in timeQualifiersList]
@@ -365,7 +365,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
     months_short = ["chin", "feb", "mar", "abr", "may", "chun", "chul",
                     "ago", "set", "oct", "nov", "dec"]
     recur_markers = days
-    day_multiples = ["días", "dias", "semanas", "siemanas", "meses", "anyos"]
+    day_multiples = ["días", "diyas", "semanas", "meses", "anyos"]
     time_units = ["hora", "horas", "minuto", "minutos", "segundo", "segundos"]
 
     words = clean_string(text)
@@ -398,27 +398,27 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
         elif word in ("hue", "güe", "ue", "uey", "hoi") and not fromFlag:
             dayOffset = 0
             used += 1
-        elif word in ("demán", "demá", "deman", "dema") and not fromFlag:
+        elif word in ("manyana", "mañana", "demán", "demá", "deman", "dema") and not fromFlag:
             dayOffset = 1
             used += 1
         elif word == "pasadoman" and not fromFlag:
             dayOffset = 2
             used += 1
         # yesterday, day before yesterday
-        elif word in ("ahiere", "aiere", "ayere") and not fromFlag:
+        elif word in ("ahiere", "ahier", "ayere", "ayer") and not fromFlag:
             dayOffset = -1
             used += 1
         elif word == "antesahiere" and not fromFlag:
             dayOffset = -2
             used += 1
         # 5 days
-        elif word in ("día", "dia", "días", "dias"):
+        elif word in ("día", "diya", "días", "diyas"):
             if wordPrev[0:1].isdigit():
                 dayOffset += int(wordPrev)
                 start -= 1
                 used = 2
         # 2 weeks, next week, last week
-        elif word in ("semana", "siemana", "semanas", "siemanas") \
+        elif word in ("semana", "semanas") \
                 and not fromFlag:
             if wordPrev[0:1].isdigit():
                 dayOffset += int(wordPrev) * 7
@@ -463,7 +463,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
                 used = 1
                 suffixIdx = idx + 1
         # 5 years, next year, last year
-        elif word in ("anyo", "anyos", "año", "años") and not fromFlag:
+        elif word in ("anyo", "anyos", "año", "años", "an", "ans") and not fromFlag:
             if wordPrev[0:1].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
@@ -550,7 +550,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
         # 5 días dende demán, 2 meses dende chuliol
         validFollowups = days + months + months_short
         validFollowups.append("hue")
-        validFollowups.append("demán")
+        validFollowups.append("manyana")
         validFollowups.append("ahiere")
         validFollowups += _NEXTS_AN
         validFollowups += _LASTS_AN
@@ -618,28 +618,28 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
         wordNextNext = words[idx + 2] if idx + 2 < len(words) else ""
         used = 0
 
-        if word in ("meydía", "meydia", "migdía", "migdia"):
+        if word in ("meyodía", "mediodiya", "meidía", "michdía"):
             hrAbs = 12
             used += 1
-        elif word in ("meyanueit", "meyanuei", "meyanoche"):
+        elif word in ("meyanueit", "medianueit", "medianuet", "medianit", "meyanuei", "meyanoche"):
             hrAbs = 0
             used += 1
         elif word in timeQualifiersAM:
             if hrAbs is None:
                 hrAbs = 8
             used += 1
-        elif word in ("tardi", "tarde"):
+        elif word in ("tardi", "tarde", "tardada"):
             if hrAbs is None:
                 hrAbs = 15
             used += 1
-        elif word in ("nueit", "nuei", "nueyt"):
+        elif word in ("nueit", "nuei", "nueyt", "nuet", "nit"):
             if hrAbs is None:
                 hrAbs = 19
             used += 1
         # half an hour, quarter hour
         elif word == "hora" and \
                 (wordPrev in markers or wordPrevPrev in markers):
-            if wordPrev == "meya":
+            if wordPrev in ("meya", "media"):
                 minOffset = 30
             elif wordPrev == "cuarto":
                 minOffset = 15
@@ -651,11 +651,11 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
             used += 1
             hrAbs = -1
             minAbs = -1
-        elif word == "minuto" and wordPrev in ("en", "dentro"):
+        elif word == "minuto" and wordPrev in ("en", "dentro", "drento", "dintro"):
             minOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word == "segundo" and wordPrev in ("en", "dentro"):
+        elif word == "segundo" and wordPrev in ("en", "dentro", "drento", "dintro"):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
@@ -693,10 +693,10 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
                     elif wordNext in timeQualifiersAM:
                         remainder = "am"
                         used += 1
-                    elif wordNext in ("tardi", "tarde"):
+                    elif wordNext in ("tardi", "tarde", "tardada"):
                         remainder = "pm"
                         used += 1
-                    elif wordNext in ("nueit", "nuei", "nueyt"):
+                    elif wordNext in ("nueit", "nuei", "nueyt", "nuet", "nit"):
                         if strHH and int(strHH) > 5:
                             remainder = "pm"
                         else:
@@ -755,7 +755,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
                     pod_follows = _after in timeQualifiersList
                     if (
                             not pod_follows and
-                            wordPrev in ("en", "dentro", "dintro",
+                            wordPrev in ("en", "dentro", "dintro", "drento",
                                          "dende", "fa") and
                             (wordNext == "horas" or wordNext == "hora" or
                              remainder == "horas" or remainder == "hora") and

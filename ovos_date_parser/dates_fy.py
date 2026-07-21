@@ -229,6 +229,9 @@ def nice_time_fy(dt, speech=True, use_24hour=False, use_ampm=False):
 #     (Wiktionary "juster" — West Frisian adverb "yesterday")
 #   ~/AgentWorkspaces/papers/linguistics/fy/wiktionary_hjoed.html,
 #   ~/AgentWorkspaces/papers/linguistics/fy/wiktionary_moarn.html
+#   ~/AgentWorkspaces/papers/linguistics/fy/wiktionary_lyn.html
+#     (Wiktionary "lyn" — West Frisian adverb "ago", "twa jier lyn" = two
+#      years ago; the ago-postposition negates numeric offsets)
 _NEXTS_FY = ["oare", "oar", "folgjende", "kommende"]
 _LASTS_FY = ["foarige", "foarich", "ôfrûne", "lêste", "ferline", "ferrûne"]
 
@@ -404,7 +407,7 @@ def extract_datetime_fy(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
         # 10 months, next month, last month
-        elif word == "moanne" and not fromFlag:
+        elif word in ("moanne", "moannen") and not fromFlag:
             if wordPrev[0:1].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
@@ -816,6 +819,22 @@ def extract_datetime_fy(text, anchorDate=None, default_time=None):
 
             idx += used - 1
             found = True
+
+    # "lyn" is the West Frisian ago-postposition ("twa wiken lyn" = two
+    # weeks ago): it negates the numeric offset it trails.
+    ago = False
+    for _i, _w in enumerate(words):
+        if _w == "lyn":
+            ago = True
+            words[_i] = ""
+    if ago:
+        if dayOffset is not False:
+            dayOffset = -dayOffset
+        yearOffset = -yearOffset
+        monthOffset = -monthOffset
+        hrOffset = -hrOffset
+        minOffset = -minOffset
+        secOffset = -secOffset
 
     if not date_found():
         return None

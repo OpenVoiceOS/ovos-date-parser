@@ -244,6 +244,9 @@ def nice_date_time_an(dt, now=None, use_24hour=False, use_ampm=False):
 #     (próximo -> vinient / benient)
 #   ~/AgentWorkspaces/papers/linguistics/an/glosbe_pasado.html
 #     (pasado -> pasau)
+#   ~/AgentWorkspaces/papers/linguistics/an/glosbe_hace.html
+#     (hace [temporal, "en el pasado"] -> fa; the ago-marker "fa dos
+#      semanas" precedes and negates the numeric offset)
 #   Biquipedia "Mes"/"Tiempo" (mes, anyo, día, hora, minuto, segundo, pasau)
 _NEXTS_AN = ["vinient", "benient", "proximo", "próximo"]
 _LASTS_AN = ["pasau", "pasada", "pasato", "pasada", "zaguer", "zaguera"]
@@ -752,7 +755,8 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
                     pod_follows = _after in timeQualifiersList
                     if (
                             not pod_follows and
-                            wordPrev in ("en", "dentro", "dintro", "dende") and
+                            wordPrev in ("en", "dentro", "dintro",
+                                         "dende", "fa") and
                             (wordNext == "horas" or wordNext == "hora" or
                              remainder == "horas" or remainder == "hora") and
                             word[0] != '0' and
@@ -865,6 +869,23 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
 
             idx += used - 1
             found = True
+
+    # "fa" is the Aragonese temporal ago-marker ("fa dos semanas" = two
+    # weeks ago; cf. Spanish "hace"): it negates the numeric offset that
+    # follows it.
+    ago = False
+    for _i, _w in enumerate(words):
+        if _w == "fa":
+            ago = True
+            words[_i] = ""
+    if ago:
+        if dayOffset is not False:
+            dayOffset = -dayOffset
+        yearOffset = -yearOffset
+        monthOffset = -monthOffset
+        hrOffset = -hrOffset
+        minOffset = -minOffset
+        secOffset = -secOffset
 
     if not date_found():
         return None

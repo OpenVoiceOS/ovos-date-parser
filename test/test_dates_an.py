@@ -272,6 +272,40 @@ class TestAragoneseExtractDatetime(unittest.TestCase):
                          [_dt(2017, 6, 28, 17), "reunión"])
 
 
+class TestAragoneseAgoMarker(unittest.TestCase):
+    """The Aragonese ago-marker "fa" precedes and negates numeric offsets.
+
+    Source: ~/AgentWorkspaces/papers/linguistics/an/glosbe_hace.html
+    (Spanish temporal "hace" -> Aragonese "fa", "en el pasado" sense).
+    """
+
+    def test_weeks_ago_is_backward(self):
+        self.assertEqual(_ex("fa 2 semanas")[0], _dt(2017, 6, 13))
+
+    def test_weeks_future_stays_forward(self):
+        # same phrase without "fa" must remain forward
+        self.assertEqual(_ex("2 semanas")[0], _dt(2017, 7, 11))
+
+    def test_days_ago_is_backward(self):
+        self.assertEqual(_ex("fa 3 días")[0], _dt(2017, 6, 24))
+
+    def test_months_ago_is_backward(self):
+        self.assertEqual(_ex("fa 2 meses")[0], _dt(2017, 4, 27))
+
+    def test_years_ago_is_backward(self):
+        self.assertEqual(_ex("fa 2 anyos")[0], _dt(2015, 6, 27))
+
+    def test_minutes_ago_is_backward(self):
+        self.assertEqual(_ex("fa 5 minutos")[0], _dt(2017, 6, 27, 12, 59))
+
+    def test_hours_ago_is_backward(self):
+        self.assertEqual(_ex("fa 2 horas")[0], _dt(2017, 6, 27, 11, 4))
+
+    def test_marker_without_number_is_not_a_date(self):
+        self.assertIsNone(_ex("fa"))
+        self.assertIsNone(_ex("fa semanas"))
+
+
 class TestAragoneseExtractAdversarial(unittest.TestCase):
     def test_empty(self):
         self.assertIsNone(_ex(""))

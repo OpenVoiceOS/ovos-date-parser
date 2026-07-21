@@ -244,6 +244,37 @@ class TestFrisianExtractDatetime(unittest.TestCase):
         self.assertEqual(_ex("moarn middeis")[0], _dt(2017, 6, 28, 15))
 
 
+class TestFrisianAgoMarker(unittest.TestCase):
+    """The West Frisian ago-postposition "lyn" negates numeric offsets.
+
+    Source: ~/AgentWorkspaces/papers/linguistics/fy/wiktionary_lyn.html
+    (Wiktionary "lyn" -> "ago", "twa jier lyn" = two years ago).
+    """
+
+    def test_weeks_ago_is_backward(self):
+        self.assertEqual(_ex("2 wiken lyn")[0], _dt(2017, 6, 13))
+
+    def test_weeks_future_stays_forward(self):
+        # same phrase without "lyn" must remain forward
+        self.assertEqual(_ex("2 wiken")[0], _dt(2017, 7, 11))
+
+    def test_days_ago_is_backward(self):
+        self.assertEqual(_ex("3 dagen lyn")[0], _dt(2017, 6, 24))
+
+    def test_months_ago_is_backward(self):
+        self.assertEqual(_ex("2 moannen lyn")[0], _dt(2017, 4, 27))
+
+    def test_years_ago_is_backward(self):
+        self.assertEqual(_ex("2 jierren lyn")[0], _dt(2015, 6, 27))
+
+    def test_minutes_ago_is_backward(self):
+        self.assertEqual(_ex("5 minuten lyn")[0], _dt(2017, 6, 27, 12, 59))
+
+    def test_marker_without_number_is_not_a_date(self):
+        self.assertIsNone(_ex("lyn"))
+        self.assertIsNone(_ex("wiken lyn"))
+
+
 class TestFrisianExtractAdversarial(unittest.TestCase):
     def test_empty(self):
         self.assertIsNone(_ex(""))

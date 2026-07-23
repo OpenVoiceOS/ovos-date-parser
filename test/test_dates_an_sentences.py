@@ -82,7 +82,7 @@ class TestAragoneseFullDateSentences(unittest.TestCase):
         now = datetime(2018, 6, 1)
         dt = datetime(2018, 6, 5)
         sentence = f"Ye ta {nice_date(dt, 'an', now=now)}."
-        self.assertEqual(sentence, "Ye ta Martes, cinco.")
+        self.assertEqual(sentence, "Ye martes, cinco.")
 
     def test_every_month_first_in_sentence(self):
         for month, dt in MONTH_FIRST.items():
@@ -98,7 +98,7 @@ class TestAragoneseDayAndYearSentences(unittest.TestCase):
     def test_nice_day_in_sentence(self):
         dt = datetime(2019, 8, 15)
         sentence = f"A fiesta ye o {nice_day(dt, 'an')}."
-        self.assertEqual(sentence, "A fiesta ye o 15 Agosto.")
+        self.assertEqual(sentence, "A fiesta ye o 15 d'agosto.")
 
     def test_vowel_month_elides_connector(self):
         # "de" -> "d'" before a vowel-initial month, no space
@@ -125,7 +125,7 @@ class TestAragoneseEdgeCasesInContext(unittest.TestCase):
         sentence = f"O {nice_date(dt, 'an', include_weekday=False)} ye bisiesto."
         # nice_date pronounces the day number ("vintinueu" = 29)
         self.assertEqual(
-            sentence, "O vintinueu de Febrero de dos mil vinte ye bisiesto.")
+            sentence, "O vintinueu de febrero de dos mil vinte ye bisiesto.")
 
     def test_lang_code_variants_route(self):
         for code in ("an", "an-ES", "AN", "an-es"):

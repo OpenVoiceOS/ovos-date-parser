@@ -94,6 +94,13 @@ class DurationLexicon:
         normalize: optional override for text normalization; receives the
             raw text and returns text with numerals as digits. Defaults
             to ``numbers_to_digits(text.lower(), lang)``.
+        connectors: regex fragments (no capturing groups) matching the
+            conjunction word(s) used to join two duration chunks (e.g.
+            ``"and"`` in English, ``"y"`` in Spanish). When a connector
+            (optionally surrounded by commas) is left sandwiched between
+            two consumed ``<number> <unit>`` matches it is stripped from
+            the remainder along with the matches themselves; a connector
+            touching unconsumed text on either side is left untouched.
     """
     lang: str
     units: Dict[str, str]
@@ -101,6 +108,7 @@ class DurationLexicon:
     joiner: str = r"(?:\s+|-)"
     pattern_template: Optional[str] = None
     normalize: Optional[Callable[[str], str]] = None
+    connectors: Tuple[str, ...] = ()
 
     def _normalize(self, text: str) -> str:
         if self.normalize:
@@ -129,6 +137,14 @@ def extract_duration_generic(
 
     text = lexicon._normalize(text)
 
+    # when the caller wants consumed chunks erased (the default), matches
+    # are replaced with a private-use sentinel instead of "" so that, once
+    # every unit has been consumed, connective tokens ("and", ",", ...)
+    # left stranded *between two sentinels* can be told apart from ones
+    # still joining real, unconsumed text and cleaned up accordingly.
+    marker = ""
+    token = marker if not replace_token else replace_token
+
     values: Dict[str, float] = {}
     for unit in _UNITS:
         frag = lexicon.units.get(unit)
@@ -141,11 +157,22 @@ def extract_duration_generic(
             if "half" in match.groupdict() and match.group("half"):
                 val += 0.5
             values[_unit] = values.get(_unit, 0) + val
-            return replace_token
+            return token
 
         text = re.sub(pattern, repl, text)
 
     if not replace_token:
+        if lexicon.connectors:
+            conn_alt = "|".join(lexicon.connectors)
+            sep = (r"\s*,\s*|\s+(?:" + conn_alt + r")\s+|"
+                   r"\s*,\s*(?:" + conn_alt + r")\s*")
+            collapse = re.compile(marker + r"(?:" + sep + r")" + marker)
+            while True:
+                new_text = collapse.sub(marker + marker, text)
+                if new_text == text:
+                    break
+                text = new_text
+        text = text.replace(marker, "")
         text = re.sub(r"\s+", " ", text).strip(" ,;.!")
 
     return _resolve(values, resolution), text
@@ -354,6 +381,7 @@ def _normalize_en(text: str) -> str:
 register_duration_lexicon(DurationLexicon(
     lang="en",
     normalize=_normalize_en,
+    connectors=("and",),
     units={
         "microseconds": r"microseconds?",
         "milliseconds": r"milliseconds?",
@@ -395,6 +423,7 @@ register_duration_lexicon(DurationLexicon(
 register_duration_lexicon(DurationLexicon(
     lang="es",
     normalize=lambda text: numbers_to_digits(_fold_iberian(text), "es"),
+    connectors=("y",),
     units={
         "microseconds": r"microsegundos?",
         "milliseconds": r"milisegundos?",

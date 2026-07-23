@@ -319,7 +319,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
         # drop the standalone articles so a clock hour and its part-of-day
         # qualifier become adjacent ("a las 9 d'o maitín" -> "9 maitín")
         for article in (" o ", " a ", " os ", " as ",
-                        " lo ", " la ", " los ", " las ", "es"):
+                        " lo ", " la ", " los ", " las ", " es "):
             while article in s:
                 s = s.replace(article, " ")
         return s.split()
@@ -351,7 +351,8 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
     timeQualifier = ""
 
     timeQualifiersAM = ['maitín', 'maitino']
-    timeQualifiersPM = ['tardi', 'tarde', 'nueit', 'nuei', 'nuet', 'nit']
+    timeQualifiersPM = ['tardi', 'tarde', 'tardada',
++                    'nueit', 'nuei', 'nuet', 'nit']
     timeQualifiersList = timeQualifiersAM + timeQualifiersPM
     markers = ['a', 'en', 'o', 'os', 'as', 'ta', 'pa', 'enta',
                'iste', 'ista', 'este', 'esta', 'ixe', 'ixa',
@@ -547,7 +548,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
                     used += 1
                     hasYear = False
 
-        # 5 días dende demán, 2 meses dende chuliol
+        # 5 días dende manyana, 2 meses dende chuliol
         validFollowups = days + months + months_short
         validFollowups.append("hue")
         validFollowups.append("manyana")
@@ -558,7 +559,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
                 and wordNext in validFollowups:
             used = 2
             fromFlag = True
-            if wordNext == "demán":
+            if wordNext == "manyana":
                 dayOffset += 1
             elif wordNext == "ahiere":
                 dayOffset -= 1
@@ -632,7 +633,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
             if hrAbs is None:
                 hrAbs = 15
             used += 1
-        elif word in ("nueit", "nuei", "nueyt", "nuet", "nit"):
+        elif word in ("nueit", "nuei", "nuet", "nit"):
             if hrAbs is None:
                 hrAbs = 19
             used += 1
@@ -696,7 +697,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
                     elif wordNext in ("tardi", "tarde", "tardada"):
                         remainder = "pm"
                         used += 1
-                    elif wordNext in ("nueit", "nuei", "nueyt", "nuet", "nit"):
+                    elif wordNext in ("nueit", "nuei", "nuet", "nit"):
                         if strHH and int(strHH) > 5:
                             remainder = "pm"
                         else:

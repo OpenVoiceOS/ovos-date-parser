@@ -535,7 +535,7 @@ register_duration_lexicon(DurationLexicon(
         "seconds": r"segundos?",
         "minutes": r"minutos?",
         "hours": r"horas?",
-        "days": r"días?",
+        "days": r"(?:días?|diyas?)",
         "weeks": r"semanas?",
         "months": r"mes(?:es)?",
         "years": r"anyos?",

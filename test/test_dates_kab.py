@@ -102,6 +102,75 @@ class TestExtractDatetimeKab(unittest.TestCase):
             extract_datetime("azul fell-awen amek tellam", "kab",
                              anchorDate=ANCHOR))
 
+class TestExtractDatetimeSpokenTimeKab(unittest.TestCase):
+    def test_bare_hour(self):
+        result = extract_datetime("d lweḥda", "kab", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (1, 0))
+
+    def test_exact_hour(self):
+        result = extract_datetime("d lɛecṛa swaswa", "kab", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (10, 0))
+
+    def test_quarter_past(self):
+        result = extract_datetime("d lɛecṛa u ṛbeɛ", "kab", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (10, 15))
+
+    def test_half_past_spellings(self):
+        # amazigh, old borrowing, assimil, contemporary - all four accepted
+        for word in ("neṣṣ", "azgen", "nofc", "nefs"):
+            result = extract_datetime(f"d lɛecṛa u {word}", "kab",
+                                      anchorDate=ANCHOR)
+            self.assertEqual((result[0].hour, result[0].minute), (10, 30),
+                             msg=f"failed for {word!r}")
+
+    def test_minus_minutes(self):
+        result = extract_datetime("d lɛecṛa ɣiṛ xemsa", "kab",
+                                  anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (9, 55))
+
+    def test_quarter_to(self):
+        result = extract_datetime("d lɛecṛa ɣiṛ ṛbeɛ", "kab",
+                                  anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (9, 45))
+
+    def test_vague_approximations(self):
+        # "u wac"/"u ci" and bare "ɣiṛ" are indeterminate in the source
+        # grammar; coded as a fixed +/-10 minute offset rather than a
+        # specific count
+        result = extract_datetime("d lɛecṛa u wac", "kab", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (10, 10))
+        result = extract_datetime("d lɛecṛa ɣiṛ", "kab", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (9, 50))
+
+    def test_day_period_disambiguation(self):
+        # "d juǧ" alone stays 12h (2:00); a period word resolves to 24h
+        result = extract_datetime("d juǧ n uzal", "kab", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (14, 0))
+        # "tmeddit" (no epenthetic vowel) must resolve the same as
+        # "tameddit"
+        result = extract_datetime("d lxemsa n tmeddit", "kab",
+                                  anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (17, 0))
+
+    def test_regional_two_oclock(self):
+        # Soummam valley "ssaɛtin" as an alternative to "juǧ" for "two"
+        result = extract_datetime("d ssaɛtin ɣiṛ xemsa", "kab",
+                                  anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (1, 55))
+
+    def test_midnight_phrases(self):
+        for phrase in ("nṣaf n yiḍ", "ttnaṣfa n yiḍ", "d ttnac n yiḍ"):
+            result = extract_datetime(phrase, "kab", anchorDate=ANCHOR)
+            self.assertEqual((result[0].hour, result[0].minute), (0, 0),
+                             msg=f"failed for {phrase!r}")
+
+    def test_sun_letter_article(self):
+        # the fused article assimilates to "tt" before "t" (ttnac =
+        # article + tnac "12"), as opposed to the plain "l-" in
+        # test_day_period_disambiguation's "lxemsa"/"lɛecṛa"
+        result = extract_datetime("d ttnac n uzal", "kab", anchorDate=ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (12, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

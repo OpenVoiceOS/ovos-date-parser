@@ -42,20 +42,67 @@ Full support: `nice_time`, `nice_date`, `nice_date_time`, `nice_day`,
 Duration parsing handles the Asturian plurals in `-es` (hores, selmanes,
 díes) as well as the singular forms. "mañana" is ambiguous between
 "tomorrow" and "morning" and is disambiguated the same way as in Spanish.
+
 ## Kabyle
 
 Weekdays are the everyday Arabic-derived names (`letnayen` ... `lḥedd`);
 months follow the Kabyle calendar spellings (`yennayer`, `fuṛar`, ...
 `dujembeṛ`). `extract_datetime` covers the relative day words (`azekka`
 "tomorrow", `iḍelli` "yesterday", `ass-a` "today"), weekday and month
-names with day numbers, and digit clock times; it does not yet cover
-spoken clock phrases or year words. `extract_duration` accepts both the
-Amazigh neologisms (`tasint` second, `amalas` week) and the
-Arabic-derived units in daily use (`ddqiqa` minute, `ssaɛa` hour), with
-an optional genitive `n` between quantity and unit (`10 n tesdidin`).
-`nice_time` joins hour and minutes with the conjunction `d`; day parts
-use `ssbeḥ` (morning) and `tameddit` (evening). Years are given in
-digits; a verified spoken-year formulation is not available.
+names with day numbers, digit clock times, and spoken clock phrases
+(see below); it does not yet cover year words. `extract_duration`
+accepts both the Amazigh neologisms (`tasint` second, `amalas` week) and
+the Arabic-derived units in daily use (`ddqiqa` minute, `ssaɛa` hour),
+with an optional genitive `n` between quantity and unit (`10 n
+tesdidin`). `nice_time` joins hour and minutes with the conjunction `d`;
+day parts use `ssbeḥ` (morning) and `tameddit` (evening). Years are
+given in digits; a verified spoken-year formulation is not available.
+
+### Spoken clock phrases
+
+`extract_datetime` understands the native "presentative" clock grammar
+built around `d` ("it is"), not just digit times:
+
+- Bare hours: `d lweḥda` (1:00), `d lɛecṛa` (10:00).
+- Exact: `swaswa` marks the hour precisely (`d lɛecṛa swaswa`).
+- Quarter/half: `u ṛbeɛ` (+15), `u neṣṣ`/`azgen`/`nofc`/`nofç`/`nefs`
+  (+30) — all four spellings of "half" are accepted, spanning the
+  Amazigh word, the old Arabic borrowing, and two contemporary variants.
+- Minus: `ɣiṛ` + a number subtracts from the *next* hour (`d lɛecṛa ɣiṛ
+  xemsa` = 9:55); `ɣiṛ ṛbeɛ` is quarter-to; bare `ɣiṛ` with no number is
+  a vague "almost the hour" and resolves to a fixed 10-minute-to offset,
+  matching the source grammar's own description of it as indeterminate
+  rather than a specific count.
+- Vague plus: `u wac` / `u ci` ("and a bit") resolve the same way, as a
+  fixed 10 minutes past.
+- Day-period disambiguation: a trailing `n <period>` both attaches a
+  period and resolves 12h/24h ambiguity — `d juǧ` alone stays 2:00, but
+  `d juǧ n uzal` resolves to 14:00. Periods recognized: `ṣṣbeḥ` (early
+  morning, 4-8h), `ssbeḥ` (morning, 8-12h), `uzal` (midday, 12-15h),
+  `tameddit`/`tmeddit` (afternoon/evening, 15-20h), `iḍ`/`yiḍ` (night,
+  20-4h).
+- Regional variant: `ssaɛtin` is accepted as an alternative to `juǧ` for
+  "two o'clock" (Soummam valley usage), e.g. `d ssaɛtin ɣiṛ xemsa`
+  (1:55).
+- Midnight set phrases: `nṣaf n yiḍ` and `ttnaṣfa n yiḍ` both resolve
+  directly to 00:00.
+
+Clock-hour nouns carry a fused definite article that the parser strips
+before handing the word to the number extractor. This surfaces two
+ways, mirroring Arabic sun/moon letters: a plain `l-` before some
+consonants (`lɛecṛa`, `lxemsa`) and gemination of the noun's own first
+consonant before others (`ttnac` = article + `tnac` "12", `ttlata` =
+article + `tlata` "3"). "One o'clock" additionally uses the feminine
+loan-numeral `weḥda`, agreeing with the feminine noun `ssaɛa` (hour),
+rather than the masculine `waḥed` used elsewhere.
+
+Not yet handled: the preposition `af` ("at") as an alternative to `d`
+(`Af ttlata n ṣṣbeḥ`, "at three in the early morning") — only one
+example of this construction is attested, and it's unclear whether it
+behaves identically to `d` in every pattern above. `nice_time` also
+does not yet *generate* these forms (fractions, day-periods beyond
+`ssbeḥ`/`tameddit`, the vague markers) — extraction is currently richer
+than generation for this language.
 
 ## Norwegian Bokmål (nb)
 

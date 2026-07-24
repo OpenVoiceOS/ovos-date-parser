@@ -23,7 +23,7 @@ class TestNiceTimeKab(unittest.TestCase):
         
         # With AM/PM marker (tmeddit = afternoon/evening)
         self.assertEqual(nice_time(ANCHOR, "kab", use_ampm=True),
-                         "d lweḥda u ṛebɛa n ddqayeq n tmeddit")
+                         "d lweḥda u ṛebɛa n ddqayeq n uzal")
         
         # 9:30 AM -> d tesɛa u neṣṣ n ssbeḥ
         self.assertEqual(

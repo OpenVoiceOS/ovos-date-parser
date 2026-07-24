@@ -9,21 +9,29 @@ ANCHOR = datetime(2017, 6, 27, 13, 4)  # a Tuesday
 
 class TestNiceTimeKab(unittest.TestCase):
     def test_24hour(self):
+        # 13:04 -> 1:04. Native spoken Kabyle uses 12-hour cycle + explicit minutes
         self.assertEqual(nice_time(ANCHOR, "kab", use_24hour=True),
-                         "telṭac d kuẓ")
+                         "d lweḥda u ṛebɛa n ddqayeq")
+        # 8:00 -> d ttmanya
         self.assertEqual(
             nice_time(datetime(2017, 6, 27, 8, 0), "kab", use_24hour=True),
-            "tam")
+            "d ttmanya")
 
     def test_12hour(self):
-        self.assertEqual(nice_time(ANCHOR, "kab"), "yiwen d kuẓ")
+        # 13:04 -> 1:04 PM
+        self.assertEqual(nice_time(ANCHOR, "kab"), "d lweḥda u ṛebɛa n ddqayeq")
+        
+        # With AM/PM marker (tmeddit = afternoon/evening)
         self.assertEqual(nice_time(ANCHOR, "kab", use_ampm=True),
-                         "yiwen d kuẓ tameddit")
+                         "d lweḥda u ṛebɛa n ddqayeq n tmeddit")
+        
+        # 9:30 AM -> d tesɛa u neṣṣ n ssbeḥ
         self.assertEqual(
             nice_time(datetime(2017, 6, 27, 9, 30), "kab", use_ampm=True),
-            "tẓa d tlatin ssbeḥ")
+            "d tesɛa u neṣṣ n ssbeḥ")
 
     def test_display(self):
+        # Digital display remains unchanged
         self.assertEqual(nice_time(ANCHOR, "kab", speech=False,
                                    use_24hour=True), "13:04")
 

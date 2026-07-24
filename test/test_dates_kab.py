@@ -10,7 +10,7 @@ ANCHOR = datetime(2017, 6, 27, 13, 4)  # a Tuesday
 class TestNiceTimeKab(unittest.TestCase):
     def test_24hour(self):
         self.assertEqual(nice_time(ANCHOR, "kab", use_24hour=True),
-                         "tleṭṭac d kuẓ")
+                         "telṭac d kuẓ")
         self.assertEqual(
             nice_time(datetime(2017, 6, 27, 8, 0), "kab", use_24hour=True),
             "tam")

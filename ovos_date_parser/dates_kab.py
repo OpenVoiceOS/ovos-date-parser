@@ -6,11 +6,21 @@ fuṛar, ... dujembeṛ). Time units mix the attested Amazigh neologisms
 (tasint "second", asrag "hour", amalas "week") with the Arabic-derived
 words that carry daily usage (ddqiqa "minute", ssaɛa "hour").
 
+Spoken clock phrases (e.g. "d lɛecṛa u ṛbeɛ", "d juǧ n uzal") are built
+around the presentative particle "d" ("it is"), the additive/subtractive
+conjunctions "u"/"ɣiṛ", and a closed set of fraction and day-period
+words - see `_extract_spoken_time_kab` below.
+
 Sources:
 - https://kab.wikipedia.org/wiki/Yennayer (month names)
 - https://apprendrelekabyle.com/les-jours-de-la-semaine-en-kabyle/
 - https://glosbe.com/fr/kab (heure, minute, seconde, matin, soir, semaine)
 - https://en.wikipedia.org/wiki/Kabyle_language (grammar)
+- Boulifa, *Une première année de langue kabyle*, 1910 (roba', nofc,
+  r'ir, eddeq'iq'a)
+- Dallet, *Dictionnaire kabyle-français*, 1982 (azgen, swaswa/gedged)
+- Amazit-Hamidchi & Lounaci, *Le Kabyle de poche*, Assimil, 2005
+  (nefs, ɣir, u, ddqayeq, wac)
 """
 import re
 from datetime import datetime, timedelta
@@ -37,10 +47,244 @@ _HOURS_UNITS = {"ssaɛa", "saɛa", "tsaɛtin", "tisaɛtin", "asrag", "isragen",
                 "wesrag", "usrag"}
 _DAYS_UNITS = {"ass", "ussan", "wass", "wussan"}
 _WEEKS_UNITS = {"amalas", "imalasen", "yimalasen", "ddurt", "dduṛt",
-                "wamalas"}
+                "umalas"}
 
 _RELATIVE_DAYS = {"azekka": 1, "iḍelli": -1, "idelli": -1,
                   "ass-a": 0, "assa": 0, "ass-agi": 0}
+
+# ---------------------------------------------------------------------------
+# Spoken clock-time grammar
+# ---------------------------------------------------------------------------
+
+# presentative particle introducing a clock time ("it is")
+_PRESENTATIVE = {_normalize(w) for w in ("d",)}
+
+# additive conjunction ("and")
+_PLUS = {_normalize(w) for w in ("u",)}
+
+# subtractive conjunction ("minus, except")
+_MINUS = {_normalize(w) for w in ("ɣiṛ", "ɣir", "r'ir")}
+
+# exact-hour marker
+_EXACT = {_normalize(w) for w in ("swaswa", "gedged")}
+
+# vague-approximation markers ("and a bit" / used bare after ɣiṛ)
+_APPROX_PLUS = {_normalize(w) for w in ("wac", "ci")}
+_APPROX_MINUTES = 10  # fixed offset used only for the vague forms above
+
+# quarter-hour fraction
+_QUARTER = {_normalize(w) for w in ("ṛbeɛ", "roba'")}
+
+# half-hour fraction - amazigh, old borrowing, assimil form, contemporary
+_HALF = {_normalize(w) for w in
+         ("azgen", "nofc", "nofç", "nefs", "nnefs", "neṣṣ", "nefṣ", "nsaf")}
+
+# genitive linking a clock hour to a day-period ("n uzal" = "of midday")
+_GENITIVE = {_normalize(w) for w in ("n",)}
+
+# day-period words -> (start_hour_inclusive, end_hour_exclusive)
+# used only to disambiguate 12h/24h, not to change the parsed hour itself.
+# "tameddit"/"tmeddit" are both attested (with and without the epenthetic
+# vowel); both map to the same band.
+_DAY_PERIODS = {
+    _normalize("ṣṣbeḥ"): (4, 8),
+    _normalize("ssbeḥ"): (8, 12),
+    _normalize("uzal"): (12, 15),
+    _normalize("tameddit"): (15, 20),
+    _normalize("tmeddit"): (15, 20),
+    _normalize("iḍ"): (20, 4),
+    _normalize("yiḍ"): (20, 4),
+}
+
+# regional (Soummam) alternative numeral for "two" used only in time
+# expressions, alongside the everyday loanword "juǧ"
+_TWO_HOURS_WORDS = {_normalize(w) for w in ("juǧ", "ssaɛtin")}
+
+# Kabyle clock hours take the Arabic-style definite article fused onto
+# the numeral. Like Arabic, it surfaces two ways depending on the first
+# consonant of the noun:
+#   - "moon letters" keep a plain "l-" ("lɛecṛa" = the-ten, "lxemsa" =
+#     the-five)
+#   - "sun letters" assimilate: "l-" + "tnac" -> "ttnac" (the-twelve),
+#     "l-" + "tlata" -> "ttlata" (the-three), i.e. the article surfaces
+#     as a doubled copy of the noun's own initial consonant instead of
+#     "l". This is the same rule already implicit in WEEKDAYS_KAB
+#     (ssebt "the-Saturday" vs lḥedd "the-Sunday").
+# extract_number_kab does not know about either surface form, so both
+# are stripped here before the lookup.
+#
+# "One" also takes a feminine form ("weḥda") agreeing with the feminine
+# noun "ssaɛa" (hour), which is not part of the general loan-numeral
+# vocabulary at all (only the masculine "waḥed" is).
+_HOUR_FEMININE_OVERRIDES = {_normalize(w): 1 for w in ("weḥda", "waḥda")}
+
+# midnight set phrases (word-for-word, matched as adjacent-token triples)
+_MIDNIGHT_PHRASES = (
+    (_normalize("nṣaf"), _normalize("n"), _normalize("yiḍ")),
+    (_normalize("ttnaṣfa"), _normalize("n"), _normalize("yiḍ")),
+)
+
+
+def _hour_article_candidates(raw_tok: str, norm_tok: str):
+    """Yield (raw, norm) candidate forms with the fused article removed,
+    trying the plain "l-" case first, then sun-letter degemination.
+    """
+    yield raw_tok, norm_tok
+    if norm_tok.startswith(_normalize("l")) and len(norm_tok) > 1:
+        yield raw_tok[1:], norm_tok[1:]
+    if len(norm_tok) > 1 and norm_tok[0] == norm_tok[1]:
+        yield raw_tok[1:], norm_tok[1:]
+
+
+def _extract_hour_number_kab(raw_tok: str, norm_tok: str):
+    """Resolve a single clock-hour token to an int 1-12, or False."""
+    for raw_c, norm_c in _hour_article_candidates(raw_tok, norm_tok):
+        if norm_c in _HOUR_FEMININE_OVERRIDES:
+            return _HOUR_FEMININE_OVERRIDES[norm_c]
+        val = extract_number_kab(raw_c)
+        if val is not False and float(val).is_integer() and 1 <= val <= 12:
+            return int(val)
+    return False
+
+
+def _period_to_hour24(hour12: int, period_tok: str) -> int:
+    """Resolve a 1-12 spoken hour to 24h using a day-period word.
+
+    Only called when a day-period token is actually present in the
+    utterance; per the source grammar, an utterance with no period word
+    (e.g. bare "D juǧ") stays ambiguous and must default to the 12h
+    reading rather than being guessed here.
+    """
+    start, end = _DAY_PERIODS[period_tok]
+    if period_tok in (_normalize("iḍ"), _normalize("yiḍ")):
+        # night wraps midnight: 20h-4h. 12 o'clock at night is 00:00.
+        return 0 if hour12 == 12 else hour12
+    if start >= 12:
+        return hour12 if hour12 == 12 else hour12 + 12
+    # morning/midday bands (ssbeḥ, ṣṣbeḥ, uzal early edge)
+    return 0 if hour12 == 12 and start < 8 else hour12
+
+
+def _extract_spoken_time_kab(tokens, norm) -> Optional[Tuple[int, int, set]]:
+    """Extract (hour24, minute, consumed_token_indices) from spoken Kabyle
+    clock-time grammar, or None if no such expression is found.
+
+    `tokens` are the original (lower-cased, punctuation-stripped) words;
+    `norm` is their _normalize()'d form, index-aligned with `tokens`.
+    """
+    n = len(norm)
+
+    # --- midnight set phrases: check first, they don't need "D" ---
+    for phrase in _MIDNIGHT_PHRASES:
+        plen = len(phrase)
+        for i in range(n - plen + 1):
+            if tuple(norm[i:i + plen]) == phrase:
+                return 0, 0, set(range(i, i + plen))
+
+    for i, tok in enumerate(norm):
+        if tok not in _PRESENTATIVE:
+            continue
+
+        # the presentative "d" is also the number-connector "d"
+        # (see _CONNECTORS in numbers_kab.py) - only treat it as
+        # presentative when followed by a recognizable hour word.
+        j = i + 1
+        if j >= n:
+            continue
+
+        consumed = {i}
+
+        # regional "two" words are not ordinary cardinals, check first
+        if norm[j] in _TWO_HOURS_WORDS:
+            hour_val = 2
+            consumed.add(j)
+            j += 1
+        else:
+            val = _extract_hour_number_kab(tokens[j], norm[j])
+            if val is False:
+                continue
+            hour_val = val
+            consumed.add(j)
+            j += 1
+
+        minute_val = 0
+        # walk any trailing modifiers: swaswa | u <frac> | ɣiṛ [<num>] | n <period>
+        while j < n:
+            tok2 = norm[j]
+
+            if tok2 in _EXACT:
+                consumed.add(j)
+                j += 1
+                continue
+
+            if tok2 in _PLUS and j + 1 < n:
+                nxt = norm[j + 1]
+                if nxt in _QUARTER:
+                    minute_val = 15
+                    consumed.update({j, j + 1})
+                    j += 2
+                    continue
+                if nxt in _HALF:
+                    minute_val = 30
+                    consumed.update({j, j + 1})
+                    j += 2
+                    continue
+                if nxt in _APPROX_PLUS:
+                    minute_val = _APPROX_MINUTES
+                    consumed.update({j, j + 1})
+                    j += 2
+                    continue
+                # "u <number>" additive minutes is not attested in the
+                # source grammar; stop rather than guess.
+                break
+
+            if tok2 in _MINUS:
+                consumed.add(j)
+                j += 1
+                if j >= n:
+                    # bare ɣiṛ = vague "almost <hour>"
+                    hour_val -= 1
+                    minute_val = 60 - _APPROX_MINUTES
+                    break
+                nxt = norm[j]
+                if nxt in _QUARTER:
+                    hour_val -= 1
+                    minute_val = 45
+                    consumed.add(j)
+                    j += 1
+                    break
+                mins = extract_number_kab(tokens[j])
+                if mins is not False and float(mins).is_integer() and 1 <= mins <= 59:
+                    hour_val -= 1
+                    minute_val = 60 - int(mins)
+                    consumed.add(j)
+                    j += 1
+                    # optional trailing unit word, e.g. "n ddqayeq"/"n tesdidin"
+                    if j < n and norm[j] in _GENITIVE and j + 1 < n:
+                        consumed.update({j, j + 1})
+                        j += 2
+                    break
+                # "ɣiṛ" with nothing parseable after it = vague
+                hour_val -= 1
+                minute_val = 60 - _APPROX_MINUTES
+                break
+
+            if tok2 in _GENITIVE and j + 1 < n and norm[j + 1] in _DAY_PERIODS:
+                period_tok = norm[j + 1]
+                hour_val = _period_to_hour24(hour_val, period_tok)
+                consumed.update({j, j + 1})
+                j += 2
+                continue
+
+            break
+
+        if hour_val < 0:
+            hour_val += 12
+
+        hour24 = hour_val % 24
+        return hour24, minute_val, consumed
+
+    return None
 
 
 def nice_time_kab(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -142,7 +386,9 @@ def extract_datetime_kab(text: str, anchorDate: Optional[datetime] = None,
 
     Understands the relative day words (azekka "tomorrow", iḍelli
     "yesterday", ass-a "today"), weekday and month names, day-of-month
-    numbers and clock times ("13:04").
+    numbers, digit clock times ("13:04"), and spoken clock-time
+    expressions built on the presentative "d" ("d lɛecṛa u ṛbeɛ",
+    "d juǧ n uzal", "d lɛecṛa ɣiṛ xemsa", "nṣaf n yiḍ", ...).
     """
     if not text:
         return None
@@ -190,16 +436,24 @@ def extract_datetime_kab(text: str, anchorDate: Optional[datetime] = None,
             consumed.add(i)
 
     time_found = False
-    for i, tok in enumerate(tokens):
-        m = re.fullmatch(r"(\d{1,2}):(\d{2})", tok)
-        if m:
-            hour, minute = int(m.group(1)), int(m.group(2))
-            if hour < 24 and minute < 60:
-                result = result.replace(hour=hour, minute=minute, second=0,
-                                        microsecond=0)
-                time_found = True
-                consumed.add(i)
-                break
+    spoken = _extract_spoken_time_kab(tokens, norm)
+    if spoken:
+        hour, minute, spoken_consumed = spoken
+        result = result.replace(hour=hour, minute=minute, second=0,
+                                microsecond=0)
+        time_found = True
+        consumed.update(spoken_consumed)
+    else:
+        for i, tok in enumerate(tokens):
+            m = re.fullmatch(r"(\d{1,2}):(\d{2})", tok)
+            if m:
+                hour, minute = int(m.group(1)), int(m.group(2))
+                if hour < 24 and minute < 60:
+                    result = result.replace(hour=hour, minute=minute,
+                                            second=0, microsecond=0)
+                    time_found = True
+                    consumed.add(i)
+                    break
 
     if not date_found and not time_found:
         return None

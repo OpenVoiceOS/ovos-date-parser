@@ -22,6 +22,26 @@ from ovos_date_parser.ranges import (
     get_season_range, get_week_number, get_date_ordinal,
     date_to_season, season_to_date, next_season_date, last_season_date,
 )
+from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
+from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
+                                          load_scoped_vocabulary)
+from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
+from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
+from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
+from ovos_date_parser.eras_es import extract_era_date_es, ERA_PATTERNS_ES
+from ovos_date_parser.eras_fr import extract_era_date_fr, ERA_PATTERNS_FR
+from ovos_date_parser.eras_de import extract_era_date_de, ERA_PATTERNS_DE
+from ovos_date_parser.eras_it import extract_era_date_it, ERA_PATTERNS_IT
+from ovos_date_parser.astrodate import (AstroDate, DateSpan, civil_add,
+                                        resolve_wall_clock)
+from ovos_date_parser.eras import (
+    Era, EraCounting, ERAS, astro_year_range, is_leap_year,
+    julian_day_to_date, resolve_bp, resolve_era,
+)
+# Newer reckoning-core surface, re-exported so downstream code can reach the
+# timeline, named-period and radiocarbon-calibration facilities alongside the
+# established date-parsing API.
+from chronologia import TIMELINES, PERIODS, calibrate_c14
 from ovos_date_parser.duration import (
     DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
 )
@@ -69,7 +89,8 @@ from ovos_date_parser.dates_nn import (
     extract_datetime_nn, extract_duration_nn, nice_time_nn,
 )
 from ovos_date_parser.dates_en import (
-    extract_datetime_en, extract_duration_en, nice_time_en
+    extract_datetime_en, extract_date_en, extract_time_en,
+    extract_duration_en, nice_time_en
 )
 from ovos_date_parser.dates_es import (
     extract_datetime_es, extract_duration_es, nice_time_es, nice_date_time_es, nice_date_es,
@@ -145,6 +166,26 @@ from ovos_date_parser.dates_id import nice_time_id, extract_datetime_id
 from ovos_date_parser.dates_tr import nice_time_tr, extract_datetime_tr
 
 
+def _as_datetime(dt):
+    """Coerce an :class:`AstroDate` to a real ``datetime`` when it fits one.
+
+    The legacy ``nice_*`` formatters were written against ``datetime`` and lean
+    on clock-and-locale ``strftime`` directives (``%I``, ``%A``, ``%B``) that
+    the unbounded :class:`~chronologia.AstroDate` deliberately refuses. Any
+    ``AstroDate`` inside the proleptic-Gregorian ``datetime`` range is
+    byte-identical to its ``.datetime()`` projection, so we hand that through
+    transparently. A ``datetime`` (or anything already outside AstroDate) is
+    returned untouched; an out-of-range ``AstroDate`` (a BC or far-future point
+    a ``datetime`` cannot hold) is left as-is so year-only formatters that only
+    need ``%Y`` still work and clock formatters fail loudly instead of lying.
+    """
+    if isinstance(dt, datetime):
+        return dt
+    if isinstance(dt, AstroDate) and dt.in_datetime_range:
+        return dt.datetime()
+    return dt
+
+
 def nice_time(
         dt: datetime,
         lang: str,
@@ -170,6 +211,7 @@ def nice_time(
     Returns:
         The formatted time string.
     """
+    dt = _as_datetime(dt)
     if lang.startswith("ar"):
         return nice_time_ar(dt, speech, use_24hour, use_ampm)
     if lang.startswith("ast"):
@@ -263,7 +305,8 @@ def nice_relative_time(when, relative_to=None, lang="en-us"):
     Returns:
         str: Relative description of the given time
     """
-    relative_to = relative_to or now_local()
+    when = _as_datetime(when)
+    relative_to = _as_datetime(relative_to) if relative_to is not None else now_local()
     if lang.startswith("eu"):
         return nice_relative_time_eu(when, relative_to)
     return nice_relative_time_generic(lang, when, relative_to)
@@ -471,6 +514,13 @@ def extract_datetime(
 
     # fallback found nothing, report no date/time found
     return None
+
+
+#: Span-native natural-language extraction (text -> DateSpan) is owned by
+#: the reckoning core. ``extract_timespan`` and ``explain`` are re-exported
+#: here unchanged so the parser keeps its public surface; the legacy
+#: ``extract_datetime`` / ``extract_date_xx`` paths are untouched by this.
+from chronologia import extract_timespan, explain
 
 
 NUMBER_TUPLE = namedtuple(
@@ -708,6 +758,8 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     Returns:
         (str): The formatted date string
     """
+    dt = _as_datetime(dt)
+    now = _as_datetime(now) if now is not None else None
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_pt(dt, now, include_weekday)
@@ -754,6 +806,8 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         Returns:
             (str): The formatted date time string
     """
+    dt = _as_datetime(dt)
+    now = _as_datetime(now) if now is not None else None
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_time_pt(dt, now, use_24hour, use_ampm)
@@ -780,6 +834,7 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
+    dt = _as_datetime(dt)
     if lang.startswith("pt"):
         return nice_day_pt(dt, date_format, include_month)
     if lang.startswith("es"):
@@ -810,6 +865,7 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
 
 
 def nice_weekday(dt, lang):
+    dt = _as_datetime(dt)
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_weekday_pt(dt)
@@ -843,6 +899,7 @@ def nice_weekday(dt, lang):
 
 
 def nice_month(dt, lang, date_format='MDY'):
+    dt = _as_datetime(dt)
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_month_pt(dt)
@@ -892,6 +949,11 @@ def nice_year(dt, lang, bc=False, ad=False):
         Returns:
             (str): The formatted year string
     """
+    dt = _as_datetime(dt)
+    if bc and dt.year <= 0:
+        # AstroDate counts years astronomically (1 BC is year 0, 300 BC is
+        # -299); what is spoken is the era year, so hand the formatters that.
+        dt = datetime(1 - dt.year, 1, 1)
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_year_pt(dt, bc)
@@ -919,6 +981,260 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_et(dt, bc)
     date_time_format.cache(lang)
     return date_time_format.year_format(dt, lang, bc, ad)
+
+
+#: English month names, indexed 1..12. The unbounded :class:`AstroDate`
+#: refuses locale ``strftime`` directives (``%B``), and a span may sit in a
+#: year no ``datetime`` can hold, so span labels read the month straight off
+#: the integer field instead of formatting a projected ``datetime``.
+_EN_MONTHS = [None, "January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"]
+
+
+#: Gregorian-Arabic month names, indexed 1..12, matching chronologia's
+#: ``ar`` ``month_N.voc`` first entries (the forms its extractor's
+#: ``calendar_date`` construction reads in "DAY MONTH YEAR" / "MONTH YEAR").
+_AR_MONTHS = [None, "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+              "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+#: Hebrew month names, indexed 1..12, matching chronologia's ``he``
+#: ``month_N.voc``. In a full date the month takes a ``ב`` ("in") prefix
+#: ("15 בינואר 2020"); in a month-year it stands bare ("ינואר 2020") -- both
+#: forms are listed in the extractor's vocab, so day-scale labels prepend ``ב``.
+_HE_MONTHS = [None, "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+              "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
+
+#: Decade words keyed by the tens digit (2 -> "twenties"), from the ``ar``/``he``
+#: ``decade_word_N0.voc``. chronologia's ``decade_ref`` resolves a bare decade
+#: word into the **20th century** (e.g. "الثמانينات"/"שנות השמונים" -> 1980s),
+#: so only 1900s decades round-trip; other centuries and the 1900s/1910s (no
+#: word) have no native construction and fall through to the best-effort path.
+_SEMITIC_DECADE_WORD = {
+    "ar": {2: "العشرينات", 3: "الثلاثينات", 4: "الأربعينات", 5: "الخمسينات",
+           6: "الستينات", 7: "السبعينات", 8: "الثمانينات", 9: "التسعينات"},
+    "he": {2: "שנות העשרים", 3: "שנות השלושים", 4: "שנות הארבעים",
+           5: "שנות החמישים", 6: "שנות השישים", 7: "שנות השבעים",
+           8: "שנות השמונים", 9: "שנות התשעים"},
+}
+
+#: BC era marker each extractor's ``era_bc`` ("NUM bc") construction reads.
+#: ``ar`` folds "ق.م" and "ق م" alike; ``he`` uses the gershayim (U+05F4) form
+#: "לפנה״ס" the ``he`` era corpus asserts.
+_SEMITIC_BC_MARKER = {"ar": "ق.م", "he": "לפנה״ס"}
+
+
+def _ordinal(n: int) -> str:
+    """English ordinal for a positive integer: 1 -> '1st', 22 -> '22nd'."""
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def _span_scale(span: "DateSpan") -> str:
+    """Classify a span into the coarsest calendar unit its width represents.
+
+    The width *is* the precision: a one-day span is a day, a ~30-day span a
+    month, a ~3652-day span a decade, and so on (see chronologia's
+    ``DateSpan.resolution``). Sub-day widths split off as ``"time"`` so an
+    instant formats as a clock reading rather than a bare date.
+    """
+    name = span.resolution.name
+    if name == "DAY":
+        # resolution collapses everything <= 1 day to DAY; separate a
+        # clock-precision instant from a whole calendar day by real width.
+        width = span.width
+        seconds = getattr(width, "total_seconds", lambda: 0.0)()
+        return "day" if seconds >= 43200 else "time"
+    if name in ("WEEK", "WEEK_OF_MONTH", "WEEK_OF_YEAR"):
+        return "week"
+    if name.startswith("MONTH"):
+        return "month"
+    if name.startswith("YEAR"):
+        return "year"
+    if name.startswith("DECADE"):
+        return "decade"
+    if name.startswith("CENTURY"):
+        return "century"
+    if name.startswith("MILLENNIUM"):
+        return "millennium"
+    return "era"
+
+
+def _nice_span_en(span: "DateSpan", scale: str) -> str:
+    """English span label, chosen to round-trip through ``extract_timespan``.
+
+    A label from a day up is the canonical written form the chronologia English
+    extractor re-parses to the same span, so
+    ``extract_timespan(nice_span(span, "en"), "en")`` recovers ``span`` for
+    years from 1000 AD onward and from 32 BC back. Nearer the era boundary the
+    year numeral is ambiguous -- a one- or two-digit year reads as a
+    day-of-month and a bare three-digit year does not read as a year at all --
+    and a sub-day span reads as a spoken date and time. Those are labelled but
+    not round-trip gated.
+    """
+    start = span.start
+    bc = start.is_bc
+    year = start.bc_year if bc else start.year
+    if scale == "time":
+        return nice_date_time(start, "en")
+    if scale in ("day", "week"):
+        day = f"{_EN_MONTHS[start.month]} {_ordinal(start.day)}, {year}"
+        if bc:
+            day = f"{day} BC"
+        # A week is named by the day it opens on; extraction snaps "the week
+        # of <date>" back to the week containing that day.
+        return f"the week of {day}" if scale == "week" else day
+    if scale == "month":
+        month = f"{_EN_MONTHS[start.month]} {year}"
+        return f"{month} BC" if bc else month
+    if scale == "year":
+        return f"{start.bc_year} BC" if bc else str(start.year)
+    if scale == "decade":
+        if bc:
+            decade = (start.bc_year // 10) * 10
+            return f"the {decade}s BC"
+        return f"the {(start.year // 10) * 10}s"
+    if scale == "century":
+        if bc:
+            n = (start.bc_year + 99) // 100
+            return f"the {_ordinal(n)} century BC"
+        return f"the {_ordinal(start.year // 100 + 1)} century"
+    if scale == "millennium":
+        if bc:
+            n = (start.bc_year + 999) // 1000
+            return f"the {_ordinal(n)} millennium BC"
+        return f"the {_ordinal(start.year // 1000 + 1)} millennium"
+    # era / geological scale: no compact spoken construct, name it by its
+    # opening year. Not round-trip gated.
+    return f"{start.bc_year} BC" if bc else str(start.year)
+
+
+def _bc_day_label(start: "AstroDate", lang: str) -> str:
+    """Day label for a BC point, naming the era year rather than the astronomical one.
+
+    ``nice_date`` speaks whatever year the point carries, and a BC point carries
+    an astronomical year (300 BC is -299), so a plain call reads "-299" into the
+    sentence. The year-wide label already asks ``nice_year`` for the era form;
+    this substitutes that form into the day label so both widths name the same
+    year in the same words.
+    """
+    label = nice_date(start, lang)
+    astronomical = nice_year(start, lang)
+    if astronomical not in label:
+        raise NotImplementedError(
+            f"nice_span cannot place a BC era year in a '{lang}' day label")
+    return label.replace(astronomical, nice_year(start, lang, bc=True))
+
+
+def _nice_span_generic(span: "DateSpan", scale: str, lang: str) -> str:
+    """Span label built from the locale's own ``nice_*`` formatters.
+
+    The day, week, month and year widths read out of the language's own word
+    tables, so the label is written in that language. The coarse widths --
+    decade, century, millennium and era -- have no localised construction
+    outside English, and an English numeral idiom dropped into another
+    language's sentence is worse than nothing, so those widths are refused.
+    """
+    start = span.start
+    if scale == "time":
+        return nice_date_time(start, lang)
+    if scale in ("day", "week"):
+        if start.is_bc:
+            return _bc_day_label(start, lang)
+        return nice_date(start, lang)
+    if scale == "month":
+        return f"{nice_month(start, lang)} {nice_year(start, lang, bc=start.is_bc)}"
+    if scale == "year":
+        return nice_year(start, lang, bc=start.is_bc)
+    raise NotImplementedError(f"nice_span has no {scale} label for '{lang}'")
+
+
+def _nice_span_semitic(span: "DateSpan", scale: str, code: str) -> str:
+    """Native-script span label for Arabic (``ar``) and Hebrew (``he``).
+
+    Emits the exact native calendar phrasing chronologia's ``ar``/``he``
+    extractors re-parse, so ``extract_timespan(nice_span(span, code), code)``
+    recovers the span for every width those scanners construct: day
+    ("21 يوليو 2026" / "20 ביולי 1969"), month ("يوليو 2026" / "יולי 2026"),
+    year ("2026"), year-BC ("300 ق.م" / "300 לפנה״ס") and 20th-century decades
+    ("الثمانينات" / "שנות השמונים"). Western digits are used throughout -- the
+    numeral form both extractors' corpora assert. The remaining widths (week,
+    century, millennium, BC decade/century/millennium, non-1900s decades) have
+    no native construction in these locales and fall through to the best-effort
+    label, which is not round-trip gated.
+    """
+    start = span.start
+    bc = start.is_bc
+    year = start.bc_year if bc else start.year
+    months = _AR_MONTHS if code == "ar" else _HE_MONTHS
+    if scale == "day":
+        month = months[start.month]
+        if code == "he":
+            month = f"ב{month}"
+        # Logical token order (day month year) is what the RTL extractor reads;
+        # no bidi controls are needed -- the round-trip gate proves it parses.
+        day = f"{start.day} {month} {year}"
+        # BC day has no native construction; label it but leave it ungated.
+        return f"{day} {_SEMITIC_BC_MARKER[code]}" if bc else day
+    if scale == "month":
+        month = f"{months[start.month]} {year}"
+        return f"{month} {_SEMITIC_BC_MARKER[code]}" if bc else month
+    if scale == "year":
+        if bc:
+            return f"{start.bc_year} {_SEMITIC_BC_MARKER[code]}"
+        return str(start.year)
+    if scale == "decade" and not bc and start.year // 100 == 19:
+        # The bare decade word is century-relative: chronologia resolves it
+        # into the 20th century, so it can only name a 1900s decade. Any other
+        # century falls through and is refused rather than named wrongly.
+        word = _SEMITIC_DECADE_WORD[code].get((start.year // 10) % 10)
+        if word is not None:
+            return word
+    # No native construction for this width: best-effort, not round-trip gated.
+    return _nice_span_generic(span, scale, code)
+
+
+def nice_span(span: "DateSpan", lang: str = "en-us") -> str:
+    """Format a :class:`~chronologia.DateSpan` at the granularity it carries.
+
+    A span's *width* is its precision, so the label is chosen from the width
+    rather than from a fixed template: a one-day span reads as a date
+    ("July 21st, 2026"), a month-wide span as a month ("July 2026"), a
+    year-wide span as a year ("2026"), a decade as "the 1980s", a century as
+    "the 19th century", and so on symmetrically down to BC eras, which are
+    named by their era year ("300 BC") rather than the astronomical one.
+
+    This is the inverse of :func:`extract_timespan`. In English a label from a
+    day up re-parses to the same span for years from 1000 AD onward and from
+    32 BC back; nearer the era boundary the year numeral is ambiguous with a
+    day-of-month, and a sub-day span reads as a spoken date and time, which
+    extraction cannot take back.
+
+    Args:
+        span: The half-open ``[start, end)`` interval to describe.
+        lang: A BCP-47 language code.
+
+    Returns:
+        A human-readable label for the span.
+
+    Raises:
+        NotImplementedError: The language has no label for this width. Outside
+            English the decade, century, millennium and era widths have no
+            localised construction (Arabic and Hebrew label 20th-century
+            decades natively), and a width is refused rather than answered in
+            another language.
+    """
+    if not isinstance(span, DateSpan):
+        raise TypeError(f"nice_span expects a DateSpan, got {type(span).__name__}")
+    scale = _span_scale(span)
+    code = lang.lower().split("-")[0]
+    if code == "en":
+        return _nice_span_en(span, scale)
+    if code in ("ar", "he"):
+        return _nice_span_semitic(span, scale, code)
+    return _nice_span_generic(span, scale, lang)
 
 
 def get_date_strings(dt, lang, date_format=None, time_format="full"):

@@ -352,7 +352,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
 
     timeQualifiersAM = ['maitín', 'maitino']
     timeQualifiersPM = ['tardi', 'tarde', 'tardada',
-+                    'nueit', 'nuei', 'nuet', 'nit']
+                    'nueit', 'nuei', 'nuet', 'nit']
     timeQualifiersList = timeQualifiersAM + timeQualifiersPM
     markers = ['a', 'en', 'o', 'os', 'as', 'ta', 'pa', 'enta',
                'iste', 'ista', 'este', 'esta', 'ixe', 'ixa',

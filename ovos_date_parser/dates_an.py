@@ -306,7 +306,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
             "pasadoman": ["dimpués de manyana", "dimpués de mañana", "pasau manyana", "pasau mañana",
                           "dimpues de maitín", "despús demá",
                           "l'atro maitín"],
-            "antesahiere": ["antes d'ahiere", "antes d'ahier",
+            "antesahiere": ["antes de ahiere", "antes d'ahiere", "antes d'ahier",
                             "antes ahiere", "antis d'ahier", "antiahier"],
         }
         s = " " + s + " "

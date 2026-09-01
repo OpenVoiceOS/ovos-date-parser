@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.1a1) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.0a1...0.30.1a1)
+
+**Merged pull requests:**
+
+- fix: restore nice\_date\_an forms pinned by the tests [\#305](https://github.com/OpenVoiceOS/ovos-date-parser/pull/305) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.30.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.0a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.2a1...0.30.0a1)

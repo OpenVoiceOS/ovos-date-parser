@@ -142,14 +142,55 @@ Day number, optionally with the month, ordered by `date_format` (`'DMY'`,
 
 Individual components in speakable form. `nice_year` appends a B.C. marker when
 `bc=True`, because a Python `datetime` cannot represent B.C. years directly.
-Some locales (currently Danish) also support an explicit A.D./C.E. marker via
-`ad=True`. `bc` takes precedence when both are set. `ad` is a no-op for
-locales that do not define one.
+An `AstroDate` in the B.C. range is spoken as its era year: 300 BC, not the
+astronomical -299. Some locales (Danish among them) also support an explicit
+A.D./C.E. marker via `ad=True`. `bc` takes precedence when both are set. `ad`
+is a no-op for locales that do not define one.
 
 ```python
 >>> nice_year(datetime(1984, 1, 1), "en")
 'nineteen eighty four'
 ```
+
+The datetime formatters (`nice_time`, `nice_date`, `nice_date_time`,
+`nice_day`, `nice_weekday`, `nice_month`, `nice_year`, `nice_relative_time`)
+also accept an `AstroDate` — the unbounded `datetime` returned inside a
+`DateSpan`. A point that fits the `datetime` range is projected transparently;
+a year-only call (`nice_year`) works even for years no `datetime` can hold.
+
+### `nice_span(span, lang="en-us")`
+
+Labels a `DateSpan` at the granularity its **width** carries — the width *is*
+the precision. A one-day span reads as a date, a month-wide span as a month, a
+year as a bare year, a decade as "the 1980s", a century as "the Nth century",
+symmetrically down to BC eras, which are named by their era year ("300 BC"). It
+is the inverse of `extract_timespan`: in English a label from a day up re-parses
+to the same span.
+
+```python
+>>> from ovos_date_parser import nice_span, extract_timespan
+>>> span, _ = extract_timespan("the 19th century", "en")
+>>> nice_span(span, "en")
+'the 19th century'
+>>> span, _ = extract_timespan("July 2026", "en")
+>>> nice_span(span, "en")
+'July 2026'
+```
+
+Other languages get labels in their own words for the day, week, month and year
+widths. Arabic and Hebrew also name decades of the 20th century, the only
+century their bare decade word can express. Coarser widths have no localised
+construction, so `nice_span` raises `NotImplementedError` rather than falling
+back to English.
+
+The round-trip guarantee is English-only, and it covers the day width and up
+for years from 1000 AD onward and from 32 BC back. Outside that range the year
+numeral is ambiguous: a one- or two-digit year reads as a day-of-month, a bare
+three-digit year does not read as a year at all, and a decade below 1000
+resolves against the anchor's century. A sub-day span reads as a spoken date
+and time, and a BC week cannot be read back because the week resolver projects
+to a `datetime`. Those widths still get a correct label; only the inverse is
+missing.
 
 ### `nice_duration(duration, lang, speech=True)`
 

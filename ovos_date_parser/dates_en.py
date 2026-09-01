@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_en import extract_number_en, numbers_to_digits_en, pronounce_number_en
@@ -116,98 +116,32 @@ def extract_duration_en(text, resolution=DurationResolution.TIMEDELTA,
                                     resolution, replace_token)
 
 
-def extract_datetime_en(text, anchorDate=None, default_time=None):
-    """ Convert a human date reference into an exact datetime
+def _scan_date_en(words, anchorDate):
+    """Scan the (in-place mutated) ``words`` list for date-side information.
 
-    Convert things like
-        "today"
-        "tomorrow afternoon"
-        "next Tuesday at 4pm"
-        "August 3rd"
-    into a datetime.  If a reference date is not provided, the current
-    local time is used.  Also consumes the words used to define the date
-    returning the remaining string.  For example, the string
-       "what is Tuesday's weather forecast"
-    returns the date for the forthcoming Tuesday relative to the reference
-    date and the remainder string
-       "what is weather forecast".
+    This is the first half of the original ``extract_datetime_en`` monolith,
+    lifted verbatim: the word loop that recognises weekdays ("on/next/last/this
+    monday"), relative day/week/month/year offsets ("in 3 days", "2 weeks
+    ago"), "couple of" multiples, and ordinal + month-name dates ("june 5th",
+    "the 3rd of july").  It also enforces the inherited quirk that the "next"
+    instance of a weekday or weekend is never earlier than 48 hours away.
 
-    The "next" instance of a day or weekend is considered to be no earlier than
-    48 hours in the future. On Friday, "next Monday" would be in 3 days.
-    On Saturday, "next Monday" would be in 9 days.
+    Consumed tokens are blanked out in ``words`` in place -- the caller shares
+    the very same list with :func:`_scan_time_en`, so time scanning sees the
+    already-consumed date words as empty strings.
 
     Args:
-        text (str): string containing date words
-        anchorDate (datetime): A reference date/time for "tommorrow", etc
-        default_time (time): Time to set if no time was found in the string
+        words (list): tokenised, number-normalised utterance (mutated in place)
+        anchorDate (datetime): reference date/time for "tomorrow", "next" etc.
 
     Returns:
-        [datetime, str]: An array containing the datetime and the remaining
-                         text not consumed in the parsing, or None if no
-                         date or time related text was found.
+        dict: the date-side scanner state -- ``found``, ``datestr``,
+        ``hasYear``, ``dayOffset``, ``monthOffset``, ``yearOffset``,
+        ``daySpecified``, ``timeQualifier``, ``fromFlag``, ``currentYear`` and
+        the mutated ``words``.  ``now_return`` holds a ready ``[datetime, str]``
+        pair when the utterance was a bare "now" (the caller returns it
+        verbatim and skips time scanning), otherwise ``None``.
     """
-
-    def clean_string(s):
-        # normalize and lowercase utt  (replaces words with numbers)
-        s = numbers_to_digits_en(s, ordinals=None)
-        # clean unneeded punctuation and capitalization among other things.
-        s = s.lower().replace('?', '').replace(',', '') \
-            .replace(' the ', ' ').replace(' a ', ' ').replace(' an ', ' ') \
-            .replace("o' clock", "o'clock").replace("o clock", "o'clock") \
-            .replace("o ' clock", "o'clock").replace("o 'clock", "o'clock") \
-            .replace("oclock", "o'clock").replace("couple", "2") \
-            .replace("centuries", "century").replace("decades", "decade") \
-            .replace("millenniums", "millennium")
-
-        wordList = s.split()
-        for idx, word in enumerate(wordList):
-            word = word.replace("'s", "")
-
-            ordinals = ["rd", "st", "nd", "th"]
-            if word[0].isdigit():
-                for ordinal in ordinals:
-                    # "second" is the only case we should not do this
-                    if ordinal in word and "second" not in word:
-                        word = word.replace(ordinal, "")
-            wordList[idx] = word
-
-        return wordList
-
-    def date_found():
-        return found or \
-            (
-                    datestr != "" or
-                    yearOffset != 0 or monthOffset != 0 or
-                    dayOffset is True or hrOffset != 0 or
-                    hrAbs or minOffset != 0 or
-                    minAbs or secOffset != 0
-            )
-
-    if not anchorDate:
-        anchorDate = now_local()
-
-    if text == "":
-        return None
-    default_time = default_time or time(0, 0, 0)
-
-    # ISO 8601 calendar-date pre-pass, run before tokenisation because the
-    # tokeniser splits on whitespace and would otherwise mishandle the
-    # hyphenated form. Supports the extended format YYYY-MM-DD and the
-    # slash variant YYYY/MM/DD; month/day are validated by constructing the
-    # datetime, so impossible dates (e.g. "2017-13-45", "2023-02-29") and
-    # non-date digit runs (e.g. phone numbers "123-45-6789") are left
-    # untouched. Ref: ISO 8601-1:2019 calendar date, 5.2.2.1.
-    iso_datestr = None
-    _iso_match = re.search(r"\b(\d{4})([-/])(\d{1,2})\2(\d{1,2})\b", text)
-    if _iso_match:
-        _y, _, _mo, _d = _iso_match.groups()
-        try:
-            iso_datestr = datetime(int(_y), int(_mo),
-                                   int(_d)).strftime("%B %d %Y")
-            text = text[:_iso_match.start()] + " " + text[_iso_match.end():]
-        except ValueError:
-            iso_datestr = None
-
     found = False
     daySpecified = False
     dayOffset = False
@@ -217,8 +151,8 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     wkday = anchorDate.weekday()  # 0 - monday
     currentYear = anchorDate.strftime("%Y")
     fromFlag = False
-    datestr = iso_datestr or ""
-    hasYear = bool(iso_datestr)
+    datestr = ""
+    hasYear = False
     timeQualifier = ""
 
     timeQualifiersAM = ['morning']
@@ -244,8 +178,6 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     day_multiples = ["weeks", "months", "years"]
     past_markers = ["was", "last", "past"]
 
-    words = clean_string(text)
-
     for idx, word in enumerate(words):
         if word == "":
             continue
@@ -266,7 +198,7 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
             resultStr = " ".join(words[idx + 1:])
             resultStr = ' '.join(resultStr.split())
             extractedDate = anchorDate.replace(microsecond=0)
-            return [extractedDate, resultStr]
+            return {"now_return": [extractedDate, resultStr]}
         elif wordNext in year_multiples:
             multiplier = None
             if is_numeric(word):
@@ -654,7 +586,79 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
             found = True
             daySpecified = True
 
-    # parse time
+    return {
+        "found": found,
+        "daySpecified": daySpecified,
+        "dayOffset": dayOffset,
+        "monthOffset": monthOffset,
+        "yearOffset": yearOffset,
+        "currentYear": currentYear,
+        "fromFlag": fromFlag,
+        "datestr": datestr,
+        "hasYear": hasYear,
+        "timeQualifier": timeQualifier,
+        "words": words,
+        "now_return": None,
+    }
+
+
+def _scan_time_en(words, anchorDate, date_state):
+    """Scan the (in-place mutated) ``words`` list for clock-time information.
+
+    Second half of the original monolith, lifted verbatim: noon/midnight and
+    morning/afternoon/evening qualifiers, "in/last N hours|minutes|seconds",
+    "half past 8", "quarter past 10", "20 to 5 pm", colon clock forms ("7:30"),
+    bare "at 7", am/pm and military ("0800 hours") times.  It reads the
+    date-side state from :func:`_scan_date_en` (``found``, ``daySpecified``,
+    ``dayOffset``, ``timeQualifier``) because an already-passed bare clock time
+    rolls the day forward to the next morning.
+
+    Args:
+        words (list): tokenised utterance, already date-scanned (mutated)
+        anchorDate (datetime): reference date/time
+        date_state (dict): the mapping returned by :func:`_scan_date_en`
+
+    Returns:
+        dict: the merged state after time scanning -- the time-side ``hrAbs``,
+        ``minAbs``, ``hrOffset``, ``minOffset``, ``secOffset`` and ``military``
+        plus the possibly-updated ``found``, ``daySpecified`` and ``dayOffset``
+        and the mutated ``words``.
+    """
+    found = date_state["found"]
+    daySpecified = date_state["daySpecified"]
+    dayOffset = date_state["dayOffset"]
+    timeQualifier = date_state["timeQualifier"]
+
+    # ``start`` is a stale carry-over from the date loop in the original
+    # monolith: the time loop only ever decrements it and never reads it back,
+    # so its value cannot affect the result.  It is seeded here purely so the
+    # extracted function does not raise NameError now that the two loops live
+    # in separate scopes.
+    start = 0
+
+    timeQualifiersAM = ['morning']
+    timeQualifiersPM = ['afternoon', 'evening', 'night', 'tonight']
+    timeQualifiersList = set(timeQualifiersAM + timeQualifiersPM)
+    year_markers = ['in', 'on', 'of']
+    past_markers = ["last", "past"]
+    earlier_markers = ["ago", "earlier"]
+    later_markers = ["after", "later"]
+    future_markers = ["in", "within"]  # in a month -> + 1 month timedelta
+    future_1st_markers = ["next"]  # next month -> day 1 of next month
+    markers = year_markers + ['at', 'by', 'this', 'around', 'for', "within"]
+    days = ['monday', 'tuesday', 'wednesday',
+            'thursday', 'friday', 'saturday', 'sunday']
+    months = ['january', 'february', 'march', 'april', 'may', 'june',
+              'july', 'august', 'september', 'october', 'november',
+              'december']
+    recur_markers = days + [d + 's' for d in days] + ['weekend', 'weekday',
+                                                      'weekends', 'weekdays']
+    monthsShort = ['jan', 'feb', 'mar', 'apr', 'may', 'june', 'july', 'aug',
+                   'sept', 'oct', 'nov', 'dec']
+    year_multiples = ["decade", "century", "millennium"]
+    day_multiples = ["weeks", "months", "years"]
+    past_markers = ["was", "last", "past"]
+
     hrOffset = 0
     minOffset = 0
     secOffset = 0
@@ -1078,9 +1082,162 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
             idx += used - 1
             found = True
 
+    return {
+        "found": found,
+        "daySpecified": daySpecified,
+        "dayOffset": dayOffset,
+        "hrOffset": hrOffset,
+        "minOffset": minOffset,
+        "secOffset": secOffset,
+        "hrAbs": hrAbs,
+        "minAbs": minAbs,
+        "military": military,
+        "words": words,
+    }
+
+
+def _extract_datetime_en(text, anchorDate=None, default_time=None):
+    """ Convert a human date reference into an exact datetime
+
+    Convert things like
+        "today"
+        "tomorrow afternoon"
+        "next Tuesday at 4pm"
+        "August 3rd"
+    into a datetime.  If a reference date is not provided, the current
+    local time is used.  Also consumes the words used to define the date
+    returning the remaining string.  For example, the string
+       "what is Tuesday's weather forecast"
+    returns the date for the forthcoming Tuesday relative to the reference
+    date and the remainder string
+       "what is weather forecast".
+
+    The "next" instance of a day or weekend is considered to be no earlier than
+    48 hours in the future. On Friday, "next Monday" would be in 3 days.
+    On Saturday, "next Monday" would be in 9 days.
+
+    Args:
+        text (str): string containing date words
+        anchorDate (datetime): A reference date/time for "tommorrow", etc
+        default_time (time): Time to set if no time was found in the string
+
+    Returns:
+        tuple: ``(result, has_date, has_time)`` where ``result`` is the
+            ``[datetime, str]`` pair (datetime + unconsumed remainder) or
+            ``None`` when nothing date/time related was found, ``has_date`` is
+            True when a calendar-date component matched (weekday, month-name
+            date or a day/month/year offset -- not a bare clock time) and
+            ``has_time`` is True when a clock-time component matched (absolute
+            hour/minute or an hour/minute/second offset).  The public
+            :func:`extract_datetime_en` returns only ``result``; the
+            :func:`extract_date_en` / :func:`extract_time_en` wrappers use the
+            flags to enforce their date-only / time-only contracts.
+    """
+
+    def clean_string(s):
+        # normalize and lowercase utt  (replaces words with numbers)
+        s = numbers_to_digits_en(s, ordinals=None)
+        # clean unneeded punctuation and capitalization among other things.
+        s = s.lower().replace('?', '').replace(',', '') \
+            .replace(' the ', ' ').replace(' a ', ' ').replace(' an ', ' ') \
+            .replace("o' clock", "o'clock").replace("o clock", "o'clock") \
+            .replace("o ' clock", "o'clock").replace("o 'clock", "o'clock") \
+            .replace("oclock", "o'clock").replace("couple", "2") \
+            .replace("centuries", "century").replace("decades", "decade") \
+            .replace("millenniums", "millennium")
+
+        wordList = s.split()
+        for idx, word in enumerate(wordList):
+            word = word.replace("'s", "")
+
+            ordinals = ["rd", "st", "nd", "th"]
+            if word[0].isdigit():
+                for ordinal in ordinals:
+                    # "second" is the only case we should not do this
+                    if ordinal in word and "second" not in word:
+                        word = word.replace(ordinal, "")
+            wordList[idx] = word
+
+        return wordList
+
+    if not anchorDate:
+        anchorDate = now_local()
+
+    if text == "":
+        return None, False, False
+    default_time = default_time or time(0, 0, 0)
+
+    # ISO 8601 calendar-date pre-pass, run before tokenisation because the
+    # tokeniser splits on whitespace and would otherwise mishandle the
+    # hyphenated form. Supports the extended format YYYY-MM-DD and the
+    # slash variant YYYY/MM/DD; month/day are validated by constructing the
+    # datetime, so impossible dates (e.g. "2017-13-45", "2023-02-29") and
+    # non-date digit runs (e.g. phone numbers "123-45-6789") are left
+    # untouched. Ref: ISO 8601-1:2019 calendar date, 5.2.2.1.
+    _iso_match = re.search(r"\b(\d{4})([-/])(\d{1,2})\2(\d{1,2})\b", text)
+    if _iso_match:
+        _y, _, _mo, _d = _iso_match.groups()
+        try:
+            _iso_expanded = datetime(int(_y), int(_mo),
+                                     int(_d)).strftime("%B %d %Y")
+            text = (text[:_iso_match.start()] + " " + _iso_expanded + " "
+                    + text[_iso_match.end():])
+        except ValueError:
+            pass
+
+    words = clean_string(text)
+
+    date_state = _scan_date_en(words, anchorDate)
+    if date_state["now_return"] is not None:
+        # a bare "now": the current moment carries both a date and a time
+        return date_state["now_return"], True, True
+    time_state = _scan_time_en(words, anchorDate, date_state)
+
+    # merge the two scanner states back into the flat locals the original
+    # assembly step operates on
+    found = time_state["found"]
+    daySpecified = time_state["daySpecified"]
+    dayOffset = time_state["dayOffset"]
+    monthOffset = date_state["monthOffset"]
+    yearOffset = date_state["yearOffset"]
+    currentYear = date_state["currentYear"]
+    datestr = date_state["datestr"]
+    hasYear = date_state["hasYear"]
+    hrOffset = time_state["hrOffset"]
+    minOffset = time_state["minOffset"]
+    secOffset = time_state["secOffset"]
+    hrAbs = time_state["hrAbs"]
+    minAbs = time_state["minAbs"]
+
+    # a DATE component is one the *date* scanner recognised (weekday match,
+    # month-name date, or a day/month/year offset).  The date scanner's own
+    # dayOffset is read here rather than the merged one, because a bare clock
+    # time that has already passed nudges dayOffset forward by a day during
+    # time scanning -- that roll is a time effect and must not count as a date.
+    _has_date = (date_state["datestr"] != "" or date_state["found"]
+                 or (date_state["dayOffset"] is not False
+                     and date_state["dayOffset"] != 0)
+                 or date_state["monthOffset"] != 0
+                 or date_state["yearOffset"] != 0)
+    # a TIME component is an absolute hour/minute or a nonzero h/m/s offset.
+    # the -1 sentinel hrAbs/minAbs (set by "half past", "in 3 hours" etc.)
+    # still counts as a time match.
+    _has_time = (hrAbs is not None or minAbs is not None
+                 or hrOffset != 0 or minOffset != 0 or secOffset != 0)
+
+    def date_found():
+        return found or \
+            (
+                    datestr != "" or
+                    yearOffset != 0 or monthOffset != 0 or
+                    dayOffset is True or hrOffset != 0 or
+                    hrAbs or minOffset != 0 or
+                    minAbs or secOffset != 0
+            )
+
     # check that we found a date
     if not date_found():
-        return None
+        return None, False, False
 
     if dayOffset is False:
         dayOffset = 0
@@ -1103,7 +1260,7 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     if datestr != "" and temp is None:
         # an explicit date was spoken but it does not exist on the calendar
         # (e.g. "february 29 2019"); report nothing rather than a wrong guess
-        return None
+        return None, False, False
     if temp is not None:
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
@@ -1150,7 +1307,7 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
     except (OverflowError, ValueError):
         # a relative offset so large it cannot be represented as a datetime
         # (e.g. "999999999999 hours"); report nothing rather than a wrong guess
-        return None
+        return None, False, False
 
     if hrAbs != -1 and minAbs != -1 and not hrOffset and not minOffset and not secOffset:
         # If no time was supplied in the string set the time to default
@@ -1167,7 +1324,7 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
         except ValueError:
             # an out-of-range clock value such as "2400" or "24:00" that maps
             # to hour 24 or beyond; report nothing rather than a wrong guess
-            return None
+            return None, False, False
 
         if (hrAbs != 0 or minAbs != 0) and datestr == "":
             if not daySpecified and anchorDate > extractedDate:
@@ -1180,4 +1337,156 @@ def extract_datetime_en(text, anchorDate=None, default_time=None):
 
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
-    return [extractedDate, resultStr]
+    return [extractedDate, resultStr], _has_date, _has_time
+
+
+def extract_datetime_en(text, anchorDate=None, default_time=None):
+    """ Convert a human date reference into an exact datetime
+
+    Convert things like
+        "today"
+        "tomorrow afternoon"
+        "next Tuesday at 4pm"
+        "August 3rd"
+    into a datetime.  If a reference date is not provided, the current
+    local time is used.  Also consumes the words used to define the date
+    returning the remaining string.  For example, the string
+       "what is Tuesday's weather forecast"
+    returns the date for the forthcoming Tuesday relative to the reference
+    date and the remainder string
+       "what is weather forecast".
+
+    The "next" instance of a day or weekend is considered to be no earlier than
+    48 hours in the future. On Friday, "next Monday" would be in 3 days.
+    On Saturday, "next Monday" would be in 9 days.
+
+    Args:
+        text (str): string containing date words
+        anchorDate (datetime): A reference date/time for "tommorrow", etc
+        default_time (time): Time to set if no time was found in the string
+
+    Returns:
+        [datetime, str]: An array containing the datetime and the remaining
+                         text not consumed in the parsing, or None if no
+                         date or time related text was found.
+    """
+    return _extract_datetime_en(text, anchorDate, default_time)[0]
+
+
+def extract_date_en(text, ref_date=None, hemisphere=None):
+    """Extract only the DATE component of a natural-language phrase.
+
+    Runs the exact same clean -> date-scan -> time-scan -> assembly pipeline as
+    :func:`extract_datetime_en`, but only returns a result when a calendar-date
+    component was actually recognised: a weekday ("next friday"), a month-name
+    date ("march 5th", "the 3rd of july", "june 2027") or a relative day/week/
+    month/year offset ("in 3 days", "2 weeks ago", "tomorrow").  A phrase that
+    is only a bare clock time returns ``None`` -- e.g. "at 5 pm" -> ``None``,
+    while "tomorrow at 5pm" -> ``(date, remainder)``.
+
+    Any time words present are still consumed from the returned remainder (they
+    just do not, on their own, produce a date), so "tomorrow at 5pm" yields the
+    tomorrow date with both "tomorrow" and "at 5pm" stripped from the remainder.
+
+    The "next X is at least 48 hours away" rule is inherited unchanged from the
+    underlying scanner: on a Friday, "next monday" is 3 days out; on a Saturday
+    it is 9 days out.
+
+    Args:
+        text (str): phrase possibly containing a date reference.
+        ref_date (datetime | date): reference point for relative dates such as
+            "tomorrow".  A bare ``date`` is coerced to midnight of that day; if
+            omitted the current local time is used.
+
+    Era-qualified phrases are recognised before the ordinary scanner runs
+    ("44 BC", "500 AD", "2000 years before present", "julian day 2451545",
+    "in the year 12000", "the 3rd century BC" -- see
+    :mod:`ovos_date_parser.eras_en`).  Results the ``datetime`` range cannot
+    hold are returned as :class:`~ovos_date_parser.eras.AstroDate` instead
+    of failing; everything else stays a plain ``datetime.date``.
+
+    Calendar-scoped ordinals and seasons are recognised next ("the 3rd
+    week of june", "the 100th day of the year", "the first decade of the
+    21st century", "summer of 1969", "next winter" -- see
+    :mod:`ovos_date_parser.scoped_en`); ``hemisphere`` selects the season
+    tables (default northern).
+
+    Returns:
+        tuple[datetime.date | AstroDate, str] | None: ``(date, remainder)``
+        when a date component matched, otherwise ``None``.  Never raises on
+        garbage input.
+    """
+    from ovos_date_parser.eras_en import extract_era_date_en
+    from ovos_date_parser.ranges import Hemisphere
+    from ovos_date_parser.scoped_en import extract_scoped_date_en
+    era = extract_era_date_en(text)
+    if era is not None:
+        value, remainder, _resolution = era
+        if isinstance(value, datetime):
+            value = value.date()
+        return value, remainder
+
+    anchorDate = _coerce_anchor(ref_date)
+    scoped = extract_scoped_date_en(text, anchorDate,
+                                    hemisphere=hemisphere or
+                                    Hemisphere.NORTH)
+    if scoped is not None:
+        value, remainder, _resolution = scoped
+        return value, remainder
+
+    try:
+        result, has_date, _has_time = _extract_datetime_en(text, anchorDate)
+    except Exception:
+        return None
+    if result is None or not has_date:
+        return None
+    return result[0].date(), result[1]
+
+
+def extract_time_en(text, ref_time=None):
+    """Extract only the TIME component of a natural-language phrase.
+
+    Runs the exact same clean -> date-scan -> time-scan -> assembly pipeline as
+    :func:`extract_datetime_en`, but only returns a result when a clock-time
+    component was actually recognised: an absolute hour/minute ("at 7:30",
+    "quarter past 10", "20 to 5 pm", "at noon", "at midnight", "half past 8")
+    or a relative hour/minute/second offset ("in a couple of hours",
+    "in 5 minutes").  A phrase that is only a date returns ``None`` -- e.g.
+    "tomorrow" -> ``None``, while "at 5 pm" -> ``(time(17, 0), remainder)``.
+
+    The reference is only used to resolve the ambiguous "has this clock time
+    already passed today?" roll inside the scanner; the returned value is a
+    plain :class:`datetime.time`, so the date the scanner rolled to is dropped.
+
+    Args:
+        text (str): phrase possibly containing a time reference.
+        ref_time (datetime | date): reference point.  A bare ``date`` is coerced
+            to midnight; if omitted the current local time is used.
+
+    Returns:
+        tuple[datetime.time, str] | None: ``(time, remainder)`` when a time
+        component matched, otherwise ``None``.  Never raises on garbage input.
+    """
+    anchorDate = _coerce_anchor(ref_time)
+    try:
+        result, _has_date, has_time = _extract_datetime_en(text, anchorDate)
+    except Exception:
+        return None
+    if result is None or not has_time:
+        return None
+    return result[0].time(), result[1]
+
+
+def _coerce_anchor(ref):
+    """Normalise a date/datetime reference to a datetime (or None).
+
+    ``datetime`` is passed through, a bare ``date`` becomes midnight of that
+    day, and ``None`` is left as-is so the scanner falls back to ``now_local``.
+    """
+    if ref is None:
+        return None
+    if isinstance(ref, datetime):
+        return ref
+    if isinstance(ref, date):
+        return datetime(ref.year, ref.month, ref.day)
+    return ref

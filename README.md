@@ -126,15 +126,72 @@ when, _ = extract_datetime(user_text, "en", anchorDate=datetime.now())
 | `nice_date(dt, lang, now=None, include_weekday=True)` | datetime to text | Speakable date, shortened against `now` |
 | `nice_date_time(dt, lang, now=None, use_24hour=False, use_ampm=False)` | datetime to text | Date and time combined |
 | `nice_day` / `nice_weekday` / `nice_month` / `nice_year` | datetime to text | Individual date components |
+| `nice_span(span, lang="en-us")` | DateSpan to text | Label for a span, at the granularity its width carries |
 | `nice_duration(duration, lang, speech=True)` | seconds/timedelta to text | Speakable timespan |
 | `nice_relative_time(when, relative_to=None, lang="en-us")` | datetime to text | Short "N minutes/days" phrase |
 | `get_date_strings(dt, lang, date_format=None, time_format="full")` | datetime to dict | Display strings for GUI clients |
 
 Full signatures, return shapes, and examples: [docs/api.md](docs/api.md).
 
+### Span-native formatting
+
+A date phrase refers to a stretch of time, not to a single instant. "July 2026"
+is a whole month, and "the 1980s" is a whole decade. `extract_timespan` returns
+that stretch as a **`DateSpan`**, a half-open `[start, end)` interval whose two
+endpoints are **`AstroDate`** points. An `AstroDate` is a datetime that is not
+capped at years 1 to 9999, so BC and far-future dates work. The width of a span
+is its precision.
+
+`nice_span` is the inverse. Give it a `DateSpan`, and it picks the label from
+the width. In English a one-day span reads as a date, a month-wide span as a
+month, a decade as "the 1980s", a century as "the 19th century", and a BC span
+by its era year. The decade and coarser labels are English-only, apart from
+Arabic and Hebrew decades of the 20th century: no other language has a
+construction for them, so `nice_span` raises `NotImplementedError` there
+instead of answering in English.
+
+In English the label round-trips from the day width up, for years from 1000 AD
+onward and from 32 BC back: what `nice_span` writes, `extract_timespan` reads
+straight back. Nearer the era boundary the year numeral is ambiguous with a
+day-of-month, and a sub-day span reads as a spoken date and time. Those get a
+correct label, but not the inverse.
+
+```python
+from ovos_date_parser import extract_timespan, nice_span
+
+span, _ = extract_timespan("the 19th century", "en")   # a DateSpan
+print(span.start, "..", span.end)   # 1800-01-01 .. 1900-01-01
+print(nice_span(span, "en"))        # 'the 19th century'  (round-trips)
+
+for text in ["July 21st, 2026", "July 2026", "2026", "the 1980s", "300 BC"]:
+    span, _ = extract_timespan(text, "en")
+    assert nice_span(span, "en") == text
+```
+
+The datetime formatters also accept an `AstroDate` directly. A point that fits
+a datetime is projected to one, so you can format extracted points without
+unwrapping them:
+
+```python
+from ovos_date_parser import nice_date, nice_time
+from ovos_date_parser.astrodate import AstroDate
+
+when = AstroDate(2026, 7, 21, 15, 30)
+print(nice_date(when, "en"))   # 'tuesday, july twenty-first, twenty twenty six'
+print(nice_time(when, "en"))   # 'half past three'
+```
+
+Other languages get labels in their own words for the day, week, month, and
+year widths. Arabic and Hebrew also name decades of the 20th century, the only
+century their bare decade word can express. The round-trip guarantee is for
+English only. The span grammars for other languages are in the `chronologia`
+reckoning core.
+
 Dialects resolve by prefix. `"pt-BR"`, `"pt-PT"`, and `"pt"` all reach the
-Portuguese implementation. Unsupported languages raise `NotImplementedError`,
-except `extract_datetime`, which tries the `dateparser` fallback first.
+Portuguese implementation. A language with no implementation raises
+`NotImplementedError`, except `extract_datetime`, which tries the `dateparser`
+fallback first, and the `nice_*` formatters, which fall back to a generic word
+table and need a locale resource file for the language.
 
 ## Language support
 

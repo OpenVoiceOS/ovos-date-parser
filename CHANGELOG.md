@@ -1,8 +1,20 @@
 # Changelog
 
+## [0.30.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.0a1) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.2a1...0.30.0a1)
+
+**Merged pull requests:**
+
+- feat: declarative datetime engine with chronologia reckoning core [\#284](https://github.com/OpenVoiceOS/ovos-date-parser/pull/284) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.29.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.29.2a1) (2026-09-01)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.0...0.29.2a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.1a1...0.29.2a1)
+
+## [0.29.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.29.1a1) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.0...0.29.1a1)
 
 **Closed issues:**
 

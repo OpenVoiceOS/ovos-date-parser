@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.2a1) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.1a1...0.30.2a1)
+
+**Merged pull requests:**
+
+- fix: strip dangling conjunctions from extract\_duration remainder [\#293](https://github.com/OpenVoiceOS/ovos-date-parser/pull/293) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.30.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.1a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.0a1...0.30.1a1)

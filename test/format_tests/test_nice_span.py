@@ -11,8 +11,12 @@ two-sided:
 Every English width from a day up round-trips: weeks through the "week of
 <date>" construct, BC days through the era-marked calendar date, BC decades,
 centuries and millennia through the scoped-era constructions. Sub-day widths
-read as a spoken date and time, which extraction cannot take back, and are
-strict xfails.
+read as a spoken date and time, which extraction cannot take back, and stay
+xfailed. Strictness is imperative, not pytest's: each xfail cell computes the
+round trip and calls pytest.fail() BEFORE pytest.xfail() the moment it starts
+passing, so a fixed cell demands promotion loudly. Do not simplify the guard
+into a plain @pytest.mark.xfail — that would silently disarm every tripwire
+in this file (there is no xfail_strict configured).
 """
 from datetime import datetime
 
@@ -86,13 +90,15 @@ ROUNDTRIP_EN = [
     ("century-bc", _span(AstroDate(-299, 1, 1), AstroDate(-199, 1, 1))),
     ("millennium-bc", _span(AstroDate(-1999, 1, 1), AstroDate(-999, 1, 1))),
     ("week", _span(AstroDate(2026, 7, 20), AstroDate(2026, 7, 27))),
-    # The low end of the gated year range (see NO_ROUNDTRIP_EN for the
-    # years just outside it).
+    # The edges of the gated year range (see NO_ROUNDTRIP_EN for the years
+    # just outside it). The era marker carries BC years all the way to 1 BC.
     ("day-ad-1000", _span(AstroDate(1000, 1, 1), AstroDate(1000, 1, 2))),
     ("year-ad-1000", _span(AstroDate(1000, 1, 1), AstroDate(1001, 1, 1))),
     ("decade-ad-1000", _span(AstroDate(1000, 1, 1), AstroDate(1010, 1, 1))),
     ("day-bc-32", _span(AstroDate(-31, 3, 15), AstroDate(-31, 3, 16))),
     ("month-bc-32", _span(AstroDate(-31, 3, 1), AstroDate(-31, 4, 1))),
+    ("day-bc-31", _span(AstroDate(-30, 3, 15), AstroDate(-30, 3, 16))),
+    ("day-bc-1", _span(AstroDate(0, 3, 15), AstroDate(0, 3, 16))),
     ("year-bc-1", _span(AstroDate(0, 1, 1), AstroDate(1, 1, 1))),
     ("decade-bc", _span(AstroDate(-308, 1, 1), AstroDate(-298, 1, 1))),
 ]
@@ -119,33 +125,28 @@ def test_nice_span_en_roundtrip(name, span):
 # starts working the case fails loudly and has to be promoted to the gate.
 # --------------------------------------------------------------------------
 
-#: A single-digit or two-digit year reads as a day-of-month or an ordinal, and
-#: a bare three-digit year does not read as a year at all, so the gate starts
-#: at 1000 AD going forward and at 32 BC going back. These cells pin the years
-#: just outside that range.
+#: A bare one-, two- or three-digit year does not read as a year at all, so
+#: going forward the gate starts at 1000 AD. An era marker disambiguates, so
+#: going back it reaches 1 BC. These cells pin what stays outside.
 NO_ROUNDTRIP_EN = [
-    ("hour", "nice_date_time drops the meridiem, and chronologia reads no "
-             "clock reading inside a spoken date",
+    ("hour", "nice_date_time drops the meridiem, so the o'clock reading "
+             "comes back as the morning hour",
      _span(AstroDate(2026, 9, 2, 15, 0), AstroDate(2026, 9, 2, 15, 1))),
-    ("minute", "nice_date_time drops the meridiem, and chronologia reads no "
-               "clock reading inside a spoken date",
+    ("minute", "chronologia reads no spoken minute inside a spoken date, and "
+               "leaves the clock reading in the remainder",
      _span(AstroDate(2026, 9, 2, 15, 47), AstroDate(2026, 9, 2, 15, 48))),
-    ("week-bc", "chronologia's week resolver projects to a datetime, which "
-                "cannot hold a BC year",
+    ("week-bc", "chronologia reads 'the week of <BC date>' as the calendar "
+                "week containing that date, not the seven days from it",
      _span(AstroDate(-299, 1, 1), AstroDate(-299, 1, 8))),
-    ("day-ad-1", "a bare 1 reads as a day-of-month, not a year",
+    ("day-ad-1", "a bare trailing 1 does not read as a year, so the day "
+                 "resolves against the anchor and the 1 stays in the remainder",
      _span(AstroDate(1, 1, 1), AstroDate(1, 1, 2))),
     ("year-ad-1", "a bare 1 does not read as a year",
      _span(AstroDate(1, 1, 1), AstroDate(2, 1, 1))),
     ("year-ad-999", "a bare three-digit numeral does not read as a year",
      _span(AstroDate(999, 1, 1), AstroDate(1000, 1, 1))),
-    ("decade-ad-990", "a bare decade below 1000 resolves against the anchor's "
-                      "century",
+    ("decade-ad-990", "a bare decade below 1000 does not read as a decade",
      _span(AstroDate(990, 1, 1), AstroDate(1000, 1, 1))),
-    ("day-bc-1", "a bare 1 before the era marker reads as a day-of-month",
-     _span(AstroDate(0, 3, 15), AstroDate(0, 3, 16))),
-    ("day-bc-31", "a BC year up to 31 reads as a day-of-month",
-     _span(AstroDate(-30, 3, 15), AstroDate(-30, 3, 16))),
     ("decade-straddling-the-era", "a decade spanning 1 BC to 1 AD labels as "
                                   "'the 0s BC', which has no reading",
      _span(AstroDate(-8, 1, 1), AstroDate(2, 1, 1))),

@@ -4,4 +4,4 @@ ovos-number-parser>=0.19.6a2,<1.0.0
 dateparser
 ovos-config
 ovos-spec-tools>=1.5.0a1
-chronologia>=0.2.9  # reckoning core library (AstroDate, calendars, eras, cycles)
+chronologia>=0.27.7a1  # reckoning core library (AstroDate, calendars, eras, cycles)

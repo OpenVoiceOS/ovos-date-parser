@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.2a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.2a2) (2026-09-02)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.2a1...0.30.2a2)
+
+**Merged pull requests:**
+
+- chore: pin chronologia 0.27.7a1 and promote the BC-day round-trips [\#308](https://github.com/OpenVoiceOS/ovos-date-parser/pull/308) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.30.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.2a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.1a1...0.30.2a1)

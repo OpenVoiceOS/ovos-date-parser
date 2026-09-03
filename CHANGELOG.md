@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.30.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.3a1) (2026-09-03)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.2a2...0.30.3a1)
+
+**Closed issues:**
+
+- Space-separated "H MM am/pm" times skip 12→24h conversion [\#310](https://github.com/OpenVoiceOS/ovos-date-parser/issues/310)
+
+**Merged pull requests:**
+
+- fix: 12h to 24h conversion for space-separated "H MM meridiem" clock forms [\#311](https://github.com/OpenVoiceOS/ovos-date-parser/pull/311) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.30.2a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.2a2) (2026-09-02)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.2a1...0.30.2a2)

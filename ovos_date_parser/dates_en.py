@@ -968,15 +968,20 @@ def _scan_time_en(words, anchorDate, date_state):
                                 remainder == "hours" or remainder == "hour":
                             used += 1
                     elif wordNext and wordNext[0].isdigit():
-                        # military time, e.g. "04 38 hours"
+                        # "04 38 hours" (military) or "11 55 pm" (12h clock)
                         strHH = strNum
                         strMM = wordNext
-                        military = True
                         used += 1
-                        if (wordNextNext == "hours" or
-                                wordNextNext == "hour" or
-                                remainder == "hours" or remainder == "hour"):
+                        wordNextNext_ampm = wordNextNext.replace(".", "")
+                        if wordNextNext_ampm == "am" or wordNextNext_ampm == "pm":
+                            remainder = wordNextNext_ampm
                             used += 1
+                        else:
+                            military = True
+                            if (wordNextNext == "hours" or
+                                    wordNextNext == "hour" or
+                                    remainder == "hours" or remainder == "hour"):
+                                used += 1
                     elif (wordNext == ""
                           or wordNext == "o'clock"
                           or (wordNext == "in" and (wordNextNext == "the" or wordNextNext == timeQualifier))

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.0a1) (2026-09-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.3a1...0.31.0a1)
+
+**Merged pull requests:**
+
+- feat: extract\_datetime\_spans and extract\_duration\_spans return code-point spans [\#314](https://github.com/OpenVoiceOS/ovos-date-parser/pull/314) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.30.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.3a1) (2026-09-03)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.2a2...0.30.3a1)

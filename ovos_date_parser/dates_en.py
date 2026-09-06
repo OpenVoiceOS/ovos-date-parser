@@ -277,7 +277,7 @@ def _scan_date_en(words, anchorDate):
               wordNext == "after" and
               wordNextNext == "tomorrow" and
               not fromFlag and
-              (not wordPrev or not wordPrev[0].isdigit())):
+              (not wordPrev or not wordPrev.isdigit())):
             dayOffset = 2
             used = 3
             if wordPrev == "the":
@@ -285,7 +285,7 @@ def _scan_date_en(words, anchorDate):
                 used += 1
         # parse 5 days, 10 weeks, last week, next week
         elif word == "day" and wordNext not in earlier_markers:
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 dayOffset += int(wordPrev)
                 start -= 1
                 used = 2
@@ -306,7 +306,7 @@ def _scan_date_en(words, anchorDate):
                 used = 2
         # parse X days ago
         elif word == "day" and wordNext in earlier_markers:
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 dayOffset -= int(wordPrev)
                 start -= 1
                 used = 3
@@ -315,7 +315,7 @@ def _scan_date_en(words, anchorDate):
                 used = 2
         # parse last/past/next week and in/after X weeks
         elif word == "week" and not fromFlag and wordPrev and wordNext not in earlier_markers:
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -339,7 +339,7 @@ def _scan_date_en(words, anchorDate):
                 used = 2
         # parse X weeks ago
         elif word == "week" and not fromFlag and wordNext in earlier_markers:
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 dayOffset -= int(wordPrev) * 7
                 start -= 1
                 used = 3
@@ -349,7 +349,7 @@ def _scan_date_en(words, anchorDate):
         # parse last/past/next weekend and in/after X weekends
         elif word == "weekend" and not fromFlag and wordPrev and wordNext not in earlier_markers:
             # in/after X weekends
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 n = int(wordPrev)
                 dayOffset += 7 - wkday  # next monday -> 1 weekend
                 n -= 1
@@ -385,14 +385,14 @@ def _scan_date_en(words, anchorDate):
             dayOffset -= wkday + 3  # past friday "one weekend ago"
             used = 2
             # X weekends ago
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 n = int(wordPrev) - 1
                 dayOffset -= n * 7
                 start -= 1
                 used = 3
         # parse 10 months, next month, last month
         elif word == "month" and not fromFlag and wordPrev and wordNext not in earlier_markers:
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -416,7 +416,7 @@ def _scan_date_en(words, anchorDate):
                 start -= 1
                 used = 2
         elif word == "month" and wordNext in earlier_markers:
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 monthOffset -= int(wordPrev)
                 start -= 1
                 used = 3
@@ -425,7 +425,7 @@ def _scan_date_en(words, anchorDate):
                 used = 2
         # parse 5 years, next year, last year
         elif word == "year" and not fromFlag and wordPrev and wordNext not in earlier_markers:
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -449,7 +449,7 @@ def _scan_date_en(words, anchorDate):
                 start -= 1
                 used = 2
         elif word == "year" and wordNext in earlier_markers:
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 yearOffset -= int(wordPrev)
                 start -= 1
                 used = 3
@@ -482,9 +482,10 @@ def _scan_date_en(words, anchorDate):
                 m = monthsShort.index(word)
             used += 1
             datestr = months[m]
-            if wordPrev and (wordPrev[0].isdigit() or
-                             (wordPrev == "of" and wordPrevPrev[0].isdigit())):
-                if wordPrev == "of" and wordPrevPrev[0].isdigit():
+            if wordPrev and (wordPrev.isdigit() or
+                             (wordPrev == "of" and wordPrevPrev and
+                              wordPrevPrev[0].isdigit())):
+                if wordPrev == "of" and wordPrevPrev:
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -754,7 +755,7 @@ def _scan_time_en(words, anchorDate, date_state):
             hrAbs = -1
             minAbs = -1
         # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -1156,7 +1157,7 @@ def _extract_datetime_en(text, anchorDate=None, default_time=None):
             word = word.replace("'s", "")
 
             ordinals = ["rd", "st", "nd", "th"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     # "second" is the only case we should not do this
                     if ordinal in word and "second" not in word:
@@ -1336,7 +1337,7 @@ def _extract_datetime_en(text, anchorDate=None, default_time=None):
                 extractedDate = extractedDate + relativedelta(days=1)
 
     for idx, word in enumerate(words):
-        if words[idx] == "and" and \
+        if word == "and" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

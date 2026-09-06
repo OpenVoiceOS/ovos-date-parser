@@ -238,7 +238,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             used += 1
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dage":
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     dayOffset -= int(wordPrev)
@@ -248,7 +248,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 2
         elif word == "uge" or word == "uger" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     dayOffset -= int(wordPrev) * 7
@@ -267,7 +267,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif (word == "måned" or word == "måneder") and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     monthOffset = -int(wordPrev)
@@ -286,7 +286,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 5 years, next year, last year
         elif word == "år" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     yearOffset = -int(wordPrev)
@@ -331,9 +331,9 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 m = monthsShort.index(word)
             used += 1
             datestr = months[m]
-            if wordPrev and (wordPrev[0].isdigit() or
-                             (wordPrev == "of" and wordPrevPrev[0].isdigit())):
-                if wordPrev == "of" and wordPrevPrev[0].isdigit():
+            if wordPrev and (wordPrev and wordPrev[0].isdigit() or
+                             (wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -462,7 +462,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
             # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -818,8 +818,8 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "og" and words[idx - 1] == "" \
-                and words[idx + 1] == "":
+        if word == "og" and 0 < idx < len(words) - 1 and \
+                words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 
     resultStr = " ".join(words)

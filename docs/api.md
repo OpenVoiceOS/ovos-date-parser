@@ -82,6 +82,77 @@ languages raises `NotImplementedError`.
 
 Import `DurationResolution` from `ovos_date_parser.duration`.
 
+### `extract_datetime_spans(text, lang, anchor_date=None, default_time=None)`
+
+Extract every date or time expression in a text together with where it was
+written. Returns a list of frozen `DateTimeSpan` objects with `start`, `end`,
+`surface` and `value`; `start` and `end` are half-open code-point offsets, so
+`text[start:end] == surface` always holds. Spans come back sorted by `start`.
+
+```python
+>>> extract_datetime_spans("wake me next friday at 5 pm", "en",
+...                        anchor_date=datetime(2023, 1, 18))
+[DateTimeSpan(start=8, end=27, surface='next friday at 5 pm', value=...)]
+>>> extract_datetime_spans("from monday to friday", "en",
+...                        anchor_date=datetime(2023, 1, 15))
+[DateTimeSpan(start=0, end=11, surface='from monday', value=...),
+ DateTimeSpan(start=5, end=11, surface='monday', value=...),
+ DateTimeSpan(start=15, end=21, surface='friday', value=...)]
+```
+
+Each span covers a whole expression, so "next friday at 5 pm" is one
+expression however many entries it yields, and two dates in one sentence are
+two. `anchor_date` and `default_time` mean what they do for `extract_datetime`; a naive anchor is read as local time and values
+come back in the anchor's zone.
+
+A word joins an expression when the extractor consumes it, which it reports
+through the leftover text. That is what makes the surface the written phrase
+rather than only the words that move the value: "next", "this", "at" and "pm"
+belong to it, while "to" in "from monday to friday" survives in the leftover
+and ends the first span there.
+
+Framing words are reported both ways. Which text a consumer holds is decided
+by the template that captured it, not by the parser: `from {date:start} to
+{date:end}` captures "monday" where the written phrase is "from monday". So
+when the framing words can be dropped without changing the reading, the
+expression comes back twice: once as the written phrase and once as its core,
+"next friday" and "friday", or "at 5 pm" and "5 pm". Both entries carry the
+same value. An expression with nothing to drop comes back once. A single word left behind may still bridge two
+halves that need each other, as in "in two weeks and three days". Punctuation
+between two words is no boundary on its own, so "3 uur 's middags" and "2
+hours, 30 minutes, and 10 seconds" each stay whole. An expression may run up
+to twenty words, long enough for "in two weeks and three days and four hours".
+
+Every window is handed to the extractor, so the cost of a scan follows how
+much of the text reads as an expression rather than its length alone: a two
+hundred word paragraph holding twelve dates takes around 250 ms on two cores,
+where an ordinary utterance takes a few.
+
+Offsets are what `extract_datetime` cannot give you: its `remaining_text` says
+which words were consumed but not where they were, and a text with a repeated
+word cannot be aligned back to the input from it.
+
+### `extract_duration_spans(text, lang)`
+
+The same for durations, returning `DurationSpan` objects whose `value` is a
+`timedelta`. A compound duration is a single span.
+
+```python
+>>> extract_duration_spans("nap for two hours and thirty minutes", "en")
+[DurationSpan(start=8, end=36, surface='two hours and thirty minutes',
+              value=datetime.timedelta(seconds=9000))]
+```
+
+A length of time is also a point in time relative to the anchor, so a phrase
+like "20 minutes" is reported by both scans, with its own value in each. A
+spoken zero is a length like any other: "0 seconds" is a span whose value is
+`timedelta(0)`.
+
+Two durations in one sentence stay two spans. Read as one expression, "in ten
+minutes and again in half an hour" is ten and a half hours, a length nobody
+said, so a phrase the extractor lost the thread in counts as one duration only
+when nothing inside it reads as a duration of its own.
+
 ## Formatting (datetime to text)
 
 ### `nice_time(dt, lang, speech=True, use_24hour=False, use_ampm=False, variant=None)`

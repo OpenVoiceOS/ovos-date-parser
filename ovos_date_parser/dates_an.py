@@ -660,7 +660,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -966,7 +966,7 @@ def extract_datetime_an(text, anchorDate=None, default_time=None):
     except (OverflowError, ValueError):
         return None
     for idx, word in enumerate(words):
-        if words[idx] == "y" and \
+        if word == "y" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

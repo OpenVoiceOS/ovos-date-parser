@@ -417,7 +417,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                 used += 2
 
         elif word == "semana" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
                 if wordPrevPrev == "hace" or wordNext == "atras":
                     dayOffset -= int(wordPrev) * 7
@@ -449,7 +449,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     used = 2
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
                 if wordPrevPrev == "hace" or wordNext == "atras":
                     monthOffset = -int(wordPrev)
@@ -481,7 +481,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     used = 2
         # parse 5 years, next year, last year
         elif word == "año" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
                 if wordPrevPrev == "hace" or wordNext == "atras":
                     yearOffset = -int(wordPrev)
@@ -570,7 +570,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
 
                 start -= 2
                 used += 2
-                if wordNext and word[0].isdigit():
+                if wordNext and word and word[0].isdigit():
                     datestr += " " + wordNext
                     used += 1
                     hasYear = True
@@ -747,7 +747,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
         # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -938,7 +938,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                                     remainder = "pm"
                                 used += 1
 
-                    elif wordNext[0].isdigit():
+                    elif wordNext and wordNext[0].isdigit():
                         strHH = strNum
                         strMM = wordNext
                         used += 1

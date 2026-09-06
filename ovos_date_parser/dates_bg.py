@@ -295,7 +295,7 @@ def extract_datetime_bg(text, anchorDate=None, default_time=None):
                 used = 2
         # parse "следващия месец", "след 3 месеца"
         elif word == "месец" and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -313,7 +313,7 @@ def extract_datetime_bg(text, anchorDate=None, default_time=None):
                 used = 2
         # parse "следващата година", "след 2 години"
         elif word == "година" and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -480,7 +480,7 @@ def extract_datetime_bg(text, anchorDate=None, default_time=None):
             minAbs = -1
             start -= 1
             used = 3
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             strHH = ""
             strMM = ""
             if ':' in word:

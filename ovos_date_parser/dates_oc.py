@@ -651,7 +651,7 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
         # 5:00 am, 12:00 pm, a las 8, etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -812,7 +812,7 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
                     elif wordNext == "":
                         strHH = strNum
                         strMM = 00
-                    elif wordNext[0].isdigit():
+                    elif wordNext and wordNext[0].isdigit():
                         strHH = strNum
                         strMM = wordNext
                         used += 1

@@ -45,24 +45,26 @@ def extract_duration_fa(text):
     remainder = []
     ar = _parse_sentence(text)
     current_number = None
-    result = timedelta(0)
+    result = None
     for x in ar:
         if x == "و":
             continue
         elif type(x) == tuple:
             current_number = x
-        elif x in _time_units:
-            result += _time_units[x] * current_number[0]
+        elif x in _time_units and current_number:
+            result = (result or timedelta(0)) + _time_units[x] * current_number[0]
             current_number = None
-        elif x in _date_units:
-            result += _date_units[x] * current_number[0]
+        elif x in _date_units and current_number:
+            result = (result or timedelta(0)) + _date_units[x] * current_number[0]
             current_number = None
         else:
             if current_number:
                 remainder.extend(current_number[1])
             remainder.append(x)
             current_number = None
-    return (result, " ".join(remainder))
+    if result is None:
+        return None, text
+    return result, " ".join(remainder)
 
 
 def extract_datetime_fa(text, anchorDate=None, default_time=None):

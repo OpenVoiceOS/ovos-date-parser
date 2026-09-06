@@ -122,6 +122,8 @@ when, _ = extract_datetime(user_text, "en", anchorDate=datetime.now())
 |----------|-----------|---------|
 | `extract_datetime(text, lang, anchorDate=None, default_time=None)` | text to datetime | Date/time from a phrase, plus leftover text |
 | `extract_duration(text, lang, *, resolution=..., replace_token="")` | text to duration | `timedelta`/`relativedelta`/float, plus leftover text |
+| `extract_datetime_spans(text, lang, anchor_date=None, default_time=None)` | text to spans | Every date/time expression with its code-point offsets |
+| `extract_duration_spans(text, lang)` | text to spans | Every duration with its code-point offsets |
 | `nice_time(dt, lang, speech=True, use_24hour=False, use_ampm=False, variant=None)` | datetime to text | Speakable or digit clock time |
 | `nice_date(dt, lang, now=None, include_weekday=True)` | datetime to text | Speakable date, shortened against `now` |
 | `nice_date_time(dt, lang, now=None, use_24hour=False, use_ampm=False)` | datetime to text | Date and time combined |

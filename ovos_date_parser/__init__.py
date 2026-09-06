@@ -2,8 +2,9 @@ import json
 import os
 import re
 from collections import namedtuple
+from dataclasses import dataclass
 from datetime import datetime, timedelta, time
-from typing import Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import dateparser # fallback parser
 from dateparser.search import search_dates
@@ -514,6 +515,288 @@ def extract_datetime(
 
     # fallback found nothing, report no date/time found
     return None
+
+
+@dataclass(frozen=True)
+class DateTimeSpan:
+    """A date or time expression, together with where it was written.
+
+    ``start`` and ``end`` are half-open code-point offsets into the utterance
+    the span was extracted from, so ``utterance[start:end] == surface`` holds.
+    """
+    start: int
+    end: int
+    surface: str
+    value: datetime
+
+
+@dataclass(frozen=True)
+class DurationSpan:
+    """A length of time, together with where it was written.
+
+    Offsets follow the same convention as :class:`DateTimeSpan`.
+    """
+    start: int
+    end: int
+    surface: str
+    value: timedelta
+
+
+#: characters that punctuate a word without belonging to it; a leading or
+#: trailing run of these is not part of an expression's surface
+_SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
+
+#: longest expression the window search considers, in words; long enough for
+#: spoken phrases such as "the day after tomorrow at half past seven in the
+#: evening", and the knob that decides how much the scan costs
+_MAX_SPAN_WORDS = 20
+
+#: how many words the extractor may make nothing of - reading no value, or
+#: leaving them behind - before a window is abandoned: an expression that has
+#: not started or not resumed by then is over. Words it keeps reading do not
+#: count, however long they leave the value unchanged, as in the persian
+#: "یک ساعت و پنجاه و هفت و نیم دقیقه" where only the last word moves it
+_MAX_SPAN_DRIFT = 10
+
+#: an expression's reading, as the extractors report it: the value and the
+#: words they did not consume
+Reading = Tuple[Optional[object], Tuple[str, ...]]
+
+
+def _word_spans(text: str) -> List[Tuple[int, int]]:
+    """Offsets of the whitespace separated words, stripped of edge punctuation."""
+    spans = []
+    for match in re.finditer(r"\S+", text):
+        start, end = match.span()
+        while start < end and text[end - 1] in _SPAN_PUNCTUATION:
+            # a full stop after digits is an ordinal marker in several
+            # languages ("15. juni"), not punctuation around the word
+            if text[end - 1] == "." and text[start:end - 1].isdigit():
+                break
+            end -= 1
+        while start < end and text[start] in _SPAN_PUNCTUATION:
+            start += 1
+        if start < end:
+            spans.append((start, end))
+    return spans
+
+
+def _joined(text: str, words: List[Tuple[int, int]], first: int, last: int) -> bool:
+    """Whether two neighbouring words can belong to the same expression.
+
+    Punctuation between them is no boundary on its own: the apostrophe in the
+    dutch "3 uur 's middags" and the commas in "2 hours, 30 minutes, and 10
+    seconds" sit inside one expression, and the extractor reads the slice
+    whole. What decides is whether it consumes the words, not the character
+    between them.
+    """
+    gap = text[words[first][1]:words[last][0]].strip()
+    return not gap or all(char in _SPAN_PUNCTUATION for char in gap)
+
+
+def _read_expression(text: str, words: List[Tuple[int, int]], index: int,
+                     read: Callable[[str], Reading], additive: bool):
+    """The longest window from ``index`` that reads as a single expression.
+
+    A window is one expression when the extractor consumed all of it, or when
+    a single word it left behind bridges two halves that need each other, as
+    in the swedish "om 8 veckor och 2 dagar" and the portuguese "duas horas e
+    trinta minutos". A bridge is told from a boundary by what follows it: in
+    "monday to friday" the reading of "to friday" is the reading of the whole,
+    so "to" ends monday's span rather than bridging it.
+    """
+    start = words[index][0]
+    found = None
+    shorter = None
+    lost = None
+    core = index
+    for cursor in range(index, min(index + _MAX_SPAN_WORDS, len(words))):
+        if cursor > index and not _joined(text, words, cursor - 1, cursor):
+            break
+        end = words[cursor][1]
+        value, leftover = read(text[start:end])
+        if value is None:
+            if found is not None and lost is None:
+                lost = cursor
+        elif value != shorter:
+            bridged = len(leftover) == 1 and all(
+                read(text[words[inner][0]:end])[0] != value
+                for inner in range(core + 1, cursor + 1))
+            if (not leftover or bridged) and (
+                    lost is None or not additive or
+                    _reads_as_one(text, words, lost, cursor, value, read)):
+                found = (cursor, value, len(leftover))
+        if value is not None and not leftover:
+            core = cursor
+        if cursor - core >= _MAX_SPAN_DRIFT:
+            break
+        shorter = value
+    return found
+
+
+def _reads_as_one(text: str, words: List[Tuple[int, int]], lost: int,
+                  cursor: int, value: object, read: Callable[[str], Reading]) -> bool:
+    """Whether nothing inside a window reads as an expression of its own.
+
+    Asked where the extractor lost the thread inside the window - it read an
+    expression, then nothing for a longer window, then a value again for a
+    longer one still, which is what a run-on of two expressions looks like.
+    "in ten minutes and again in half an hour" reads as ten and a half hours,
+    a length nobody said, so such a window counts as one expression only when
+    every reading starting where the thread was lost agrees with the whole.
+    """
+    end = words[cursor][1]
+    return all(read(text[words[inner][0]:end])[0] in (None, value)
+               for inner in range(lost, cursor + 1))
+
+
+def _widen_expression(text: str, words: List[Tuple[int, int]], first: int,
+                      last: int, value: object, slack: int,
+                      read: Callable[[str], Reading], floor: int) -> Tuple[int, int]:
+    """Pull in the neighbouring words the extractor also consumes.
+
+    The window search finds the value; it does not find the whole expression,
+    because a word that does not move the value never joins by that test.
+    Widening recovers those words - "next", "this", "at", "pm" - by growing
+    outward while the value stays put and the added words are consumed, which
+    is what keeps "from" and "to" out: they survive in the leftover. A word
+    that carries nothing on its own is stepped over rather than stopping the
+    widening, so "da" joins on the way to "manhã".
+    """
+    probe = first
+    while probe > floor and probe > last - _MAX_SPAN_WORDS + 1 and \
+            _joined(text, words, probe - 1, probe):
+        probe -= 1
+        grown, leftover = read(text[words[probe][0]:words[last][1]])
+        if grown == value and len(leftover) <= slack:
+            first = probe
+    probe = last
+    while probe + 1 < min(len(words), first + _MAX_SPAN_WORDS) and \
+            _joined(text, words, probe, probe + 1):
+        probe += 1
+        grown, leftover = read(text[words[first][0]:words[probe][1]])
+        if grown == value and len(leftover) <= slack:
+            last = probe
+    return first, last
+
+
+def _core_expression(text: str, words: List[Tuple[int, int]], first: int,
+                     last: int, value: object,
+                     read: Callable[[str], Reading]) -> int:
+    """Where the expression starts once its framing words are dropped.
+
+    "at 5 pm" reads as "5 pm" and "from monday" as "monday": the leading words
+    frame the expression without carrying it. The last word that can be
+    dropped while the value holds and the extractor still consumes everything
+    marks the core.
+    """
+    while first < last:
+        grown, leftover = read(text[words[first + 1][0]:words[last][1]])
+        if grown != value or leftover:
+            break
+        first += 1
+    return first
+
+
+def _expression_spans(text: str, read: Callable[[str], Reading],
+                      additive: bool = False) -> List[Tuple[int, int, object]]:
+    """Find the expressions ``read`` recognises, as ``(start, end, value)``.
+
+    Words are grown into an expression from each starting word in turn, the
+    window is widened over the words around it, and the search resumes after
+    it, so two expressions in one utterance never merge into a value nobody
+    said. An expression whose framing words can be dropped without changing
+    the reading is reported twice, as the written phrase and as its core, so
+    a consumer holding either text finds it. The window handed to ``read`` is
+    always the raw slice ``text[start:end]``, and windows are bounded in
+    length, so the scan stays linear in the length of the text.
+    """
+    words = _word_spans(text)
+    spans = []
+    index = floor = 0
+    while index < len(words):
+        found = _read_expression(text, words, index, read, additive)
+        if found is None:
+            index += 1
+            continue
+        last, value, slack = found
+        first, last = _widen_expression(text, words, index, last, value, slack,
+                                        read, floor)
+        end = words[last][1]
+        core = _core_expression(text, words, first, last, value, read)
+        spans.append((words[first][0], end, value))
+        if core != first:
+            spans.append((words[core][0], end, value))
+        index = floor = last + 1
+    return spans
+
+
+def extract_datetime_spans(
+        text: str,
+        lang: str,
+        anchor_date: Optional[datetime] = None,
+        default_time: Optional[time] = None,
+) -> List[DateTimeSpan]:
+    """Extract every date or time expression in a text with its offsets.
+
+    Each span covers a whole expression, so "next friday at 5 pm" is one and
+    "from monday to friday" is two. An expression written with framing words
+    also comes back as its core, so "next friday" is reported both whole and
+    as "friday", with the same value. Spans come back sorted by ``start``.
+
+    Args:
+        text: the utterance to scan.
+        lang: the BCP-47 code for the language to use.
+        anchor_date: the "now" relative expressions resolve against, the wall
+            clock by default. Passed to the extractor as given; a value that
+            comes back without a zone is read in the anchor's zone, or in the
+            local one when the anchor carries none.
+        default_time: time to use for expressions that name no time of day.
+
+    Returns:
+        The expressions found, in the order they are written.
+    """
+    if not isinstance(text, str):
+        return []
+    zone = anchor_date.tzinfo if anchor_date else None
+
+    def read(fragment: str) -> Reading:
+        found = extract_datetime(fragment, lang, anchorDate=anchor_date,
+                                 default_time=default_time)
+        if not found or found[0] is None:
+            return None, ()
+        value, leftover = found
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=zone) if zone else value.astimezone()
+        return value, tuple(leftover.split())
+
+    return [DateTimeSpan(start, end, text[start:end], value)
+            for start, end, value in _expression_spans(text, read)]
+
+
+def extract_duration_spans(text: str, lang: str) -> List[DurationSpan]:
+    """Extract every duration in a text with its offsets.
+
+    Each span covers a whole duration, so "in two hours and thirty minutes"
+    is one span, reported both whole and as its core when the two differ.
+    Spans come back sorted by ``start``.
+
+    Args:
+        text: the utterance to scan.
+        lang: the BCP-47 code for the language to use.
+
+    Returns:
+        The durations found, in the order they are written.
+    """
+    if not isinstance(text, str):
+        return []
+
+    def read(fragment: str) -> Reading:
+        value, leftover = extract_duration(fragment, lang)
+        return value, tuple(leftover.split())
+
+    return [DurationSpan(start, end, text[start:end], value)
+            for start, end, value in _expression_spans(text, read, additive=True)]
 
 
 #: Span-native natural-language extraction (text -> DateSpan) is owned by

@@ -703,6 +703,8 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         elif word == "tarde":
             if not hrAbs:
                 hrAbs = 15
+            elif 0 < hrAbs < 12:
+                hrAbs += 12
             used += 1
         elif word == "meio" and wordNext == "tarde":
             if not hrAbs:
@@ -727,6 +729,8 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         elif word == "noite":
             if not hrAbs:
                 hrAbs = 22
+            elif hrAbs == 12:
+                hrAbs = 0
             used += 1
         # parse half an hour, quarter hour
         elif word == "hora" and \

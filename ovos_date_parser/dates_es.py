@@ -696,6 +696,8 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
         elif word == "tarde":
             if not hrAbs:
                 hrAbs = 15
+            elif 0 < hrAbs < 12:
+                hrAbs += 12
             used += 1
         elif word == "media" and wordNext == "tarde":
             if not hrAbs:
@@ -720,10 +722,14 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
         elif word == "madrugada":
             if not hrAbs:
                 hrAbs = 1
-            used += 2
+            elif hrAbs == 12:
+                hrAbs = 0
+            used += 1
         elif word == "noche":
             if not hrAbs:
                 hrAbs = 21
+            elif hrAbs == 12:
+                hrAbs = 0
             used += 1
         # parse half an hour, quarter hour
         elif (word == "hora" and

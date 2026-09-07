@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a1) (2026-09-07)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.0a1...0.31.1a1)
+
+**Closed issues:**
+
+- es/pt/de share the space-separated meridiem defect; es crashes [\#312](https://github.com/OpenVoiceOS/ovos-date-parser/issues/312)
+
+**Merged pull requests:**
+
+- fix: crash and unconverted hour in es/pt space-separated meridiem \(\#312\) [\#317](https://github.com/OpenVoiceOS/ovos-date-parser/pull/317) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.31.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.0a1) (2026-09-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.3a1...0.31.0a1)

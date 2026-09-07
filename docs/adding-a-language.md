@@ -64,6 +64,43 @@ Add `test/parse_tests/test_parse_<code>.py` and
 Anchor expectations must come from reference material or native usage.
 Never pin unverified engine output as gold.
 
+### Relative weeks, months and years
+
+"Next week" is the week after the current one. It opens on that week's first
+day as the locale reckons it -- Monday in most of Europe, Sunday in the United
+States, Saturday in much of the Arabic-speaking world -- and it is seven days
+wide. It does not mean this same weekday one week from now. The same holds for
+"next month" and "next year": the month after this one, opening on its first
+day, not thirty days out.
+
+The two readings agree only when the anchor falls on the week's first day,
+which is why an offset of seven days passes a test written on a Monday and
+fails on every other day. Several locales here pin the offset reading; they
+were written against an anchor where both readings agree, so the check passed
+and could not distinguish the two meanings.
+
+Two things make the assertion discriminating. Choose an anchor deliberately
+mid-week, so the readings cannot coincide. And derive the expected date from
+the locale's declared week start rather than by arithmetic on the anchor -- a
+pin that computes its expectation the way the code computes its answer
+confirms only that the two agree.
+
+Take the week start from CLDR, not from the locale's neighbours. Getting it
+wrong is invisible in a suite whose anchor happens to be the right weekday.
+
+`next <weekday>` is the same word doing the same job, and it resolves the same
+way: find the week after the current one, then take that weekday within it.
+Said on a Wednesday, "next Thursday" is eight days out, not tomorrow. The
+reading that answers tomorrow makes "next Thursday" and "tomorrow" mean the
+same thing one day in seven.
+
+A minimum-distance rule -- refusing anything closer than forty-eight hours,
+say -- approximates this well enough to pass most tests, because it agrees
+with the calendar reading everywhere except close to the week boundary. It is
+worth knowing that is what such a rule is doing: a heuristic standing in for
+the calendar, not a definition, and it diverges exactly where the two
+disagree.
+
 ## 5. README
 
 Add the language rows to the parse and format matrices in `README.md`.

@@ -283,7 +283,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                 yearOffset = 1
                 start -= 1
                 used = 2
-            elif wordPrev[:6] == "nächst":
+            elif wordPrev[:5] == "letzt":
                 yearOffset = -1
                 start -= 1
                 used = 2

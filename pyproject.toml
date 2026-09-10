@@ -30,7 +30,8 @@ dependencies = [
     "ovos-spec-tools>=1.5.0a1",
     # reckoning core library (AstroDate, calendars, eras, cycles). The floor
     # is the alpha that refuses a holiday name after an indefinite article,
-    # which "have a good friday" relies on.
+    # which "have a good friday" relies on, and reads a weekday of next or
+    # last week, which the Czech, Croatian and Slovak routing relies on.
     "chronologia>=0.31.5a1",
 ]
 dynamic = ["version"]

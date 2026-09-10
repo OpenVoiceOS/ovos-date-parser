@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a3) (2026-09-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a2...0.31.1a3)
+
+**Merged pull requests:**
+
+- ci: run build, coverage and license checks through gh-automations at @dev [\#323](https://github.com/OpenVoiceOS/ovos-date-parser/pull/323) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a2) (2026-09-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a1...0.31.1a2)

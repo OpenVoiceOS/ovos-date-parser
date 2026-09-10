@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.31.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a2) (2026-09-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a1...0.31.1a2)
+
+**Merged pull requests:**
+
+- fix\(de\): 'letztes Jahr' \(last year\) never resolved - dead duplicate elif [\#321](https://github.com/OpenVoiceOS/ovos-date-parser/pull/321) ([andlo](https://github.com/andlo))
+- fix\(da\): several extract\_datetime bugs, crashes, and add idiomatic quarter/half hours [\#320](https://github.com/OpenVoiceOS/ovos-date-parser/pull/320) ([andlo](https://github.com/andlo))
+- docs: what a relative week, month, year or weekday names [\#318](https://github.com/OpenVoiceOS/ovos-date-parser/pull/318) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.31.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a1) (2026-09-07)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.0a1...0.31.1a1)

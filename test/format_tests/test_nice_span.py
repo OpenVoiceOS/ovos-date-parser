@@ -104,10 +104,30 @@ ROUNDTRIP_EN = [
 ]
 
 
+#: en-US opens its week on Sunday, so the same label names a different span
+#: there than it does in region-less English. Pinned so the two cannot drift
+#: back into agreement unnoticed.
+ROUNDTRIP_EN_US = [
+    ("week-us", _span(AstroDate(2026, 7, 19), AstroDate(2026, 7, 26))),
+]
+
+
 @pytest.mark.parametrize("name,span", ROUNDTRIP_EN,
                          ids=[n for n, _ in ROUNDTRIP_EN])
 def test_nice_span_en_roundtrip(name, span):
     label = nice_span(span, "en")
+    result = c.extract_timespan(label, "en")
+    assert result is not None, f"{label!r} did not extract"
+    got, remainder = result
+    assert remainder.strip() == "", f"{label!r} left remainder {remainder!r}"
+    assert got.start == span.start and got.end == span.end, (
+        f"{label!r} -> {got.start}..{got.end}, wanted {span.start}..{span.end}")
+
+
+@pytest.mark.parametrize("name,span", ROUNDTRIP_EN_US,
+                         ids=[n for n, _ in ROUNDTRIP_EN_US])
+def test_nice_span_en_us_roundtrip(name, span):
+    label = nice_span(span, "en-us")
     result = c.extract_timespan(label, "en-us")
     assert result is not None, f"{label!r} did not extract"
     got, remainder = result

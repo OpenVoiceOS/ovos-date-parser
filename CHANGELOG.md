@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.2a1) (2026-09-11)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a3...0.31.2a1)
+
+**Merged pull requests:**
+
+- fix: the English week roundtrip formats and parses in one locale [\#325](https://github.com/OpenVoiceOS/ovos-date-parser/pull/325) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a3) (2026-09-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a2...0.31.1a3)

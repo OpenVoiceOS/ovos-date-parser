@@ -206,10 +206,13 @@ class TestNormalize(unittest.TestCase):
         self.assertIn("۲۵:۹۹", res[1])
 
     def test_extract_duration_adversarial_fa(self):
-        # Empty and no-duration input must return a zero delta, never crash
-        self.assertEqual(extract_duration(""), (timedelta(0), ""))
+        # Empty and no-duration input report a None value with the text left
+        # over, the shape every language returns, and never crash
+        self.assertEqual(extract_duration(""), (None, ""))
         self.assertEqual(extract_duration("سلام دنیا"),
-                         (timedelta(0), "سلام دنیا"))
+                         (None, "سلام دنیا"))
+        # a unit with no number in front of it is no duration either
+        self.assertEqual(extract_duration("ساعت"), (None, "ساعت"))
         # Remainder retention: leading number with no unit is kept verbatim
         result, remainder = extract_duration("سه تا سیب و پنج دقیقه")
         self.assertEqual(result, timedelta(minutes=5))

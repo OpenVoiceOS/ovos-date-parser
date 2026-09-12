@@ -136,7 +136,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
             word = word.replace("'s", "")
 
             ordinals = ["rd", "st", "nd", "th"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     if ordinal in word:
                         word = word.replace(ordinal, "")
@@ -302,9 +302,9 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                 m = monthsShort.index(word)
             used += 1
             datestr = months[m]
-            if wordPrev and (wordPrev[0].isdigit() or
-                             (wordPrev == "of" and wordPrevPrev[0].isdigit())):
-                if wordPrev == "of" and wordPrevPrev[0].isdigit():
+            if wordPrev and (wordPrev and wordPrev[0].isdigit() or
+                             (wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -327,7 +327,9 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
                     used += 1
                     hasYear = True
                 else:
-                    hasYear = False
+                    # a four digit number after a month is its year, not a
+                    # day of month: "juni 2027"
+                    hasYear = len(wordNext) == 4
         # parse 5 days from tomorrow, 10 weeks from next thursday,
         # 2 months from July
         validFollowups = days + months + monthsShort
@@ -435,7 +437,7 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
             # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -697,10 +699,12 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
         # which strptime("%B") cannot parse, so map the month directly.
         dateparts = datestr.split()
         month_num = months.index(dateparts[0]) + 1
-        day_num = int(dateparts[1])
+        year_num = int(dateparts.pop()) if hasYear else None
+        # a month named without a day ("i juni") means its first day
+        day_num = int(dateparts[1]) if len(dateparts) > 1 else 1
         if hasYear:
             try:
-                temp = datetime(int(dateparts[2]), month_num, day_num)
+                temp = datetime(year_num, month_num, day_num)
             except ValueError:
                 # impossible date such as "31 april 2020"
                 return None
@@ -712,7 +716,8 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
             # keep the existing "next occurrence" semantics
             base_year = extractedDate.year
             try:
-                this_year = datetime(base_year, month_num, day_num)
+                this_year = datetime(base_year, month_num, day_num,
+                                     tzinfo=extractedDate.tzinfo)
                 use_this_year = extractedDate < this_year
             except ValueError:
                 use_this_year = False
@@ -764,8 +769,8 @@ def extract_datetime_sv(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "and" and words[idx - 1] == "" and words[
-            idx + 1] == "":
+        if word == "and" and 0 < idx < len(words) - 1 and \
+                words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 
     resultStr = " ".join(words)
@@ -806,7 +811,7 @@ def extract_duration_sv(text):
     if not number_tok_map:
         # No numbers means no duration; also avoids indexing an empty
         # token list downstream when the input is empty or whitespace.
-        return None
+        return None, text
     # Combine adjacent numbers
     simplified = _combine_adjacent_numbers(number_tok_map)
 
@@ -848,4 +853,4 @@ def extract_duration_sv(text):
 
     td = timedelta(**states)
     remainder = ' '.join([t.word for t in tokens if t not in consumed])
-    return (td, remainder) if valid else None
+    return (td, remainder) if valid else (None, text)

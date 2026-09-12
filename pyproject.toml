@@ -32,7 +32,7 @@ Issues = "https://github.com/OpenVoiceOS/ovos-date-parser/issues"
 packages = ["ovos_date_parser"]
 
 [tool.setuptools.package-data]
-ovos_date_parser = ["res/*.json", "res/*/*.json"]
+ovos_date_parser = ["res/*.json", "res/*/*.json", "locale/*/*.voc"]
 
 [tool.setuptools.dynamic]
 version = { attr = "ovos_date_parser.version.__version__" }

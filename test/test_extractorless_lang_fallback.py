@@ -46,7 +46,7 @@ class TestNativeDatetime(unittest.TestCase):
             extract_datetime("moarn", lang="fy", anchorDate=ANCHOR)[0],
             datetime(2020, 1, 2))
         self.assertEqual(
-            extract_datetime("demán", lang="an", anchorDate=ANCHOR)[0],
+            extract_datetime("manyana", lang="an", anchorDate=ANCHOR)[0],
             datetime(2020, 1, 2))
 
 

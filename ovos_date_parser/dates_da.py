@@ -62,22 +62,38 @@ def nice_time_da(dt, speech=True, use_24hour=False, use_ampm=False):
             return "midnat"
         if dt.hour == 12 and dt.minute == 0:
             return "middag"
-        # TODO: "half past 3", "a quarter of 4" and other idiomatic times
 
-        if dt.hour == 0:
-            speak += pronounce_number_da(12)
-        elif dt.hour <= 13:
-            if dt.hour == 1 or dt.hour == 13:  # 01:00 and 13:00 is "et"
-                speak += 'et'
-            else:
-                speak += pronounce_number_da(dt.hour)
+        # idiomatic quarter/half hours: "kvart over tre" (3:15), "halv fire"
+        # (3:30 - counts towards the NEXT hour, not "half past three"),
+        # "kvart i fire" (3:45). This is how these times are normally
+        # spoken in Danish, not as two separate digits.
+        hour12 = dt.hour % 12 or 12
+        nextHour12 = (hour12 % 12) + 1
+
+        def _speakHour(h):
+            return 'et' if h == 1 else pronounce_number_da(h)
+
+        if dt.minute == 15:
+            speak += "kvart over " + _speakHour(hour12)
+        elif dt.minute == 30:
+            speak += "halv " + _speakHour(nextHour12)
+        elif dt.minute == 45:
+            speak += "kvart i " + _speakHour(nextHour12)
         else:
-            speak += pronounce_number_da(dt.hour - 12)
+            if dt.hour == 0:
+                speak += pronounce_number_da(12)
+            elif dt.hour <= 13:
+                if dt.hour == 1 or dt.hour == 13:  # 01:00 and 13:00 is "et"
+                    speak += 'et'
+                else:
+                    speak += pronounce_number_da(dt.hour)
+            else:
+                speak += pronounce_number_da(dt.hour - 12)
 
-        if not dt.minute == 0:
-            if dt.minute < 10:
-                speak += ' nul'
-            speak += " " + pronounce_number_da(dt.minute)
+            if not dt.minute == 0:
+                if dt.minute < 10:
+                    speak += ' nul'
+                speak += " " + pronounce_number_da(dt.minute)
 
         if use_ampm:
             if dt.hour > 11:
@@ -191,15 +207,15 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             'torsdag', 'fredag', 'lørdag', 'søndag']
     months = ['januar', 'februar', 'marts', 'april', 'maj', 'juni',
               'juli', 'august', 'september', 'oktober', 'november',
-              'desember']
+              'december']
     monthsShort = ['jan', 'feb', 'mar', 'apr', 'maj', 'juni', 'juli', 'aug',
-                   'sep', 'okt', 'nov', 'des']
+                   'sep', 'okt', 'nov', 'dec']
 
     validFollowups = days + months + monthsShort
     validFollowups.append("i dag")
     validFollowups.append("morgen")
     validFollowups.append("næste")
-    validFollowups.append("forige")
+    validFollowups.append("forrige")
     validFollowups.append("nu")
 
     words = clean_string(text)
@@ -238,7 +254,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             used += 1
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dage":
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     dayOffset -= int(wordPrev)
@@ -248,7 +264,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 2
         elif word == "uge" or word == "uger" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     dayOffset -= int(wordPrev) * 7
@@ -261,13 +277,13 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 dayOffset = 7
                 start -= 1
                 used = 2
-            elif wordPrev[:5] == "forige":
+            elif wordPrev[:7] == "forrige":
                 dayOffset = -7
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
         elif (word == "måned" or word == "måneder") and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     monthOffset = -int(wordPrev)
@@ -280,13 +296,13 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 monthOffset = 1
                 start -= 1
                 used = 2
-            elif wordPrev[:5] == "forige":
+            elif wordPrev[:7] == "forrige":
                 monthOffset = -1
                 start -= 1
                 used = 2
                 # parse 5 years, next year, last year
         elif word == "år" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... siden" = N periods in the past (DDO)
                 if wordNext == "siden":
                     yearOffset = -int(wordPrev)
@@ -295,11 +311,11 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                     yearOffset = int(wordPrev)
                 start -= 1
                 used += 2
-            elif wordPrev[:6] == " næste":
+            elif wordPrev[:6] == "næste":
                 yearOffset = 1
                 start -= 1
                 used = 2
-            elif wordPrev[:6] == "næste":
+            elif wordPrev[:7] == "forrige":
                 yearOffset = -1
                 start -= 1
                 used = 2
@@ -319,7 +335,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 dayOffset += 7
                 used += 1
                 start -= 1
-            elif wordPrev[:5] == "forige":
+            elif wordPrev[:7] == "forrige":
                 dayOffset -= 7
                 used += 1
                 start -= 1
@@ -331,9 +347,9 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 m = monthsShort.index(word)
             used += 1
             datestr = months[m]
-            if wordPrev and (wordPrev[0].isdigit() or
-                             (wordPrev == "of" and wordPrevPrev[0].isdigit())):
-                if wordPrev == "of" and wordPrevPrev[0].isdigit():
+            if wordPrev and (wordPrev and wordPrev[0].isdigit() or
+                             (wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -386,7 +402,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                     tmpOffset += 7
                     used += 1
                     start -= 1
-                elif wordNext[:5] == "forige":
+                elif wordNext[:7] == "forrige":
                     tmpOffset -= 7
                     used += 1
                     start -= 1
@@ -462,7 +478,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
             # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -526,17 +542,17 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                         remainder = "pm"
                         used = 2
                     elif wordNext == "natten":
-                        if strHH > 4:
+                        if int(strHH) > 4:
                             remainder = "pm"
                         else:
                             remainder = "am"
                         used += 1
                     else:
                         if timeQualifier != "":
-                            if strHH <= 12 and \
+                            if int(strHH) <= 12 and \
                                     (timeQualifier == "aftenen" or
                                      timeQualifier == "eftermiddagen"):
-                                strHH += 12  # what happens when strHH is 24?
+                                strHH = str(int(strHH) + 12)  # what happens when strHH is 24?
             else:
                 # try to parse # s without colons
                 # 5 hours, 10 minutes etc.
@@ -678,7 +694,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                         elif wordNext[:7] == "morgenen":
                             used += 1
                             remainder = "am"
-                        elif wordNext == "ao" and wordNextNext == "morgenen":
+                        elif wordNext == "om" and wordNextNext == "morgenen":
                             used += 2
                             remainder = "am"
                         elif wordNext == "natten":
@@ -818,8 +834,8 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "og" and words[idx - 1] == "" \
-                and words[idx + 1] == "":
+        if word == "og" and 0 < idx < len(words) - 1 and \
+                words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 
     resultStr = " ".join(words)

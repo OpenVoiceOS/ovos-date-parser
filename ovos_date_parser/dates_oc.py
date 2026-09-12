@@ -85,9 +85,18 @@ def nice_date_time_oc(dt, now=None, use_24hour=False, use_ampm=False):
     return f"{nice_date_oc(dt, now)} a las {nice_time_oc(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
+def _month_phrase_oc(month_name):
+    """Formats a month for the "day month year" join: "de Abril", but
+    "d'Abril", "d'Agost" and "d'Octòbre" before a vowel, as in Catalan."""
+    if month_name[0].lower() in "aeiou":
+        return "d'" + month_name
+    return "de " + month_name
+
+
 def nice_date_oc(dt: datetime, now: datetime = None, include_weekday=True):
-    """Format a date in a pronounceable way, e.g. 'dimars, cinc de junh, dos mila e dètz-e-uèch'."""
+    """Format a date in a pronounceable way, e.g. 'dimarts, cinc de junh de dos mila dètz-e-uèch'."""
     day = _pronounce_oc(dt.day)
+    month_phrase = _month_phrase_oc(nice_month_oc(dt))
     if now is not None:
         nice = day
         if dt.day == now.day:
@@ -97,11 +106,11 @@ def nice_date_oc(dt: datetime, now: datetime = None, include_weekday=True):
         if dt.day == now.day - 1:
             return "ièr"
         if dt.month != now.month:
-            nice = nice + " de " + nice_month_oc(dt)
+            nice = nice + " " + month_phrase
         if dt.year != now.year:
-            nice = nice + ", " + nice_year_oc(dt)
+            nice = nice + " de " + nice_year_oc(dt)
     else:
-        nice = f"{day} de {nice_month_oc(dt)}, {nice_year_oc(dt)}"
+        nice = f"{day} {month_phrase} de {nice_year_oc(dt)}"
 
     if include_weekday:
         weekday = nice_weekday_oc(dt)
@@ -140,8 +149,17 @@ def nice_time_oc(dt, speech=True, use_24hour=False, use_ampm=False):
 
     speak = ""
     if use_24hour:
-        speak += spoken_hour(dt.hour) if dt.hour != 0 else "zèro oras"
-        if dt.minute < 10:
+        if dt.hour == 0:
+            speak += "mièjanuèch"
+        elif dt.hour == 12:
+            speak += "miègjorn"
+        else:
+            speak += spoken_hour(dt.hour)
+        if dt.minute == 30 and dt.hour in (0, 12):
+            speak += " e mièg"
+        elif dt.minute == 0 and dt.hour in (0, 12):
+            pass  # the idioms stand alone on the exact hour
+        elif dt.minute < 10:
             speak += " zèro " + _pronounce_oc(dt.minute)
         else:
             speak += " " + _pronounce_oc(dt.minute)
@@ -167,7 +185,11 @@ def nice_time_oc(dt, speech=True, use_24hour=False, use_ampm=False):
             if minute == 15:
                 speak += " e quart"
             elif minute == 30:
-                speak += " e mièja"
+                # after the midnight/noon idioms the half is masculine
+                if hour in (0, 12, 24):
+                    speak += " e mièg"
+                else:
+                    speak += " e mièja"
             elif minute == -15:
                 speak += " manca un quart"
             else:
@@ -220,10 +242,17 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
         s = s.replace(" que ven", " seguent")
         # afternoon is a two-token compound after cleaning
         s = s.replace("aprep miegjorn", "tantost")
+        s = s.replace("apres miegjorn", "tantost")
+        # the afternoon follows the midday meal: both read as "after noon"
+        s = s.replace("aprep merende", "tantost").replace(
+            "apres merende", "tantost")
+        s = s.replace("aprep dinnar", "tantost").replace(
+            "apres dinnar", "tantost")
 
         # spoken hours preceded by an article: "a la una", "a las doas"
         spoken_hours = {"una": "1", "doas": "2", "tres": "3", "quatre": "4",
                         "cinc": "5", "sieis": "6", "set": "7", "uech": "8",
+                        "ueit": "8", "uoch": "8",
                         "nou": "9", "detz": "10", "onze": "11", "dotze": "12"}
         for k, v in spoken_hours.items():
             s = re.sub(r"\b(a la|a las|la|las) " + k + r"\b", r"\1 " + v, s)
@@ -234,10 +263,25 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
         for word in noise_words:
             s = s.replace(" " + word + " ", " ")
 
+        # "après vèspre" reads as the vespre qualifier with a filler prefix
+        s = s.replace("aprep vespre", "vespre").replace(
+            "apres vespre", "vespre")
+
         # synonyms and equivalents
         synonyms = {"matin": ["matinada", "alba"],
-                    "vespre": ["ser", "serada"],
-                    "nuech": ["anuech"]}
+                    "vespre": ["ser", "serada", "vesprada"],
+                    # nèt has no initial-a form here: "anèt" is a common
+                    # verb form (past of "anar") and would misparse
+                    "nuech": ["anuech", "nueit", "neit", "nech", "net",
+                              "nuoch", "anueit", "aneit", "anech",
+                              "anuoch"]}
+        for syn in synonyms:
+            for word in synonyms[syn]:
+                s = s.replace(" " + word + " ", " " + syn + " ")
+
+        # month variants
+        synonyms = {"abril": ["abrial"],
+                    "julhet": ["julh"]}
         for syn in synonyms:
             for word in synonyms[syn]:
                 s = s.replace(" " + word + " ", " " + syn + " ")
@@ -249,6 +293,7 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
         for word in wordlist:
             s = re.sub(r"\b" + word + r"\b", word.rstrip('s'), s)
         s = s.replace("meses", "mes").replace("anteriors", "anterior")
+        s = s.replace("precedents", "precedent")
         return s.strip()
 
     def date_found():
@@ -292,10 +337,13 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
                    'set', 'oct', 'nov', 'dec']
     nexts = ["seguent", "venent", "prochan", "prochana"]
     suffix_nexts = ["seguent", "seguents", "venent", "venents"]
-    lasts = ["darrier", "darriera", "ultim", "ultima"]
-    suffix_lasts = ["passada", "passat", "anterior", "abans"]
+    lasts = ["darrier", "darriera", "darrieir", "darrer", "darrera",
+             "ultim", "ultima", "precedent", "precedenta"]
+    suffix_lasts = ["passada", "passat", "anterior", "abans",
+                    "precedent", "precedenta"]
     nxts = ["apres", "seguent", "venent", "prochan", "prochana"]
-    prevs = ["abans", "previa", "previ", "anterior"]
+    prevs = ["abans", "previa", "previ", "anterior", "precedent",
+             "precedenta"]
     froms = ["dempuei", "desde", "en", "per", "apres", "aqui",
              "seguent", "venent", "de"]
     thises = ["aqueste", "aquesta"]
@@ -328,8 +376,17 @@ def extract_datetime_oc(text, anchorDate=None, default_time=None):
             dayOffset = 1
             used += 1
         elif word == "ier" and not fromFlag:
-            dayOffset -= 1
-            used += 1
+            # ièr delà / ièr delai / passat ièr = day before yesterday
+            if wordNext in ("dela", "delai"):
+                dayOffset -= 2
+                used = 2
+            elif wordPrev == "passat":
+                dayOffset -= 2
+                start -= 1
+                used = 2
+            else:
+                dayOffset -= 1
+                used += 1
         # abans-ièr / davant-ièr
         elif word in ("abans", "davant") and wordNext == "ier" and not fromFlag:
             dayOffset -= 2

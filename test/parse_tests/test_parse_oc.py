@@ -53,9 +53,22 @@ class TestDatetimeOC(unittest.TestCase):
         self.assertEqual(
             extract_datetime("deman passat", anchorDate=self.ANCHOR)[0],
             datetime(1998, 1, 3, tzinfo=default_timezone()))
-        # abans-ièr = day before yesterday
+        # abans-ièr / davant-ièr = day before yesterday
         self.assertEqual(
             extract_datetime("abans-ièr", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 30, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("davant-ièr", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 30, tzinfo=default_timezone()))
+        # native forms for day-before-yesterday
+        self.assertEqual(
+            extract_datetime("ièr delà", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 30, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("ièr delai", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 30, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("passat ièr", anchorDate=self.ANCHOR)[0],
             datetime(1997, 12, 30, tzinfo=default_timezone()))
 
     def test_next_week(self):
@@ -65,6 +78,28 @@ class TestDatetimeOC(unittest.TestCase):
         self.assertEqual(
             extract_datetime("la setmana passada", anchorDate=self.ANCHOR)[0],
             datetime(1997, 12, 25, tzinfo=default_timezone()))
+
+    def test_last_variants(self):
+        # darrièr has variant spellings
+        self.assertEqual(
+            extract_datetime("lo darrièir an", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 1, 1, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("lo darrèr mes", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 1, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("la darrèra setmana", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 25, tzinfo=default_timezone()))
+        # "precedent" is the preferred form
+        self.assertEqual(
+            extract_datetime("l'an precedent", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 1, 1, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("la setmana precedenta", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 25, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("lo mes precedent", anchorDate=self.ANCHOR)[0],
+            datetime(1997, 12, 1, tzinfo=default_timezone()))
 
     def test_in_x_days(self):
         # "d'aquí 5 jorns" = in 5 days
@@ -90,6 +125,20 @@ class TestDatetimeOC(unittest.TestCase):
         self.assertEqual(
             extract_datetime("11 de agost de 1998", anchorDate=self.ANCHOR)[0],
             datetime(1998, 8, 11, tzinfo=default_timezone()))
+        # "lo 13 de mai" = the 13th of May, not "13 days more"
+        self.assertEqual(
+            extract_datetime("lo 13 de mai", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 5, 13, tzinfo=default_timezone()))
+        # variant month forms
+        self.assertEqual(
+            extract_datetime("5 de abrial", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 4, 5, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("5 de julh", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 7, 5, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("5 d'octòbre", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 10, 5, tzinfo=default_timezone()))
 
     def test_times(self):
         self.assertEqual(
@@ -126,6 +175,60 @@ class TestDatetimeOC(unittest.TestCase):
             extract_datetime("a las 3 de l'aprèp-miègjorn",
                              anchorDate=self.ANCHOR)[0],
             datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
+
+    def test_time_qualifier_variants(self):
+        # "après" and "aprèp" spellings both reach the tantost qualifier
+        self.assertEqual(
+            extract_datetime("aprèp miègjorn", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("après miègjorn", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
+        # afternoon/evening meal words read as the afternoon qualifier
+        self.assertEqual(
+            extract_datetime("aprèp merende", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("après dinnar", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("aprèp vèspre", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 19, 0, tzinfo=default_timezone()))
+        # vesprada = the evening (a Catalan tarda/vespre precedent)
+        self.assertEqual(
+            extract_datetime("a las 5 de la vesprada",
+                             anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 17, 0, tzinfo=default_timezone()))
+        # 8 has variant spellings
+        self.assertEqual(
+            extract_datetime("a las uèit", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 8, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("a las uòch", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 8, 0, tzinfo=default_timezone()))
+        # night has variant spellings
+        self.assertEqual(
+            extract_datetime("a las 9 de la nueit", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 21, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("a las 9 de la nèit", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 21, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("a las 9 de la nèch", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 21, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("a las 9 de la nuòch", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 21, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("a las 9 de la nèt", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 21, 0, tzinfo=default_timezone()))
+        # initial-a forms act as the night qualifier
+        self.assertEqual(
+            extract_datetime("anueit", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 21, 0, tzinfo=default_timezone()))
+        self.assertEqual(
+            extract_datetime("a las 9 anuèit", anchorDate=self.ANCHOR)[0],
+            datetime(1998, 1, 1, 21, 0, tzinfo=default_timezone()))
 
     def test_relative_time_offsets(self):
         # relative offsets keep the anchor time of day, matching dates_gl

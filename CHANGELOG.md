@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a1) (2026-09-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.2a1...0.31.3a1)
+
+**Closed issues:**
+
+- Observations for Occitan [\#300](https://github.com/OpenVoiceOS/ovos-date-parser/issues/300)
+
+**Merged pull requests:**
+
+- fix\(oc\): apply native-speaker observations from issue \#300 [\#328](https://github.com/OpenVoiceOS/ovos-date-parser/pull/328) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.2a1) (2026-09-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a3...0.31.2a1)

@@ -260,7 +260,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             day_offset += 1
             used += 2
         elif word == 'giorno':
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 # "N giorni fa" = N days in the past (Treccani)
                 if word_next == 'fa':
                     day_offset -= int(word_prev)
@@ -560,7 +560,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             isTime = False
             hr_abs = -1
             min_abs = -1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             str_hh = ''
             str_mm = ''

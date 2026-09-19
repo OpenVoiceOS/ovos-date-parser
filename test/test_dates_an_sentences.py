@@ -113,8 +113,8 @@ class TestAragoneseDayAndYearSentences(unittest.TestCase):
 
     def test_bc_year_in_sentence(self):
         dt = datetime(44, 3, 15)
-        sentence = f"Chulio Zesar morió en {nice_year(dt, 'an', bc=True)}."
-        self.assertEqual(sentence, "Chulio Zesar morió en cuaranta y cuatre a.C..")
+        sentence = f"Chulio César morió en {nice_year(dt, 'an', bc=True)}."
+        self.assertEqual(sentence, "Chulio César morió en cuaranta y cuatre a.C..")
         self.assertIn(" a.C.", sentence)
 
 

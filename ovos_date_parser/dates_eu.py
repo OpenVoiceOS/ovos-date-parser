@@ -386,7 +386,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                 used += 2
 
         elif word == "aste" or word == "astea" or word == "asteko" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -412,7 +412,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                     used = 2
         # parse 10 months, next month, last month
         elif word == "hilabete" or word == "hilabetea" or word == "hilabeteko" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -438,7 +438,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                     used = 2
         # parse 5 years, next year, last year
         elif word == "urte" or word == "urtea" or word == "urteko" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -694,7 +694,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
         # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -867,7 +867,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                                     remainder = "pm"
                                 used += 1
 
-                    elif wordNext[0].isdigit():
+                    elif wordNext and wordNext.isdigit():
                         strHH = strNum
                         strMM = wordNext
                         used += 1

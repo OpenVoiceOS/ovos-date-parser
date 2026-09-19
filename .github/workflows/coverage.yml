@@ -1,0 +1,16 @@
+name: Coverage Report
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    uses: OpenVoiceOS/gh-automations/.github/workflows/coverage.yml@dev
+    secrets: inherit
+    with:
+      pre_install_pip: "pytest-timeout"
+      test_path: "test/format_tests test/parse_tests test/test_dates_pt.py test/test_multilang_invariants.py test/test_lang_parity.py test/test_packaging.py"
+      coverage_source: "ovos_date_parser"

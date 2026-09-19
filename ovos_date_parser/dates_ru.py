@@ -475,7 +475,7 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 start -= 1
                 used = 3
         elif word == "сегодня" and not from_flag and word_prev:
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 day_offset += int(word_prev) * 7
                 start -= 1
                 used = 2
@@ -489,7 +489,7 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif word == "неделя" and not from_flag and preposition in ["через", "на"]:
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 day_offset = int(word_prev) * 7
                 start -= 1
                 used = 2
@@ -502,12 +502,12 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 start -= 1
                 used = 2
         elif word == "неделя" and not from_flag and is_numeric(word_prev) and word_next == "назад":
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 day_offset = -int(word_prev) * 7
                 start -= 1
                 used = 3
         elif word == "месяц" and not from_flag and preposition in ["через", "на"]:
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 month_offset = int(word_prev)
                 start -= 1
                 used = 2
@@ -520,13 +520,13 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 start -= 1
                 used = 2
         elif word == "месяц" and not from_flag and is_numeric(word_prev) and word_next == "назад":
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 month_offset = -int(word_prev)
                 start -= 1
                 used = 3
         # parse 5 years, next year, last year
         elif word == "год" and not from_flag and preposition in ["через", "на"]:
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 year_offset = int(word_prev)
                 start -= 1
                 used = 2
@@ -542,7 +542,7 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
                 year_offset = 1
                 used = 1
         elif word == "год" and not from_flag and is_numeric(word_prev) and word_next == "назад":
-            if word_prev[0].isdigit():
+            if word_prev and word_prev[0].isdigit():
                 year_offset = -int(word_prev)
                 start -= 1
                 used = 3
@@ -571,9 +571,9 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
             used += 1
             # Convert Russian months to english
             date_string = _MONTHS_CONVERSION.get(m)
-            if word_prev and (word_prev[0].isdigit() or
-                              (word_prev == " " and word_prev_prev[0].isdigit())):
-                if word_prev == " " and word_prev_prev[0].isdigit():
+            if word_prev and (word_prev and word_prev[0].isdigit() or
+                              (word_prev == " " and word_prev_prev and word_prev_prev[0].isdigit())):
+                if word_prev == " " and word_prev_prev and word_prev_prev[0].isdigit():
                     date_string += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -740,7 +740,7 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
             sec_offset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             is_time = True
             str_hh = ""
             str_mm = ""
@@ -1152,7 +1152,7 @@ def extract_datetime_ru(text, anchor_date=None, default_time=None):
     if sec_offset != 0:
         extracted_date = extracted_date + relativedelta(seconds=sec_offset)
     for idx, word in enumerate(words):
-        if words[idx] == "и" and \
+        if word == "и" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

@@ -6,7 +6,8 @@ signature and its public answers, so the work is not writing the routing --
 it is knowing where the two engines already disagree. This harness sizes
 that: every phrase lands in one of five buckets.
 
-    SAME                both answer and the instant matches
+    SAME                both answer, same instant, same leftover
+    SAME-REMAINDER-DIFFERS  same instant, but one consumed more of the text
     DIFFERENT           both answer, the instants differ  <- adoption work
     DATE-PARSER-ONLY    only we answer                    <- adoption work
     CHRONOLOGIA-ONLY    only chronologia answers          <- adoption work
@@ -161,6 +162,14 @@ def classify(phrase, lang):
         return "CHRONOLOGIA-ONLY", (f"them {theirs.isoformat()} "
                                     f"width={_width(span)} rem={their_rem!r}")
     if ours == theirs:
+        if our_rem.strip() != their_rem.strip():
+            # Same instant, different leftovers: one engine consumed words the
+            # other did not. A phrase answered correctly while half of it is
+            # stranded is not the same answer, and comparing instants alone
+            # cannot see it.
+            return "SAME-REMAINDER-DIFFERS", (f"both {ours.isoformat()} | "
+                                              f"us rem={our_rem!r} | "
+                                              f"them rem={their_rem!r}")
         return "SAME", ""
     return "DIFFERENT", (f"us {ours.isoformat()} | them {theirs.isoformat()} "
                          f"width={_width(span)}")
@@ -184,13 +193,13 @@ def main(argv):
                 detail.append((lang, bucket, phrase, note))
         grand.update(tally)
         summary = "  ".join(f"{k}={tally[k]}" for k in
-                            ("SAME", "DIFFERENT", "DATE-PARSER-ONLY",
+                            ("SAME", "SAME-REMAINDER-DIFFERS", "DIFFERENT", "DATE-PARSER-ONLY",
                              "CHRONOLOGIA-ONLY", "BOTH-NONE") if tally[k])
         print(f"{lang:5} n={len(phrases):4}  {summary}")
 
     print()
     print("TOTAL  " + "  ".join(f"{k}={grand[k]}" for k in
-                                ("SAME", "DIFFERENT", "DATE-PARSER-ONLY",
+                                ("SAME", "SAME-REMAINDER-DIFFERS", "DIFFERENT", "DATE-PARSER-ONLY",
                                  "CHRONOLOGIA-ONLY", "BOTH-NONE")))
     print()
     print("-- rows that are adoption work " + "-" * 45)

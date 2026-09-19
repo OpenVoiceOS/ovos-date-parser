@@ -4,6 +4,7 @@ import re
 from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time
+from functools import lru_cache
 from typing import Callable, List, Optional, Tuple, Union
 
 import dateparser # fallback parser
@@ -43,6 +44,7 @@ from ovos_date_parser.eras import (
 # timeline, named-period and radiocarbon-calibration facilities alongside the
 # established date-parsing API.
 from chronologia import TIMELINES, PERIODS, calibrate_c14
+from chronologia.dayparts import _LANGUAGES as DAYPARTS
 from ovos_date_parser.duration import (
     DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
 )
@@ -384,6 +386,158 @@ def extract_duration(
     return None, text
 
 
+
+#: Locales whose ``extract_datetime`` is answered by chronologia rather than
+#: by this package's own per-language extractor.
+#:
+#: A locale joins the list when chronologia answers every phrase the legacy
+#: extractor answers CORRECTLY -- not merely every phrase it answers. The
+#: legacy extractor is wrong about some of them: it reads "at 13 pm" as 13:00
+#: and "at 23 am" as 11:00, it answers a bare duration ("trois jours",
+#: "dix secondes") with a date, and it reads "j'ai vingt et un ans" -- an age --
+#: as the year 2038. Reproducing those would be a regression dressed as parity.
+#:
+#: What holds the rest back, so it can be checked rather than guessed at:
+#:
+#: * Bulgarian answers "sloji tajmer za dva chasa i trideset minuti" -- set a
+#:   timer for two and a half hours -- with two o'clock and a mangled leftover,
+#:   and strands the preposition opening a clock time.
+#: * French strands the article before a date ("le 15 juin").
+#: * Polish reads a bare past month as this year rather than next, so
+#:   "stycznia" said in June is five months behind.
+#: * Ukrainian marks a day of the month with a bare genitive ordinal
+#:   ("dvadtsyatoho"), where chronologia licenses a bare ordinal only behind a
+#:   preposition, as English does with "on the 20th". That is a library-wide
+#:   rule, not a Ukrainian omission, and changing it is not a vocabulary fix.
+CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "sk"})
+
+#: A span this narrow names an instant rather than a stretch: "at 9am
+#: tomorrow" is a named day composed with a clock, and the clock is what the
+#: speaker meant.
+_EXACT = timedelta(minutes=1)
+
+#: A stretch this wide covers whole days, so it names a date.
+_DAY = timedelta(days=1)
+
+
+@lru_cache(maxsize=None)
+def _daypart_bands(lang: str) -> frozenset:
+    """The (start, end) times of the locale's declared parts of the day."""
+    code = lang.split("-")[0]
+    return frozenset((b.start, b.end) for b in DAYPARTS if b.lang == code)
+
+
+def _is_daypart(span, lang: str) -> bool:
+    """True when the span is exactly one of the locale's parts of the day.
+
+    Width alone cannot answer this. An offset is narrow too -- "in two hours"
+    is an hour wide, being an hour-grained answer -- and taking the middle of
+    one would answer half an hour late. Only a span whose edges are a declared
+    band is a part of the day.
+    """
+    return (span.start.time(), span.end.time()) in _daypart_bands(lang)
+
+
+def _instant(span, lang: str,
+             default_time: Optional[time]) -> Optional[datetime]:
+    """The instant that best answers a span, or None if it cannot be one.
+
+    chronologia answers a stretch of time because that is what a phrase
+    names. This signature answers an instant, so one has to be chosen.
+
+    An exact time is its own answer. A part of the day is a stretch the
+    speaker did not narrow, so ``default_time`` decides within it when the
+    caller supplied one that lands inside, and otherwise the middle of the
+    band answers -- the expected time when nothing narrows it further. The
+    middle is whatever the locale's own boundaries make it: French ``matin``
+    opens at 04:00, so its opening edge would answer "ce matin" with four in
+    the morning, which no speaker means. Everything else starts when it
+    starts. ``default_time`` supplies the time of day only where the phrase
+    left it unsaid, which a day or wider does and a shorter offset does not:
+    "in two hours" has already fixed a moment, and a default must not
+    overwrite it.
+
+    A span outside the range ``datetime`` can hold has no instant. chronologia
+    reads "44 bc" and "66 million years ago" correctly and this signature
+    cannot carry either, so the answer is None rather than an exception --
+    :func:`extract_timespan` is the way to reach them.
+    """
+    start = span.start
+    if span.end - start <= _EXACT:
+        return _fits_datetime(start)
+    if _is_daypart(span, lang):
+        if default_time is not None:
+            candidate = start.replace(hour=default_time.hour,
+                                      minute=default_time.minute,
+                                      second=default_time.second)
+            if span.contains(candidate):
+                return _fits_datetime(candidate)
+        return _fits_datetime(start + (span.end - start) / 2)
+    if span.end - start >= _DAY:
+        # A stretch of a whole day or more names a date, and the time
+        # of day is not part of what was said, so ``default_time``
+        # supplies it.
+        if default_time is not None:
+            return _fits_datetime(
+                start.replace(hour=default_time.hour,
+                              minute=default_time.minute,
+                              second=default_time.second))
+        return _fits_datetime(
+            start.replace(hour=0, minute=0, second=0, microsecond=0))
+    return _fits_datetime(start)
+
+
+def _fits_datetime(point) -> Optional[datetime]:
+    """An ``AstroDate`` as a ``datetime``, or None when the year cannot fit."""
+    try:
+        return datetime(point.year, point.month, point.day, point.hour,
+                        point.minute, point.second, point.microsecond)
+    except ValueError:
+        return None
+
+
+def _extract_datetime_chronologia(
+        text: str, lang: str, anchorDate: Optional[datetime],
+        default_time: Optional[time]) -> Optional[Tuple[datetime, str]]:
+    """Answer through chronologia, which owns the extraction for this locale.
+
+    :func:`extract_timespan` rather than the candidate list, because it is the
+    gated reading. An impossible date leaves a candidate behind -- "31 travanj
+    2020" offers April with the 31 stranded -- and answering that would be a
+    date the speaker did not give.
+    """
+    found = extract_timespan(text, lang, anchorDate)
+    if found is None:
+        # chronologia answers spans, so it declines a phrase that names a
+        # length rather than a point -- "2 hodiny 30 minut" is two and a half
+        # hours, not a time of day.  This signature answers the instant a
+        # skill schedules, and "remind me in two and a half hours" is an
+        # ordinary thing to say, so a length the duration reader consumes
+        # whole counts forward from the anchor.
+        span = _duration_offset(text, lang, anchorDate)
+        return None if span is None else span
+    return _routed(found, lang, default_time)
+
+
+def _duration_offset(text: str, lang: str,
+                     anchorDate: Optional[datetime]) -> Optional[list]:
+    """A bare length, read as that far from now."""
+    try:
+        got = _chronologia_duration(text, lang)
+    except Exception:
+        return None
+    if not (got and got.duration and not got.remainder.strip()):
+        return None
+    return [(anchorDate or datetime.now()) + got.duration, ""]
+
+
+def _routed(found, lang: str, default_time: Optional[time]):
+    moment = _instant(found.span, lang, default_time)
+    if moment is None:
+        return None
+    return [moment, found.remainder]
+
+
 def extract_datetime(
         text: str,
         lang: str,
@@ -403,6 +557,9 @@ def extract_datetime(
         A tuple with the extracted date as datetime and the leftover string,
         or None if no date or time related text is found.
     """
+    if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
+        return _extract_datetime_chronologia(text, lang, anchorDate,
+                                             default_time)
     if lang.startswith("an"):
         return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ar"):
@@ -804,6 +961,7 @@ def extract_duration_spans(text: str, lang: str) -> List[DurationSpan]:
 #: here unchanged so the parser keeps its public surface; the legacy
 #: ``extract_datetime`` / ``extract_date_xx`` paths are untouched by this.
 from chronologia import extract_timespan, explain
+from chronologia import extract_duration as _chronologia_duration
 
 
 NUMBER_TUPLE = namedtuple(

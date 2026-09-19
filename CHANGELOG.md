@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.31.3a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a5) (2026-09-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a3...0.31.3a5)
+
+**Merged pull requests:**
+
+- translate\(kab\): update months.voc [\#336](https://github.com/OpenVoiceOS/ovos-date-parser/pull/336) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+- translate\(kab\): update season\_winter.voc [\#335](https://github.com/OpenVoiceOS/ovos-date-parser/pull/335) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+- translate\(kab\): update unit\_day.voc [\#334](https://github.com/OpenVoiceOS/ovos-date-parser/pull/334) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+- translate\(kab\): update unit\_year.voc [\#333](https://github.com/OpenVoiceOS/ovos-date-parser/pull/333) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+
 ## [0.31.3a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a3) (2026-09-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a2...0.31.3a3)

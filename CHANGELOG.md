@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.4a1...0.31.5a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): nice\_time reads twenty to the hour and noon as the sources give them [\#344](https://github.com/OpenVoiceOS/ovos-date-parser/pull/344) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.31.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.4a1) (2026-09-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a7...0.31.4a1)

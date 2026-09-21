@@ -15,6 +15,7 @@ from ovos_utils.time import now_local
 from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
 from ovos_date_parser.dates_ar import (
     extract_datetime_ar, extract_duration_ar, nice_time_ar, nice_duration_ar,
+    expand_times_ar,
 )
 from ovos_date_parser.ranges import (
     Hemisphere, Season, DateTimeResolution, BEFORE_PRESENT_EPOCH,
@@ -291,6 +292,24 @@ def nice_time(
         return nice_time_id(dt, speech, use_24hour, use_ampm)
     if lang.startswith("tr"):
         return nice_time_tr(dt, speech, use_24hour, use_ampm)
+    raise NotImplementedError(f"Unsupported language: {lang}")
+
+
+def expand_times(text: str, lang: str) -> str:
+    """
+    Replace the clock times written in digits in a text with their spoken form.
+
+    Args:
+        text: The text to expand, for example "الموعد 7:30 pm".
+        lang: A BCP-47 language code.
+
+    Returns:
+        The text with each clock time spelled out, for example
+        "الموعد السابعة والنصف مساءً". Numbers that are not clock times are
+        left as written.
+    """
+    if lang.startswith("ar"):
+        return expand_times_ar(text)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 

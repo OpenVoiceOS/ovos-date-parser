@@ -26,7 +26,16 @@ from ovos_utils.time import now_local
 # feminine cardinals for counting feminine nouns like دقيقة (gender polarity)
 _FEM_TEENS_AR = {11: "إحدى عشرة", 12: "اثنتا عشرة"}
 
-# feminine hour names, spoken with the definite article after "الساعة"
+# Feminine hour names, spoken with the definite article after "الساعة".
+# Arabic Without Walls (UC Davis), chapter 9 grammar note: "To tell time in
+# Standard Arabic, ordinal numbers are used. Since the ordinal number
+# functions as an adjective after الساعة, the feminine form of the number is
+# used"; "The only exception is (one o' clock) الساعة الواحدة, which does not
+# use the ordinal الأولى but uses instead the cardinal الواحدة".
+# https://arabicwithoutwalls.ucdavis.edu/chapter9/grammar_note9.html
+# The list 1-12, with الحادية عشرة and الثانية عشرة, is the table of
+# Introduction to Arabic II, 5.6 "Ordinal Number and Telling Time"
+# (LibreTexts, Alkassas, Bahar Al-Aloom and Murtada).
 _HOUR_NAMES_AR = {1: "الواحدة", 2: "الثانية", 3: "الثالثة", 4: "الرابعة",
                   5: "الخامسة", 6: "السادسة", 7: "السابعة", 8: "الثامنة",
                   9: "التاسعة", 10: "العاشرة", 11: "الحادية عشرة",
@@ -103,6 +112,10 @@ def _fem_cardinal_ar(number):
     return _ONES_FEM_AR[unit] + " و" + _TENS_AR[tens * 10]
 
 
+# Arabic Without Walls (UC Davis), chapter 9 grammar note: "For minute
+# quantities from three to ten, the plural دقائق is used ... For quantities
+# above ten, the singular دقيقة is used" (على الساعة الواحدة ودقيقتان,
+# على الساعة الحادية عشرة إلا ثلاث دقائق).
 def _nice_minutes_ar(minutes):
     """Minutes with the gender-polarity agreement of دقيقة (feminine)."""
     if minutes == 1:
@@ -171,6 +184,109 @@ def nice_time_ar(dt, speech=True, use_24hour=False, use_ampm=False):
     if use_ampm:
         speak += " مساءً" if dt.hour >= 12 else " صباحاً"
     return speak
+
+
+# Fractions of the hour. "All The Arabic You Never Learned The First Time
+# Around", Part 3, "How to Tell Time": "The words ربعُ quarter, ثُلث third,
+# and نصف half, are commonly used in telling time. Normally they are made
+# definite." (الساعة التاسعةُ والنِصفُ, الساعةُ الواحدة والربعُ); "إلاّ is used
+# before رُبع and ثُلث to express the equivalent of 'quarter to' the hour or
+# 'twenty minutes' to the hour. When preceded by إلاّ these words are in the
+# indefinite accusative." (الساعة العاشرة إلا ثُلثاً).
+# https://allthearabicyouneverlearnedthefirsttimearound.com/p3/how-to-tell-time/
+_PAST_FRACTIONS_AR = {15: "والربع", 20: "والثلث", 30: "والنصف"}
+_TO_FRACTIONS_AR = {40: "إلا ثلثًا", 45: "إلا ربعًا"}
+
+# Period words. sayaarab.com, "Telling the time in Arabic": "AM in Arabic is
+# translated as Sabaahan/ صباحا" and "PM is Arabic is translated as masaa'n /
+# مساءً". Arabic Wikipedia, "نظام 12 ساعة": "ثم تبدأ الدورة الثانية من الثانية
+# عشرة ظهراً (12PM) وتنتهي بنهاية اليوم وبداية اليوم الجديد عند منتصف الليل
+# (12AM)", so the noon hour takes ظهرًا and 12 am is منتصف الليل.
+_AM_AR = "صباحًا"
+_PM_AR = "مساءً"
+_NOON_AR = "ظهرًا"
+_MIDNIGHT_AR = "منتصف الليل"
+
+_DIGITS_AR = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+_D = r"[0-9٠-٩]"
+_CLOCK_AR = re.compile(
+    r"(?<![0-9٠-٩A-Za-z:.,])"
+    r"(?:(?P<saa>الساع[ةه])\s+)?"
+    rf"(?P<hour>{_D}{{1,2}})"
+    rf"(?::(?P<minute>{_D}{{2}}))?"
+    r"(?:\s*(?P<marker>[aApP][mM])(?![A-Za-z]))?"
+    r"(?![0-9٠-٩]|:[0-9٠-٩]|[.,][0-9٠-٩])")
+
+
+def _spoken_clock_ar(hour, minute, marker=None):
+    """A clock time as it is said, without the leading "الساعة".
+
+    ``hour`` is 0-23 when ``marker`` is None and 1-12 with "am"/"pm". The
+    hour is the feminine name of the hour; 40 and 45 minutes are told
+    against the next hour (إلا ثلثًا, إلا ربعًا). A time on the 24-hour
+    clock past noon is read on the 12-hour clock with its period word:
+    jibble.io, "تحويل الوقت إلى نظام 24 ساعة": "إحدى الطرق البسيطة لتحويل
+    ساعات بعد الظهر والمساء إلى التوقيت العادي هي مجرد طرح 12"."""
+    if marker is None and (hour == 0 or hour > 12):
+        marker = "am" if hour == 0 else "pm"
+    if marker is not None:
+        hour12 = hour % 12 or 12
+        pm = marker == "pm"
+    else:
+        hour12, pm = hour, False
+    if marker == "am" and hour12 == 12 and minute == 0:
+        return _MIDNIGHT_AR
+
+    spoken_hour = hour12 % 12 + 1 if minute in _TO_FRACTIONS_AR else hour12
+    speak = _HOUR_NAMES_AR[spoken_hour]
+    if minute in _TO_FRACTIONS_AR:
+        speak += " " + _TO_FRACTIONS_AR[minute]
+    elif minute in _PAST_FRACTIONS_AR:
+        speak += " " + _PAST_FRACTIONS_AR[minute]
+    elif minute:
+        speak += " و" + _nice_minutes_ar(minute)
+
+    if marker is None:
+        return speak
+    if pm:
+        noon = hour12 == 12 and spoken_hour == 12
+        return speak + " " + (_NOON_AR if noon else _PM_AR)
+    return speak + " " + _AM_AR
+
+
+def expand_times_ar(text):
+    """Replace the clock times written in digits in ``text`` with their
+    spoken Modern Standard Arabic form.
+
+    A number is read as a time when it is an ``h:mm`` time ("7:30",
+    "19:30"), an hour of the 12-hour clock followed by "am" or "pm" in
+    either case, with or without a space ("7 pm", "7PM"), or a number
+    after "الساعة" ("الساعة 3"). A written "الساعة" is kept; otherwise the
+    hour is spoken alone, as the noun is implied. Western and Eastern
+    Arabic-Indic digits are read. Any other number is left as written.
+
+    Examples:
+        "الموعد 7:30 pm" -> "الموعد السابعة والنصف مساءً"
+        "الساعة 3" -> "الساعة الثالثة"
+    """
+    def replace(match):
+        hour = int(match["hour"].translate(_DIGITS_AR))
+        minute = match["minute"]
+        minute = int(minute.translate(_DIGITS_AR)) if minute else 0
+        marker = match["marker"].lower() if match["marker"] else None
+        if marker is None and match["minute"] is None \
+                and match["saa"] is None:
+            return match[0]
+        if minute > 59:
+            return match[0]
+        if marker is not None and not 1 <= hour <= 12:
+            return match[0]
+        if marker is None and hour > 23:
+            return match[0]
+        spoken = _spoken_clock_ar(hour, minute, marker)
+        return f"{match['saa']} {spoken}" if match["saa"] else spoken
+
+    return _CLOCK_AR.sub(replace, text)
 
 
 def _count_unit_ar(count, singular, dual, plural, feminine):

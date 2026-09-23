@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.31.5a8](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a8) (2026-09-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a7...0.31.5a8)
+
+**Merged pull requests:**
+
+- translate\(kab\): update unit\_decade.voc [\#351](https://github.com/OpenVoiceOS/ovos-date-parser/pull/351) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+
+## [0.31.5a7](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a7) (2026-09-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a6...0.31.5a7)
+
+**Merged pull requests:**
+
+- translate\(kab\): update unit\_millennium.voc [\#353](https://github.com/OpenVoiceOS/ovos-date-parser/pull/353) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+
 ## [0.31.5a6](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a6) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a5...0.31.5a6)

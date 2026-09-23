@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.32.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.0a1) (2026-09-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a9...0.32.0a1)
+
+**Merged pull requests:**
+
+- feat\(kab\): five date vocabularies from sources already in the tree [\#361](https://github.com/OpenVoiceOS/ovos-date-parser/pull/361) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.5a9](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a9) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a8...0.31.5a9)

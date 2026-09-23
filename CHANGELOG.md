@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.5a9](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a9) (2026-09-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a8...0.31.5a9)
+
+**Merged pull requests:**
+
+- test: build the month "own" set from the extractor source alone [\#347](https://github.com/OpenVoiceOS/ovos-date-parser/pull/347) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.5a8](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a8) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a7...0.31.5a8)

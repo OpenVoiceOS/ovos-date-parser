@@ -15,6 +15,7 @@ month of its own language (``marzo`` is both Spanish and Italian).
 """
 import ast
 import os
+import shutil
 from datetime import date
 
 import pytest
@@ -111,18 +112,24 @@ def test_months_voc_matches_the_extractor(lang):
         f"names in dates_{lang}.py: {sorted(set(expected) - set(kept))}")
 
 
-@pytest.mark.parametrize("lang", LANGS)
-def test_no_foreign_month_names_in_locale(lang):
-    """No phrase set carries another shipped language's month name."""
+def _foreign_offenders(lang, lang_dir):
+    """Lines in ``lang_dir`` that are another shipped language's month name.
+
+    "Own" comes from the extractor source alone. Reading ``months.voc``
+    here would make the file vouch for itself: a whole-file swap of
+    another language into ``locale/<lang>/months.voc`` would put that
+    language's names into "own", and every one of its month names would
+    then pass this check. reviewer-b proved that live with es into fr on
+    #341, and ``test_a_whole_file_language_swap_is_caught`` below is the
+    failing-first case for it.
+    """
     own = set(_module_months(lang) or [])
-    own |= set(_voc_lines(os.path.join(LOCALE_DIR, lang, "months.voc")))
     foreign = {}
     for other in LANGS:
         if other == lang:
             continue
         for name in _module_months(other) or []:
             foreign.setdefault(name, []).append(other)
-    lang_dir = os.path.join(LOCALE_DIR, lang)
     offenders = []
     for name in sorted(os.listdir(lang_dir)):
         if not name.endswith(".voc"):
@@ -131,4 +138,32 @@ def test_no_foreign_month_names_in_locale(lang):
             if line in foreign and line not in own:
                 offenders.append(f"{name}: {line!r} "
                                  f"(a month of {'/'.join(foreign[line])})")
+    return offenders
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_no_foreign_month_names_in_locale(lang):
+    """No phrase set carries another shipped language's month name."""
+    offenders = _foreign_offenders(lang, os.path.join(LOCALE_DIR, lang))
     assert not offenders, f"locale/{lang} carries " + "; ".join(offenders)
+
+
+def test_a_whole_file_language_swap_is_caught(tmp_path):
+    """Spanish months written over ``locale/fr/months.voc`` must be caught.
+
+    This is the case the old exemption missed. It built "own" from the
+    on-disk ``months.voc``, so the swapped-in Spanish names vouched for
+    themselves and the check passed on a corrupted locale.
+    """
+    swapped = tmp_path / "fr"
+    shutil.copytree(os.path.join(LOCALE_DIR, "fr"), swapped)
+    shutil.copy(os.path.join(LOCALE_DIR, "es", "months.voc"),
+                swapped / "months.voc")
+
+    offenders = _foreign_offenders("fr", str(swapped))
+
+    spanish = set(_module_months("es"))
+    caught = {line.split("'")[1] for line in offenders if "'" in line}
+    assert caught & spanish, (
+        "a whole-file es swap into fr/months.voc went unreported; "
+        f"offenders were {offenders}")

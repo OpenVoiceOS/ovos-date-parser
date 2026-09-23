@@ -1,13 +1,20 @@
 # Changelog
 
+## [0.31.5a4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a4) (2026-09-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a3...0.31.5a4)
+
+**Merged pull requests:**
+
+- translate\(kab\): update era\_year\_ref.voc [\#350](https://github.com/OpenVoiceOS/ovos-date-parser/pull/350) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+- translate\(kab\): update era\_bc\_suffix.voc [\#349](https://github.com/OpenVoiceOS/ovos-date-parser/pull/349) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
+
 ## [0.31.5a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a3) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a2...0.31.5a3)
 
 **Merged pull requests:**
 
-- translate\(kab\): update era\_year\_ref.voc [\#350](https://github.com/OpenVoiceOS/ovos-date-parser/pull/350) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-- translate\(kab\): update era\_bc\_suffix.voc [\#349](https://github.com/OpenVoiceOS/ovos-date-parser/pull/349) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
 - translate\(kab\): update era\_unix\_prefix.voc [\#348](https://github.com/OpenVoiceOS/ovos-date-parser/pull/348) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
 
 ## [0.31.5a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a2) (2026-09-23)

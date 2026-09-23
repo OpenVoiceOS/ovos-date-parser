@@ -72,7 +72,8 @@ def _module_months(lang):
     path = os.path.join(PACKAGE_DIR, f"dates_{lang}.py")
     if not os.path.isfile(path):
         return None
-    tree = ast.parse(open(path, encoding="utf-8").read())
+    with open(path, encoding="utf-8") as handle:
+        tree = ast.parse(handle.read())
     found = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign):

@@ -13,4 +13,4 @@ jobs:
     with:
       python_versions: '["3.10", "3.11", "3.12"]'
       pre_install_pip: "pytest-timeout pytest-cov"
-      test_path: "test/format_tests test/parse_tests test/test_dates_pt.py test/test_multilang_invariants.py test/test_lang_parity.py test/test_packaging.py test/test_locale_fr_month_vocab.py"
+      test_path: "test/format_tests test/parse_tests test/test_dates_pt.py test/test_multilang_invariants.py test/test_lang_parity.py test/test_packaging.py test/test_locale_fr_month_vocab.py test/test_locale_kab_per_file_fallback.py"

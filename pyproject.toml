@@ -21,7 +21,19 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dynamic = ["version", "dependencies"]
+dependencies = [
+    "python-dateutil~=2.6",
+    "quebra_frases>=0.3.7",
+    "ovos-number-parser>=0.19.6a2,<1.0.0",
+    "dateparser",
+    "ovos-config",
+    "ovos-spec-tools>=1.5.0a1",
+    # reckoning core library (AstroDate, calendars, eras, cycles). The floor
+    # is the alpha that carries the Kabyle phrase sets this parser now reads
+    # through the per-file fallback.
+    "chronologia>=0.30.4a1",
+]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/OpenVoiceOS/ovos-date-parser"
@@ -36,4 +48,3 @@ ovos_date_parser = ["res/*.json", "res/*/*.json", "locale/*/*.voc"]
 
 [tool.setuptools.dynamic]
 version = { attr = "ovos_date_parser.version.__version__" }
-dependencies = { file = ["requirements.txt"] }

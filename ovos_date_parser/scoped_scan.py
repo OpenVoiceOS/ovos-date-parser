@@ -34,7 +34,7 @@ from typing import Dict, List, Optional, Tuple
 
 from ovos_spec_tools import LocaleResources
 
-from ovos_date_parser.eras_scan import LOCALE_DIR, _alt, _resolve_locale_dir
+from ovos_date_parser.eras_scan import LOCALE_DIR, _alt, _voc_reader
 from ovos_date_parser.ranges import (DateTimeResolution, Hemisphere, Season,
                                      get_date_ordinal, last_season_date,
                                      next_season_date, season_to_date)
@@ -99,16 +99,16 @@ def load_scoped_vocabulary(lang: str,
     ``marker_year_word.voc``, ``marker_last.voc``, ``marker_next.voc``,
     ``marker_this.voc``.
     """
-    res = LocaleResources(_resolve_locale_dir(lang, locale_dir))
+    read = _voc_reader(lang, locale_dir)
 
     def voc(name):
         try:
-            phrases = res.load_vocabulary(name, lang)
+            phrases = read(name)
         except FileNotFoundError:
             return None
         return _alt(phrases) if phrases else None
 
-    months = res.load_vocabulary("months", lang)
+    months = read("months")
     ord_suf = voc("ordinal_suffixes")
     return ScopedVocabulary(
         units={u: voc(f"unit_{u}") for u in

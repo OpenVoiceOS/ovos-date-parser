@@ -67,17 +67,54 @@ _NUM = r"(\d+)"
 
 
 def _resolve_locale_dir(lang: str, locale_dir: str = LOCALE_DIR) -> str:
-    """Locate the resource root that actually holds ``lang``'s phrase sets.
+    """The resource root that holds ``lang``'s own folder, if any.
 
-    A language kept in the parser's own ``locale/`` (the legacy era-scan
-    languages) resolves there; one whose folder has moved to the reckoning
-    core (``en``/``ar``/``he``) falls back to chronologia's packaged locale
-    so the legacy pre-passes keep loading the same phrase sets they always
-    did without duplicating them here."""
+    Kept for callers that need a single root. Resource LOADING goes through
+    :func:`_voc_reader`, which resolves one file at a time; a language whose
+    local folder holds only part of its phrase sets would otherwise lose the
+    rest, which is what this function on its own used to do."""
     if os.path.isdir(os.path.join(locale_dir, lang.split("-")[0])):
         return locale_dir
+    return _chronologia_locale_dir()
+
+
+def _chronologia_locale_dir() -> str:
+    """chronologia's packaged locale root."""
     from chronologia.extract.loader import LOCALE_DIR as CHRONOLOGIA_LOCALE_DIR
     return CHRONOLOGIA_LOCALE_DIR
+
+
+def _voc_reader(lang: str, locale_dir: str = LOCALE_DIR):
+    """Return ``read(name) -> List[str]``, resolving each file on its own.
+
+    The parser's own ``locale/`` wins for any phrase set it actually ships,
+    and chronologia's packaged locale supplies the rest. Resolving a whole
+    language to one root instead means a folder holding a handful of files
+    hides every other file the reckoning core has for that language: the
+    Kabyle folder shipped 11 files against chronologia's 75, so
+    ``marker_last`` and the rest fell back to their ENGLISH defaults and only
+    a sentence mixing English markers with Kabyle words could parse. Falling
+    back per file is what the docstring of ``_resolve_locale_dir`` always
+    described, "without duplicating them here".
+
+    ``FileNotFoundError`` is raised only when neither root has the file, so a
+    caller that treats a missing phrase set as "form disabled" is unchanged.
+    """
+    roots = [locale_dir]
+    chrono = _chronologia_locale_dir()
+    if os.path.normpath(chrono) != os.path.normpath(locale_dir):
+        roots.append(chrono)
+    readers = [LocaleResources(root) for root in roots]
+
+    def read(name: str) -> List[str]:
+        for reader in readers:
+            try:
+                return reader.load_vocabulary(name, lang)
+            except FileNotFoundError:
+                continue
+        raise FileNotFoundError(f"{name!r} for {lang!r}")
+
+    return read
 
 
 def _alt(phrases: List[str]) -> str:
@@ -101,11 +138,11 @@ def load_era_patterns(lang: str,
         The ordered ``(era_key, pattern)`` table for
         :func:`extract_era_date`.
     """
-    res = LocaleResources(_resolve_locale_dir(lang, locale_dir))
+    read = _voc_reader(lang, locale_dir)
 
     def voc(name):
         try:
-            phrases = res.load_vocabulary(name, lang)
+            phrases = read(name)
         except FileNotFoundError:
             # a missing phrase set just disables that form for the language
             return None

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.32.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.3a1) (2026-09-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.2a1...0.32.3a1)
+
+**Merged pull requests:**
+
+- fix\(kab\): read a duration as an offset, and stop counting a bare unit as one [\#366](https://github.com/OpenVoiceOS/ovos-date-parser/pull/366) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.32.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.2a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.1a1...0.32.2a1)
@@ -326,11 +334,6 @@
 ## [0.28.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.5a1) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.4a1...0.28.5a1)
-
-**Merged pull requests:**
-
-- Release 0.28.5a1 [\#265](https://github.com/OpenVoiceOS/ovos-date-parser/pull/265) ([github-actions[bot]](https://github.com/apps/github-actions))
-- fix: correct Danish spelling of eleven, raise number-parser floor [\#264](https://github.com/OpenVoiceOS/ovos-date-parser/pull/264) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.4a1) (2026-07-18)
 

@@ -162,10 +162,11 @@ def _art(vocab):
 
 def extract_scoped_date(text: str, vocab: ScopedVocabulary,
                         ref_date: Optional[date] = None,
-                        hemisphere: Hemisphere = Hemisphere.NORTH
+                        hemisphere: Hemisphere = Hemisphere.NORTH,
+                        lang: Optional[str] = None
                         ) -> Optional[Tuple[date, str,
                                             DateTimeResolution]]:
-    """Extract a calendar-scoped ordinal or season reference.
+    """Extract a calendar-scoped ordinal, season or named-holiday reference.
 
     Args:
         text: normalised (digits, lowercase-insensitive) phrase.
@@ -173,10 +174,17 @@ def extract_scoped_date(text: str, vocab: ScopedVocabulary,
         ref_date: anchor for relative scopes (default: today via the
             underlying range helpers).
         hemisphere: season table to use.
+        lang: the BCP-47 code of ``text``. A named holiday is the one
+            reference here whose surfaces are not in ``vocab``: the rule
+            behind "easter" lives in :mod:`chronologia`, keyed by language,
+            so the holiday reading is offered only when the caller names the
+            language. Without it the function reads exactly what it always
+            read.
 
     Returns:
         ``(date, remainder, resolution)`` or ``None`` when no scoped
-        phrasing is present.
+        phrasing is present. A holiday comes back at
+        :attr:`DateTimeResolution.DAY`, the width chronologia gives it.
     """
     if not text:
         return None
@@ -297,4 +305,12 @@ def extract_scoped_date(text: str, vocab: ScopedVocabulary,
             else:  # this / bare: the season's start in the anchor year
                 value = season_to_date(season, ref_date, hemisphere)
             return _finish(match, value, DateTimeResolution.MONTH)
+    # -- a named holiday, the one reference whose surfaces are chronologia's
+    if lang:
+        from ovos_date_parser.holidays import extract_holiday_date
+        got = extract_holiday_date(text, lang, ref_date)
+        if got is not None:
+            moment, remainder = got
+            return moment, remainder, DateTimeResolution.DAY
+
     return None

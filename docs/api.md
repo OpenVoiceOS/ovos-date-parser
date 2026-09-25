@@ -46,6 +46,29 @@ None
 The returned `remaining_text` is the input with the recognized date/time words
 removed. This is the non-temporal payload, useful for intent parsing or NER.
 
+A named holiday is read too: "christmas", "next easter", the French "noel"
+and the Portuguese "proxima pascoa" all resolve to a date. The rule behind
+the name and the surfaces each language speaks it by are
+[chronologia](https://github.com/TigreGotico/chronologia)'s; this library
+copies no holiday table. The holiday reading runs only when the language
+engine reads no date, and only when chronologia says a holiday construction
+is what matched, so an utterance that parsed before parses the same way.
+
+```python
+>>> extract_datetime("how many days until christmas", "en-US",
+...                  anchorDate=datetime(2026, 9, 25))
+[datetime.datetime(2026, 12, 25, 0, 0), 'how many days until']
+```
+
+### `holidays.extract_holiday_span(text, lang, anchorDate=None)` / `holidays.extract_holiday_date(text, lang, ref_date=None)`
+
+The holiday layer on its own, for a caller that wants a holiday and nothing
+else. Returns `(datetime, remainder)` / `(date, remainder)`, or `None` when
+the text names no holiday in its own language. `holidays.holiday_surfaces(lang)`
+returns chronologia's table of the holiday names that language speaks,
+mapped to chronologia's language-neutral keys; a language chronologia carries
+no holiday data for gets an empty map rather than a guess at English.
+
 ### `extract_duration(text, lang, *, resolution=DurationResolution.TIMEDELTA, replace_token="")`
 
 Parse a duration. Returns `(duration, remaining_text)`. `duration` is `None`

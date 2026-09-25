@@ -40,7 +40,12 @@ def vocab_fr():
 @pytest.mark.parametrize("text,expected,resolution", [
     ("le 3eme jour de janvier", date(2026, 1, 3),
      DateTimeResolution.DAY_OF_MONTH),
-    ("le dernier jour de mars", date(2026, 4, 30),
+    # 2026-03-31, not 2026-04-30. This row asserted April until T-4498:
+    # locale/fr/months.voc carried "fevrier" on a line of its own, and the
+    # month was read from the line's position, so every month after
+    # February answered one too late. The phrase names March and always
+    # did.
+    ("le dernier jour de mars", date(2026, 3, 31),
      DateTimeResolution.DAY_OF_MONTH),
     ("en hiver", date(2026, 12, 1), DateTimeResolution.MONTH),
     ("le 2eme jour de l'annee", date(2026, 1, 2),
@@ -56,7 +61,12 @@ def test_scoped_french_phrases_resolve(vocab_fr, text, expected, resolution):
 
 def test_french_vocab_is_french(vocab_fr):
     """The phrase sets the four overwritten files feed are French."""
-    assert vocab_fr.months[:3] == ["janvier", "février", "fevrier"]
+    # twelve entries, January first, each one an alternation of that
+    # month's spellings (T-4498). February carries both of its.
+    assert len(vocab_fr.months) == 12
+    assert vocab_fr.months[0] == "janvier"
+    assert set(vocab_fr.months[1].split("|")) == {"février", "fevrier"}
+    assert vocab_fr.months[2] == "mars"
     assert "hiver" in vocab_fr.seasons[list(vocab_fr.seasons)[-1]]
     assert "jour" in vocab_fr.units["day"]
     assert "ans" in vocab_fr.units["year"]
@@ -90,8 +100,21 @@ def _module_months(lang):
 
 
 def _voc_lines(path):
+    """Every phrase the file holds, one per entry.
+
+    A ``months.voc`` line may carry several spellings of one month
+    separated by ``|`` (T-4498), so the line is split: the tripwires below
+    ask whether a phrase appears, and a compound line would hide every
+    spelling on it from them.
+    """
+    phrases = []
     with open(path, encoding="utf-8") as handle:
-        return [line.strip().lower() for line in handle if line.strip()]
+        for line in handle:
+            line = line.strip().lower()
+            if not line:
+                continue
+            phrases.extend(p for p in line.split("|") if p)
+    return phrases
 
 
 @pytest.mark.parametrize("lang", LANGS)

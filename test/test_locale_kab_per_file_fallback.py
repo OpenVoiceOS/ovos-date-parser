@@ -71,7 +71,12 @@ def test_the_english_control_is_unchanged():
 
 
 @pytest.mark.parametrize("lang,phrase,expected", [
-    ("fr", "le dernier jour de mars", date(2026, 4, 30)),
+    # 2026-03-31, not 2026-04-30. French asserted April until T-4498,
+    # alone among the five rows here: locale/fr/months.voc carried
+    # "fevrier" on a line of its own and the month was read from the line's
+    # position, so March onward answered one month late. German shifted too,
+    # but only from April, because its variant sat after "märz".
+    ("fr", "le dernier jour de mars", date(2026, 3, 31)),
     ("de", "der letzte tag des märz", date(2026, 3, 31)),
     ("es", "el ultimo dia de marzo", date(2026, 3, 31)),
     ("it", "l'ultimo giorno di marzo", date(2026, 3, 31)),

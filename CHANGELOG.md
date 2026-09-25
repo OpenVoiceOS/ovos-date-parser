@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.0a1) (2026-09-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.3a1...0.33.0a1)
+
+**Merged pull requests:**
+
+- feat: read a named holiday through chronologia [\#369](https://github.com/OpenVoiceOS/ovos-date-parser/pull/369) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.32.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.3a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.2a1...0.32.3a1)
@@ -325,11 +333,6 @@
 ## [0.28.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.6a1) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.5a1...0.28.6a1)
-
-**Merged pull requests:**
-
-- Release 0.28.6a1 [\#267](https://github.com/OpenVoiceOS/ovos-date-parser/pull/267) ([github-actions[bot]](https://github.com/apps/github-actions))
-- fix: spell the trema in Dutch nice\_time minutes [\#266](https://github.com/OpenVoiceOS/ovos-date-parser/pull/266) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.5a1) (2026-07-20)
 

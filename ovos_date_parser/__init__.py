@@ -27,6 +27,9 @@ from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
 from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
+from ovos_date_parser.holidays import (extract_holiday_date,
+                                       extract_holiday_span,
+                                       holiday_surfaces)
 from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
 from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
 from ovos_date_parser.eras_es import extract_era_date_es, ERA_PATTERNS_ES
@@ -402,6 +405,41 @@ def extract_datetime(
     Returns:
         A tuple with the extracted date as datetime and the leftover string,
         or None if no date or time related text is found.
+
+    A named holiday is a date this library's per-language engines carry no
+    vocabulary for: "christmas", "noel" and "proxima pascoa" are rules in
+    :mod:`chronologia`, not calendar constructions. When the language engine
+    reads no date, :func:`ovos_date_parser.holidays.extract_holiday_span`
+    asks chronologia, and its answer is taken only when chronologia says a
+    holiday construction is what matched. An utterance the engine already
+    reads keeps the engine's answer, so nothing that worked before changes.
+    """
+    found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
+                                     default_time=default_time)
+    if found is not None:
+        return found
+    holiday = extract_holiday_span(text, lang, anchorDate=anchorDate)
+    if holiday is None:
+        return None
+    moment, remainder = holiday
+    if default_time is not None:
+        moment = moment.replace(hour=default_time.hour,
+                                minute=default_time.minute,
+                                second=default_time.second,
+                                microsecond=default_time.microsecond)
+    return moment, remainder
+
+
+def _extract_datetime_engine(
+        text: str,
+        lang: str,
+        anchorDate: Optional[datetime] = None,
+        default_time: Optional[time] = None,
+) -> Optional[Tuple[datetime, str]]:
+    """The per-language extractors, and the dateparser fallback behind them.
+
+    Split out of :func:`extract_datetime` so the holiday layer has a place to
+    stand behind every language at once, instead of a branch in each.
     """
     if lang.startswith("an"):
         return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)

@@ -228,7 +228,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
         elif word in ["semaine", "semaines"] and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "il y a N ..." = N periods in the past (Larousse)
                 if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
                     dayOffset -= int(wordPrev) * 7
@@ -246,7 +246,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 10 mois, mois prochain, mois dernier
         elif word == "mois" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "il y a N ..." = N periods in the past (Larousse)
                 if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
                     monthOffset = -int(wordPrev)
@@ -264,7 +264,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 ans, an prochain, année dernière
         elif word in ["an", "ans", "année", "années"] and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "il y a N ..." = N periods in the past (Larousse)
                 if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
                     yearOffset = -int(wordPrev)
@@ -302,7 +302,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 m = monthsShort.index(word)
             used += 1
             datestr = months_en[m]
-            if wordPrev and (wordPrev[0].isdigit()):
+            if wordPrev and (wordPrev and wordPrev[0].isdigit()):
                 # keep only the leading digits so ordinals like "1er"
                 # ("1er janvier") do not leak letters into strptime
                 datestr += " " + re.match(r"\d+", wordPrev).group()
@@ -434,7 +434,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 1
         # parse 5:00 du matin, 12:00, etc
-        elif word[0].isdigit() and _get_ordinal_fr(word) is None:
+        elif word and word[0].isdigit() and _get_ordinal_fr(word) is None:
             isTime = True
             if ":" in word or "h" in word or "min" in word:
                 # parse hours on short format
@@ -690,8 +690,8 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "et" and words[idx - 1] == "" and \
-                words[idx + 1] == "":
+        if word == "et" and 0 < idx < len(words) - 1 and \
+                words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 
     resultStr = " ".join(words)

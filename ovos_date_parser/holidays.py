@@ -22,16 +22,29 @@ match, and the three holiday constructions are enumerated in
 :data:`_HOLIDAY_CONSTRUCTIONS`. Everything else is declined and the caller's
 "no date found" stands.
 
-Reading that trace costs a full chronologia parse — a second and a half for
-a long sentence — and :func:`ovos_date_parser.extract_datetime_spans` asks
-this layer about every window of every utterance, so the trace sits behind a
-cheap door: a text written with no holiday phrase of its language never
-reaches it. The door is chronologia's table too, widened only by the leading
-clippings speech uses, and it decides nothing on its own.
+Reading that trace needs chronologia's language spec, and
+:func:`ovos_date_parser.extract_datetime_spans` asks this layer about every
+window of every utterance. The spec is loaded once per language and kept
+(``load_lang_spec`` compiles a locale on every call and caches nothing,
+about a second each), and the trace itself sits behind a cheap door: a text
+written with no holiday phrase of its language never reaches it. The door is
+chronologia's table too, widened only by the leading clippings speech uses
+and by the accents a transcript drops, and it decides nothing on its own.
+
+What the answer covers is the matched construction's own extent, and nothing
+around it. chronologia states a tense inside the construction it belongs to —
+"next easter", "christmas eve", "veille de noël" each come back as one match
+over all their words — but applies a modifier written outside the
+construction to the result, taking those words out of its remainder with it.
+Reading the extent keeps the tense the phrase states and leaves the question
+its own words, so "how many days until christmas" and "combien de jours
+avant noël" answer alike.
 """
 from __future__ import annotations
 
 import re
+import threading
+import unicodedata
 from datetime import date, datetime
 from typing import Dict, FrozenSet, Optional, Set, Tuple
 
@@ -47,6 +60,24 @@ _HOLIDAY_CONSTRUCTIONS = frozenset({"holiday_ref", "holiday_eve",
 #: language code -> {spoken surface: chronologia well-known key}. Cached only
 #: to avoid rebuilding chronologia's table on every utterance.
 _SURFACES: Dict[str, Dict[str, str]] = {}
+
+#: language code -> chronologia's loaded language spec. ``load_lang_spec``
+#: reads a locale directory and compiles its constructions on every call and
+#: caches nothing, which costs about a second. The trace this layer reads
+#: needs the spec, and :func:`ovos_date_parser.extract_datetime_spans` asks
+#: this layer about every window of every utterance, so an uncached spec cost
+#: one second per window: 15 to 30 seconds for one sentence carrying a
+#: holiday word. The spec is a value, not a session, so one per language is
+#: kept here and the second call costs nothing.
+_SPECS: Dict[str, object] = {}
+_SPEC_LOCK = threading.Lock()
+
+#: language code -> {accent-folded surface: the surface as the language
+#: writes it}. Speech to text drops accents, and chronologia's surface table
+#: holds only the written form, so "noel" matched nothing while "noël" read
+#: 25 December. Only a folded form of the SAME length is kept, so a
+#: substitution never moves a character offset.
+_FOLDED: Dict[str, Dict[str, str]] = {}
 
 #: language code -> the holiday phrases that language speaks, each also
 #: kept as its multi-word leading clippings. The cheap door in front of the
@@ -93,6 +124,22 @@ def holiday_surfaces(lang: str) -> Dict[str, str]:
     return _SURFACES[base]
 
 
+def _holiday_surface_forms(lang: str) -> Set[str]:
+    """Every holiday surface ``lang`` speaks, as chronologia holds it.
+
+    Read from chronologia twice over: the extraction spec's own holiday
+    table, which is what its grammar matches, and the well-known surfaces,
+    which carry the spoken aliases. A language chronologia has no data for
+    contributes nothing.
+    """
+    surfaces: Set[str] = set(holiday_surfaces(lang))
+    try:
+        surfaces.update(_spec(lang).holidays)
+    except Exception:
+        pass
+    return surfaces
+
+
 def _holiday_phrases(lang: str) -> FrozenSet[str]:
     """Every holiday phrase ``lang`` speaks, with its leading clippings.
 
@@ -112,12 +159,7 @@ def _holiday_phrases(lang: str) -> FrozenSet[str]:
     """
     base = _base_lang(lang)
     if base not in _HOLIDAY_PHRASES:
-        surfaces: Set[str] = set(holiday_surfaces(base))
-        try:
-            from chronologia.extract.loader import load_lang_spec
-            surfaces.update(load_lang_spec(base).holidays)
-        except Exception:
-            pass
+        surfaces: Set[str] = set(_holiday_surface_forms(base))
         phrases: Set[str] = set()
         for surface in surfaces:
             words = _loosen(surface).split()
@@ -135,10 +177,12 @@ def _loosen(text: str) -> str:
     its missing words: English clips "new year's day" to "new year", losing
     the apostrophe and the s as well. Comparing both sides in this loose form
     lets the door recognise the clipping without a rule written for one
-    language. It is a door, not a decision — the trace behind it still reads
-    the real words.
+    language. The accents go the same way, because a transcript drops them
+    and the door must not turn away a holiday the speaker named. It is a
+    door, not a decision — the trace behind it still reads the real words,
+    which :func:`_as_written` restores first.
     """
-    words = re.findall(r"\w+(?:'\w+)?", text.lower())
+    words = re.findall(r"\w+(?:'\w+)?", _fold(text))
     return " ".join(re.sub(r"(?:'s|s)$", "", w) or w for w in words)
 
 
@@ -149,21 +193,98 @@ def _names_a_holiday(text: str, lang: str) -> bool:
                for phrase in _holiday_phrases(lang))
 
 
-def _holiday_won(text: str, lang: str, anchor: datetime) -> bool:
-    """Whether a holiday construction is what chronologia matched in ``text``."""
+def _spec(lang: str):
+    """chronologia's language spec for ``lang``, loaded once per language."""
+    base = _base_lang(lang)
+    spec = _SPECS.get(base)
+    if spec is None:
+        with _SPEC_LOCK:
+            spec = _SPECS.get(base)
+            if spec is None:
+                from chronologia.extract.loader import load_lang_spec
+                spec = _SPECS[base] = load_lang_spec(base)
+    return spec
+
+
+def _fold(text: str) -> str:
+    """``text`` lowercased with its diacritics removed ("noël" -> "noel")."""
+    stripped = "".join(c for c in unicodedata.normalize("NFD", text.lower())
+                       if not unicodedata.combining(c))
+    return unicodedata.normalize("NFC", stripped)
+
+
+def _folded_surfaces(lang: str) -> Dict[str, str]:
+    """Accent-folded surface -> the surface as ``lang`` writes it.
+
+    Built from chronologia's own tables, never hand-listed. A surface whose
+    folded form is a different length is left out: the folded text is handed
+    to chronologia in place of the written one, and an offset that moved
+    would make the extent point at the wrong characters.
+    """
+    base = _base_lang(lang)
+    if base not in _FOLDED:
+        out: Dict[str, str] = {}
+        for surface in _holiday_surface_forms(base):
+            folded = _fold(surface)
+            if folded != surface and len(folded) == len(surface):
+                out.setdefault(folded, surface)
+        _FOLDED[base] = out
+    return _FOLDED[base]
+
+
+def _as_written(text: str, lang: str) -> str:
+    """``text`` with an unaccented holiday surface put back as written.
+
+    A transcript that lost its accents names the holiday no less than one
+    that kept them, but chronologia matches the written form. Each
+    substitution replaces the same number of characters, so every offset in
+    the answer still points into the caller's own text.
+    """
+    folded = _folded_surfaces(lang)
+    if not folded:
+        return text
+    out = text
+    for form, written in folded.items():
+        if form in _fold(out):
+            out = re.sub(rf"(?<!\w){re.escape(form)}(?!\w)", written, out,
+                         flags=re.IGNORECASE)
+    return out
+
+
+def _holiday_extent(text: str, lang: str, anchor: datetime
+                    ) -> Optional[Tuple[int, int]]:
+    """The characters of ``text`` a holiday construction matched, or None.
+
+    The gate and the extent are one question, asked once: a holiday reading
+    is kept only when a winning match is a holiday construction, and what it
+    matched is exactly the characters that construction covers.
+
+    The extent is the whole answer to what the holiday phrase is. chronologia
+    reports the tense a construction carries inside it -- "next easter",
+    "last christmas", "christmas eve" and "veille de noël" each come back as
+    one match over all their words -- while a modifier outside the
+    construction, as in "combien de jours avant noël", is applied to the
+    result without being part of the match. Reading the extent therefore
+    keeps the tense the phrase states and leaves a word the question owns in
+    the remainder, where "how many days until christmas" already left it.
+    """
     try:
         from chronologia import explain
-        from chronologia.extract.loader import load_lang_spec
-        trace = explain(text, load_lang_spec(_base_lang(lang)), anchor)
+        trace = explain(text, _spec(lang), anchor)
     except Exception:
-        return False
+        return None
     for won in trace.winners:
         match = won.match
-        if match.construction in _HOLIDAY_CONSTRUCTIONS:
-            return True
-        if "HOLIDAY" in (match.slots or {}):
-            return True
-    return False
+        if (match.construction not in _HOLIDAY_CONSTRUCTIONS
+                and "HOLIDAY" not in (match.slots or {})):
+            continue
+        try:
+            tokens = trace.tokens[match.span[0]:match.span[1]]
+            return (min(t.char_start for t in tokens),
+                    max(t.char_end for t in tokens))
+        except Exception:
+            return None
+    return None
 
 
 def extract_holiday_span(text: str, lang: str,
@@ -171,24 +292,36 @@ def extract_holiday_span(text: str, lang: str,
                          ) -> Optional[Tuple[datetime, str]]:
     """Resolve a named holiday in ``text`` to ``(datetime, remainder)``.
 
-    The date is the occurrence the utterance asks for — the next one by
-    default, and the one its tense names when it carries one ("next easter",
-    "last christmas") — as chronologia reckons it from ``anchorDate``.
+    The date is the occurrence the holiday phrase asks for: the next one by
+    default, and the one a determiner inside the phrase names when it
+    carries one ("next easter", "last christmas", "christmas eve"), as
+    chronologia reckons it from ``anchorDate``. A verb tense is not read —
+    "when was easter" answers with the next Easter, because chronologia
+    reads no verb — so this claims the determiner only. A word outside the holiday phrase is not read: it
+    stays in the remainder, so "how many days until christmas" and the
+    French "combien de jours avant noël" both answer with Christmas and both
+    keep their question.
 
-    Returns None when the utterance names no holiday in its own language,
-    when chronologia declines the phrase, or when chronologia answered from
-    something other than a holiday.
+    The remainder is the caller's own text with the holiday phrase cut out of
+    it, and nothing else removed.
+
+    Returns None when the utterance names no holiday in its own language, or
+    when chronologia answered from something other than a holiday.
     """
     if not text:
         return None
     if not _names_a_holiday(text, lang):
         return None
     anchor = anchorDate or datetime.now()
-    if not _holiday_won(text, lang, anchor):
+    written = _as_written(text, lang)
+    extent = _holiday_extent(written, lang, anchor)
+    if extent is None:
         return None
+    first, last = extent
     try:
         from chronologia import extract_timespan
-        result = extract_timespan(text, lang=_base_lang(lang), anchor=anchor,
+        result = extract_timespan(written[first:last], lang=_base_lang(lang),
+                                  anchor=anchor,
                                   jurisdiction=_jurisdiction(lang))
     except Exception:
         return None
@@ -197,8 +330,8 @@ def extract_holiday_span(text: str, lang: str,
     start = result.span.start_datetime
     if start is None:  # a span outside the datetime range
         return None
-    remainder = re.sub(r"\s{2,}", " ", (result.remainder or "")).strip()
-    return start, remainder
+    remainder = re.sub(r"\s{2,}", " ", text[:first] + " " + text[last:])
+    return start, remainder.strip()
 
 
 def extract_holiday_date(text: str, lang: str,

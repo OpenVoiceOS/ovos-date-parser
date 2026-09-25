@@ -85,6 +85,22 @@ class ScopedVocabulary:
     this_word: str
 
 
+def _month_alt(line: str) -> str:
+    """One month's line from ``months.voc`` as a regex fragment.
+
+    The file is read BY POSITION: line 1 is January and line 12 is December.
+    A spelling variant therefore cannot have a line of its own, because an
+    extra line shifts every month after it by one and pushes December off
+    the end. Variants go on the month's own line, separated by ``|``.
+
+    Each variant is escaped, so nothing in a vocabulary file is ever read as
+    a regex. The alternation is wrapped, so the caller can embed the result
+    in a larger group without the ``|`` escaping its scope.
+    """
+    variants = [v.strip() for v in line.split("|") if v.strip()]
+    return "(?:" + "|".join(re.escape(v) for v in variants) + ")"
+
+
 def load_scoped_vocabulary(lang: str,
                            locale_dir: str = LOCALE_DIR
                            ) -> ScopedVocabulary:
@@ -93,7 +109,8 @@ def load_scoped_vocabulary(lang: str,
     Files consumed (under ``<locale_dir>/<lang>/``): ``unit_day.voc``,
     ``unit_week.voc``, ``unit_month.voc``, ``unit_year.voc``,
     ``unit_decade.voc``, ``unit_century.voc``, ``unit_millennium.voc``,
-    ``months.voc`` (12 lines, January first), ``season_spring.voc``,
+    ``months.voc`` (exactly 12 lines, January first, one line per month,
+    spelling variants on that line separated by ``|``), ``season_spring.voc``,
     ``season_summer.voc``, ``season_fall.voc``, ``season_winter.voc``,
     ``ordinal_suffixes.voc``, ``marker_of.voc``, ``marker_article.voc``,
     ``marker_year_word.voc``, ``marker_last.voc``, ``marker_next.voc``,
@@ -114,7 +131,7 @@ def load_scoped_vocabulary(lang: str,
         units={u: voc(f"unit_{u}") for u in
                ("day", "week", "month", "year", "decade", "century",
                 "millennium") if voc(f"unit_{u}")},
-        months=[re.escape(m) for m in months],
+        months=[_month_alt(m) for m in months],
         seasons={s: voc(f"season_{n}") for s, n in
                  ((Season.SPRING, "spring"), (Season.SUMMER, "summer"),
                   (Season.FALL, "fall"), (Season.WINTER, "winter"))
@@ -212,7 +229,14 @@ def extract_scoped_date(text: str, vocab: ScopedVocabulary,
         if match:
             groups = match.groups()
             n = -1 if groups[1] else int(groups[0])
-            month = next(i for i in range(12) if match.group(f"m_{i}")) + 1
+            index = next((i for i in range(len(vocab.months))
+                          if match.group(f"m_{i}")), None)
+            if index is None or index >= 12:
+                # A months.voc with the wrong number of lines can match a
+                # group this loop cannot name a month for. Report no scoped
+                # date rather than raising out of a parse.
+                return None
+            month = index + 1
             year = int(groups[-1]) if groups[-1] else \
                 (ref_date.year if ref_date else date.today().year)
             unit = next(u for u in month_units if match.group(f"u_{u}"))

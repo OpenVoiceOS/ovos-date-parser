@@ -180,5 +180,147 @@ class TestExtractDatetimeSpokenTimeKab(unittest.TestCase):
         self.assertEqual((result[0].hour, result[0].minute), (12, 0))
 
 
+OFFSET_ANCHOR = datetime(2026, 9, 23, 8, 5)
+
+
+class TestKabRelativeOffsets(unittest.TestCase):
+    """T-4196: a duration alone is an offset from the anchor.
+
+    ``extract_duration`` read these phrases correctly and
+    ``extract_datetime`` threw the answer away and returned ``None``, so
+    every Kabyle relative-offset phrase read as no date at all. English,
+    German and Portuguese all answer the anchor plus the duration, for
+    the marked form and for the bare one.
+    """
+
+    def test_a_marked_offset_answers_the_anchor_plus_the_duration(self):
+        result = extract_datetime("mbaed 10 n wesrag", "kab",
+                                  anchorDate=OFFSET_ANCHOR)
+        self.assertIsNotNone(result, "read as no date")
+        self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(hours=10))
+        # The second element is the contract a skill reads the rest of
+        # the utterance from, so it is asserted, not ignored. The marker
+        # is not part of the quantity and must survive.
+        self.assertEqual(result[1], "mbaed")
+
+    def test_an_offset_inside_a_question_is_still_an_offset(self):
+        result = extract_datetime("melmi ara tili ma rgig 10 n tesdidin",
+                                  "kab", anchorDate=OFFSET_ANCHOR)
+        self.assertIsNotNone(result, "read as no date")
+        self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(minutes=10))
+        self.assertEqual(result[1], "melmi ara tili ma rgig")
+
+    def test_a_bare_duration_is_an_offset(self):
+        result = extract_datetime("10 n tesdidin", "kab",
+                                  anchorDate=OFFSET_ANCHOR)
+        self.assertIsNotNone(result, "read as no date")
+        self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(minutes=10))
+        # The whole phrase is the quantity here, so nothing is left.
+        self.assertEqual(result[1], "")
+
+    def test_the_duration_layer_already_read_these(self):
+        """The measurement that located the defect: the duration was
+        always available, so the gap was the datetime branch alone."""
+        for phrase, seconds in (("mbaed 10 n wesrag", 36000),
+                                ("10 n tesdidin", 600)):
+            with self.subTest(phrase=phrase):
+                self.assertEqual(extract_duration(phrase, "kab")[0],
+                                 timedelta(seconds=seconds))
+
+    def test_a_clock_time_still_wins_over_an_offset(self):
+        """The control. The offset branch runs only where the function
+        answered ``None``, so a phrase that names a clock time keeps the
+        clock time and is not shifted from the anchor."""
+        result = extract_datetime("d ttnac n uzal", "kab",
+                                  anchorDate=OFFSET_ANCHOR)
+        self.assertEqual((result[0].hour, result[0].minute), (12, 0))
+
+    def test_a_relative_day_still_wins_over_an_offset(self):
+        result = extract_datetime("azekka", "kab", anchorDate=OFFSET_ANCHOR)
+        self.assertEqual(result[0].date(),
+                         (OFFSET_ANCHOR + timedelta(days=1)).date())
+
+
+class TestKabBareUnitIsNotOne(unittest.TestCase):
+    """T-4196: a unit noun with no quantity is not a duration.
+
+    The loop defaulted a missing quantity to 1, so the question "acdal
+    ara tili ssaɛa" ("what time will it be") read as one hour, and a
+    phrase that also carried a real quantity got the spurious hour added
+    to it. A wrong duration is worse than none: the skill read that
+    phrasing as a place.
+    """
+
+    def test_a_bare_unit_is_not_a_duration(self):
+        for phrase in ("ssaɛa", "asrag", "acdal ara tili ssaɛa"):
+            with self.subTest(phrase=phrase):
+                self.assertIsNone(extract_duration(phrase, "kab")[0],
+                                  msg=f"{phrase!r} read as a duration")
+
+    def test_the_bare_unit_does_not_inflate_a_real_quantity(self):
+        """The case from the skill: ten minutes, not ten minutes plus an
+        hour."""
+        value, remainder = extract_duration(
+            "deg 10 n tesdidin acdal ara tili ssaɛa", "kab")
+        self.assertEqual(value, timedelta(minutes=10))
+        self.assertIn("ssaɛa", remainder,
+                      "the unread unit belongs in the remainder")
+
+    def test_a_quantity_before_the_unit_still_reads(self):
+        """The control that the fix did not simply stop reading hours."""
+        for phrase in ("1 ssaɛa", "yiwet n ssaɛa"):
+            with self.subTest(phrase=phrase):
+                self.assertEqual(extract_duration(phrase, "kab")[0],
+                                 timedelta(hours=1))
+        self.assertEqual(extract_duration("sin wussan", "kab")[0],
+                         timedelta(days=2))
+        self.assertEqual(extract_duration("10 n tesdidin", "kab")[0],
+                         timedelta(minutes=10))
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestKabBackwardScanIsBounded(unittest.TestCase):
+    """The backward scan that finds the quantity before a unit noun.
+
+    ``extract_number_kab`` answers the number it finds inside a phrase and
+    tolerates any prefix, so an unbounded scan reads the same value from
+    every longer candidate and walks to the start of the line. The
+    remainder then comes back with every leading word removed. The scan
+    stops when a token does not change the value, and lets one token
+    through when it is the connector of a spoken number and does not spell
+    a number by itself. This is the rule
+    ``ovos_number_parser.extract_number_spans`` uses for the same problem.
+    """
+
+    def test_the_words_before_the_quantity_survive(self):
+        for phrase, seconds, rest in (
+                ("mbaed 10 n wesrag", 36000, "mbaed"),
+                ("melmi ara tili ma rgig 10 n tesdidin", 600,
+                 "melmi ara tili ma rgig"),
+                ("sekker tanafa n 10 n tesdidin", 600, "sekker tanafa n")):
+            with self.subTest(phrase=phrase):
+                duration, remainder = extract_duration(phrase, "kab")
+                self.assertEqual(duration, timedelta(seconds=seconds))
+                self.assertEqual(remainder, rest)
+
+    def test_a_spoken_number_keeps_its_connector(self):
+        """The control on the stop rule. "mraw d yiwen" is eleven, and its
+        "d" reads the same value as "yiwen" alone, so a stop with no
+        connector allowance would answer one minute instead of eleven."""
+        for phrase, seconds in (("mraw d yiwen n tesdidin", 660),
+                                ("mraw d sin n tesdidin", 720),
+                                ("\u025becrin d yiwen n tesdidin", 1260)):
+            with self.subTest(phrase=phrase):
+                self.assertEqual(extract_duration(phrase, "kab")[0],
+                                 timedelta(seconds=seconds))
+
+    def test_a_two_word_number_is_read_whole(self):
+        """"sin mraw" is twelve in Kabyle, not two beside ten, and the
+        longer candidate changes the value, so the scan keeps growing
+        without needing its connector allowance."""
+        duration, remainder = extract_duration("sin mraw n tesdidin", "kab")
+        self.assertEqual(duration, timedelta(minutes=12))
+        self.assertEqual(remainder, "")

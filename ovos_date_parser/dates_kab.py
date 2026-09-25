@@ -409,6 +409,8 @@ def extract_duration_kab(text: str) -> Tuple[Optional[timedelta], str]:
             # allow multiword spoken numbers before the unit
             start = j
             value = None
+            first = None
+            connector_used = False
             while start >= 0:
                 if start in consumed:
                     break
@@ -416,14 +418,37 @@ def extract_duration_kab(text: str) -> Tuple[Optional[timedelta], str]:
                 val = extract_number_kab(candidate)
                 if val is False:
                     break
-                value = val
+                if value is None or val != value:
+                    value = val
+                    first = start
+                    connector_used = False
+                    start -= 1
+                    continue
+                # The longer candidate reads the same value, so this token
+                # adds nothing of its own. extract_number_kab tolerates any
+                # prefix and answers the number it finds inside, so without
+                # a stop here the scan walks to the start of the line and
+                # the remainder comes back with every leading word removed.
+                # One such token may still be the connector of a spoken
+                # number ("mraw d yiwen" is 11), so one is allowed through,
+                # and only when it does not spell a number by itself. This
+                # is the rule ovos_number_parser.extract_number_spans uses
+                # for the same problem.
+                word = extract_number_kab(tokens[start].strip(".,!?;:"))
+                if connector_used or word is not False:
+                    break
+                connector_used = True
                 start -= 1
             if value is None:
-                value = 1
-                start = j
+                # a unit noun with no quantity before it is not a
+                # duration. Reading it as one turns the question "acdal
+                # ara tili ssaɛa" into an hour, and adds a spurious hour
+                # to any phrase that also carries a real quantity.
+                i += 1
+                continue
             total += value * unit_seconds[tok]
             found = True
-            consumed.update(range(start + 1, i + 1))
+            consumed.update(range(first, i + 1))
         i += 1
 
     if not found:
@@ -510,6 +535,13 @@ def extract_datetime_kab(text: str, anchorDate: Optional[datetime] = None,
                     break
 
     if not date_found and not time_found:
+        # A duration alone is an offset from the anchor, which is what
+        # en, de and pt already answer for "in 10 hours" and for the bare
+        # "10 hours". Kabyle parsed the duration and threw it away, so
+        # every relative-offset phrase read as no date at all.
+        offset, rest = extract_duration_kab(" ".join(tokens))
+        if offset is not None:
+            return [anchor + offset, rest.strip()]
         return None
     if not time_found:
         if default_time:

@@ -130,7 +130,17 @@ def load_scoped_vocabulary(lang: str,
 
 
 def _art(vocab):
-    return rf"(?:{vocab.article}\s+)?"
+    # The alternation needs its own group: without it ``\s+`` binds to the
+    # last alternative alone, so every other article matches with no space
+    # after it and stays in the remainder. ``eras_scan._era_pattern`` writes
+    # the same construct with the inner group.
+    #
+    # The space is required after every article except an elided one.
+    # French and Italian write ``l'annee`` and ``l'anno`` with nothing
+    # between the article and the noun, so an article that ends in an
+    # apostrophe takes no whitespace. The lookbehind reads the character
+    # the article ended on, so it costs nothing for the other forms.
+    return rf"(?:(?:{vocab.article})(?:\s+|(?<=')))?"
 
 
 def extract_scoped_date(text: str, vocab: ScopedVocabulary,

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.1a1) (2026-09-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.0a1...0.33.1a1)
+
+**Merged pull requests:**
+
+- fix: read the holiday phrase's own extent, and load each language once [\#372](https://github.com/OpenVoiceOS/ovos-date-parser/pull/372) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.33.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.0a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.3a1...0.33.0a1)
@@ -324,11 +332,6 @@
 ## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.6a1...0.28.7a1)
-
-**Merged pull requests:**
-
-- Release 0.28.7a1 [\#269](https://github.com/OpenVoiceOS/ovos-date-parser/pull/269) ([github-actions[bot]](https://github.com/apps/github-actions))
-- fix: keep Hebrew date fields masculine via explicit gender kwarg [\#268](https://github.com/OpenVoiceOS/ovos-date-parser/pull/268) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.6a1) (2026-07-20)
 

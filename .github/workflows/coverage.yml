@@ -12,5 +12,10 @@ jobs:
     secrets: inherit
     with:
       pre_install_pip: "pytest-timeout"
-      test_path: "test/format_tests test/parse_tests test/test_dates_pt.py test/test_multilang_invariants.py test/test_lang_parity.py test/test_packaging.py"
+      # The whole directory, for the same reason as build_tests.yml.
+      # The six paths it named collected 808 of the 2797 tests the
+      # tree holds, so the reported figure was coverage of under a
+      # third of the suite. The number moves because it becomes the
+      # true one for the tree.
+      test_path: "test"
       coverage_source: "ovos_date_parser"

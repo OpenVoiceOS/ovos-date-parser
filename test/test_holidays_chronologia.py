@@ -12,7 +12,8 @@ from datetime import date, datetime
 
 import pytest
 
-from ovos_date_parser import (extract_datetime, extract_scoped_date,
+from ovos_date_parser import (extract_datetime, extract_datetime_spans,
+                              extract_scoped_date,
                               extract_holiday_span, holiday_surfaces,
                               load_scoped_vocabulary)
 from ovos_date_parser.ranges import DateTimeResolution
@@ -122,3 +123,107 @@ def test_surfaces_come_from_chronologia():
     from chronologia.civil_holidays import well_known_surfaces
     assert holiday_surfaces("pt") == dict(well_known_surfaces("pt"))
     assert "natal" in holiday_surfaces("pt")
+
+
+# --------------------------------------------------------------------- #
+# The fix round on #369: cost, remainder, accents
+# --------------------------------------------------------------------- #
+
+def test_the_language_spec_is_loaded_once_per_language():
+    """The mechanism behind the cost.
+
+    ``load_lang_spec`` compiles a locale on every call and caches nothing,
+    about a second each time. ``extract_datetime_spans`` asks the holiday
+    layer about every window of an utterance, so an uncached spec cost a
+    second per window: 15 to 30 seconds for one sentence.
+    """
+    from ovos_date_parser import holidays
+
+    assert holidays._spec("en-US") is holidays._spec("en")
+
+
+def test_a_sentence_that_merely_names_a_holiday_costs_milliseconds():
+    """The outcome, measured on the sentence the review blocked on.
+
+    The bound is generous against a loaded box; what it rules out is the
+    per-window reload, which took 15 seconds here and 29.9 on the reviewer's
+    box against 0.00 on dev.
+    """
+    import time
+
+    extract_datetime("christmas", "en-US", REF)  # warm the language spec
+    started = time.monotonic()
+    spans = extract_datetime_spans("play some christmas music", "en-US")
+    elapsed = time.monotonic() - started
+    assert elapsed < 3.0, f"the span scan took {elapsed:.1f}s"
+    assert [s.surface for s in spans] == ["christmas"]
+
+
+@pytest.mark.parametrize("lang,utterance,kept", [
+    ("en-US", "how many days until christmas", "how many days until"),
+    ("fr-FR", "combien de jours avant noël", "combien de jours avant"),
+    ("pt-PT", "quantos dias faltam para o natal", "quantos dias faltam para o"),
+    ("en-US", "play some christmas music", "play some music"),
+])
+def test_the_remainder_keeps_every_word_outside_the_holiday_phrase(
+        lang, utterance, kept):
+    """Only the holiday phrase leaves the remainder.
+
+    "combien de jours avant noël" came back as 'combien': chronologia
+    applied "avant" as an offset from outside the match and took "de jours"
+    with it, so a French question lost words its English sibling kept.
+    """
+    got = extract_datetime(utterance, lang, REF)
+    assert got is not None
+    assert got[1] == kept
+
+
+def test_the_same_question_reads_the_same_in_english_and_french():
+    """The French question asked about Christmas and was answered Christmas Eve."""
+    english = extract_datetime("how many days until christmas", "en-US", REF)
+    french = extract_datetime("combien de jours avant noël", "fr-FR", REF)
+    assert english[0] == french[0] == CHRISTMAS
+
+
+@pytest.mark.parametrize("lang,plain,written", [
+    ("fr-FR", "noel", "noël"),
+    ("fr-FR", "paques", "pâques"),
+    ("fr-FR", "combien de jours avant noel", "combien de jours avant noël"),
+    ("pt-PT", "pascoa", "páscoa"),
+])
+def test_a_transcript_without_accents_reads_the_same_date(lang, plain, written):
+    """Speech to text drops accents; the holiday is named either way.
+
+    French resolved only the written form, while Portuguese already resolved
+    both, so the same feature answered one language and refused the other.
+    """
+    assert extract_datetime(plain, lang, REF) is not None
+    assert extract_datetime(plain, lang, REF)[0] == \
+        extract_datetime(written, lang, REF)[0]
+
+
+def test_the_documented_french_example_is_true():
+    """docs/api.md says the unaccented "noel" resolves. It must."""
+    from pathlib import Path
+
+    import ovos_date_parser
+
+    doc = (Path(ovos_date_parser.__file__).parent.parent / "docs" / "api.md")
+    if doc.exists():
+        assert "noel" in doc.read_text(encoding="utf-8")
+    assert extract_datetime("noel", "fr-FR", REF)[0] == CHRISTMAS
+
+
+@pytest.mark.parametrize("utterance,expected", [
+    ("next easter", EASTER),
+    ("last christmas", datetime(2025, 12, 25, 0, 0)),
+    ("christmas eve", datetime(2026, 12, 24, 0, 0)),
+])
+def test_a_tense_inside_the_holiday_phrase_still_reads(utterance, expected):
+    """The control on reading the construction's own extent.
+
+    Reading only the matched extent must not cost the tense a phrase states
+    inside it: chronologia reports "next easter", "last christmas" and
+    "christmas eve" each as one match over all their words.
+    """
+    assert extract_datetime(utterance, "en-US", REF)[0] == expected

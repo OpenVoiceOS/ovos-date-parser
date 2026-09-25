@@ -40,7 +40,13 @@ def vocab_fr():
 @pytest.mark.parametrize("text,expected,resolution", [
     ("le 3eme jour de janvier", date(2026, 1, 3),
      DateTimeResolution.DAY_OF_MONTH),
-    ("le dernier jour de mars", date(2026, 4, 30),
+    # March, not April. This row read date(2026, 4, 30) while months.voc
+    # carried fevrier on a line of its own: the file is positional, so the
+    # extra line moved mars to April's slot and the gold was written from
+    # the defect rather than from the phrase. Every other language in
+    # test_locale_kab_per_file_fallback.py asserts the 31st of March for
+    # the same sentence.
+    ("le dernier jour de mars", date(2026, 3, 31),
      DateTimeResolution.DAY_OF_MONTH),
     ("en hiver", date(2026, 12, 1), DateTimeResolution.MONTH),
     ("le 2eme jour de l'annee", date(2026, 1, 2),
@@ -56,7 +62,10 @@ def test_scoped_french_phrases_resolve(vocab_fr, text, expected, resolution):
 
 def test_french_vocab_is_french(vocab_fr):
     """The phrase sets the four overwritten files feed are French."""
-    assert vocab_fr.months[:3] == ["janvier", "février", "fevrier"]
+    # One entry per month, variants inside the entry. The old shape put
+    # "fevrier" on its own line, which shifted every later month by one.
+    assert vocab_fr.months[:3] == ["(?:janvier)", "(?:février|fevrier)",
+                                   "(?:mars)"]
     assert "hiver" in vocab_fr.seasons[list(vocab_fr.seasons)[-1]]
     assert "jour" in vocab_fr.units["day"]
     assert "ans" in vocab_fr.units["year"]

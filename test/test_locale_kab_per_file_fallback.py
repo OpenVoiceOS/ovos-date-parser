@@ -35,7 +35,8 @@ def test_markers_come_from_chronologia_when_the_local_folder_lacks_them(vocab_ka
 
 def test_units_and_months_still_come_from_the_local_folder(vocab_kab):
     """The local folder still wins for every file it does ship."""
-    assert vocab_kab.months[:3] == ["yennayer", "fuṛar", "meɣres"]
+    assert vocab_kab.months[:3] == ["(?:yennayer)", "(?:fuṛar)",
+                                    "(?:meɣres)"]
     assert "ass" in vocab_kab.units["day"]
     assert "aseggas" in vocab_kab.units["year"]
 
@@ -71,7 +72,9 @@ def test_the_english_control_is_unchanged():
 
 
 @pytest.mark.parametrize("lang,phrase,expected", [
-    ("fr", "le dernier jour de mars", date(2026, 4, 30)),
+    # March, like every other row. The April date was the positional
+    # months.voc defect written down as gold; see test_locale_fr_month_vocab.
+    ("fr", "le dernier jour de mars", date(2026, 3, 31)),
     ("de", "der letzte tag des märz", date(2026, 3, 31)),
     ("es", "el ultimo dia de marzo", date(2026, 3, 31)),
     ("it", "l'ultimo giorno di marzo", date(2026, 3, 31)),

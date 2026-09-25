@@ -12,7 +12,13 @@ from datetime import datetime, time, timedelta, timezone
 from ovos_date_parser import (DateTimeSpan, DurationSpan, extract_datetime,
                               extract_datetime_spans, extract_duration,
                               extract_duration_spans)
-from test.test_extract_datetime_return_shape import PHRASE_PER_LANG
+# Sibling module, imported by its bare name. test/ ships no __init__.py,
+# so it is not a package and `from test.<module>` resolves to the
+# standard library's own `test` package instead of this directory.
+# pytest's default import mode puts the first directory without an
+# __init__.py on sys.path, which is test/ itself, so the bare name is
+# what the rest of the suite would use.
+from test_extract_datetime_return_shape import PHRASE_PER_LANG
 
 UTC = timezone.utc
 ANCHOR = datetime(2026, 3, 11, 10, 0, tzinfo=UTC)  # a Wednesday, mid morning

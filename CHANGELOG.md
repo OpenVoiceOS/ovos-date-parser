@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.32.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.2a1) (2026-09-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.1a1...0.32.2a1)
+
+**Merged pull requests:**
+
+- fix\(scoped\): group the article alternation so every article takes its space [\#365](https://github.com/OpenVoiceOS/ovos-date-parser/pull/365) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.32.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.1a1) (2026-09-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.0a1...0.32.1a1)
@@ -323,8 +331,6 @@
 
 - Release 0.28.5a1 [\#265](https://github.com/OpenVoiceOS/ovos-date-parser/pull/265) ([github-actions[bot]](https://github.com/apps/github-actions))
 - fix: correct Danish spelling of eleven, raise number-parser floor [\#264](https://github.com/OpenVoiceOS/ovos-date-parser/pull/264) ([JarbasAl](https://github.com/JarbasAl))
-- fix\(da\): correct day-of-month ordinal spelling \(tredje/niende/ellevte\) [\#263](https://github.com/OpenVoiceOS/ovos-date-parser/pull/263) ([andlo](https://github.com/andlo))
-- fix\(no\): complete the no-\>nb alias for year/date formatting; document nb/nn [\#262](https://github.com/OpenVoiceOS/ovos-date-parser/pull/262) ([andlo](https://github.com/andlo))
 
 ## [0.28.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.4a1) (2026-07-18)
 

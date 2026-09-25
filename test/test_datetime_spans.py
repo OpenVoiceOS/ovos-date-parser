@@ -12,7 +12,7 @@ from datetime import datetime, time, timedelta, timezone
 from ovos_date_parser import (DateTimeSpan, DurationSpan, extract_datetime,
                               extract_datetime_spans, extract_duration,
                               extract_duration_spans)
-from test.test_extract_datetime_return_shape import PHRASE_PER_LANG
+from test_extract_datetime_return_shape import PHRASE_PER_LANG
 
 UTC = timezone.utc
 ANCHOR = datetime(2026, 3, 11, 10, 0, tzinfo=UTC)  # a Wednesday, mid morning

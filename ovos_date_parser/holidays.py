@@ -334,6 +334,48 @@ def extract_holiday_span(text: str, lang: str,
     return start, remainder.strip()
 
 
+def holiday_overrides_engine(text: str, lang: str, engine_remainder: str,
+                            anchorDate: Optional[datetime] = None) -> bool:
+    """Whether a language engine read its date out of the holiday phrase.
+
+    A holiday name may be written with calendar vocabulary of its own
+    language: "good friday", "palm sunday", "may day". A per-language engine
+    reads the weekday inside such a name and answers with the coming Friday,
+    and the holiday layer, asked only when the engine found nothing, is never
+    reached. The engine order is right everywhere else, so the question asked
+    here is narrow: did the engine take its date from words the holiday phrase
+    itself covers?
+
+    The words the engine consumed are ``text`` less its remainder. They lie
+    inside the holiday phrase for "good friday", where the engine consumed
+    "friday" and left "good", and outside it for "play christmas music on
+    friday", where the engine consumed a Friday the phrase "christmas" does
+    not cover. The first is the holiday layer's to answer; the second is the
+    engine's, and stays so.
+
+    A text that names no holiday of its language never reaches chronologia:
+    :func:`_names_a_holiday` is a table lookup and answers first.
+    """
+    if not text:
+        return False
+    if not _names_a_holiday(text, lang):
+        return False
+    anchor = anchorDate or datetime.now()
+    written = _as_written(text, lang)
+    extent = _holiday_extent(written, lang, anchor)
+    if extent is None:
+        return False
+    first, last = extent
+    phrase_words = _word_set(written[first:last])
+    consumed = _word_set(text) - _word_set(engine_remainder)
+    return bool(consumed) and consumed <= phrase_words
+
+
+def _word_set(text: str) -> FrozenSet[str]:
+    """The folded words of ``text``, for comparing one extent with another."""
+    return frozenset(_fold(word) for word in re.findall(r"\w+", text or ""))
+
+
 def extract_holiday_date(text: str, lang: str,
                          ref_date: Optional[date] = None
                          ) -> Optional[Tuple[date, str]]:

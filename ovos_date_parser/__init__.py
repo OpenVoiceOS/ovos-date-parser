@@ -29,6 +29,7 @@ from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
 from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
 from ovos_date_parser.holidays import (extract_holiday_date,
                                        extract_holiday_span,
+                                       holiday_overrides_engine,
                                        holiday_surfaces)
 from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
 from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
@@ -412,13 +413,22 @@ def extract_datetime(
     reads no date, :func:`ovos_date_parser.holidays.extract_holiday_span`
     asks chronologia, and its answer is taken only when chronologia says a
     holiday construction is what matched. An utterance the engine already
-    reads keeps the engine's answer, so nothing that worked before changes.
+    reads keeps the engine's answer, with one exception: a holiday whose own
+    name is written with calendar vocabulary ("good friday", "palm sunday")
+    is read by the engine as that weekday, so when the engine's whole match
+    lies inside the holiday phrase
+    (:func:`~ovos_date_parser.holidays.holiday_overrides_engine`) the holiday
+    layer answers instead. A date the engine read from words the phrase does
+    not cover stays the engine's.
     """
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
-    if found is not None:
+    if found is not None and not holiday_overrides_engine(
+            text, lang, found[1], anchorDate=anchorDate):
         return found
     holiday = extract_holiday_span(text, lang, anchorDate=anchorDate)
+    if holiday is None:
+        return found
     if holiday is None:
         return None
     moment, remainder = holiday

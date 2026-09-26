@@ -227,3 +227,79 @@ def test_a_tense_inside_the_holiday_phrase_still_reads(utterance, expected):
     "christmas eve" each as one match over all their words.
     """
     assert extract_datetime(utterance, "en-US", REF)[0] == expected
+
+
+# --- finding 5 of the #369 review: a holiday named after a weekday ----------
+
+# `extract_datetime` runs the per-language engine first. A holiday whose own
+# name carries weekday vocabulary — "good friday", "palm sunday" — therefore
+# answered with the coming weekday and never reached the holiday layer, which
+# knew the right date all along. Eight of the twelve weekday- and month-named
+# English holidays answered that way.
+#
+# Every date below is reckoned independently of the parser. Western Easter 2027
+# is 28 March by the Gregorian computus, and the movable feasts are counted from
+# it: Palm Sunday is Easter minus 7 (21 March), Maundy Thursday minus 3
+# (25 March), Good Friday minus 2 (26 March), Holy Saturday minus 1 (27 March),
+# Easter Monday plus 1 (29 March), Whit Monday plus 50 (17 May). Shrove Tuesday
+# is Easter minus 47 (9 February) and Ash Wednesday minus 46 (10 February).
+
+WEEKDAY_NAMED_HOLIDAYS = [
+    ("palm sunday", date(2027, 3, 21)),
+    ("maundy thursday", date(2027, 3, 25)),
+    ("good friday", date(2027, 3, 26)),
+    ("holy saturday", date(2027, 3, 27)),
+    ("easter monday", date(2027, 3, 29)),
+    ("whit monday", date(2027, 5, 17)),
+    ("shrove tuesday", date(2027, 2, 9)),
+    ("ash wednesday", date(2027, 2, 10)),
+]
+
+
+@pytest.mark.parametrize("utterance,expected", WEEKDAY_NAMED_HOLIDAYS)
+def test_a_weekday_named_holiday_answers_with_the_holiday(utterance, expected):
+    """The holiday layer's date wins when the engine read the holiday's own
+    words as a weekday."""
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    assert got[0].date() == expected
+
+
+@pytest.mark.parametrize("utterance,expected", WEEKDAY_NAMED_HOLIDAYS)
+def test_a_weekday_named_holiday_keeps_no_half_of_its_name(utterance, expected):
+    """The remainder holds no word of the holiday's own name."""
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    for word in utterance.split():
+        assert word not in got[1].lower()
+
+
+def test_a_plain_weekday_still_answers_with_the_weekday(utterance=None):
+    """Control: a weekday that names no holiday is untouched.
+
+    25 September 2026 is a Friday, so the coming Sunday is the 27th.
+    """
+    got = extract_datetime("sunday", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2026, 9, 27)
+
+
+def test_a_weekday_beside_a_holiday_keeps_the_weekday():
+    """Control: the engine's answer stands when it read words the holiday
+    phrase does not cover.
+
+    "play christmas music on friday" asks about Friday. The holiday phrase is
+    "christmas" alone, so the engine's Friday is not inside it and the holiday
+    date must not replace it.
+    """
+    got = extract_datetime("play christmas music on friday", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2026, 9, 25) or got[0].date() == date(2026, 10, 2)
+    assert got[0].date() != date(2026, 12, 25)
+
+
+def test_a_holiday_the_engine_cannot_read_is_unchanged():
+    """Control: the None path of the engine still answers from the layer."""
+    got = extract_datetime("boxing day", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2026, 12, 26)

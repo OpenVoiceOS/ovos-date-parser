@@ -41,6 +41,61 @@ class TestClockNotation(unittest.TestCase):
         self.assertEqual(extract("à trois heures")[0].hour, 3)
 
 
+class TestSpacedClockNotation(unittest.TestCase):
+    """French typography puts a space before the "h" ("20 h 30"), and so does
+    speech-to-text; it is the same clock as "20h30"."""
+
+    def test_a_hour_spaced_h(self):
+        self.assertEqual(extract("à 18 h")[0], dt(2117, 9, 3, 18))
+
+    def test_bare_hour_spaced_h(self):
+        self.assertEqual(extract("20 h")[0], dt(2117, 9, 3, 20))
+
+    def test_hour_minute_spaced_h(self):
+        self.assertEqual(extract("20 h 30")[0], dt(2117, 9, 3, 20, 30))
+
+    def test_tomorrow_spaced_h(self):
+        self.assertEqual(extract("demain à 20 h")[0], dt(2117, 9, 4, 20))
+
+    def test_tomorrow_spaced_h_minutes(self):
+        self.assertEqual(extract("demain à 20 h 30")[0],
+                         dt(2117, 9, 4, 20, 30))
+
+    def test_spaced_h_evening(self):
+        self.assertEqual(extract("demain à 8 h du soir")[0],
+                         dt(2117, 9, 4, 20))
+
+    def test_spaced_h_morning(self):
+        self.assertEqual(extract("demain à 7 h du matin")[0],
+                         dt(2117, 9, 4, 7))
+
+    def test_spaced_h_quarter(self):
+        self.assertEqual(extract("demain à 9 h et quart")[0],
+                         dt(2117, 9, 4, 9, 15))
+
+    def test_spaced_h_in_sentence(self):
+        date, rest = extract("rappelle-moi de sortir le chien demain à 20 h")
+        self.assertEqual(date, dt(2117, 9, 4, 20))
+        self.assertEqual(rest, "rappelle-moi sortir chien")
+
+    def test_spaced_h_same_as_joined(self):
+        for spaced, joined in [("à 18 h", "à 18h"), ("20 h 30", "20h30"),
+                               ("demain à 20 h", "demain à 20h"),
+                               ("demain à 20 h", "demain à 20 heures")]:
+            with self.subTest(spaced=spaced):
+                self.assertEqual(extract(spaced)[0], extract(joined)[0])
+
+    def test_spaced_h_offset(self):
+        self.assertEqual(extract("dans 2 h")[0], dt(2117, 9, 3, 15, 30))
+
+    def test_fr_ca(self):
+        self.assertEqual(extract("demain à 20 h", lang="fr-ca")[0],
+                         dt(2117, 9, 4, 20))
+
+    def test_lone_h_is_not_a_time(self):
+        self.assertIsNone(extract("la bombe h"))
+
+
 class TestOrdinalFirstOfMonth(unittest.TestCase):
     """"1er" is the ordinary way to say the first day of a month."""
 

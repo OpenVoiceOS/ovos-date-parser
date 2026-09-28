@@ -34,7 +34,8 @@ from typing import Dict, List, Optional, Tuple
 
 from ovos_spec_tools import LocaleResources
 
-from ovos_date_parser.eras_scan import LOCALE_DIR, _alt, _voc_reader
+from ovos_date_parser.eras_scan import (LOCALE_DIR, _alt, _voc_reader,
+                                        _positional_voc_reader)
 from ovos_date_parser.ranges import (DateTimeResolution, Hemisphere, Season,
                                      get_date_ordinal, last_season_date,
                                      next_season_date, season_to_date)
@@ -85,20 +86,36 @@ class ScopedVocabulary:
     this_word: str
 
 
-def _month_alt(line: str) -> str:
+def _month_alt(variants: List[str]) -> str:
     """One month's line from ``months.voc`` as a regex fragment.
 
     The file is read BY POSITION: line 1 is January and line 12 is December.
     A spelling variant therefore cannot have a line of its own, because an
-    extra line shifts every month after it by one and pushes December off
-    the end. Variants go on the month's own line, separated by ``|``.
+    extra line shifts every month after it by one and pushes December off the
+    end. Variants go on the month's own line, as one group: ``(février|fevrier)``.
+    A bare ``février|fevrier`` is malformed — OVOS-INTENT-1 §3.6, "a ``|`` that
+    is inside no group" — and ovos-spec-tools 1.14.0a1 skips such a line, which
+    took French to 11 months and moved every month after February.
+
+    ``variants`` is that one line's expanded sample set, from
+    :func:`_positional_voc_reader`, so the caller keeps line N's samples on
+    line N.
 
     Each variant is escaped, so nothing in a vocabulary file is ever read as
     a regex. The alternation is wrapped, so the caller can embed the result
-    in a larger group without the ``|`` escaping its scope.
+    in a larger group without the ``|`` escaping its scope. Longest first, so
+    no variant is shadowed by one of its own prefixes.
     """
-    variants = [v.strip() for v in line.split("|") if v.strip()]
-    return "(?:" + "|".join(re.escape(v) for v in variants) + ")"
+    seen = []
+    for variant in variants:
+        variant = variant.strip()
+        if variant and variant not in seen:
+            seen.append(variant)
+    # a stable sort on length alone, so two variants of the same length keep
+    # the order the file gave them: a set here made the fragment depend on the
+    # hash seed and the assertion on it flaky
+    ordered = sorted(seen, key=len, reverse=True)
+    return "(?:" + "|".join(re.escape(v) for v in ordered) + ")"
 
 
 def load_scoped_vocabulary(lang: str,
@@ -110,13 +127,14 @@ def load_scoped_vocabulary(lang: str,
     ``unit_week.voc``, ``unit_month.voc``, ``unit_year.voc``,
     ``unit_decade.voc``, ``unit_century.voc``, ``unit_millennium.voc``,
     ``months.voc`` (exactly 12 lines, January first, one line per month,
-    spelling variants on that line separated by ``|``), ``season_spring.voc``,
+    spelling variants on that line as one group, ``(a|b)``), ``season_spring.voc``,
     ``season_summer.voc``, ``season_fall.voc``, ``season_winter.voc``,
     ``ordinal_suffixes.voc``, ``marker_of.voc``, ``marker_article.voc``,
     ``marker_year_word.voc``, ``marker_last.voc``, ``marker_next.voc``,
     ``marker_this.voc``.
     """
     read = _voc_reader(lang, locale_dir)
+    read_lines = _positional_voc_reader(lang, locale_dir)
 
     def voc(name):
         try:
@@ -125,7 +143,7 @@ def load_scoped_vocabulary(lang: str,
             return None
         return _alt(phrases) if phrases else None
 
-    months = read("months")
+    months = read_lines("months")
     ord_suf = voc("ordinal_suffixes")
     return ScopedVocabulary(
         units={u: voc(f"unit_{u}") for u in

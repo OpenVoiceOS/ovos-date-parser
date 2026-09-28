@@ -144,6 +144,23 @@ def load_scoped_vocabulary(lang: str,
         return _alt(phrases) if phrases else None
 
     months = read_lines("months")
+    if len(months) != 12:
+        # months.voc is read BY POSITION: line N is month N. A file with any
+        # other number of lines is not a month table, and there is no way to
+        # tell from it which month each line is meant to be. Refuse it here,
+        # naming the locale and the count, rather than letting the scan answer
+        # a confident wrong month (T-4767: an 11-line fr file answered
+        # "avril" as 31 March).
+        #
+        # This is the loader, so it fails LOUD, the same contract
+        # _positional_voc_reader states for a malformed line. The scan keeps
+        # its own softer contract; see the guard in extract_scoped_date.
+        raise ValueError(
+            f"months.voc for {lang!r} has {len(months)} lines, expected "
+            f"exactly 12, one per month, January first, with spelling "
+            f"variants grouped on their month's own line as (a|b). "
+            f"Read by position, so a wrong count silently shifts every "
+            f"month after the gap.")
     ord_suf = voc("ordinal_suffixes")
     return ScopedVocabulary(
         units={u: voc(f"unit_{u}") for u in
@@ -257,10 +274,27 @@ def extract_scoped_date(text: str, vocab: ScopedVocabulary,
             n = -1 if groups[1] else int(groups[0])
             index = next((i for i in range(len(vocab.months))
                           if match.group(f"m_{i}")), None)
-            if index is None or index >= 12:
+            if index is None or index >= 12 or len(vocab.months) < 12:
                 # A months.voc with the wrong number of lines can match a
                 # group this loop cannot name a month for. Report no scoped
                 # date rather than raising out of a parse.
+                #
+                # The two halves of the count are not symmetric, so the guard
+                # is not either:
+                #
+                # * MORE than twelve entries: only the entries past the
+                #   twelfth cannot be named. Index 0-11 are still the real
+                #   months, so a real month still answers (the 13-line case
+                #   TestAMissizedFileDoesNotRaise pins).
+                # * FEWER than twelve: every entry at or after the gap is the
+                #   WRONG month, and nothing in the table says where the gap
+                #   is. No index can be trusted, so the whole table is
+                #   refused. Without this an 11-line fr file answered "avril"
+                #   as 31 March, silently (T-4767).
+                #
+                # load_scoped_vocabulary refuses a mis-sized file outright.
+                # This guard is the backstop for a table built in memory or
+                # by a caller that did not come through the loader.
                 return None
             month = index + 1
             year = int(groups[-1]) if groups[-1] else \

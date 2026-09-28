@@ -19,6 +19,7 @@ stay line N's whatever a line contains.
 """
 import glob
 import os
+import shutil
 import tempfile
 import unittest
 from datetime import date
@@ -177,6 +178,106 @@ class TestAMissizedFileDoesNotRaise(unittest.TestCase):
         out = extract_scoped_date("la 1 semaine de mars", broken, ANCHOR)
         self.assertIsNotNone(out)
         self.assertEqual(out[0].month, 3)
+
+
+class TestAShortMonthsVocIsRefused(unittest.TestCase):
+    """T-4767: the count guard was one-sided and a short file answered wrong.
+
+    ``months.voc`` is read BY POSITION, so a file with a month missing shifts
+    every month after the gap. Before this guard, an 11-line ``fr`` tree with
+    ``mars`` deleted answered:
+
+        le 31 jour de avril   ->  2018-03-31    (31 March, for April)
+        la 1 semaine de avril ->  2018-03-05
+        la derniere semaine de avril -> 2018-03-26
+
+    silently, with no warning and no exception. The old guard only refused an
+    index PAST the twelfth, which a short file never produces.
+
+    The two halves of a wrong count are not symmetric and the fix is not
+    either. MORE than twelve: only the entries past the twelfth cannot be
+    named, so a real month still answers - pinned by
+    ``TestAMissizedFileDoesNotRaise`` below. FEWER than twelve: every entry at
+    or after the gap is the wrong month and nothing says where the gap is, so
+    no index is trustworthy and the table is refused whole.
+    """
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(prefix="months-voc-short-")
+        self.addCleanup(tmp.cleanup)
+        self.root = tmp.name
+        src = os.path.join(LOCALE_ROOT, "fr")
+        dst = os.path.join(self.root, "fr")
+        os.mkdir(dst)
+        for name in os.listdir(src):
+            if name.endswith(".voc"):
+                shutil.copy(os.path.join(src, name), os.path.join(dst, name))
+        self.voc = os.path.join(dst, "months.voc")
+
+    def _drop_month(self, index):
+        """Delete one month line, leaving 11."""
+        with open(self.voc, encoding="utf-8") as fh:
+            lines = [ln for ln in fh.read().splitlines() if ln.strip()]
+        self.assertEqual(len(lines), 12, "the fr fixture is not 12 lines")
+        del lines[index]
+        with open(self.voc, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+
+    def test_the_loader_refuses_an_eleven_line_file(self):
+        """The loud half: the loader knows the locale and the count."""
+        self._drop_month(2)                       # drop mars
+        with self.assertRaises(ValueError) as caught:
+            load_scoped_vocabulary("fr", self.root)
+        message = str(caught.exception)
+        self.assertIn("fr", message, "the locale is not named")
+        self.assertIn("11", message, "the count is not named")
+
+    def test_the_control_the_untouched_fixture_still_loads(self):
+        """Without this the case above could pass on a tree that never loads
+        for some unrelated reason."""
+        vocab = load_scoped_vocabulary("fr", self.root)
+        self.assertEqual(len(vocab.months), 12)
+
+    def test_avril_is_not_march_on_a_short_table(self):
+        """The reported symptom, driven through the scan.
+
+        The loader now refuses the file, so the short table is built in
+        memory to reach the scan's own backstop - the path a caller that did
+        not come through the loader takes.
+        """
+        vocab = load_scoped_vocabulary("fr", self.root)
+        months = list(vocab.months)
+        del months[2]                             # mars, as on disk
+        short = vocab.__class__(**{**vocab.__dict__, "months": months})
+        for utterance in ("le 3 jour de avril",
+                          "la 1 semaine de avril",
+                          "la derniere semaine de avril"):
+            with self.subTest(utterance=utterance):
+                out = extract_scoped_date(utterance, short, ANCHOR)
+                self.assertIsNone(
+                    out, f"{utterance!r} answered {out[0] if out else None} "
+                         f"on an 11-entry table")
+
+    def test_the_control_the_same_utterances_answer_on_a_full_table(self):
+        """So the Nones above are the guard and not phrases that never
+        matched. April, not March, on the untouched fixture.
+
+        ``le 31 jour de avril`` is not among the controls: on a CORRECT table
+        it raises ``ValueError: day is out of range for month`` from
+        ``ranges.get_date_ordinal``, because April has 30 days. That is a
+        separate pre-existing defect, reproduced on dev and filed as T-6763;
+        it is why the reported symptom could answer 31 March at all, since
+        the shifted table landed it on a month that has a 31st.
+        """
+        vocab = load_scoped_vocabulary("fr", self.root)
+        for utterance, day in (("la 1 semaine de avril", 2),
+                               ("le 3 jour de avril", 4)):
+            with self.subTest(utterance=utterance):
+                out = extract_scoped_date(utterance, vocab, ANCHOR)
+                self.assertIsNotNone(out, f"{utterance!r} did not match")
+                self.assertEqual(out[0].month, 4,
+                                 f"{utterance!r} answered month "
+                                 f"{out[0].month}, expected April")
 
 
 class TestTheLoadedTableIsTwelveLong(unittest.TestCase):

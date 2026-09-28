@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.33.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.2a1) (2026-09-28)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.1a1...0.33.2a1)
+
+**Merged pull requests:**
+
+- fix\(locale\): months.voc reads line by line, and the four piped month names become groups [\#377](https://github.com/OpenVoiceOS/ovos-date-parser/pull/377) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: read the French clock written with a space before the h [\#375](https://github.com/OpenVoiceOS/ovos-date-parser/pull/375) ([goldyfruit](https://github.com/goldyfruit))
+
 ## [0.33.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.1a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.0a1...0.33.1a1)

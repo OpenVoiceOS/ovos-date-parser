@@ -330,8 +330,26 @@ def extract_holiday_span(text: str, lang: str,
     start = result.span.start_datetime
     if start is None:  # a span outside the datetime range
         return None
+    start = _in_anchor_zone(start, anchor)
     remainder = re.sub(r"\s{2,}", " ", text[:first] + " " + text[last:])
     return start, remainder.strip()
+
+
+def _in_anchor_zone(moment: datetime, anchor: datetime) -> datetime:
+    """``moment`` in the time zone ``anchor`` carries, when it carries one.
+
+    chronologia reckons a holiday as a civil date and answers with a naive
+    datetime, while the per-language engines answer in the anchor's zone. A
+    caller that compares the answer with an aware "now" ("is christmas in the
+    future") raised ``TypeError`` on the holiday answer alone. The holiday is
+    the same wall-clock day either way, so the anchor's zone is attached, not
+    converted into.
+    """
+    tz = anchor.tzinfo
+    if tz is None or moment.tzinfo is not None:
+        return moment
+    localize = getattr(tz, "localize", None)  # pytz zones need localize()
+    return localize(moment) if localize else moment.replace(tzinfo=tz)
 
 
 def extract_holiday_date(text: str, lang: str,

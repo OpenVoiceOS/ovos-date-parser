@@ -227,3 +227,30 @@ def test_a_tense_inside_the_holiday_phrase_still_reads(utterance, expected):
     "christmas eve" each as one match over all their words.
     """
     assert extract_datetime(utterance, "en-US", REF)[0] == expected
+
+
+class TestHolidayAnchorZone:
+    """A holiday answer is in the anchor's zone, like every other answer."""
+
+    def test_aware_anchor_gives_an_aware_holiday(self):
+        import pytz
+        from ovos_date_parser import extract_datetime
+        tz = pytz.timezone("Europe/Copenhagen")
+        anchor = tz.localize(datetime(2026, 10, 1, 9, 0))
+        holiday, _ = extract_datetime("christmas", anchorDate=anchor, lang="en-US")
+        assert holiday.tzinfo is not None
+        assert (holiday.year, holiday.month, holiday.day, holiday.hour) == (2026, 12, 25, 0)
+        assert holiday.utcoffset().total_seconds() == 3600  # CET in December
+        assert holiday > anchor  # comparable with an aware now
+
+    def test_zoneinfo_anchor(self):
+        from zoneinfo import ZoneInfo
+        from ovos_date_parser import extract_datetime
+        anchor = datetime(2026, 10, 1, 9, 0, tzinfo=ZoneInfo("America/New_York"))
+        holiday, _ = extract_datetime("christmas", anchorDate=anchor, lang="en-US")
+        assert holiday == datetime(2026, 12, 25, tzinfo=ZoneInfo("America/New_York"))
+
+    def test_naive_anchor_stays_naive(self):
+        from ovos_date_parser import extract_datetime
+        holiday, _ = extract_datetime("christmas", anchorDate=datetime(2026, 10, 1), lang="en-US")
+        assert holiday.tzinfo is None

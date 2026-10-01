@@ -254,3 +254,45 @@ class TestHolidayAnchorZone:
         from ovos_date_parser import extract_datetime
         holiday, _ = extract_datetime("christmas", anchorDate=datetime(2026, 10, 1), lang="en-US")
         assert holiday.tzinfo is None
+
+
+class TestHolidayDiscontinuity:
+    """The wall-clock-to-instant seam at a DST discontinuity, through
+    chronologia's resolve_wall_clock: no guess, a defined answer."""
+
+    def test_midnight_gap_answers_the_start_of_the_day(self):
+        # Santiago springs forward at midnight on 6 September 2026:
+        # 00:00 -04 never happens, the day begins at 01:00 -03
+        from zoneinfo import ZoneInfo
+        from ovos_date_parser.holidays import _in_anchor_zone
+        zone = ZoneInfo("America/Santiago")
+        anchor = datetime(2026, 9, 1, 9, 0, tzinfo=zone)
+        got = _in_anchor_zone(datetime(2026, 9, 6), anchor)
+        assert (got.day, got.hour, got.minute) == (6, 1, 0)
+        assert got.utcoffset().total_seconds() == -3 * 3600
+
+    def test_midnight_fold_answers_the_earlier_instant(self):
+        # Havana falls back at 01:00 to 00:00 on 1 November 2026:
+        # midnight happens twice, the first one (-04) is the answer
+        from zoneinfo import ZoneInfo
+        from ovos_date_parser.holidays import _in_anchor_zone
+        zone = ZoneInfo("America/Havana")
+        anchor = datetime(2026, 10, 1, 9, 0, tzinfo=zone)
+        got = _in_anchor_zone(datetime(2026, 11, 1), anchor)
+        assert (got.day, got.hour) == (1, 0)
+        assert got.utcoffset().total_seconds() == -4 * 3600
+
+    def test_a_pytz_zone_does_not_read_local_mean_time(self):
+        import pytz
+        from ovos_date_parser.holidays import _in_anchor_zone
+        anchor = pytz.timezone("Europe/Copenhagen").localize(datetime(2026, 10, 1, 9))
+        got = _in_anchor_zone(datetime(2026, 12, 25), anchor)
+        assert got.utcoffset().total_seconds() == 3600  # not LMT +00:53
+
+    def test_a_fixed_offset_anchor(self):
+        from datetime import timedelta, timezone
+        from ovos_date_parser.holidays import _in_anchor_zone
+        zone = timezone(timedelta(hours=5, minutes=30))
+        got = _in_anchor_zone(datetime(2026, 12, 25),
+                              datetime(2026, 10, 1, tzinfo=zone))
+        assert got == datetime(2026, 12, 25, tzinfo=zone)

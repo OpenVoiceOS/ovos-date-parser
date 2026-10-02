@@ -4,7 +4,8 @@ The natural-language layer over ``ranges.py``'s scope arithmetic: "the
 third week of june", "the 100th day of the year", "the first decade of
 the 21st century", "summer of 1969", "next winter".  Like the era layer
 (:mod:`ovos_date_parser.eras_scan`), the surface forms are translatable
-resources in ``ovos_date_parser/locale/<lang>/*.voc`` loaded through
+resources in chronologia's packaged ``locale/<lang>/*.voc``, which
+``ovos_date_parser/locale/<lang>/`` overlays file by file, loaded through
 ovos-spec-tools; the grammar, the calls into
 :func:`~ovos_date_parser.ranges.get_date_ordinal` and the season helpers
 live here.
@@ -31,8 +32,6 @@ import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Dict, List, Optional, Tuple
-
-from ovos_spec_tools import LocaleResources
 
 from ovos_date_parser.eras_scan import (LOCALE_DIR, _alt, _voc_reader,
                                         _positional_voc_reader)

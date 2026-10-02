@@ -1,10 +1,11 @@
 """Language-agnostic era-phrase scanning machinery.
 
 Surface forms are **translatable resources**: they live in ``.voc`` phrase
-sets under ``ovos_date_parser/locale/<lang>/`` and are loaded through
-``ovos-spec-tools`` (the OVOS-wide convention for localisable files), so
-adding or improving a language's era phrasing is a translation task, not a
-code change.  :func:`load_era_patterns` composes those phrase sets into
+sets in chronologia's packaged ``locale/<lang>/``, which
+``ovos_date_parser/locale/<lang>/`` overlays file by file, and are loaded
+through ``ovos-spec-tools`` (the OVOS-wide convention for localisable
+files), so adding or improving a language's era phrasing is a translation
+task, not a code change.  :func:`load_era_patterns` composes those phrase sets into
 the ordered pattern table the scanner consumes; a language module
 contributes only its spelled-number normaliser and any genuinely
 non-translatable guard patterns (e.g. English bare "HE" needing a 5+
@@ -56,26 +57,14 @@ from ovos_date_parser.ranges import DateTimeResolution
 
 EraPatterns = List[Tuple[str, Pattern]]
 
-#: root of the package's translatable resources -- the legacy era/scoped
-#: layers keep their own ``.voc`` phrase sets here (de/es/fr/it/pt). The
-#: engine-native languages (en/ar/he) now ship their locale from the
-#: reckoning core, so those folders are resolved against chronologia's
-#: packaged locale instead (see :func:`_resolve_locale_dir`).
+#: root of the package's translatable resources. Loading resolves one file
+#: at a time through :func:`_voc_reader`, for every language: a phrase set
+#: shipped here wins, and chronologia's packaged locale supplies every file
+#: this root does not hold. A folder here is therefore a partial overlay on
+#: the reckoning core's locale, never a whole language.
 LOCALE_DIR = os.path.join(os.path.dirname(__file__), "locale")
 
 _NUM = r"(\d+)"
-
-
-def _resolve_locale_dir(lang: str, locale_dir: str = LOCALE_DIR) -> str:
-    """The resource root that holds ``lang``'s own folder, if any.
-
-    Kept for callers that need a single root. Resource LOADING goes through
-    :func:`_voc_reader`, which resolves one file at a time; a language whose
-    local folder holds only part of its phrase sets would otherwise lose the
-    rest, which is what this function on its own used to do."""
-    if os.path.isdir(os.path.join(locale_dir, lang.split("-")[0])):
-        return locale_dir
-    return _chronologia_locale_dir()
 
 
 def _chronologia_locale_dir() -> str:
@@ -93,9 +82,7 @@ def _voc_reader(lang: str, locale_dir: str = LOCALE_DIR):
     hides every other file the reckoning core has for that language: the
     Kabyle folder shipped 11 files against chronologia's 75, so
     ``marker_last`` and the rest fell back to their ENGLISH defaults and only
-    a sentence mixing English markers with Kabyle words could parse. Falling
-    back per file is what the docstring of ``_resolve_locale_dir`` always
-    described, "without duplicating them here".
+    a sentence mixing English markers with Kabyle words could parse.
 
     ``FileNotFoundError`` is raised only when neither root has the file, so a
     caller that treats a missing phrase set as "form disabled" is unchanged.

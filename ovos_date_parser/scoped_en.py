@@ -1,9 +1,10 @@
 """English calendar-scoped ordinal and season extraction.
 
-The surface forms live in ``ovos_date_parser/locale/en/*.voc`` (unit
-names, month names, season names, markers) and are composed by the
-shared grammar in :mod:`ovos_date_parser.scoped_scan`; this module only
-binds the English spelled-number normaliser.
+The surface forms live in chronologia's packaged ``locale/en/*.voc`` (unit
+names, month names, season names, markers), since this package ships no
+``locale/en`` of its own, and are composed by the shared grammar in
+:mod:`ovos_date_parser.scoped_scan`.  This module only binds the English
+spelled-number normaliser.
 
 Recognised phrasing: "the 21st century", "the 3rd millennium", "the 3rd
 week of june", "the last day of february 2024", "the 100th day of the

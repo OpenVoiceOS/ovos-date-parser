@@ -125,6 +125,21 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
     # return str(dt.hour) + ":" + str(dt.minute)
 
 
+def nice_year_eu(dt, bc=False):
+    """Format a year in a pronounceable Basque form.
+
+    Args:
+        dt (datetime): date to format (assumed already in the local timezone)
+        bc (bool): append "k.a." after the year
+    Returns:
+        (str): the year formatted as a string
+    """
+    year = pronounce_number_eu(dt.year)
+    if bc:
+        return f"{year} k.a."
+    return year
+
+
 def nice_relative_time_eu(when, relative_to):
     """Create a relative phrase to roughly describe a datetime
 

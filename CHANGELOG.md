@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.3a1) (2026-10-02)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.2a1...0.33.3a1)
+
+**Merged pull requests:**
+
+- fix\(kab\): keep compound cardinal intact in extract\_datetime\_kab [\#385](https://github.com/OpenVoiceOS/ovos-date-parser/pull/385) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.33.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.2a1) (2026-09-28)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.1a1...0.33.2a1)
@@ -336,7 +344,6 @@
 - fix: parse numeric period offsets in both directions for ru, uk, pl, fi [\#281](https://github.com/OpenVoiceOS/ovos-date-parser/pull/281) ([JarbasAl](https://github.com/JarbasAl))
 - fix: match plural period-offset unit nouns in nl, sv, da, cs [\#280](https://github.com/OpenVoiceOS/ovos-date-parser/pull/280) ([JarbasAl](https://github.com/JarbasAl))
 - fix: parse month+bare year and ISO 8601 dates in English [\#279](https://github.com/OpenVoiceOS/ovos-date-parser/pull/279) ([JarbasAl](https://github.com/JarbasAl))
-- fix: French and German yesterday words were not recognised [\#275](https://github.com/OpenVoiceOS/ovos-date-parser/pull/275) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
 

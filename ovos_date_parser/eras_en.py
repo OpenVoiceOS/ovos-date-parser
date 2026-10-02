@@ -1,8 +1,9 @@
 """English era/epoch extraction: "44 BC", "2000 years before present".
 
-The surface forms live in ``ovos_date_parser/locale/en/*.voc`` (loaded
-through ovos-spec-tools by :func:`ovos_date_parser.eras_scan.
-load_era_patterns`); this module contributes only the English
+The surface forms live in chronologia's packaged ``locale/en/*.voc``; this
+package ships no ``locale/en`` of its own (loaded through ovos-spec-tools by
+:func:`ovos_date_parser.eras_scan.load_era_patterns`).  This module
+contributes only the English
 spelled-number normaliser and the one guard that is not a translation:
 
 * bare ``HE`` (Holocene/Human Era, as in "12025 HE") collides with the

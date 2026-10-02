@@ -29,9 +29,10 @@ dependencies = [
     "ovos-config",
     "ovos-spec-tools>=1.5.0a1",
     # reckoning core library (AstroDate, calendars, eras, cycles). The floor
-    # is the alpha that carries the Kabyle phrase sets this parser now reads
-    # through the per-file fallback.
-    "chronologia>=0.30.4a1",
+    # is the alpha that carries era vocabulary for de/es/pt and month and
+    # ordinal vocabulary for fr/it, which test_locale_overlay_gap.py reads
+    # to pin what this package's own locale overlay still adds.
+    "chronologia>=0.31.0a1",
 ]
 dynamic = ["version"]
 

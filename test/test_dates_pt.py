@@ -568,6 +568,48 @@ class TestExtractDurationPt(unittest.TestCase):
         duration, _ = result
         self.assertEqual(duration.total_seconds(), 5)
 
+    def test_extract_meia_meio_half_quantifier(self):
+        """Test "meia" (fem.) / "meio" (masc.) half quantifier, bare and
+        fused with a leading number, for feminine and masculine units"""
+        from ovos_utils.time import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
+
+        duration, remaining = extract_duration_pt("duas horas e meia")
+        self.assertEqual(duration, timedelta(hours=2, minutes=30))
+        self.assertEqual(remaining, "")
+
+        duration, remaining = extract_duration_pt("meia hora")
+        self.assertEqual(duration, timedelta(minutes=30))
+        self.assertEqual(remaining, "")
+
+        duration, remaining = extract_duration_pt("meia semana")
+        self.assertEqual(duration, timedelta(weeks=0.5))
+
+        duration, remaining = extract_duration_pt("três semanas e meia")
+        self.assertEqual(duration, timedelta(weeks=3.5))
+
+        duration, remaining = extract_duration_pt("meio dia")
+        self.assertEqual(duration, timedelta(hours=12))
+
+        duration, remaining = extract_duration_pt("meio ano")
+        self.assertEqual(duration, timedelta(days=0.5 * DAYS_IN_1_YEAR))
+
+        duration, remaining = extract_duration_pt("meio mês")
+        self.assertEqual(duration, timedelta(days=0.5 * DAYS_IN_1_MONTH))
+
+        duration, remaining = extract_duration_pt("dois dias e meio")
+        self.assertEqual(duration, timedelta(days=2, hours=12))
+
+        duration, remaining = extract_duration_pt("um ano e meio")
+        self.assertEqual(duration, timedelta(days=1.5 * DAYS_IN_1_YEAR))
+
+        duration, remaining = extract_duration_pt("hora e meia")
+        self.assertEqual(duration, timedelta(hours=1, minutes=30))
+
+        # control: an unrelated duration must keep working unchanged
+        duration, remaining = extract_duration_pt("quinze dias")
+        self.assertEqual(duration, timedelta(days=15))
+        self.assertEqual(remaining, "")
+
 
 class TestConstantsAndDataStructures(unittest.TestCase):
     """Test cases for constants and data structures"""

@@ -488,7 +488,30 @@ def _normalize_pt(text: str) -> str:
     # number normalizer
     text = text.replace("segundo", "_s_")
     text = numbers_to_digits(text, "pt")
-    return text.replace("_s_", "segundo")
+    text = text.replace("_s_", "segundo")
+
+    # "meia" (fem.) and "meio" (masc.) are the two gender-agreeing forms of
+    # the half quantifier (Priberam, s.v. "meio"): "meia" for feminine units
+    # (hora, semana, decada), "meio" for masculine ones (dia, mes, ano,
+    # segundo, minuto, seculo, milenio). Each form adds 0.5 to the unit it
+    # modifies, bare ("meia hora") or fused after a number ("2 horas e
+    # meia", "hora e meia").
+    for word, unit_group in (
+            ("meia", r"horas?|semanas?|decadas?"),
+            ("meio", r"dias?|meses|anos?|segundos?|minutos?|seculos?|milenios?")):
+        # "2 horas e meia" -> "2.5 horas"
+        text = re.sub(
+            r"(\d+(?:\.\d+)?)\s+(" + unit_group + r")\s+e\s+" + word + r"\b",
+            lambda m: f"{float(m.group(1)) + 0.5} {m.group(2)}", text)
+        # "hora e meia" (no leading number) -> "1.5 hora"
+        text = re.sub(
+            r"\b(" + unit_group + r")\s+e\s+" + word + r"\b",
+            lambda m: f"1.5 {m.group(1)}", text)
+        # "meia hora" -> "0.5 hora"
+        text = re.sub(
+            r"\b" + word + r"\s+(?=(?:" + unit_group + r")\b)", "0.5 ", text)
+
+    return text
 
 
 register_duration_lexicon(DurationLexicon(

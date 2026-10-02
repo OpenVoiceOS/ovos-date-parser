@@ -209,6 +209,17 @@ class TestExtractDuration(unittest.TestCase):
         self.assertEqual(extract_duration("5 milenios"),
                          (timedelta(days=DAYS_IN_1_YEAR * 1000 * 5), ""))
 
+    def test_remainder_has_no_dangling_conjunctions(self):
+        # a leftover "y"/"," that only joined two consumed duration
+        # chunks must be removed, not left dangling in the remainder
+        res = extract_duration("demorará 2 horas y 30 minutos")
+        self.assertEqual(res[0], timedelta(seconds=9000))
+        self.assertEqual(res[1], "demorará")
+
+        res = extract_duration("2 horas, 30 minutos, y 10 segundos")
+        self.assertEqual(res[0], timedelta(seconds=9010))
+        self.assertEqual(res[1], "")
+
 
 if __name__ == "__main__":
     unittest.main()

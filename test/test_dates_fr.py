@@ -181,5 +181,63 @@ class TestYesterdayWords(unittest.TestCase):
         self.assertEqual((extract("demain")[0] - extract("hier")[0]).days, 2)
 
 
+class TestBareDurationNotClock(unittest.TestCase):
+    """A bare "N heures"/"Nh" with no preposition before it is a duration,
+    not a clock time, unless a marker word ("à", "dans"...) introduces it
+    or it opens the sentence as its own clock notation ("20h")."""
+
+    def test_un_film_de_n_heures(self):
+        self.assertIsNone(extract("un film de 2 heures"))
+
+    def test_un_film_de_nh(self):
+        self.assertIsNone(extract("un film de 2h"))
+
+    def test_pendant_n_heures(self):
+        self.assertIsNone(extract("pendant 3 heures"))
+
+    def test_il_reste_n_heures(self):
+        self.assertIsNone(extract("il reste 3 heures"))
+
+    def test_n_heures_de_travail(self):
+        self.assertIsNone(extract("3 heures de travail"))
+
+    def test_chapitre_n_heures(self):
+        self.assertIsNone(extract("mets le chapitre 3 heures"))
+
+    def test_marker_still_reads_as_clock(self):
+        self.assertEqual(extract("à 3 heures")[0], dt(2117, 9, 4, 3))
+
+    def test_offset_marker_still_works(self):
+        self.assertEqual(extract("dans 3 heures")[0], dt(2117, 9, 3, 16, 30))
+
+    def test_sentence_initial_h_notation_still_a_clock(self):
+        self.assertEqual(extract("20h")[0], dt(2117, 9, 3, 20))
+
+    def test_sentence_initial_spelled_hour_still_a_clock(self):
+        self.assertEqual(extract("20 heures")[0], dt(2117, 9, 3, 20))
+        self.assertEqual(extract("3 heures")[0], dt(2117, 9, 4, 3))
+
+    def test_sentence_initial_number_word_hour_still_a_clock(self):
+        self.assertEqual(extract("dix heures")[0], dt(2117, 9, 4, 10))
+        self.assertEqual(extract("trois heures")[0], dt(2117, 9, 4, 3))
+        self.assertEqual(extract("vingt heures")[0], dt(2117, 9, 3, 20))
+
+    def test_sentence_initial_bare_h_with_trailing_words_is_duration(self):
+        self.assertIsNone(extract("2h de route"))
+        self.assertIsNone(extract("2 h de route"))
+
+    def test_il_est_n_heures_still_a_clock(self):
+        self.assertEqual(extract("il est 3 heures")[0], dt(2117, 9, 4, 3))
+        self.assertEqual(extract("il est trois heures")[0], dt(2117, 9, 4, 3))
+
+    def test_il_est_n_heures_with_trailing_word_still_a_clock(self):
+        date, rest = extract("il est 20 heures pile")
+        self.assertEqual(date, dt(2117, 9, 3, 20))
+        self.assertEqual(rest, "il est pile")
+
+    def test_cest_n_heures_still_a_clock(self):
+        self.assertEqual(extract("c'est 3 heures")[0], dt(2117, 9, 4, 3))
+
+
 if __name__ == "__main__":
     unittest.main()

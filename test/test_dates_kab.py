@@ -218,6 +218,20 @@ class TestKabRelativeOffsets(unittest.TestCase):
         # The whole phrase is the quantity here, so nothing is left.
         self.assertEqual(result[1], "")
 
+    def test_a_compound_cardinal_is_not_split_by_a_clock_hour(self):
+        """T-4802: "mraw d yiwen" is eleven, and extract_duration already
+        read "mraw d yiwen n tesdidin" as 660 seconds. The datetime
+        branch read the same "d yiwen" as the presentative "it is one
+        o'clock" and split the compound, leaving "mraw n tesdidin" as a
+        remainder. 660 seconds past the anchor is independently 08:16;
+        the whole phrase is the quantity, so nothing is left over.
+        """
+        result = extract_datetime("mraw d yiwen n tesdidin", "kab",
+                                  anchorDate=OFFSET_ANCHOR)
+        self.assertIsNotNone(result, "read as no date")
+        self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(seconds=660))
+        self.assertEqual(result[1], "")
+
     def test_the_duration_layer_already_read_these(self):
         """The measurement that located the defect: the duration was
         always available, so the gap was the datetime branch alone."""

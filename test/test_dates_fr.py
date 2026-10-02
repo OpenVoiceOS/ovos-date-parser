@@ -96,6 +96,71 @@ class TestSpacedClockNotation(unittest.TestCase):
         self.assertIsNone(extract("la bombe h"))
 
 
+class TestMidnightHourZero(unittest.TestCase):
+    """Hour 0 is midnight on the 24-hour clock. "0 h" and "0 heures" are the
+    written forms of "minuit", so each one gives the instant "minuit" gives.
+    """
+
+    def test_a_zero_h(self):
+        self.assertEqual(extract("à 0 h")[0], dt(2117, 9, 3, 0))
+
+    def test_a_zero_heures(self):
+        self.assertEqual(extract("à 0 heures")[0], dt(2117, 9, 3, 0))
+
+    def test_bare_zero_h(self):
+        self.assertEqual(extract("0 h")[0], dt(2117, 9, 3, 0))
+
+    def test_zero_h_is_the_minuit_instant(self):
+        midnight = dt(2117, 9, 3, 0)
+        self.assertEqual(extract("minuit")[0], midnight)
+        self.assertEqual(extract("à 0 h")[0], midnight)
+
+    def test_zero_h_with_minutes(self):
+        self.assertEqual(extract("à 0 h 30")[0], dt(2117, 9, 4, 0, 30))
+
+    def test_zero_h_quarter(self):
+        self.assertEqual(extract("à 0 h et quart")[0], dt(2117, 9, 4, 0, 15))
+
+    def test_zero_h_minus_minutes_wraps_to_previous_hour(self):
+        self.assertEqual(extract("à 0 h moins 20")[0], dt(2117, 9, 3, 23, 40))
+
+    def test_zero_h_minus_quarter_wraps_to_previous_hour(self):
+        self.assertEqual(extract("à 0 h moins le quart")[0],
+                         dt(2117, 9, 3, 23, 45))
+
+    def test_two_digit_zero_h_minus_quarter_wraps_to_previous_hour(self):
+        # "00 h" reaches the hour 0 through the two-digit spelling
+        self.assertEqual(extract("à 00 h moins le quart")[0],
+                         dt(2117, 9, 3, 23, 45))
+
+    def test_two_digit_zero_h_minus_minutes_wraps_to_previous_hour(self):
+        self.assertEqual(extract("à 00 h moins 20")[0], dt(2117, 9, 3, 23, 40))
+
+    def test_tomorrow_zero_h(self):
+        # the remainder is the assertion that carries the load here: a build
+        # that cannot read "0 h" still dates this right and strands the clock
+        res = extract("demain à 0 h")
+        self.assertEqual(res[0], dt(2117, 9, 4, 0))
+        self.assertEqual(res[1], "")
+
+    def test_zero_h_in_sentence_is_consumed(self):
+        res = extract("réveille-moi à 0 h")
+        self.assertEqual(res[0], dt(2117, 9, 3, 0))
+        self.assertEqual(res[1], "réveille-moi")
+
+    def test_zero_h_minutes_with_date_keeps_the_minutes(self):
+        res = extract("à 0 h 30 demain")
+        self.assertEqual(res[0], dt(2117, 9, 4, 0, 30))
+        self.assertEqual(res[1], "")
+
+    def test_twenty_four_h_reads_midnight(self):
+        self.assertEqual(extract("à 24 h")[0], dt(2117, 9, 4, 0))
+
+    def test_non_zero_hour_minus_quarter(self):
+        self.assertEqual(extract("à 20 h moins le quart")[0],
+                         dt(2117, 9, 3, 19, 45))
+
+
 class TestOrdinalFirstOfMonth(unittest.TestCase):
     """"1er" is the ordinary way to say the first day of a month."""
 

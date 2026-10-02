@@ -476,7 +476,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 ampm = ""
                 if (
                         word.isdigit() and
-                        wordNext in ["heures", "heure", "h"] and word != "0" and
+                        wordNext in ["heures", "heure", "h"] and
                         (
                                 int(word) < 100 or
                                 int(word) > 2400
@@ -484,7 +484,8 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                     # "dans 3 heures", "à 3 heures", and the clock written
                     # with a space before the "h" ("à 20 h", "20 h 30"),
                     # which is how French typography and speech-to-text
-                    # both write it
+                    # both write it. Hour 0 is midnight, the same hour that
+                    # "minuit" gives.
                     if wordPrev in words_in:
                         hrOffset = int(word)
                     else:
@@ -525,7 +526,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                     hrOffset -= 1
                                     minOffset = 60 - int(words[idxHr + 1])
                                 else:
-                                    hrAbs = hrAbs - 1
+                                    hrAbs = 23 if hrAbs == 0 else hrAbs - 1
                                     minAbs = 60 - int(words[idxHr + 1])
                                 used += 2
                                 idxHr += 2
@@ -534,7 +535,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                     hrOffset -= 1
                                     minOffset = 45
                                 else:
-                                    hrAbs = hrAbs - 1
+                                    hrAbs = 23 if hrAbs == 0 else hrAbs - 1
                                     minAbs = 45
                                 used += 2
                                 idxHr += 2

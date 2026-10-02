@@ -463,7 +463,26 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                 i += 1
                     elif stage == 2:
                         break
-                if wordPrev in words_in:
+                # a bare hour with no minutes and no colon ("2h", "3h") is
+                # ambiguous with a duration ("2h de route") unless a time
+                # marker, or the time-telling "il est"/"c'est", introduces
+                # it, or it opens the sentence as its own clock notation
+                # with nothing but a continuation after it ("20h", "20h
+                # 30"); "4h14" and "14:30" stay unambiguous
+                is_time_statement = ((wordPrev == "est" and
+                                       wordPrevPrev == "il") or
+                                      wordPrev == "c'est")
+                sentence_initial_clock = (
+                        wordPrev == "" and
+                        (wordNext == "" or wordNext.isdigit() or
+                         wordNext in ("et", "moins")))
+                if (not strMM and ":" not in word and
+                        wordPrev not in markers and
+                        not is_time_statement and
+                        not sentence_initial_clock):
+                    isTime = False
+                    used = 0
+                elif wordPrev in words_in:
                     hrOffset = int(strHH) if strHH else 0
                     minOffset = int(strMM) if strMM else 0
                 else:
@@ -477,6 +496,12 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 if (
                         word.isdigit() and
                         wordNext in ["heures", "heure", "h"] and word != "0" and
+                        (wordPrev in markers or
+                         (wordPrev == "est" and wordPrevPrev == "il") or
+                         wordPrev == "c'est" or
+                         (wordPrev == "" and
+                          (wordNextNext == "" or wordNextNext.isdigit() or
+                           wordNextNext in ("et", "moins")))) and
                         (
                                 int(word) < 100 or
                                 int(word) > 2400

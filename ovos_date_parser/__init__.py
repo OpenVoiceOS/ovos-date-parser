@@ -390,7 +390,7 @@ def extract_duration(
 
 
 def _search_dates_word_by_word(text: str, language: str, settings: dict
-                               ) -> Optional[Tuple[str, datetime]]:
+                               ) -> Optional[Tuple[int, int, datetime]]:
     """Search again with a space between the words of an unspaced language.
 
     For a language dateparser marks ``no_word_spacing`` (zh, ja),
@@ -405,7 +405,16 @@ def _search_dates_word_by_word(text: str, language: str, settings: dict
     明日の午後3時に会議 would come back three hours past the anchor's
     clock instead of None.
 
-    Returns the date text as written in ``text`` and the date, or None.
+    Args:
+        text: The text to search, as written.
+        language: The dateparser language code, such as ``"zh"``.
+        settings: The dateparser settings the fallback searched with.
+
+    Returns:
+        ``(start, end, date)`` for the first date found, where
+        ``text[start:end]`` is the date text as written, or None when the
+        language is spaced, the split does not cover the text, or nothing
+        is found.
     """
     try:
         locale = default_loader.get_locale(language)
@@ -443,7 +452,45 @@ def _search_dates_word_by_word(text: str, language: str, settings: dict
     covered = [i for i in origin[start:start + len(date_txt)] if i is not None]
     if not covered:
         return None
-    return text[covered[0]:covered[-1] + 1], date
+    return covered[0], covered[-1] + 1, date
+
+
+# A clock, or a part of the day, in zh. The spaced search reads none of them:
+# 明天下午三点 would come back as tomorrow at the anchor's clock.
+_ZH_CLOCK = re.compile(r"[点點时時分秒钟鐘]|上午|下午|中午|早上|早晨|晚上|凌晨"
+                       r"|傍晚|夜里|夜裡|半夜|午夜|今晚|明晚|昨晚|明早")
+
+
+def _extract_date_zh_unspaced(text: str, settings: dict,
+                              default_time: Optional[time] = None
+                              ) -> Optional[Tuple[datetime, str]]:
+    """Read a zh date the fallback missed because of dateparser's join.
+
+    The last step of the dateparser fallback for zh, reached only when the
+    other two found nothing. It reads a date only, so a text that holds a
+    clock or a part of the day is left alone and stays None: the spaced
+    search would drop the hour and answer with the anchor's.
+
+    Args:
+        text: The zh text, as written.
+        settings: The dateparser settings the fallback searched with.
+        default_time: The time to give the date, since the text has none.
+
+    Returns:
+        The date and the text with only that date's span taken out, or None.
+    """
+    if _ZH_CLOCK.search(text):
+        return None
+    found = _search_dates_word_by_word(text, "zh", settings)
+    if found is None:
+        return None
+    start, end, date = found
+    if default_time is not None:
+        date = date.replace(hour=default_time.hour,
+                            minute=default_time.minute,
+                            second=default_time.second,
+                            microsecond=default_time.microsecond)
+    return date, text[:start] + text[end:]
 
 
 def extract_datetime(
@@ -614,10 +661,9 @@ def _extract_datetime_engine(
     # it translated it into with no space either
     if lang.split("-")[0].lower() == "zh":
         try:
-            found = _search_dates_word_by_word(text, "zh", settings)
+            found = _extract_date_zh_unspaced(text, settings, default_time)
             if found:
-                date_txt, date = found
-                return date, text.replace(date_txt, "")
+                return found
         except Exception:
             pass
 

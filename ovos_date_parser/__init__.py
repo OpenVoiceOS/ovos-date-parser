@@ -7,6 +7,8 @@ from datetime import datetime, timedelta, time
 from typing import Callable, List, Optional, Tuple, Union
 
 import dateparser # fallback parser
+from dateparser.conf import settings as dateparser_settings
+from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
 from ovos_config import Configuration
 from ovos_utils.log import LOG
@@ -387,6 +389,63 @@ def extract_duration(
     return None, text
 
 
+def _search_dates_word_by_word(text: str, language: str, settings: dict
+                               ) -> Optional[Tuple[str, datetime]]:
+    """Search again with a space between the words of an unspaced language.
+
+    For a language dateparser marks ``no_word_spacing`` (zh, ja),
+    ``Locale.translate_search`` joins the English words it translates a
+    chunk into with no space either. 明天星期几 is read as 明天 + 星期 + 几,
+    and 明天星期 becomes "in 1 dayweek", which the English parser cannot
+    read, so nothing is found. A space between the words dateparser itself
+    splits the text into survives the translation, the same chunk becomes
+    "in 1 day week", and 明天 is read.
+
+    Only zh calls it. In ja the spaced search reads 時 as "hour", so
+    明日の午後3時に会議 would come back three hours past the anchor's
+    clock instead of None.
+
+    Returns the date text as written in ``text`` and the date, or None.
+    """
+    try:
+        locale = default_loader.get_locale(language)
+        if "no_word_spacing" not in locale.info:
+            return None
+        words = locale._word_split(text, settings=dateparser_settings)
+    except Exception:  # private dateparser API, absent or changed
+        return None
+    if "".join(words) != text:
+        return None
+
+    spaced = ""
+    origin = []  # the index in ``text`` of each character of ``spaced``
+    position = 0
+    for word in words:
+        if word.isspace():  # a space already written takes no other
+            position += len(word)
+            continue
+        if spaced:
+            spaced += " "
+            origin.append(None)
+        spaced += word
+        origin.extend(range(position, position + len(word)))
+        position += len(word)
+    if spaced == text:
+        return None
+
+    dates = search_dates(spaced, languages=[language], settings=settings)
+    if not dates:
+        return None
+    date_txt, date = dates[0]
+    start = spaced.find(date_txt)
+    if start < 0:
+        return None
+    covered = [i for i in origin[start:start + len(date_txt)] if i is not None]
+    if not covered:
+        return None
+    return text[covered[0]:covered[-1] + 1], date
+
+
 def extract_datetime(
         text: str,
         lang: str,
@@ -550,6 +609,17 @@ def _extract_datetime_engine(
             return date, text.replace(date_txt, "")
     except:
         pass
+
+    # zh is written without spaces, and dateparser joined the English words
+    # it translated it into with no space either
+    if lang.split("-")[0].lower() == "zh":
+        try:
+            found = _search_dates_word_by_word(text, "zh", settings)
+            if found:
+                date_txt, date = found
+                return date, text.replace(date_txt, "")
+        except Exception:
+            pass
 
     # fallback found nothing, report no date/time found
     return None

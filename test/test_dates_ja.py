@@ -1,5 +1,8 @@
 import unittest
 from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
+
+from ovos_config import Configuration
 
 from ovos_date_parser import extract_datetime
 
@@ -85,6 +88,21 @@ class TestWeekdayWithAWeekWordJa(unittest.TestCase):
         self.assertIsNotNone(weekday.tzinfo)
         self.assertEqual(weekday.utcoffset(), tomorrow.utcoffset())
         self.assertLess(tomorrow, weekday)
+
+    def test_an_anchor_in_another_timezone_counts_in_the_configured_one(self):
+        """An aware anchor is moved into the configured timezone first.
+
+        The fallback does the same: it counts days on the configured
+        calendar and answers at midnight there. Thursday 18:00 locally is
+        already Friday in Tokyo, and the coming Friday is still tomorrow.
+        """
+        tz = ZoneInfo(Configuration()["location"]["timezone"]["code"])
+        anchor = datetime(2026, 5, 21, 18, 0, tzinfo=tz).astimezone(
+            ZoneInfo("Asia/Tokyo"))
+        found = extract_datetime("次の金曜日", "ja-jp", anchorDate=anchor)[0]
+        self.assertEqual(found, datetime(2026, 5, 22, 0, 0, tzinfo=tz))
+        self.assertEqual(found.utcoffset(),
+                         datetime(2026, 5, 22, 0, 0, tzinfo=tz).utcoffset())
 
     def test_a_clock_is_not_answered_at_midnight(self):
         """The date is read without a clock, so a text with one is not taken."""

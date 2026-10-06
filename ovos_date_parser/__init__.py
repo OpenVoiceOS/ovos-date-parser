@@ -468,14 +468,20 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
     Returns:
         The date and the text without the phrase read, or None when the
         text names no such weekday or holds a clock. The date is
-        timezone-aware, like every other ja answer: those come from the
-        fallback, which reads a naive anchor as wall time in the configured
-        timezone, so a naive anchor is read the same way here.
+        timezone-aware and counted in the configured timezone, like every
+        other ja answer: those come from the fallback, which reads a naive
+        anchor as wall time in that timezone and moves an aware one into
+        it before counting days.
     """
     match = _JA_WEEKDAY.search(text)
     if match is None or _JA_CLOCK.search(text):
         return None
+    tz = ZoneInfo(Configuration()["location"]["timezone"]["code"])
     anchor = anchorDate or now_local()
+    if anchor.tzinfo is None:
+        anchor = anchor.replace(tzinfo=tz)
+    else:
+        anchor = anchor.astimezone(tz)
     weekday = _JA_WEEKDAYS.index(match.group("day"))
     week = match.group("week").rstrip("の")
     if week in _JA_WEEK_OFFSET:
@@ -486,9 +492,6 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
     found = (anchor + timedelta(days=days)).replace(
         hour=moment.hour, minute=moment.minute, second=moment.second,
         microsecond=moment.microsecond)
-    if found.tzinfo is None:
-        tzstr = Configuration()["location"]["timezone"]["code"]
-        found = found.replace(tzinfo=ZoneInfo(tzstr))
     return found, text[:match.start()] + text[match.end():]
 
 

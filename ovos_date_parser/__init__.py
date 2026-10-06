@@ -5,6 +5,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time
 from typing import Callable, List, Optional, Tuple, Union
+from zoneinfo import ZoneInfo
 
 import dateparser # fallback parser
 from dateparser.search import search_dates
@@ -466,7 +467,10 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
 
     Returns:
         The date and the text without the phrase read, or None when the
-        text names no such weekday or holds a clock.
+        text names no such weekday or holds a clock. The date is
+        timezone-aware, like every other ja answer: those come from the
+        fallback, which reads a naive anchor as wall time in the configured
+        timezone, so a naive anchor is read the same way here.
     """
     match = _JA_WEEKDAY.search(text)
     if match is None or _JA_CLOCK.search(text):
@@ -482,6 +486,9 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
     found = (anchor + timedelta(days=days)).replace(
         hour=moment.hour, minute=moment.minute, second=moment.second,
         microsecond=moment.microsecond)
+    if found.tzinfo is None:
+        tzstr = Configuration()["location"]["timezone"]["code"]
+        found = found.replace(tzinfo=ZoneInfo(tzstr))
     return found, text[:match.start()] + text[match.end():]
 
 

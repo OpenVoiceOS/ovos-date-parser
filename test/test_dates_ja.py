@@ -71,7 +71,20 @@ class TestWeekdayWithAWeekWordJa(unittest.TestCase):
         """The day has no time of its own, so it takes ``default_time``."""
         found = extract_datetime("次の金曜日", "ja-jp", anchorDate=SUNDAY,
                                  default_time=time(8, 15))
-        self.assertEqual(found[0], datetime(2026, 5, 29, 8, 15))
+        self.assertEqual(found[0].replace(tzinfo=None),
+                         datetime(2026, 5, 29, 8, 15))
+
+    def test_timezone_aware_like_the_fallback(self):
+        """A naive anchor gives an aware date, as the fallback's answers are.
+
+        Every other ja text is read by dateparser, which returns aware
+        datetimes; a naive weekday next to them could not be compared.
+        """
+        weekday = extract_datetime("次の金曜日", "ja-jp", anchorDate=SUNDAY)[0]
+        tomorrow = extract_datetime("明日", "ja-jp", anchorDate=SUNDAY)[0]
+        self.assertIsNotNone(weekday.tzinfo)
+        self.assertEqual(weekday.utcoffset(), tomorrow.utcoffset())
+        self.assertLess(tomorrow, weekday)
 
     def test_a_clock_is_not_answered_at_midnight(self):
         """The date is read without a clock, so a text with one is not taken."""

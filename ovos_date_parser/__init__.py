@@ -434,19 +434,25 @@ def extract_datetime(
 # dateparser's ja dictionary has no 次 or 今度, so 次の金曜日 is read as a bare
 # 金曜日, which it places in the past; and it joins 来週 + 金曜日 into
 # "in 1 weekfriday", which it cannot read.
+# 再来週 and 先々週 come before 来週 and 先週 so the longer word wins: in
+# 再来週の金曜日 a search for 来週 alone would start inside 再来週 and land a
+# week early.
 _JA_WEEKDAY = re.compile(
-    r"(?P<week>次の|今度の|来週の?|今週の?|先週の?)(?P<day>[月火水木金土日])曜日?")
+    r"(?P<week>次の|今度の|再来週の?|先々週の?|来週の?|今週の?|先週の?)"
+    r"(?P<day>[月火水木金土日])曜日?")
 _JA_WEEKDAYS = "月火水木金土日"  # Monday first, as datetime.weekday() counts
-_JA_WEEK_OFFSET = {"来週": 1, "今週": 0, "先週": -1}
+_JA_WEEK_OFFSET = {"再来週": 2, "来週": 1, "今週": 0, "先週": -1, "先々週": -2}
 # A clock, or a part of the day. The date is read without it, so a text that
 # holds one is left to the fallback rather than answered at midnight.
-_JA_CLOCK = re.compile(r"[時分秒]|午前|午後|正午|朝|昼|夕方|晩|夜")
+# A numeric clock (13:00, or full-width １３：００) counts as one too.
+_JA_CLOCK = re.compile(
+    r"[時分秒]|午前|午後|正午|朝|昼|夕方|晩|夜|[0-9０-９]{1,2}[:：][0-9０-９]{2}")
 
 
 def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
                         default_time: Optional[time] = None
                         ) -> Optional[Tuple[datetime, str]]:
-    """Read a ja weekday named with 次の, 今度の, 来週, 今週 or 先週.
+    """Read a ja weekday named with 次の, 今度の, 再来週, 来週, 今週, 先週 or 先々週.
 
     次の and 今度の are the first such weekday after the anchor's date, so on
     a Friday 次の金曜日 is a week away. 来週, 今週 and 先週 are the weekday

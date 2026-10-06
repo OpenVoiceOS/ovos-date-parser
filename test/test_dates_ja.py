@@ -50,6 +50,13 @@ class TestWeekdayWithAWeekWordJa(unittest.TestCase):
         self.assertDay("先週の金曜日", SUNDAY, date(2026, 5, 15))
         self.assertDay("先週の月曜日", WEDNESDAY, date(2026, 5, 11))
 
+    def test_weekday_two_weeks_away(self):
+        """再来週 is the week after next; 来週 inside it must not match."""
+        self.assertDay("再来週の金曜日", WEDNESDAY, date(2026, 6, 5))
+        self.assertDay("再来週金曜日", WEDNESDAY, date(2026, 6, 5))
+        self.assertDay("再来週の月曜日", SUNDAY, date(2026, 6, 1))
+        self.assertDay("先々週の金曜日", WEDNESDAY, date(2026, 5, 8))
+
     def test_weekday_of_this_week(self):
         """今週 reads the day in the anchor's own week."""
         self.assertDay("今週の金曜日", WEDNESDAY, date(2026, 5, 22))
@@ -68,7 +75,8 @@ class TestWeekdayWithAWeekWordJa(unittest.TestCase):
 
     def test_a_clock_is_not_answered_at_midnight(self):
         """The date is read without a clock, so a text with one is not taken."""
-        for text in ("来週の金曜日の午後3時に会議", "次の金曜日の朝"):
+        for text in ("来週の金曜日の午後3時に会議", "次の金曜日の朝",
+                     "次の金曜日 13:00", "来週の金曜日１３：００"):
             found = extract_datetime(text, "ja-jp", anchorDate=SUNDAY)
             if found is not None:
                 self.assertNotEqual(found[0].replace(tzinfo=None),

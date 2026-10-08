@@ -102,6 +102,7 @@ from ovos_date_parser.dates_es import (
 )
 from ovos_date_parser.dates_eu import (
     extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
+    nice_year_eu,
 )
 from ovos_date_parser.dates_et import (
     extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
@@ -1300,6 +1301,8 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_fy(dt, bc)
     if lang.startswith("et"):
         return nice_year_et(dt, bc)
+    if lang.startswith("eu"):
+        return nice_year_eu(dt, bc)
     date_time_format.cache(lang)
     return date_time_format.year_format(dt, lang, bc, ad)
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.33.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.5a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.4a1...0.33.5a1)
+
+**Merged pull requests:**
+
+- fix\(zh\): read a relative day written straight against 星期几 [\#389](https://github.com/OpenVoiceOS/ovos-date-parser/pull/389) ([goldyfruit](https://github.com/goldyfruit))
+- fix\(fr\): a bare duration is not a clock time [\#384](https://github.com/OpenVoiceOS/ovos-date-parser/pull/384) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.33.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.4a1) (2026-10-08)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.3a1...0.33.4a1)
@@ -333,7 +342,6 @@
 **Merged pull requests:**
 
 - Release 0.28.10a1 [\#289](https://github.com/OpenVoiceOS/ovos-date-parser/pull/289) ([github-actions[bot]](https://github.com/apps/github-actions))
-- fix: past-marker offsets resolved forward across languages [\#278](https://github.com/OpenVoiceOS/ovos-date-parser/pull/278) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.9a1) (2026-07-21)
 
@@ -350,8 +358,6 @@
 - fix: parse case-inflected Basque month, day and year forms [\#285](https://github.com/OpenVoiceOS/ovos-date-parser/pull/285) ([JarbasAl](https://github.com/JarbasAl))
 - fix: return list not tuple from extract\_datetime\_{tr,ar,fa,id,ms,kab} [\#282](https://github.com/OpenVoiceOS/ovos-date-parser/pull/282) ([JarbasAl](https://github.com/JarbasAl))
 - fix: parse numeric period offsets in both directions for ru, uk, pl, fi [\#281](https://github.com/OpenVoiceOS/ovos-date-parser/pull/281) ([JarbasAl](https://github.com/JarbasAl))
-- fix: match plural period-offset unit nouns in nl, sv, da, cs [\#280](https://github.com/OpenVoiceOS/ovos-date-parser/pull/280) ([JarbasAl](https://github.com/JarbasAl))
-- fix: parse month+bare year and ISO 8601 dates in English [\#279](https://github.com/OpenVoiceOS/ovos-date-parser/pull/279) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
 

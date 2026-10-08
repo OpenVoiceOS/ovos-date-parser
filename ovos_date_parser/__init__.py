@@ -5,6 +5,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time
 from typing import Callable, List, Optional, Tuple, Union
+from zoneinfo import ZoneInfo
 
 import dateparser # fallback parser
 from dateparser.conf import settings as dateparser_settings
@@ -537,6 +538,70 @@ def extract_datetime(
     return moment, remainder
 
 
+# A weekday named with the word that places it: 次の金曜日, 来週の金曜日.
+# dateparser's ja dictionary has no 次 or 今度, so 次の金曜日 is read as a bare
+# 金曜日, which it places in the past; and it joins 来週 + 金曜日 into
+# "in 1 weekfriday", which it cannot read.
+# 再来週 and 先々週 come before 来週 and 先週 so the longer word wins: in
+# 再来週の金曜日 a search for 来週 alone would start inside 再来週 and land a
+# week early.
+_JA_WEEKDAY = re.compile(
+    r"(?P<week>次の|今度の|再来週の?|先々週の?|来週の?|今週の?|先週の?)"
+    r"(?P<day>[月火水木金土日])曜日?")
+_JA_WEEKDAYS = "月火水木金土日"  # Monday first, as datetime.weekday() counts
+_JA_WEEK_OFFSET = {"再来週": 2, "来週": 1, "今週": 0, "先週": -1, "先々週": -2}
+# A clock, or a part of the day. The date is read without it, so a text that
+# holds one is left to the fallback rather than answered at midnight.
+# A numeric clock (13:00, or full-width １３：００) counts as one too.
+_JA_CLOCK = re.compile(
+    r"[時分秒]|午前|午後|正午|朝|昼|夕方|晩|夜|[0-9０-９]{1,2}[:：][0-9０-９]{2}")
+
+
+def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
+                        default_time: Optional[time] = None
+                        ) -> Optional[Tuple[datetime, str]]:
+    """Read a ja weekday named with 次の, 今度の, 再来週, 来週, 今週, 先週 or 先々週.
+
+    次の and 今度の are the first such weekday after the anchor's date, so on
+    a Friday 次の金曜日 is a week away. 来週, 今週 and 先週 are the weekday
+    in the week after, the same as, or before the anchor's, with weeks
+    starting on Monday (ISO 8601).
+
+    Args:
+        text: The ja text, as written.
+        anchorDate: The date to count from; now when None.
+        default_time: The time to give the date; midnight when None.
+
+    Returns:
+        The date and the text without the phrase read, or None when the
+        text names no such weekday or holds a clock. The date is
+        timezone-aware and counted in the configured timezone, like every
+        other ja answer: those come from the fallback, which reads a naive
+        anchor as wall time in that timezone and moves an aware one into
+        it before counting days.
+    """
+    match = _JA_WEEKDAY.search(text)
+    if match is None or _JA_CLOCK.search(text):
+        return None
+    tz = ZoneInfo(Configuration()["location"]["timezone"]["code"])
+    anchor = anchorDate or now_local()
+    if anchor.tzinfo is None:
+        anchor = anchor.replace(tzinfo=tz)
+    else:
+        anchor = anchor.astimezone(tz)
+    weekday = _JA_WEEKDAYS.index(match.group("day"))
+    week = match.group("week").rstrip("の")
+    if week in _JA_WEEK_OFFSET:
+        days = weekday - anchor.weekday() + 7 * _JA_WEEK_OFFSET[week]
+    else:  # 次 and 今度: the first one after today
+        days = (weekday - anchor.weekday() - 1) % 7 + 1
+    moment = default_time or time(0, 0)
+    found = (anchor + timedelta(days=days)).replace(
+        hour=moment.hour, minute=moment.minute, second=moment.second,
+        microsecond=moment.microsecond)
+    return found, text[:match.start()] + text[match.end():]
+
+
 def _extract_datetime_engine(
         text: str,
         lang: str,
@@ -626,6 +691,10 @@ def _extract_datetime_engine(
         return extract_datetime_id(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("tr"):
         return extract_datetime_tr(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.split("-")[0].lower() == "ja":
+        found = _extract_weekday_ja(text, anchorDate, default_time)
+        if found:
+            return found
 
     # fallback parser
     LOG.warning(f"{lang} is not implemented! attempting to use fallback date parser")

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.34.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.0a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.5a1...0.34.0a1)
+
+**Merged pull requests:**
+
+- feat\(locale\): one .voc per month, so a spelling can have its own line [\#380](https://github.com/OpenVoiceOS/ovos-date-parser/pull/380) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.33.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.5a1) (2026-10-08)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.4a1...0.33.5a1)
@@ -356,8 +364,6 @@
 - Release 0.28.9a1 [\#287](https://github.com/OpenVoiceOS/ovos-date-parser/pull/287) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Release 0.28.8a1 [\#286](https://github.com/OpenVoiceOS/ovos-date-parser/pull/286) ([github-actions[bot]](https://github.com/apps/github-actions))
 - fix: parse case-inflected Basque month, day and year forms [\#285](https://github.com/OpenVoiceOS/ovos-date-parser/pull/285) ([JarbasAl](https://github.com/JarbasAl))
-- fix: return list not tuple from extract\_datetime\_{tr,ar,fa,id,ms,kab} [\#282](https://github.com/OpenVoiceOS/ovos-date-parser/pull/282) ([JarbasAl](https://github.com/JarbasAl))
-- fix: parse numeric period offsets in both directions for ru, uk, pl, fi [\#281](https://github.com/OpenVoiceOS/ovos-date-parser/pull/281) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
 

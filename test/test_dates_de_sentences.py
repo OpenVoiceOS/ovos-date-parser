@@ -128,6 +128,11 @@ class TestRelativeDays(unittest.TestCase):
     def test_next_year(self):
         self.assertEqual(extract("nächstes jahr")[0], dt(2118, 9, 3))
 
+    def test_last_year(self):
+        # regression: two identical 'wordPrev[:6] == "nächst"' elif branches
+        # meant 'letztes jahr' had no working path at all (returned None)
+        self.assertEqual(extract("letztes jahr")[0], dt(2116, 9, 3))
+
     def test_last_friday(self):
         res = extract("letzten freitag")[0]
         self.assertEqual(res.strftime("%A"), "Friday")

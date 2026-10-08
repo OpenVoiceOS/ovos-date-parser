@@ -74,7 +74,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         wordList = s.split()
         for idx, word in enumerate(wordList):
             ordinals = ["ste", "de"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     # "second" is the only case we should not do this
                     if ordinal in word and "second" not in word:
@@ -196,7 +196,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             used += 1
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dagen":
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     dayOffset -= int(wordPrev)
@@ -206,7 +206,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 2
         elif word == "week" or word == "weken" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     dayOffset -= int(wordPrev) * 7
@@ -225,7 +225,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif (word == "maand" or word == "maanden") and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     monthOffset = -int(wordPrev)
@@ -244,7 +244,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 years, next year, last year
         elif (word == "jaar" or word == "jaren") and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     yearOffset = -int(wordPrev)
@@ -292,9 +292,9 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             used += 1
             datestr = months[m]
             if wordPrev and \
-                    (wordPrev[0].isdigit() or (wordPrev == "van" and
-                                               wordPrevPrev[0].isdigit())):
-                if wordPrev == "van" and wordPrevPrev[0].isdigit():
+                    (wordPrev and wordPrev[0].isdigit() or (wordPrev == "van" and
+                                               wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == "van" and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -458,7 +458,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -859,7 +859,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         # range; report nothing rather than crashing
         return None
     for idx, word in enumerate(words):
-        if words[idx] == "en" and \
+        if word == "en" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

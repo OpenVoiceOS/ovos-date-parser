@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.4a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.3a1...0.33.4a1)
+
+**Merged pull requests:**
+
+- fix: speak Basque years as words in nice\_year [\#387](https://github.com/OpenVoiceOS/ovos-date-parser/pull/387) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.33.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.3a1) (2026-10-02)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.2a1...0.33.3a1)

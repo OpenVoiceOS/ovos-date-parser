@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.34.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.1a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.0a1...0.34.1a1)
+
+**Merged pull requests:**
+
+- fix: nice\_duration accepts a timedelta in pl, ru, uk [\#391](https://github.com/OpenVoiceOS/ovos-date-parser/pull/391) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(ja\): read 次の金曜日 as the coming Friday, not the last one [\#390](https://github.com/OpenVoiceOS/ovos-date-parser/pull/390) ([goldyfruit](https://github.com/goldyfruit))
+
 ## [0.34.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.0a1) (2026-10-08)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.5a1...0.34.0a1)
@@ -307,10 +316,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.2a1...0.30.0a1)
 
-**Merged pull requests:**
-
-- feat: declarative datetime engine with chronologia reckoning core [\#284](https://github.com/OpenVoiceOS/ovos-date-parser/pull/284) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.29.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.29.2a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.1a1...0.29.2a1)
@@ -363,7 +368,6 @@
 
 - Release 0.28.9a1 [\#287](https://github.com/OpenVoiceOS/ovos-date-parser/pull/287) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Release 0.28.8a1 [\#286](https://github.com/OpenVoiceOS/ovos-date-parser/pull/286) ([github-actions[bot]](https://github.com/apps/github-actions))
-- fix: parse case-inflected Basque month, day and year forms [\#285](https://github.com/OpenVoiceOS/ovos-date-parser/pull/285) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
 

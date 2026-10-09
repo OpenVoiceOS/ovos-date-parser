@@ -29,6 +29,16 @@ LOCALE_DIR = os.path.join(PACKAGE_DIR, "locale")
 LANGS = sorted(d for d in os.listdir(LOCALE_DIR)
                if os.path.isdir(os.path.join(LOCALE_DIR, d)))
 
+# The languages whose month names the foreign check knows about. A locale
+# folder is only one of the languages this package understands: the
+# extractor modules carry a month table for languages that ship no folder,
+# and a swap from one of those is the same defect. Built from the modules,
+# not from LANGS, so the set does not shrink to the folders that exist.
+MONTH_LANGS = sorted(
+    name[len("dates_"):-len(".py")]
+    for name in os.listdir(PACKAGE_DIR)
+    if name.startswith("dates_") and name.endswith(".py"))
+
 REF = date(2026, 9, 19)
 
 
@@ -125,6 +135,12 @@ def test_months_voc_matches_the_extractor(lang):
 def _foreign_offenders(lang, lang_dir):
     """Lines in ``lang_dir`` that are another shipped language's month name.
 
+    "Another language" is every ``dates_<lang>.py`` that declares one
+    12-name month table, not the locale folders alone. Of the 13 languages
+    with a month table and no folder, a whole-table swap of 10 is caught by
+    names they happen to share with the folders; az, el and eu share none,
+    so reading LANGS alone passed them in silence.
+
     "Own" comes from the extractor source alone. Reading ``months.voc``
     here would make the file vouch for itself: a whole-file swap of
     another language into ``locale/<lang>/months.voc`` would put that
@@ -135,7 +151,7 @@ def _foreign_offenders(lang, lang_dir):
     """
     own = set(_module_months(lang) or [])
     foreign = {}
-    for other in LANGS:
+    for other in MONTH_LANGS:
         if other == lang:
             continue
         for name in _module_months(other) or []:
@@ -177,3 +193,42 @@ def test_a_whole_file_language_swap_is_caught(tmp_path):
     assert caught & spanish, (
         "a whole-file es swap into fr/months.voc went unreported; "
         f"offenders were {offenders}")
+
+
+@pytest.mark.parametrize("other", ["az", "el", "eu"])
+def test_a_swap_from_a_language_with_no_locale_folder_is_caught(tmp_path,
+                                                                other):
+    """The three swaps the folder-only foreign set passed in silence.
+
+    ``dates_az.py``, ``dates_el.py`` and ``dates_eu.py`` each declare a
+    month table and ship no ``locale/`` folder. Their names are shared with
+    none of the folders that do ship, so a whole table written over
+    ``locale/fr/months.voc`` kept no name the check knew, and the locale
+    read as clean. The other ten languages in the same position were caught
+    only by coincidental shared names, which is luck, not a check.
+    """
+    names = _module_months(other)
+    assert names, f"dates_{other}.py declares no single month table"
+
+    swapped = tmp_path / "fr"
+    shutil.copytree(os.path.join(LOCALE_DIR, "fr"), swapped)
+    (swapped / "months.voc").write_text("\n".join(names) + "\n",
+                                        encoding="utf-8")
+
+    offenders = _foreign_offenders("fr", str(swapped))
+    caught = {line.split("'")[1] for line in offenders if "'" in line}
+    assert caught & set(names), (
+        f"a whole-table {other} swap into fr/months.voc went unreported; "
+        f"offenders were {offenders}")
+
+
+def test_the_foreign_set_reads_the_modules_not_the_locale_folders():
+    """The definition itself, so a narrowing of it fails here.
+
+    Every language with a month table takes part, including those with no
+    locale folder; LANGS stays the set of folders to scan.
+    """
+    with_tables = [lang for lang in MONTH_LANGS if _module_months(lang)]
+    no_folder = [lang for lang in with_tables if lang not in LANGS]
+    assert {"az", "el", "eu"} <= set(no_folder)
+    assert len(with_tables) > len(LANGS)

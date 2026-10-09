@@ -161,28 +161,150 @@ def test_a_sentence_that_merely_names_a_holiday_costs_milliseconds():
 
 @pytest.mark.parametrize("lang,utterance,kept", [
     ("en-US", "how many days until christmas", "how many days until"),
-    ("fr-FR", "combien de jours avant noël", "combien de jours avant"),
     ("pt-PT", "quantos dias faltam para o natal", "quantos dias faltam para o"),
     ("en-US", "play some christmas music", "play some music"),
 ])
-def test_the_remainder_keeps_every_word_outside_the_holiday_phrase(
+def test_the_remainder_keeps_every_word_the_parse_did_not_consume(
         lang, utterance, kept):
-    """Only the holiday phrase leaves the remainder.
+    """A question word the parse did not read stays in the remainder.
 
-    "combien de jours avant noël" came back as 'combien': chronologia
-    applied "avant" as an offset from outside the match and took "de jours"
-    with it, so a French question lost words its English sibling kept.
+    The remainder is chronologia's, re-spelled with the caller's own
+    characters, so it holds exactly what the parse left. The French sibling
+    of the first row is not here: it is a known wrong answer and has its own
+    cell below.
     """
     got = extract_datetime(utterance, lang, REF)
     assert got is not None
     assert got[1] == kept
 
 
-def test_the_same_question_reads_the_same_in_english_and_french():
-    """The French question asked about Christmas and was answered Christmas Eve."""
+def test_the_english_question_keeps_its_words_and_answers_christmas():
+    """The shape the French row below should have, and does not."""
     english = extract_datetime("how many days until christmas", "en-US", REF)
-    french = extract_datetime("combien de jours avant noël", "fr-FR", REF)
-    assert english[0] == french[0] == CHRISTMAS
+    assert english[0] == CHRISTMAS
+    assert english[1] == "how many days until"
+
+
+# --- known answers, not correct answers -------------------------------------
+
+def test_a_french_interrogative_quantity_before_a_holiday_is_read_as_an_offset():
+    """Known answer, and the defect is chronologia's: task T-6896.
+
+    "combien de jours avant noël" asks how many days remain before Christmas,
+    so the date is Christmas, 25 December. chronologia reads "avant" after an
+    interrogative quantity as an offset and answers the day before, taking
+    "de jours avant" into the match and leaving "combien" behind.
+
+    The two controls are the shapes that ARE read correctly, so the cell
+    blames the interrogative and not the language or the preposition: the
+    English "how many days until christmas" above, and the French
+    "combien de jours jusqu'a noël" here.
+
+    Parsing the holiday construction's own substring hid this row, at the
+    price of four silently wrong offset dates ("the day after christmas" and
+    its siblings). The whole text is right on those four and wrong on this
+    one. The day chronologia fixes it, this cell fails and says so.
+    """
+    got = extract_datetime("combien de jours avant noël", "fr-FR", REF)
+    assert got is not None
+    assert got[0] == datetime(2026, 12, 24, 0, 0)
+    assert got[0] != CHRISTMAS
+    assert got[1] == "combien"
+
+    control = extract_datetime("combien de jours jusqu'à noël", "fr-FR", REF)
+    assert control[0] == CHRISTMAS
+
+
+#: The C1 rows: an offset written OUTSIDE the holiday construction. Each date
+#: is counted by hand from Christmas, 25 December 2026.
+#: The C1 rows: an offset written OUTSIDE the holiday construction. Each date
+#: is counted by hand from Christmas, 25 December 2026.
+OFFSET_UTTERANCES = [
+    ("en-US", "the day after christmas", datetime(2026, 12, 26, 0, 0)),
+    ("en-US", "the day before christmas", datetime(2026, 12, 24, 0, 0)),
+    ("en-US", "two days after christmas", datetime(2026, 12, 27, 0, 0)),
+    ("fr-FR", "le jour après noël", datetime(2026, 12, 26, 0, 0)),
+    ("fr-FR", "le jour apres noel", datetime(2026, 12, 26, 0, 0)),
+]
+
+#: The rows above that reach the holiday layer through `extract_datetime`.
+#: "two days after christmas" is not one of them and has its own cell below.
+OFFSET_THROUGH_EXTRACT_DATETIME = [
+    row for row in OFFSET_UTTERANCES if not row[1].startswith("two days")
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected", OFFSET_UTTERANCES)
+def test_an_offset_outside_the_holiday_phrase_moves_the_date(
+        lang, utterance, expected):
+    """The C1 regression, one cell per row, on the layer that owns it.
+
+    Each of these answered 25 December, the holiday itself, and handed the
+    offset back in the remainder as though it were question words. The parse
+    read the holiday construction's own characters, so a modifier outside the
+    construction was never applied.
+
+    The last row is the same French sentence without its accents, which is
+    what speech to text produces; it must read the same.
+    """
+    got = extract_holiday_span(utterance, lang, REF)
+    assert got is not None
+    assert got[0] == expected
+    assert got[0] != CHRISTMAS
+
+
+@pytest.mark.parametrize("lang,utterance,expected", OFFSET_UTTERANCES)
+def test_an_offset_phrase_leaves_no_remainder(lang, utterance, expected):
+    """The other half: the offset words are consumed, not handed back.
+
+    A caller that reads the remainder as the rest of the command would have
+    been given "the day after" to act on.
+    """
+    got = extract_holiday_span(utterance, lang, REF)
+    assert got is not None
+    assert got[1] == ""
+
+
+@pytest.mark.parametrize("lang,utterance,expected",
+                         OFFSET_THROUGH_EXTRACT_DATETIME)
+def test_an_offset_phrase_reads_the_same_through_extract_datetime(
+        lang, utterance, expected):
+    """The whole call, not the layer alone, for the rows that reach it.
+
+    Without this the module could pass on a library whose entry point never
+    consults the holiday layer at all.
+    """
+    got = extract_datetime(utterance, lang, REF)
+    assert got is not None
+    assert got[0] == expected
+
+
+def test_two_days_after_christmas_is_answered_by_the_engine_not_the_holiday():
+    """Known answer, and a different defect from the one above.
+
+    The holiday layer reads this row correctly, and the cells above assert
+    that. `extract_datetime` never asks it: the per-language engine reads
+    "two days" as an offset from the anchor, answers 27 September 2026 and
+    hands back "after christmas", so the engine-first order ends the walk
+    before the holiday layer is reached.
+
+    That is the shadowing family of finding 5 of the #369 review, but not the
+    case `holiday_overrides_engine` covers: its rule asks whether the words
+    the engine consumed all lie inside the holiday phrase, and "two days"
+    does not lie inside "christmas". The rule is right to decline here; the
+    engine's partial read is the defect, and it is filed on its own.
+
+    The cell holds the answer this library gives today so the day that is
+    fixed it fails and says so.
+    """
+    got = extract_datetime("two days after christmas", "en-US", REF)
+    assert got is not None
+    assert got[0] == datetime(2026, 9, 27, 0, 0)
+    assert got[1] == "after christmas"
+
+    # the control: the layer the walk skipped has the right answer
+    layer = extract_holiday_span("two days after christmas", "en-US", REF)
+    assert layer[0] == datetime(2026, 12, 27, 0, 0)
 
 
 @pytest.mark.parametrize("lang,plain,written", [
@@ -227,3 +349,79 @@ def test_a_tense_inside_the_holiday_phrase_still_reads(utterance, expected):
     "christmas eve" each as one match over all their words.
     """
     assert extract_datetime(utterance, "en-US", REF)[0] == expected
+
+
+# --- the part-of-day offset family, T-7244 from reviewer-d's review of #381 -
+
+# A part-of-day word written as the offset is read as a time of day ON the
+# holiday, and the before/after is dropped: "before" and "after" give the same
+# answer. Every row comes back with an EMPTY remainder, so a caller cannot see
+# that the modifier was read at all. That is what makes the family worth a cell
+# rather than a note: dev at least handed the offset back in the remainder.
+#
+# The defect is chronologia's, like the French interrogative above, and task
+# T-7350 carries it. The day offset is read correctly on the same anchor
+# ("the day after christmas" gives 26 December), so the part-of-day word is the
+# whole of it.
+#
+# These call extract_holiday_span rather than extract_datetime, because it is
+# that function's contract this family bounds. Through extract_datetime the
+# per-language engine answers these utterances first and the holiday layer is
+# never reached, so extract_datetime would assert the engine's answer, which is
+# a different wrong answer and not this one.
+
+PART_OF_DAY_OFFSETS = [
+    # lang, utterance, the answer given today, what the utterance names
+    ("en-US", "the night before christmas",
+     datetime(2026, 12, 25, 21, 0), "the night of 24 December"),
+    ("en-US", "the morning after christmas",
+     datetime(2026, 12, 25, 6, 0), "the morning of 26 December"),
+    ("en-US", "the evening after christmas",
+     datetime(2026, 12, 25, 18, 0), "the evening of 26 December"),
+    ("en-US", "the night after christmas",
+     datetime(2026, 12, 25, 21, 0), "the night of 26 December"),
+    ("en-US", "the morning before christmas",
+     datetime(2026, 12, 25, 6, 0), "the morning of 24 December"),
+    ("fr-FR", "le soir avant noël",
+     datetime(2026, 12, 25, 18, 0), "le soir du 24 décembre"),
+    ("fr-FR", "le matin après noël",
+     datetime(2026, 12, 25, 4, 0), "le matin du 26 décembre"),
+    ("pt-PT", "a noite antes do natal",
+     datetime(2026, 12, 25, 19, 0), "a noite de 24 de dezembro"),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,given,asked", PART_OF_DAY_OFFSETS)
+def test_a_part_of_day_offset_is_read_as_a_time_on_the_holiday(
+        lang, utterance, given, asked):
+    """Known answer, not a correct answer: the defect is chronologia's, T-7350.
+
+    Each expected value is the answer this library gives today. What the
+    utterance actually names is written beside it. The day chronologia fixes
+    any of these the cell fails and says which.
+    """
+    got = extract_holiday_span(utterance, lang, REF)
+    assert got is not None, f"{utterance!r} no longer reaches the holiday layer"
+    assert got[0] == given, f"{utterance!r} asks for {asked}"
+    assert got[1] == "", (
+        f"{utterance!r} left {got[1]!r} over; an empty remainder is what makes "
+        "this family invisible to a caller, and the cell holds that too")
+
+
+def test_the_direction_makes_no_difference_to_a_part_of_day_offset():
+    """The sharpest statement of the defect: before and after agree.
+
+    A cell per row could pass while the two directions still collapsed onto
+    one answer, so the collapse is asserted on its own.
+    """
+    before = extract_holiday_span("the night before christmas", "en-US", REF)
+    after = extract_holiday_span("the night after christmas", "en-US", REF)
+    assert before[0] == after[0] == datetime(2026, 12, 25, 21, 0)
+
+
+def test_a_day_offset_is_still_read_correctly():
+    """Control: the direction IS honoured for a day offset, so the family
+    above blames the part-of-day word and not the offset machinery."""
+    got = extract_holiday_span("the day after christmas", "en-US", REF)
+    assert got is not None
+    assert got[0] == datetime(2026, 12, 26, 0, 0)

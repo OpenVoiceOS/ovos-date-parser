@@ -32,6 +32,7 @@ from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
 from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
 from ovos_date_parser.holidays import (extract_holiday_date,
                                        extract_holiday_span,
+                                       holiday_overrides_engine,
                                        holiday_surfaces)
 from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
 from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
@@ -520,15 +521,28 @@ def extract_datetime(
     reads no date, :func:`ovos_date_parser.holidays.extract_holiday_span`
     asks chronologia, and its answer is taken only when chronologia says a
     holiday construction is what matched. An utterance the engine already
-    reads keeps the engine's answer, so nothing that worked before changes.
+    reads keeps the engine's answer, with one exception: a holiday whose own
+    name is written with calendar vocabulary ("good friday", "palm sunday")
+    is read by the engine as that weekday, so when the engine answers the
+    holiday phrase on its own with the same date it gave the whole text
+    (:func:`~ovos_date_parser.holidays.holiday_overrides_engine`) the holiday
+    layer answers instead. A time of day, an ordinal or any other word beside
+    the holiday name does not stop this, because it does not move the date.
+    A date the engine read from a calendar word the phrase does not cover is
+    a different date, and stays the engine's.
     """
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
-    if found is not None:
+    if found is not None and not holiday_overrides_engine(
+            text, lang, found[0], found[1], anchorDate=anchorDate):
         return found
     holiday = extract_holiday_span(text, lang, anchorDate=anchorDate)
     if holiday is None:
-        return None
+        # one return for both ways of arriving here: the engine read nothing
+        # and ``found`` is None, which is the old contract, or the override
+        # sent an engine answer to a holiday layer that then declined, and
+        # the engine's answer stands.
+        return found
     moment, remainder = holiday
     if default_time is not None:
         moment = moment.replace(hour=default_time.hour,

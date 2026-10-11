@@ -239,5 +239,35 @@ class TestBareDurationNotClock(unittest.TestCase):
         self.assertEqual(extract("c'est 3 heures")[0], dt(2117, 9, 4, 3))
 
 
+class TestUnaccentedAMarker(unittest.TestCase):
+    """Typed French often leaves the accent off "à": "réveille-moi a 7h".
+    The plain "a" introduces the hour like "à", unless it is the verb
+    "avoir" ("il y a 7 heures", "elle a 2h de route")."""
+
+    def test_a_before_bare_h(self):
+        self.assertEqual(extract("a 7h")[0], dt(2117, 9, 4, 7))
+        self.assertEqual(extract("réveille-moi a 7h"),
+                         extract("réveille-moi à 7h"))
+
+    def test_a_before_hour_and_minutes(self):
+        self.assertEqual(extract("a 19h30"), [dt(2117, 9, 3, 19, 30), ""])
+        self.assertEqual(extract("a 19 h 30")[0], dt(2117, 9, 3, 19, 30))
+
+    def test_a_before_spelled_hour(self):
+        self.assertEqual(extract("a 7 heures")[0], dt(2117, 9, 4, 7))
+
+    def test_a_after_a_day(self):
+        self.assertEqual(extract("demain a 7h")[0], dt(2117, 9, 4, 7))
+
+    def test_il_y_a_is_still_a_duration(self):
+        for text in ("il y a 7 heures", "il y a 7h"):
+            res = extract(text)
+            self.assertFalse(res and res[0] == dt(2117, 9, 4, 7), text)
+
+    def test_avoir_with_a_pronoun_is_not_a_marker(self):
+        self.assertIsNone(extract("elle a 2h de route"))
+        self.assertIsNone(extract("il a 3 heures de retard"))
+
+
 if __name__ == "__main__":
     unittest.main()

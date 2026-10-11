@@ -11,6 +11,15 @@ from ovos_date_parser.duration import (
 )
 
 _ARTICLES_FR = ["le", "la", "du", "de", "les", "des"]
+# Typed and transcribed French often drops the accent of "à": "réveille-moi
+# a 7h". A plain "a" is otherwise the verb "avoir", so it is a time marker
+# only when no subject of "avoir" stands before it: "il y a 7 heures" and
+# "elle a 2h de route" are lengths of time, not the hour.
+_AVOIR_SUBJECTS_FR = ["y", "il", "elle", "on", "qui", "ça", "cela"]
+
+
+def _unaccented_a_marker_fr(word_prev, word_prev_prev):
+    return word_prev == "a" and word_prev_prev not in _AVOIR_SUBJECTS_FR
 
 
 def nice_time_fr(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -380,6 +389,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         wordNextNext = words[idx + 2] if idx + 2 < len(words) else ""
         used = 0
         start = idx
+        a_marker = False
 
         # parse midi et quart, minuit et demi, midi 10, minuit moins 20
         if word in ["midi", "minuit"]:
@@ -476,8 +486,9 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                         wordPrev == "" and
                         (wordNext == "" or wordNext.isdigit() or
                          wordNext in ("et", "moins")))
+                a_marker = _unaccented_a_marker_fr(wordPrev, wordPrevPrev)
                 if (not strMM and ":" not in word and
-                        wordPrev not in markers and
+                        wordPrev not in markers and not a_marker and
                         not is_time_statement and
                         not sentence_initial_clock):
                     isTime = False
@@ -493,10 +504,11 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 # 5 hours, 10 minutes etc.
                 length = len(word)
                 ampm = ""
+                a_marker = _unaccented_a_marker_fr(wordPrev, wordPrevPrev)
                 if (
                         word.isdigit() and
                         wordNext in ["heures", "heure", "h"] and word != "0" and
-                        (wordPrev in markers or
+                        (wordPrev in markers or a_marker or
                          (wordPrev == "est" and wordPrevPrev == "il") or
                          wordPrev == "c'est" or
                          (wordPrev == "" and
@@ -628,7 +640,8 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
             for i in range(0, used):
                 words[i + start] = ""
 
-            if start - 1 >= 0 and words[start - 1] in markers:
+            if start - 1 >= 0 and (words[start - 1] in markers or
+                                   (a_marker and words[start - 1] == "a")):
                 words[start - 1] = ""
 
             idx += used - 1

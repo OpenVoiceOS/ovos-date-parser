@@ -8,7 +8,7 @@ the anchor, so the next one from September 2026 is 2027's).
 The anchor is fixed at 25 September 2026, so "the next one" is a stated date
 rather than whatever today makes it.
 """
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 import pytest
 
@@ -227,3 +227,199 @@ def test_a_tense_inside_the_holiday_phrase_still_reads(utterance, expected):
     "christmas eve" each as one match over all their words.
     """
     assert extract_datetime(utterance, "en-US", REF)[0] == expected
+
+
+# --- finding 5 of the #369 review: a holiday named after a weekday ----------
+
+# `extract_datetime` runs the per-language engine first. A holiday whose own
+# name carries weekday vocabulary — "good friday", "palm sunday" — therefore
+# answered with the coming weekday and never reached the holiday layer, which
+# knew the right date all along. Eight of the twelve weekday- and month-named
+# English holidays answered that way.
+#
+# Every date below is reckoned independently of the parser. Western Easter 2027
+# is 28 March by the Gregorian computus, and the movable feasts are counted from
+# it: Palm Sunday is Easter minus 7 (21 March), Maundy Thursday minus 3
+# (25 March), Good Friday minus 2 (26 March), Holy Saturday minus 1 (27 March),
+# Easter Monday plus 1 (29 March), Whit Monday plus 50 (17 May). Shrove Tuesday
+# is Easter minus 47 (9 February) and Ash Wednesday minus 46 (10 February).
+
+WEEKDAY_NAMED_HOLIDAYS = [
+    ("palm sunday", date(2027, 3, 21)),
+    ("maundy thursday", date(2027, 3, 25)),
+    ("good friday", date(2027, 3, 26)),
+    ("holy saturday", date(2027, 3, 27)),
+    ("easter monday", date(2027, 3, 29)),
+    ("whit monday", date(2027, 5, 17)),
+    ("shrove tuesday", date(2027, 2, 9)),
+    ("ash wednesday", date(2027, 2, 10)),
+]
+
+
+@pytest.mark.parametrize("utterance,expected", WEEKDAY_NAMED_HOLIDAYS)
+def test_a_weekday_named_holiday_answers_with_the_holiday(utterance, expected):
+    """The holiday layer's date wins when the engine read the holiday's own
+    words as a weekday."""
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    assert got[0].date() == expected
+
+
+@pytest.mark.parametrize("utterance,expected", WEEKDAY_NAMED_HOLIDAYS)
+def test_a_weekday_named_holiday_keeps_no_half_of_its_name(utterance, expected):
+    """The remainder holds no word of the holiday's own name."""
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    for word in utterance.split():
+        assert word not in got[1].lower()
+
+
+# --- a word of time beside the holiday name, from the #374 review ----------
+
+# The first cut compared the words the engine consumed against the words of the
+# holiday phrase, and declined whenever the engine consumed anything else. A
+# time of day is something else, so "good friday at 9am" kept the engine's
+# coming Friday and left `'good'` in the remainder: half the holiday's own name,
+# on the commonest spoken form of all eight. The test asks the engine the
+# holiday phrase on its own instead, and the override fires when that answer's
+# date equals the date the whole text produced, which a time of day does not
+# move.
+#
+# Each expected date is reckoned independently from the computus, as above.
+
+WEEKDAY_NAMED_HOLIDAYS_WITH_A_TIME = [
+    ("good friday at 9am", date(2027, 3, 26)),
+    ("remind me on good friday at 9am", date(2027, 3, 26)),
+    ("palm sunday at noon", date(2027, 3, 21)),
+    ("easter monday morning", date(2027, 3, 29)),
+    ("shrove tuesday at 6pm", date(2027, 2, 9)),
+    ("set an alarm for good friday at 7", date(2027, 3, 26)),
+]
+
+WEEKDAY_NAMED_HOLIDAY_WORDS = frozenset(
+    word for utterance, _ in WEEKDAY_NAMED_HOLIDAYS for word in utterance.split()
+)
+
+
+@pytest.mark.parametrize("utterance,expected",
+                         WEEKDAY_NAMED_HOLIDAYS_WITH_A_TIME)
+def test_a_time_beside_a_holiday_name_still_answers_with_the_holiday(
+        utterance, expected):
+    """A time of day beside the holiday name does not send the answer back to
+    the engine's weekday."""
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    assert got[0].date() == expected
+
+
+@pytest.mark.parametrize("utterance,expected",
+                         WEEKDAY_NAMED_HOLIDAYS_WITH_A_TIME)
+def test_a_time_beside_a_holiday_name_keeps_no_half_of_the_name(
+        utterance, expected):
+    """The remainder holds no word of any weekday-named holiday.
+
+    The whole set is checked, not only the words of this utterance, because the
+    failure this cell exists for left `'good'`, `'palm'`, `'easter'` and
+    `'shrove'` behind.
+    """
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    remainder_words = set(got[1].lower().split())
+    assert not (remainder_words & WEEKDAY_NAMED_HOLIDAY_WORDS)
+
+
+def test_a_time_beside_a_holiday_name_is_left_in_the_remainder():
+    """Known answer, and the bound on this round: the holiday layer answers
+    with a date, so the engine's time of day is not carried onto it.
+
+    "good friday at 9am" gives Good Friday at midnight and leaves "at 9am" in
+    the remainder. The time is not lost, but a caller that reads only the
+    datetime sees midnight. Carrying it would also have to take the time words
+    out of the remainder, which is a second change this round does not make.
+    The day the time is carried this cell fails and says so.
+    """
+    got = extract_datetime("good friday at 9am", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2027, 3, 26)
+    assert got[0].time() == time(0, 0)
+    assert "9am" in got[1]
+
+
+def test_a_plain_weekday_still_answers_with_the_weekday(utterance=None):
+    """Control: a weekday that names no holiday is untouched.
+
+    25 September 2026 is a Friday, so the coming Sunday is the 27th.
+    """
+    got = extract_datetime("sunday", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2026, 9, 27)
+
+
+def test_a_weekday_beside_a_holiday_keeps_the_weekday():
+    """Control: the engine's answer stands when it read words the holiday
+    phrase does not cover.
+
+    "play christmas music on friday" asks about Friday. The holiday phrase is
+    "christmas" alone, so the engine's Friday is not inside it and the holiday
+    date must not replace it.
+    """
+    got = extract_datetime("play christmas music on friday", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2026, 9, 25) or got[0].date() == date(2026, 10, 2)
+    assert got[0].date() != date(2026, 12, 25)
+
+
+def test_a_holiday_the_engine_cannot_read_is_unchanged():
+    """Control: the None path of the engine still answers from the layer."""
+    got = extract_datetime("boxing day", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2026, 12, 26)
+
+
+# --- the bound on the extent test, from the #374 review ---------------------
+
+# `holiday_overrides_engine` compares a set of folded words, not a position, so
+# a weekday word that appears both inside the holiday name and elsewhere in the
+# sentence is indistinguishable from one that appears inside the name alone. A
+# relative phrase built on such a word answers with the holiday itself.
+#
+# These cells record the answer this library gives today, not the answer the
+# phrase asks for. Each expected date is reckoned independently: Western Easter
+# 2027 is 28 March by the Gregorian computus, so Good Friday is 26 March and
+# Easter Monday is 29 March. The date the phrase actually names is written
+# beside each cell. The day the extent test becomes positional these cells fail
+# and say what changed.
+
+KNOWN_ANSWER_RELATIVE_PHRASES = [
+    # utterance, the date given today, the date the phrase names
+    ("the friday before good friday", date(2027, 3, 26), date(2027, 3, 19)),
+    ("monday after easter monday", date(2027, 3, 29), date(2027, 4, 5)),
+]
+
+
+@pytest.mark.parametrize("utterance,given,asked",
+                         KNOWN_ANSWER_RELATIVE_PHRASES)
+def test_a_relative_phrase_on_a_holiday_word_answers_with_the_holiday(
+        utterance, given, asked):
+    """Known answer: the holiday's own date, not the day the phrase names.
+
+    The engine gave the coming weekday for these phrases before this fix
+    existed, which was wrong too, so the cell bounds the fix rather than
+    approving it.
+    """
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    assert got[0].date() == given
+    assert got[0].date() != asked
+
+
+def test_a_relative_phrase_the_engine_keeps_is_not_taken():
+    """Control, the opposite call on a phrase of the same shape.
+
+    "good friday and next friday" carries a Friday outside the holiday phrase,
+    so the consumed words are not a subset of the phrase and the engine keeps
+    the utterance. 25 September 2026 is a Friday, so the next one is 2 October.
+    """
+    got = extract_datetime("good friday and next friday", "en-US", REF)
+    assert got is not None
+    assert got[0].date() == date(2026, 10, 2)

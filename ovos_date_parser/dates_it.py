@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_it import extract_number_it, pronounce_number_it
 from ovos_utils.time import now_local, DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
+from ovos_date_parser.common import restore_typed_words
 from ovos_number_parser import numbers_to_digits
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
@@ -218,7 +219,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             words = [x for x in words if x]
             result_str = ' '.join(words)
             extracted_date = anchorDate.replace(microsecond=0)
-            return [extracted_date, result_str]
+            return [extracted_date, restore_typed_words(result_str, text)]
 
         # un paio di  o  tra tre settimane --> secoli
         elif extract_number_it(word) and (word_next in year_multiples or
@@ -846,7 +847,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
     words = [x for x in words if x]
     result_str = ' '.join(words)
 
-    return [extracted_date, result_str]
+    return [extracted_date, restore_typed_words(result_str, text)]
 
 
 def extract_duration_it(text, resolution=DurationResolution.TIMEDELTA,

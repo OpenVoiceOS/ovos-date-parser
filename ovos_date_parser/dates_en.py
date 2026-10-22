@@ -1,3 +1,4 @@
+import calendar
 import re
 from datetime import datetime, timedelta, time, date
 
@@ -546,7 +547,9 @@ def _scan_date_en(words, anchorDate):
         validFollowups.append("past")
         validFollowups.append("now")
         validFollowups.append("this")
-        if (word == "from" or word == "after") and wordNext in validFollowups:
+        if (word == "from" or word == "after") and wordNext in validFollowups \
+                and not (wordNext in months + monthsShort
+                         and wordNextNext[:1].isdigit()):
             used = 2
             fromFlag = True
             if wordNext == "tomorrow":
@@ -1102,6 +1105,147 @@ def _scan_time_en(words, anchorDate, date_state):
     }
 
 
+_MONTH_NAMES_EN = ("january", "february", "march", "april", "may", "june",
+                   "july", "august", "september", "october", "november",
+                   "december")
+_MONTH_RE_EN = "|".join(_MONTH_NAMES_EN)
+# words that may stand right before a month name used as a date; "may" after
+# any other word is the modal verb
+_DATE_PREPOSITIONS_EN = ("on", "in", "by", "until", "till", "before", "after",
+                         "from", "since", "for", "of", "the", "this", "next",
+                         "last", "during", "around", "at")
+# the determiners that can open the noun phrase an ordinal fraction sits in
+_DETERMINERS_EN = ("a", "an", "one", "the", "every", "each", "this", "that",
+                   "these", "those", "my", "your", "his", "her", "our",
+                   "their", "some", "any", "another", "no", "half", "several",
+                   "next")
+# the determiners that make an ordinal a fraction, not a date
+_INDEFINITE_EN = ("a", "an", "one", "another", "some", "any", "no", "half",
+                  "several")
+_ORDINAL_WORDS_RE_EN = r"(?:(?:twenty|thirty)[ -])?[a-z]+"
+# "the fourth of july", "twenty-first of march"
+_SPELLED_DAY_RE_EN = re.compile(
+    rf"\b(the\s+)?({_ORDINAL_WORDS_RE_EN})\s+of\s+(?=(?:{_MONTH_RE_EN})\b)",
+    re.I)
+# "july fourth", "march the twenty-first"
+_MONTH_THEN_SPELLED_DAY_RE_EN = re.compile(
+    rf"\b({_MONTH_RE_EN})\s+(?:the\s+)?({_ORDINAL_WORDS_RE_EN})\b", re.I)
+# "the 5th of the month", "the first of next month", "5th of this month"
+_DAY_OF_MONTH_RE_EN = re.compile(
+    rf"\b(the\s+)?(\d{{1,2}}(?:st|nd|rd|th)?|{_ORDINAL_WORDS_RE_EN})"
+    r"\s+of\s+(?:(the|this)|(next))\s+month\b(?!['\u2019]s)", re.I)
+# "the last day of the month", "of next month", "of february [2028]"
+_LAST_DAY_RE_EN = re.compile(
+    r"\b(?:the\s+)?last\s+day\s+of\s+"
+    rf"(?:(?:the|this)\s+(month)|(next)\s+month|({_MONTH_RE_EN})"
+    r"(?:\s+(\d{4}))?)\b(?!\s*\d|['\u2019]s)", re.I)
+
+
+def _ordinal_day_en(words):
+    """The day number 1-31 a spelled ordinal names, else None.
+
+    The number parser reads a cardinal ("one") the same way with or without
+    the ordinal flag, so only a word it changes between the two is an ordinal.
+    """
+    day = numbers_to_digits_en(words, ordinals=True)
+    if day.isdigit() and not numbers_to_digits_en(words, ordinals=None).isdigit() \
+            and 1 <= int(day) <= 31:
+        return int(day)
+    return None
+
+
+def _expand_month_day_refs_en(text, anchorDate):
+    """Rewrite day-of-month references the word scanner cannot read.
+
+    Spelled ordinals beside a month name become digits ("the fourth of july"
+    -> "4 of july", "july fourth" -> "july 4").  "the first of the month" and
+    "the last day of the month" are resolved against the anchor and rewritten
+    as an explicit "Month D YYYY" date.  A day that has already passed in the
+    current month rolls to the next month, as a month-name date rolls to the
+    next year.  A phrase that does not fit is returned untouched.
+    """
+    def after_count_article(m):
+        # "a third of the month", "a complete third of the month": the
+        # nearest determiner in the same noun phrase is a count article
+        before = [w.lower() for w in m.string[:m.start()].split()]
+        for word in reversed(before[-4:]):
+            if word in _DETERMINERS_EN:
+                return word in _INDEFINITE_EN
+            if word in _DATE_PREPOSITIONS_EN or word[-1] in ",.;:!?":
+                break
+        return False
+
+    def previous_word(m):
+        before = m.string[:m.start()].split()
+        return before[-1].lower() if before else ""
+
+    def follows_ordinal(m):
+        # "the first third of the month", "the last third of the month"
+        word = previous_word(m)
+        return word in ("last", "final") or _ordinal_day_en(word) is not None
+
+    def spelled(m):
+        day = _ordinal_day_en(m.group(2))
+        if day is None or (not m.group(1) and previous_word(m) in
+                           ("a", "an", "one", "half")):
+            return m.group(0)
+        return f"{day} of "
+
+    def month_then_day(m):
+        day = _ordinal_day_en(m.group(2))
+        if day is None or (m.group(1).lower() == "may" and previous_word(m)
+                           not in ("",) + _DATE_PREPOSITIONS_EN):
+            return m.group(0)
+        return f"{m.group(1)} {day}"
+
+    def explicit(year, month, day):
+        return " " + datetime(year, month, day).strftime("%B %d %Y") + " "
+
+    def day_of_month(m):
+        token = m.group(2).lower()
+        if token[0].isdigit():
+            # a bare count ("3 of this month's books") is not a day
+            if not m.group(1) and not token[-1].isalpha():
+                return m.group(0)
+            day = int(token.rstrip("stndrh"))
+        else:
+            day = _ordinal_day_en(token)
+            if not m.group(1) and (after_count_article(m) or follows_ordinal(m)):
+                return m.group(0)
+        if day is None or not 1 <= day <= 31:
+            return m.group(0)
+        month_start = anchorDate.replace(day=1)
+        if m.group(4):
+            tries = [1]
+        elif m.group(3).lower() == "this":
+            tries = [0]
+        else:
+            tries = range(int(day <= anchorDate.day), 13)
+        for offset in tries:
+            target = month_start + relativedelta(months=offset)
+            if day <= calendar.monthrange(target.year, target.month)[1]:
+                return explicit(target.year, target.month, day)
+        return m.group(0)
+
+    def last_day(m):
+        if m.group(3):
+            month = _MONTH_NAMES_EN.index(m.group(3).lower()) + 1
+            year = int(m.group(4) or anchorDate.year
+                       + (anchorDate.month > month))
+            if year < 1:
+                return m.group(0)
+        else:
+            target = anchorDate.replace(day=1) + relativedelta(
+                months=1 if m.group(2) else 0)
+            year, month = target.year, target.month
+        return explicit(year, month, calendar.monthrange(year, month)[1])
+
+    text = _DAY_OF_MONTH_RE_EN.sub(day_of_month, text)
+    text = _SPELLED_DAY_RE_EN.sub(spelled, text)
+    text = _MONTH_THEN_SPELLED_DAY_RE_EN.sub(month_then_day, text)
+    return _LAST_DAY_RE_EN.sub(last_day, text)
+
+
 def _extract_datetime_en(text, anchorDate=None, default_time=None):
     """ Convert a human date reference into an exact datetime
 
@@ -1191,6 +1335,7 @@ def _extract_datetime_en(text, anchorDate=None, default_time=None):
         except ValueError:
             pass
 
+    text = _expand_month_day_refs_en(text, anchorDate)
     words = clean_string(text)
 
     date_state = _scan_date_en(words, anchorDate)

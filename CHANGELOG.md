@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.34.11a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.11a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.10a1...0.34.11a1)
+
+**Closed issues:**
+
+- ast-ES: "mañana a les 22:30" parses as today 22:30, expected tomorrow 22:30 [\#500](https://github.com/OpenVoiceOS/ovos-date-parser/issues/500)
+- gl-ES: "mañá ás 22:30" parses as today 22:30, expected tomorrow 22:30 [\#499](https://github.com/OpenVoiceOS/ovos-date-parser/issues/499)
+- ast-ES: "el próximu vienres" on a Friday parses as today, expected next Friday 23 October [\#498](https://github.com/OpenVoiceOS/ovos-date-parser/issues/498)
+- ca-ES: "el pròxim divendres" on a Friday parses as today, expected next Friday 23 October [\#497](https://github.com/OpenVoiceOS/ovos-date-parser/issues/497)
+- gl-ES: "o próximo venres" on a Friday parses as today, expected next Friday 23 October [\#496](https://github.com/OpenVoiceOS/ovos-date-parser/issues/496)
+- ca-ES: "vespre" raises IndexError, expected no error [\#495](https://github.com/OpenVoiceOS/ovos-date-parser/issues/495)
+- ast-ES: "la selmana que vien" leaves the word "siguiente" in the remainder, expected an empty remainder [\#450](https://github.com/OpenVoiceOS/ovos-date-parser/issues/450)
+- gl-ES: "a semana que vén" leaves the word "seguinte" in the remainder, expected an empty remainder [\#449](https://github.com/OpenVoiceOS/ovos-date-parser/issues/449)
+- ast-ES: "el vienres de la selmana que vien" parses as 24 October, expected 23 October [\#434](https://github.com/OpenVoiceOS/ovos-date-parser/issues/434)
+- gl-ES: "o venres da semana que vén" parses as 24 October, expected 23 October [\#433](https://github.com/OpenVoiceOS/ovos-date-parser/issues/433)
+- ast-ES: "el vienres pasáu" parses as 23 October, expected 16 October [\#418](https://github.com/OpenVoiceOS/ovos-date-parser/issues/418)
+- ast-ES: "el siguiente vienres" parses as 30 October, expected 23 October [\#417](https://github.com/OpenVoiceOS/ovos-date-parser/issues/417)
+- ca-ES: "el vinent divendres" parses as 30 October, expected 23 October [\#416](https://github.com/OpenVoiceOS/ovos-date-parser/issues/416)
+
+**Merged pull requests:**
+
+- fix\(gl,ca,ast\): read a next or last marker around a weekday as one occurrence [\#421](https://github.com/OpenVoiceOS/ovos-date-parser/pull/421) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.34.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.10a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.9a1...0.34.10a1)
@@ -47,12 +71,6 @@
 - pt-PT: "o mês que vem" returns None, expected 17 November 2026 [\#446](https://github.com/OpenVoiceOS/ovos-date-parser/issues/446)
 - pt-PT: "o mês passado" parses as 17 March 2026, expected 17 September 2026 [\#445](https://github.com/OpenVoiceOS/ovos-date-parser/issues/445)
 - pt-PT: "no próximo mês" parses as 17 May 2027, expected 17 November 2026 [\#444](https://github.com/OpenVoiceOS/ovos-date-parser/issues/444)
-- pt-PT: "depois de amanhã segunda-feira" parses as 14 October, expected 19 October [\#405](https://github.com/OpenVoiceOS/ovos-date-parser/issues/405)
-- pt-PT: "é daqui a uma semana sábado" parses as today, expected 24 October [\#400](https://github.com/OpenVoiceOS/ovos-date-parser/issues/400)
-
-**Merged pull requests:**
-
-- fix\(pt\): resolve weekdays after relative days and periods, parse spelled counts [\#409](https://github.com/OpenVoiceOS/ovos-date-parser/pull/409) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
 
@@ -62,13 +80,6 @@
 
 - en-US: "after july 4th" returns today at 16:00, expected 4 July 2027 [\#484](https://github.com/OpenVoiceOS/ovos-date-parser/issues/484)
 - en-US: "july fourth" parses as 1 July 2027, expected 4 July 2027 [\#422](https://github.com/OpenVoiceOS/ovos-date-parser/issues/422)
-- en-US: "the fourth of july" parses as 1 July 2027, expected 4 July 2027 [\#404](https://github.com/OpenVoiceOS/ovos-date-parser/issues/404)
-- en-US: "the first of the month" returns None, expected 1 November [\#403](https://github.com/OpenVoiceOS/ovos-date-parser/issues/403)
-- en-US: "the last day of the month" parses as yesterday, expected 31 October [\#402](https://github.com/OpenVoiceOS/ovos-date-parser/issues/402)
-
-**Merged pull requests:**
-
-- fix\(en\): read "the fourth of july", "july fourth", "the first of the month" and "the last day of the month" [\#411](https://github.com/OpenVoiceOS/ovos-date-parser/pull/411) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.34.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.6a1) (2026-10-22)
 
@@ -110,16 +121,6 @@
 - es-ES: "mañana a las 10:30" raises TypeError, expected 18 October 10:30 [\#487](https://github.com/OpenVoiceOS/ovos-date-parser/issues/487)
 - de-DE: "ein Tag vor morgen" parses as tomorrow, expected today [\#458](https://github.com/OpenVoiceOS/ovos-date-parser/issues/458)
 - es-ES: "el viernes de la semana pasada" parses as 10 October, expected 9 October [\#427](https://github.com/OpenVoiceOS/ovos-date-parser/issues/427)
-- es-ES: "la semana que viene" returns None, expected 24 October [\#413](https://github.com/OpenVoiceOS/ovos-date-parser/issues/413)
-- es-ES: "el viernes pasado" parses as 23 October, expected 16 October [\#412](https://github.com/OpenVoiceOS/ovos-date-parser/issues/412)
-- es-ES: "el siguiente viernes" parses as 30 October, expected 23 October [\#401](https://github.com/OpenVoiceOS/ovos-date-parser/issues/401)
-- nl-NL: "de dag na vandaag" parses as today, expected tomorrow [\#399](https://github.com/OpenVoiceOS/ovos-date-parser/issues/399)
-- de-DE: "der tag nach morgen" parses as tomorrow, expected the day after tomorrow [\#398](https://github.com/OpenVoiceOS/ovos-date-parser/issues/398)
-
-**Merged pull requests:**
-
-- fix\(de,nl\): parse "der Tag nach morgen" and "de dag na vandaag" as the day after [\#410](https://github.com/OpenVoiceOS/ovos-date-parser/pull/410) ([JarbasAl](https://github.com/JarbasAl))
-- fix\(es\): read "siguiente", "pasado" and "que viene" around weekdays and weeks [\#408](https://github.com/OpenVoiceOS/ovos-date-parser/pull/408) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.34.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.3a1) (2026-10-22)
 
@@ -169,7 +170,6 @@
 **Merged pull requests:**
 
 - fix\(es,gl,ast,pt,it\): keep the user's words in the remainder [\#459](https://github.com/OpenVoiceOS/ovos-date-parser/pull/459) ([JarbasAl](https://github.com/JarbasAl))
-- fix\(fr\): read an unaccented "a" before an hour as "à" [\#397](https://github.com/OpenVoiceOS/ovos-date-parser/pull/397) ([goldyfruit](https://github.com/goldyfruit))
 
 ## [0.34.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.1a1) (2026-10-08)
 

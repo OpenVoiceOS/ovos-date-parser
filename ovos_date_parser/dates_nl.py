@@ -214,6 +214,8 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     'sep', 'okt', 'nov', 'dec']
     year_multiples = ["decennium", "eeuw", "millennium"]
     day_multiples = ["dagen", "weken", "maanden", "jaren"]
+    relative_days = {"eergisteren": -2, "gisteren": -1, "vandaag": 0,
+                     "morgen": 1, "overmorgen": 2}
     time_units = ["uur", "uren", "minuut", "minuten", "seconde", "seconden"]
     particles = ["op", "dan", "weer", "aan", "af", "terug", "thuis", "langs",
                  "mee", "want", "maar", "dus", "omdat", "terwijl"]
@@ -307,6 +309,14 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         elif word == "overmorgen" and not fromFlag:
             dayOffset = 2
             used += 1
+        # parse the day after/before today, tomorrow, yesterday
+        elif word == "dag" and wordNext in ("na", "voor") and \
+                wordNextNext in relative_days and not fromFlag and \
+                wordPrev != "elke" and \
+                not (wordPrev and wordPrev[0].isdigit()):
+            dayOffset = relative_days[wordNextNext] + \
+                (1 if wordNext == "na" else -1)
+            used += 3
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dagen":
             if wordPrev and wordPrev[0].isdigit():

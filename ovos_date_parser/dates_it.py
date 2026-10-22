@@ -129,7 +129,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
 
         s = s.lower().replace('á', 'a').replace('à', 'a').replace('è', "e'") \
             .replace('é', "e'").replace('ì', 'i').replace('ù', 'u') \
-            .replace('ò', 'o').replace('-', ' ').replace('_', '')
+            .replace('ò', 'o').replace('-', ' ').replace('_', '') \
+            .replace("d'ora", 'ora')
 
         # normalizza plurali per semplificare analisi
         s = s.replace('secondi', 'secondo').replace('minuti', 'minuto') \
@@ -146,22 +147,40 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
         noise_words = ['dello', 'la', 'del', 'al', 'il', 'di', 'tra', 'lo',
                        'le', 'alle', 'alla', 'dai', 'delle', 'della',
                        'a', 'e\'', 'era', 'questa', 'questo', 'e', 'nel',
-                       'nello', 'dallo', '  ']
+                       'nello', 'dallo', 'dalle', '  ']
 
-        word_list = s.split()
-        word_list = [x for x in word_list if x not in noise_words]
+        # an hour read right after "alle", "delle", "dalle", "le", "alla" or "ora" is a clock
+        # hour; the marker words themselves leave the sentence
+        word_list = []
+        clock_marked = []
+        day_marked = []
+        after_day = []
+        day_words = ('oggi', 'domani', 'dopodomani', 'ieri', 'lunedi',
+                     'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato',
+                     'domenica')
+        previous = ''
+        for x in s.split():
+            if x not in noise_words:
+                word_list.append(x)
+                clock_marked.append(previous in ('alle', 'alla', 'le', 'ora',
+                                                 'delle', 'dalle'))
+                after_day.append(previous in day_words)
+                day_marked.append(previous in ('il', 'lo'))
+            previous = x
         # normalizza alcuni formati orari
         for idx in range(0, len(word_list) - 1):
-            if word_list[idx][0].isdigit() and word_list[idx + 1][0].isdigit():
+            if clock_marked[idx] and word_list[idx].isdigit() \
+                    and word_list[idx + 1].isdigit() \
+                    and not clock_marked[idx + 1]:
                 num0 = int(word_list[idx])
                 num1 = int(word_list[idx + 1])
                 if 0 <= num0 <= 23 and 10 <= num1 <= 59:
                     word_list[idx] = str(num0) + ':' + str(num1)
                     word_list[idx + 1] = ''
 
-        word_list = [x for x in word_list if x]
-
-        return word_list
+        kept = [i for i, x in enumerate(word_list) if x]
+        return ([word_list[i] for i in kept], [clock_marked[i] for i in kept],
+                [day_marked[i] for i in kept], [after_day[i] for i in kept])
 
     def date_found():
         return found or \
@@ -200,7 +219,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
     noise_words_2 = ['tra', 'di', 'per', 'fra', 'un ', 'uno', 'lo', 'del',
                      'l', 'in_punto', ' ', 'nella', 'dell']
 
-    words = clean_string(text)
+    words, clock_marked, day_marked, after_day = clean_string(text)
 
     for idx, word in enumerate(words):
         if word == '':
@@ -259,14 +278,39 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
         elif word == 'dopo' and word_next == 'domani' and not from_flag:
             day_offset += 1
             used += 2
+        elif word.isdigit() and day_marked[idx] and 1 <= int(word) <= 31 \
+                and not (word_next[:1].isdigit()
+                         and word_next_next in months + months_short) \
+                and word_next not in months + months_short + time_multiples \
+                + day_multiples + year_multiples + ['giorno']:
+            # "il 3": that day of this month, or of the next one that has it
+            _day = int(word)
+            if _day == anchorDate.day:
+                day_offset = 0
+            else:
+                for _k in range(14):
+                    _year, _month = divmod(anchorDate.month - 1 + _k, 12)
+                    try:
+                        _target = datetime(anchorDate.year + _year,
+                                           _month + 1, _day)
+                    except ValueError:
+                        continue
+                    if _target.date() >= anchorDate.date():
+                        datestr = months[_month] + ' ' + str(_day)
+                        has_year = False
+                        break
+            used += 1
         elif word == 'giorno':
-            if word_prev and word_prev[0].isdigit():
+            _days = int(word_prev) if word_prev and word_prev.isdigit() else \
+                extract_number_it(word_prev) if word_prev else False
+            if _days is not False and _days is not None \
+                    and float(_days) == int(_days) and int(_days) >= 1:
                 # "N giorni fa" = N days in the past (Treccani)
                 if word_next == 'fa':
-                    day_offset -= int(word_prev)
+                    day_offset -= int(_days)
                     used += 1
                 else:
-                    day_offset += int(word_prev)
+                    day_offset += int(_days)
                 start -= 1
                 used += 2
                 if word_next == 'dopo' and word_next_next == 'domani':
@@ -364,6 +408,14 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 mmm = months_short.index(word)
             used += 1
             datestr = months[mmm]
+            if word_prev.isdigit() and word_prev_prev.isdigit():
+                if idx > 2 and words[idx - 3] == 'dal':
+                    # "dal 10 al 15 marzo": a range reads as its last date
+                    words[idx - 2] = ''
+                    words[idx - 3] = ''
+                else:
+                    # "il 12 15 marzo" names no date
+                    return None
             if word_prev and extract_number_it(word_prev):
                 datestr += ' ' + str(int(extract_number_it(word_prev)))
                 start -= 1
@@ -449,13 +501,84 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
     # "15 2" and lose the seconds offset
     _keep_words = {'un', 'uno', 'una', "un'", 'mezzo', 'mezza', 'mezzora',
                    'quarto', 'quarti', 'paio', 'secondo', 'minuto', 'ora'}
+    # a number word followed by a plain word is a count ("tre pani"), not an
+    # hour
+    _clock_followers = time_qualifiers_list | set(time_multiples) | {
+        'quarto', 'mezzo', 'mezza', 'mezzogiorno', 'mezzanotte', 'meno',
+        'pm', 'am', 'in_punto', 'notte', 'uno', 'un', 'una',
+        "un'"}
     for _i, _w in enumerate(words):
         if not _w or _w[0].isdigit() or _w in _keep_words:
+            continue
+        _next = next((x for x in words[_i + 1:] if x), '')
+        if _next and not (_next[0].isdigit() or _next in _clock_followers
+                          or extract_number_it(_next)):
             continue
         _n = extract_number_it(_w)
         if _n is not False and _n is not None and float(_n) == int(_n) \
                 and 1 <= int(_n) <= 24:
             words[_i] = str(int(_n))
+
+    # minutes read after or before an hour join it as "h:mm": "alle tre e
+    # venti", "alle tre e un quarto", "alle tre e tre quarti", "alle tre meno
+    # dieci"
+    _at = [_i for _i, _w in enumerate(words) if _w]
+
+    def _minutes(_j, _low):
+        # the minutes spelled from _at[_j] on and the number of words they use
+        _w = [words[_k] for _k in _at[_j:_j + 3]] + ['', '']
+        if _w[1] == 'quarto' and _w[2] != 'ora':
+            if _w[0] in ('uno', 'un', 'una'):
+                return 15, 2
+            if _w[0] == '3':
+                return 45, 2
+        _m = int(_w[0]) if _w[0].isdigit() else \
+            (extract_number_it(_w[0]) if _w[0] else False)
+        if _m is not False and _m is not None and _low <= int(_m) <= 59 \
+                and _w[1] not in time_multiples:
+            return int(_m), 1
+        return None, 0
+
+    # minutes join an hour only where the hour is a clock hour: after "alle",
+    # "le" or "ore", or in a sentence with a part of the day. Otherwise "meno"
+    # and the number after it are arithmetic ("quanto fa 5 meno 2")
+    _daypart = any(_w in time_qualifiers_list for _w in words)
+    for _j, _i in enumerate(_at):
+        _is_hour = words[_i].isdigit() and 0 <= int(words[_i]) <= 23
+        _clock = _is_hour and (clock_marked[_i] or _daypart)
+        if words[_i] == 'meno':
+            _mm, _n = _minutes(_j + 1, 1)
+            if _mm is None:
+                continue
+            _before = _at[_j - 1] if _j > 0 else None
+            if _before is not None and words[_before].isdigit() \
+                    and 0 <= int(words[_before]) <= 23 \
+                    and (clock_marked[_before] or _daypart):
+                _hour = int(words[_before])
+                words[_before] = '%d:%02d' % ((_hour - 1) % 24, 60 - _mm)
+            elif _before is not None and words[_before].isdigit():
+                words[_before] = ''
+            for _k in _at[_j:_j + 1 + _n]:
+                words[_k] = ''
+        elif _clock and _j + 1 < len(_at) and words[_at[_j + 1]] != 'meno' \
+                and not clock_marked[_at[_j + 1]]:
+            _mm, _n = _minutes(_j + 1, 1)
+            if _mm is not None:
+                words[_i] = '%d:%02d' % (int(words[_i]), _mm)
+                for _k in _at[_j + 1:_j + 1 + _n]:
+                    words[_k] = ''
+
+    # two numbers in a row without a clock marker are no time ("ho speso 20
+    # e 30 euro")
+    for _j in range(len(_at) - 1):
+        _a, _b = _at[_j], _at[_j + 1]
+        if words[_a].isdigit() and words[_b].isdigit() \
+                and not clock_marked[_a] and not clock_marked[_b]:
+            words[_a] = words[_b] = ''
+
+    # a second number is no hour once a clock marker named one
+    _marked_hour = any(clock_marked[_i] and (_w.isdigit() or ':' in _w)
+                       for _i, _w in enumerate(words))
 
     # parse time
     time_str = ''
@@ -491,14 +614,16 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             if not hr_abs:
                 hr_abs = 8
             used += 1
-            if word_next and word_next[0].isdigit():  # mattina alle 5
+            if word_next and word_next[0].isdigit() \
+                    and ':' not in word_next:  # mattina alle 5
                 hr_abs = int(word_next)
                 used += 1
         elif word == 'pomeriggio':
             if not hr_abs:
                 hr_abs = 15
             used += 1
-            if word_next and word_next[0].isdigit():  # pomeriggio alle 5
+            if word_next and word_next[0].isdigit() \
+                    and ':' not in word_next:  # pomeriggio alle 5
                 hr_abs = int(word_next)
                 used += 1
                 if (hr_abs or 0) < 12:
@@ -514,16 +639,19 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 if (hr_abs or 0) < 12:
                     hr_abs = (hr_abs or 0) + 12
         # da verificare più a fondo
-        elif word == 'presto':
+        elif word == 'presto' and hr_abs not in (None, -1):
             hr_abs -= 1
             used += 1
-        elif word == 'tardi':
+        elif word == 'tardi' and hr_abs not in (None, -1):
             hr_abs += 1
             used += 1
         # un paio di minuti  tra cinque minuti tra 5 ore
         elif extract_number_it(word) and (word_next in time_multiples):
             d_time = int(extract_number_it(word))
             used += 2
+            if word_next_next == 'fa':
+                d_time = -d_time
+                used += 1
             if word_next == 'ora':
                 hr_offset = d_time
                 isTime = False
@@ -540,8 +668,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 hr_abs = -1
                 min_abs = -1
         elif word == 'mezzora':
-            min_offset = 30
-            used = 1
+            min_offset = -30 if word_next == 'fa' else 30
+            used = 2 if word_next == 'fa' else 1
             isTime = False
             hr_abs = -1
             min_abs = -1
@@ -556,10 +684,23 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             else:  # elimina eventuali errori
                 min_offset = 15
             used = 3
+            if idx + 3 < len(words) and words[idx + 3] == 'fa':
+                min_offset = -min_offset
+                used = 4
             start -= 1
             isTime = False
             hr_abs = -1
             min_abs = -1
+        elif word.isdigit() and not clock_marked[idx] and not (
+                after_day[idx] and not _marked_hour and
+                not next((x for x in words[idx + 1:] if x), '')) and (
+                _marked_hour or (not _daypart and not (
+                    next((x for x in words[idx + 1:] if x), '')[:1].isdigit()
+                    or next((x for x in words[idx + 1:] if x), '')
+                    in _clock_followers))):
+            # a bare number is a count, not an hour, unless a clock marker
+            # or a part of the day names the hour or a time word follows
+            pass
         elif word and word[0].isdigit():
             isTime = True
             str_hh = ''
@@ -594,7 +735,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 military = True
                 isTime = False
             if extract_number_it(word) and word_next \
-                    and word_next == 'quarto' and word_next_next != 'ora':
+                    and word_next == 'quarto' and word_next_next != 'ora' \
+                    and hr_abs is not None:
                 if int(extract_number_it(word)) == 1 \
                         or int(extract_number_it(word)) == 3:
                     str_mm = str(15 * int(extract_number_it(word)))

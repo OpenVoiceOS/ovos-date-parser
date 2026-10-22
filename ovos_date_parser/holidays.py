@@ -334,6 +334,107 @@ def extract_holiday_span(text: str, lang: str,
     return start, remainder.strip()
 
 
+# "a good friday" is the adjective and the weekday; a holiday name is a proper
+# noun and takes no indefinite article
+_INDEFINITE_ARTICLES = {"en": frozenset({"a", "an"}),
+                        "nl": frozenset({"een"})}
+
+
+def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
+                            engine_remainder: str = "",
+                            anchorDate: Optional[datetime] = None) -> bool:
+    """Whether a language engine read its date out of the holiday phrase.
+
+    A holiday name may be written with calendar vocabulary of its own
+    language: "good friday", "palm sunday", "may day". A per-language engine
+    reads the weekday inside such a name and answers with the coming Friday,
+    and the holiday layer, asked only when the engine found nothing, is never
+    reached. The engine order is right everywhere else, so the question asked
+    here is narrow: did the engine take its date from the holiday phrase
+    itself?
+
+    Args:
+        text: the text the engine was given.
+        lang: the BCP-47 code the engine was given.
+        engine_date: the datetime the engine answered with. Its date is the
+            value compared; its time is not read.
+        engine_remainder: what the engine left over. Read only by the cheap
+            guard below, which declines without a second engine call when the
+            engine consumed no word of the holiday phrase.
+        anchorDate: the date relative dating is reckoned from.
+
+    The question is answered by asking the engine the holiday phrase on its
+    own. The override fires when that answer's date equals ``engine_date``,
+    the date the engine gave the whole text. For "good friday" the slice
+    "good friday" gives the coming Friday and so does the whole text, so the
+    engine read its date out of the phrase. For "play christmas music on
+    friday" the slice is "christmas", which the engine cannot read at all, so
+    the Friday came from elsewhere and stays the engine's. For "good friday
+    and next friday" the slice gives the coming Friday and the whole text
+    gives the one after, so the dates differ and the engine keeps its answer.
+
+    Only the date is compared, never the time. A time of day beside the
+    holiday name does not move the date, so "good friday at 9am" and
+    "remind me on good friday at 9am" override exactly as the bare name does.
+
+    The holiday layer answers with a date, so the engine's time of day is not
+    carried onto it. "good friday at 9am" gives Good Friday at midnight and
+    leaves "at 9am" in the remainder.
+
+    A date word that moves the date keeps the engine's answer, as in "good
+    friday and next friday". A word of the holiday phrase that the engine
+    consumed and that also stands outside the phrase is a date the speaker
+    gave separately, so the engine's answer stands: "remind me friday about
+    good friday" is the coming Friday. "the friday before good friday" and
+    "monday after easter monday" keep the engine's answer for the same
+    reason, which is not the date they name.
+
+    A holiday name takes no indefinite article, so "have a good friday" is a
+    weekday and keeps the engine's answer.
+
+    The engine is asked twice for a text that names a holiday of its
+    language, once by the caller and once here, so such a text costs more
+    than one that names none. A text that names no holiday pays nothing: the
+    table lookup below answers first.
+    """
+    if not text:
+        return False
+    if not _names_a_holiday(text, lang):
+        return False
+    anchor = anchorDate or datetime.now()
+    written = _as_written(text, lang)
+    extent = _holiday_extent(written, lang, anchor)
+    if extent is None:
+        return False
+    first, last = extent
+    phrase_words = _word_set(written[first:last])
+    consumed = _word_set(text) - _word_set(engine_remainder)
+    articles = _INDEFINITE_ARTICLES.get(lang.split("-")[0].lower(),
+                                        frozenset())
+    if _word_set(" ".join(written[:first].split()[-1:])) & articles:
+        return False
+    outside_words = _word_set(written[:first] + " " + written[last:])
+    if consumed & phrase_words & outside_words:
+        return False
+    if not (consumed & phrase_words):
+        # The engine read its date from words the phrase does not cover, so
+        # the slice below cannot give the same date except by coincidence.
+        # Declining here is what keeps a text that merely names a holiday
+        # ("play christmas music on friday") to one engine call.
+        return False
+    # imported here, not at module scope: ovos_date_parser/__init__.py imports
+    # this module, so a top-level import would be a cycle.
+    from ovos_date_parser import _extract_datetime_engine
+    inner = _extract_datetime_engine(written[first:last], lang,
+                                     anchorDate=anchor)
+    return inner is not None and inner[0].date() == engine_date.date()
+
+
+def _word_set(text: str) -> FrozenSet[str]:
+    """The folded words of ``text``, for comparing one extent with another."""
+    return frozenset(_fold(word) for word in re.findall(r"\w+", text or ""))
+
+
 def extract_holiday_date(text: str, lang: str,
                          ref_date: Optional[date] = None
                          ) -> Optional[Tuple[date, str]]:

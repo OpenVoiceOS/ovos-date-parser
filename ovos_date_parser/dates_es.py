@@ -247,6 +247,10 @@ def nice_time_es(dt, speech=True, use_24hour=False, use_ampm=False):
     return speak
 
 
+_MORNING = "\u200b"
+_THIS_MORNING = "\u200c"
+
+
 def extract_datetime_es(text, anchorDate=None, default_time=None):
     def clean_string(s):
         # cleans the input string of unneeded punctuation and capitalization
@@ -257,6 +261,13 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                        "e'", "esta", "este"]
 
         s = s.lower()
+        # "mañana" is the morning only after "la", "de la", "por la", "en la",
+        # "esta", "cada" and "media"; anywhere else it is tomorrow. The noise
+        # words are removed below, so the morning forms are marked here.
+        s = re.sub(r"\b(?:(?:de|por|en) la|la|cada) mañana\b",
+                   "mañana" + _MORNING, s)
+        s = re.sub(r"\bmedia mañana\b", "media mañana" + _MORNING, s)
+        s = re.sub(r"\besta mañana\b", "mañana" + _THIS_MORNING, s)
         # "la una" is the canonical way to say one o'clock; "una" alone is an
         # article and must not be treated as a number elsewhere
         s = re.sub(r"\bla una\b", "la 1", s)
@@ -279,12 +290,22 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
             "_",
             "")
         # handle synonyms and equivalents, "tomorrow early = tomorrow morning
-        synonyms = {"mañana": ["amanecer", "temprano", "muy temprano"],
+        # "temprano" is the morning only beside a day word
+        day = r"(?:mañana|hoy|lunes|martes|miercoles|jueves|viernes|sabado" \
+              r"|domingo)"
+        s = re.sub(r"\b(" + day + r") (?:(?:muy|bien|tan|mas) )?temprano\b",
+                   lambda m: m.group(1) + " mañana" + _MORNING, s)
+        s = re.sub(r"\b(?:(?:muy|bien|tan|mas) )?temprano (" + day + r")\b",
+                   lambda m: "mañana" + _MORNING + " " + m.group(1), s)
+        synonyms = {"mañana": ["amanecer"],
                     "tarde": ["media tarde", "atardecer"],
-                    "noche": ["anochecer", "tarde"]}
+                    "noche": ["anochecer"]}
         for syn in synonyms:
             for word in synonyms[syn]:
-                s = s.replace(" " + word + " ", " " + syn + " ")
+                s = s.replace(" " + word + " ", " " + syn + (
+                    _MORNING if syn == "mañana" else "") + " ")
+        # "amanecer" also ends a sentence
+        s = re.sub(r"\bamanecer$", "mañana" + _MORNING, s)
         # relevant plurals, cant just extract all s in pt
         wordlist = ["mañanas", "tardes", "noches", "días", "semanas",
                     "años", "minutos", "segundos", "las", "los", "siguientes",
@@ -318,16 +339,20 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     today = dateNow.strftime("%w")
     currentYear = dateNow.strftime("%Y")
     fromFlag = False
+    weekdayIdx = None
     datestr = ""
     hasYear = False
     timeQualifier = ""
 
     words = clean_string(text).split(" ")
+    morningForm = [w[-1:] if w[-1:] in (_MORNING, _THIS_MORNING) else ""
+                   for w in words]
+    words = [w.rstrip(_MORNING + _THIS_MORNING) for w in words]
     timeQualifiersList = ['mañana', 'tarde', 'noche']
     time_indicators = ["en", "la", "al", "por", "pasados",
                        "pasadas", "día", "hora"]
-    days = ['lunes', 'martes', 'miércoles',
-            'jueves', 'viernes', 'sábado', 'domingo']
+    days = ['lunes', 'martes', 'miercoles',
+            'jueves', 'viernes', 'sabado', 'domingo']
     months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
               'julio', 'agosto', 'septiembre', 'octubre', 'noviembre',
               'diciembre']
@@ -353,11 +378,16 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
         wordNextNext = words[idx + 2] if idx + 2 < len(words) else ""
         wordNextNextNext = words[idx + 3] if idx + 3 < len(words) else ""
 
+        queViene = wordNext == "que" and wordNextNext == "viene"
         start = idx
         used = 0
-        # save timequalifier for later
-        if word in timeQualifiersList:
+        # save timequalifier for later; "mañana" is one only as the morning
+        if word in timeQualifiersList and (
+                word != "mañana" or morningForm[idx]):
             timeQualifier = word
+            if morningForm[idx] == _THIS_MORNING:
+                dayOffset = 0
+                daySpecified = True
 
         # parse today, tomorrow, yesterday
         elif word == "hoy" and not fromFlag:
@@ -418,6 +448,10 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                 used += 2
 
         elif word == "semana" and not fromFlag:
+            # "el viernes de la semana que viene" is that weekday of the
+            # week starting on Monday
+            weekShift = 0 if weekdayIdx is None else \
+                weekdayIdx - dateNow.weekday()
             if wordPrev and wordPrev[0].isdigit():
                 # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
                 if wordPrevPrev == "hace" or wordNext == "atras":
@@ -430,24 +464,20 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     used = 2
             for w in nexts:
                 if wordPrev == w:
-                    dayOffset = 7
+                    dayOffset = 7 + weekShift
                     start -= 1
                     used = 2
             for w in lasts:
                 if wordPrev == w:
-                    dayOffset = -7
+                    dayOffset = -7 + weekShift
                     start -= 1
                     used = 2
-            for w in suffix_nexts:
-                if wordNext == w:
-                    dayOffset = 7
-                    start -= 1
-                    used = 2
-            for w in suffix_lasts:
-                if wordNext == w:
-                    dayOffset = -7
-                    start -= 1
-                    used = 2
+            if queViene or wordNext in suffix_nexts + ["siguiente"]:
+                dayOffset = 7 + weekShift
+                used = 3 if queViene else 2
+            elif wordNext in suffix_lasts:
+                dayOffset = -7 + weekShift
+                used = 2
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
@@ -516,23 +546,26 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
         # last Tuesday, etc.
         elif word in days and not fromFlag:
             d = days.index(word)
+            weekdayIdx = d
             dayOffset = (d + 1) - int(today)
             used = 1
             if dayOffset < 0:
                 dayOffset += 7
             if wordPrev == "siguiente":
-                dayOffset += 7
+                if dayOffset == 0:
+                    dayOffset = 7
                 used += 1
                 start -= 1
             elif wordPrev == "pasado":
                 dayOffset -= 7
                 used += 1
                 start -= 1
-            if wordNext == "siguiente":
-                # dayOffset += 7
-                used += 1
+            if queViene or wordNext == "siguiente":
+                if dayOffset == 0:
+                    dayOffset = 7
+                used += 2 if queViene else 1
             elif wordNext == "pasado":
-                # dayOffset -= 7
+                dayOffset -= 7
                 used += 1
         # parse 15 of July, June 20th, Feb 18, 19 of February
         elif word in months or word in monthsShort:
@@ -809,11 +842,10 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                         remainder = "pm"
                         used = 2
                     else:
-                        if timeQualifier != "":
-                            if strHH <= 12 and \
-                                    (timeQualifier == "mañana" or
-                                     timeQualifier == "tarde"):
-                                strHH += 12
+                        if timeQualifier == "tarde" or (
+                                timeQualifier == "noche" and
+                                int(strHH or 0) >= 6):
+                            remainder = "pm"
 
             else:
                 # try to parse # s without colons

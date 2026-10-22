@@ -231,6 +231,10 @@ def nice_time_gl(dt, speech=True, use_24hour=False, use_ampm=False):
     return speak
 
 
+_MORNING = "\u200b"
+_THIS_MORNING = "\u200c"
+
+
 def extract_datetime_gl(text, anchorDate=None, default_time=None):
     """
     Extrae información de data e hora dunha frase en galego.
@@ -252,12 +256,21 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
         for word in symbols:
             s = s.replace(word, "")
 
-        s = s.lower().replace("á", "a").replace("é", "e").replace(
+        s = s.lower()
+        # "esta mañá" is this morning; "está mañá" is not
+        s = re.sub(r"\bn?esta (?:mañá|maña)\b", "maña" + _THIS_MORNING, s)
+        s = s.replace("á", "a").replace("é", "e").replace(
             "í", "i").replace("ó", "o").replace("ú", "u").replace(
             "-", " ").replace("_", "")
 
-        # "que vén" == seguinte
-        s = s.replace(" que ven", " seguinte")
+        # "mañá" is the morning only after "a", "da", "pola", "na", "cada",
+        # "media" and "esta"; anywhere else it is tomorrow. The noise words are
+        # removed below, so the morning forms are marked here.
+        s = re.sub(r"\b(?:da|pola|na|a|cada) maña\b", "maña" + _MORNING, s)
+        s = re.sub(r"\bmedia maña\b", "media maña" + _MORNING, s)
+        # "de mañá" after a day word is the morning of that day
+        s = re.sub(r"\b(maña|hoxe|luns|martes|mercores|xoves|venres|sabado"
+                   r"|domingo) de maña\b", r"\1 maña" + _MORNING, s)
 
         # horas faladas precedidas de artigo: "á unha", "ás dúas"
         spoken_hours = {"unha": "1", "duas": "2", "tres": "3", "catro": "4",
@@ -273,12 +286,22 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
             s = s.replace(" " + word + " ", " ")
 
         # sinónimos e equivalentes
-        synonyms = {"maña": ["amencer", "cedo", "moi cedo"],
+        # "cedo" is the morning only beside a day word
+        day = r"(?:maña|hoxe|luns|martes|mercores|xoves|venres|sabado" \
+              r"|domingo)"
+        s = re.sub(r"\b(" + day + r") (?:(?:moi|ben|tan|mais) )?cedo\b",
+                   lambda m: m.group(1) + " maña" + _MORNING, s)
+        s = re.sub(r"\b(?:(?:moi|ben|tan|mais) )?cedo (" + day + r")\b",
+                   lambda m: "maña" + _MORNING + " " + m.group(1), s)
+        synonyms = {"maña": ["amencer"],
                     "tarde": ["seran", "atardecer"],
                     "noite": ["anoitecer"]}
         for syn in synonyms:
             for word in synonyms[syn]:
-                s = s.replace(" " + word + " ", " " + syn + " ")
+                s = s.replace(" " + word + " ", " " + syn + (
+                    _MORNING if syn == "maña" else "") + " ")
+        # "amencer" also ends a sentence
+        s = re.sub(r"\bamencer$", "maña" + _MORNING, s)
 
         # plurais relevantes
         wordlist = ["mañas", "tardes", "noites", "dias", "semanas",
@@ -313,11 +336,18 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
     today = dateNow.strftime("%w")
     currentYear = dateNow.strftime("%Y")
     fromFlag = False
+    weekdayIdx = None
+    weekdayEnd = -1
+    weekRel = None
+    weekRelEnd = -1
     datestr = ""
     hasYear = False
     timeQualifier = ""
 
     words = clean_string(text).split(" ")
+    morningForm = [w[-1:] if w[-1:] in (_MORNING, _THIS_MORNING) else ""
+                   for w in words]
+    words = [w.rstrip(_MORNING + _THIS_MORNING) for w in words]
     timeQualifiersList = ['maña', 'tarde', 'noite']
     time_indicators = ["en", "a", "as", "o", "os", "ao", "por", "pasados",
                        "pasadas", "dia", "hora"]
@@ -347,12 +377,17 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
         wordNext = words[idx + 1] if idx + 1 < len(words) else ""
         wordNextNext = words[idx + 2] if idx + 2 < len(words) else ""
         wordNextNextNext = words[idx + 3] if idx + 3 < len(words) else ""
+        queVen = wordNext == "que" and wordNextNext == "ven"
 
         start = idx
         used = 0
         # gardar o cualificador de tempo para máis tarde
-        if word in timeQualifiersList:
+        if word in timeQualifiersList and (
+                word != "maña" or morningForm[idx]):
             timeQualifier = word
+            if morningForm[idx] == _THIS_MORNING:
+                dayOffset = 0
+                daySpecified = True
 
         # hoxe, mañá, onte
         elif word == "hoxe" and not fromFlag:
@@ -376,7 +411,9 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
             dayOffset += 2
             used += 1
         elif word == "pasado" and wordNext == "maña" and not fromFlag:
-            dayOffset += 2
+            # after a weekday it names the same day: "o xoves, pasado mañá"
+            if idx != weekdayEnd:
+                dayOffset += 2
             used = 2
         # en 5 días, etc
         elif word == "dia":
@@ -405,6 +442,9 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                 used += 2
 
         elif word == "semana" and not fromFlag:
+            # a weekday named before the week lies in the Monday-based week
+            weekShift = 0 if weekdayIdx is None else \
+                weekdayIdx - dateNow.weekday()
             if wordPrev and wordPrev[0].isdigit():
                 # "hai N ..." = N periods in the past (RAG/DRAG)
                 if wordPrevPrev == "hai":
@@ -417,24 +457,26 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                     used = 2
             for w in nexts:
                 if wordPrev == w:
-                    dayOffset = 7
+                    dayOffset = 7 + weekShift
+                    weekRel = 7
                     start -= 1
                     used = 2
             for w in lasts:
                 if wordPrev == w:
-                    dayOffset = -7
+                    dayOffset = -7 + weekShift
+                    weekRel = -7
                     start -= 1
                     used = 2
-            for w in suffix_nexts:
-                if wordNext == w:
-                    dayOffset = 7
-                    start -= 1
-                    used = 2
-            for w in suffix_lasts:
-                if wordNext == w:
-                    dayOffset = -7
-                    start -= 1
-                    used = 2
+            if queVen or wordNext in suffix_nexts:
+                dayOffset = 7 + weekShift
+                weekRel = 7
+                used = 3 if queVen else 2
+            elif wordNext in suffix_lasts:
+                dayOffset = -7 + weekShift
+                weekRel = -7
+                used = 2
+            if weekRel is not None:
+                weekRelEnd = start + used
         # 10 meses, mes seguinte, mes pasado
         elif word == "mes" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
@@ -457,16 +499,12 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                     monthOffset = -1
                     start -= 1
                     used = 2
-            for w in suffix_nexts:
-                if wordNext == w:
-                    monthOffset = 1
-                    start -= 1
-                    used = 2
-            for w in suffix_lasts:
-                if wordNext == w:
-                    monthOffset = -1
-                    start -= 1
-                    used = 2
+            if queVen or wordNext in suffix_nexts:
+                monthOffset = 1
+                used = 3 if queVen else 2
+            elif wordNext in suffix_lasts:
+                monthOffset = -1
+                used = 2
         # 5 anos, ano seguinte, ano pasado
         elif word == "ano" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
@@ -489,34 +527,43 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                     yearOffset = -1
                     start -= 1
                     used = 2
-            for w in suffix_nexts:
-                if wordNext == w:
-                    yearOffset = 1
-                    start -= 1
-                    used = 2
-            for w in suffix_lasts:
-                if wordNext == w:
-                    yearOffset = -1
-                    start -= 1
-                    used = 2
+            if queVen or wordNext in suffix_nexts:
+                yearOffset = 1
+                used = 3 if queVen else 2
+            elif wordNext in suffix_lasts:
+                yearOffset = -1
+                used = 2
         # días da semana: luns, martes...
+        elif word in days and not fromFlag and idx == weekRelEnd:
+            weekdayEnd = idx + 1
+            # a weekday right after "next week" or "last week" lies in that week
+            weekdayIdx = days.index(word)
+            dayOffset = weekRel + weekdayIdx - dateNow.weekday()
+            used = 1
         elif word in days and not fromFlag:
+            weekdayEnd = idx + 1
             d = days.index(word)
+            weekdayIdx = d
             dayOffset = (d + 1) - int(today)
             used = 1
             if dayOffset < 0:
                 dayOffset += 7
             if wordPrev in nexts:
-                dayOffset += 7
+                if dayOffset == 0:
+                    dayOffset = 7
                 used += 1
                 start -= 1
             elif wordPrev == "pasado":
-                dayOffset -= 7
+                dayOffset = (d - dateNow.weekday()) % 7 - 7
                 used += 1
                 start -= 1
-            if wordNext == "seguinte":
-                used += 1
-            elif wordNext == "pasado":
+            if queVen or wordNext == "seguinte":
+                if dayOffset == 0:
+                    dayOffset = 7
+                used += 2 if queVen else 1
+            elif wordNext == "pasado" and not (
+                    wordNextNext == "maña" and not morningForm[idx + 2]):
+                dayOffset = (d - dateNow.weekday()) % 7 - 7
                 used += 1
         # 3 de xuño, xuño 20, etc
         elif word in months or word in monthsShort:
@@ -601,6 +648,8 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                 used = 2
                 if tmpOffset < 0:
                     tmpOffset += 7
+                if tmpOffset == 0 and word in nexts:
+                    tmpOffset = 7
                 if wordNextNext:
                     if wordNextNext in nxts:
                         tmpOffset += 7

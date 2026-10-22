@@ -1,8 +1,38 @@
 # Changelog
 
+## [0.34.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.6a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.5a1...0.34.6a1)
+
+**Closed issues:**
+
+- it-IT: "stasera alle 9 in 4" parses as 16:00, expected 21:00 [\#507](https://github.com/OpenVoiceOS/ovos-date-parser/issues/507)
+- it-IT: "ne voglio 3" parses as 15:00, expected no date [\#506](https://github.com/OpenVoiceOS/ovos-date-parser/issues/506)
+- it-IT: "siamo in 10" parses as 22:00, expected no date [\#505](https://github.com/OpenVoiceOS/ovos-date-parser/issues/505)
+- it-IT: "dal 10 al 15 marzo" raises IndexError, expected no error [\#494](https://github.com/OpenVoiceOS/ovos-date-parser/issues/494)
+- it-IT: "alle 0 meno 10" parses as 18 October 22:00, expected 17 October 23:50 [\#493](https://github.com/OpenVoiceOS/ovos-date-parser/issues/493)
+- it-IT: "quanto fa 5 meno 2" parses as 14:00, expected no date [\#492](https://github.com/OpenVoiceOS/ovos-date-parser/issues/492)
+- it-IT: "due giorni fa" parses as 14:00, expected 15 October [\#491](https://github.com/OpenVoiceOS/ovos-date-parser/issues/491)
+- it-IT: "tre ore fa" parses as 15:00, expected 09:00 [\#490](https://github.com/OpenVoiceOS/ovos-date-parser/issues/490)
+- it-IT: "tra un quarto d'ora" returns None, expected 12:15 [\#480](https://github.com/OpenVoiceOS/ovos-date-parser/issues/480)
+- it-IT: "tre quarti" raises ValueError, expected None [\#479](https://github.com/OpenVoiceOS/ovos-date-parser/issues/479)
+- it-IT: "alle tre meno dieci" parses as 22:00, expected 14:50 [\#478](https://github.com/OpenVoiceOS/ovos-date-parser/issues/478)
+- it-IT: "alle tre e venti" parses as 20:00, expected 15:20 [\#477](https://github.com/OpenVoiceOS/ovos-date-parser/issues/477)
+- it-IT: "alle tre e un quarto" parses as 15:00, expected 15:15 [\#476](https://github.com/OpenVoiceOS/ovos-date-parser/issues/476)
+- it-IT: "compra tre pani domani" parses as 03:00, expected no time of day [\#474](https://github.com/OpenVoiceOS/ovos-date-parser/issues/474)
+- it-IT: "è tardi" raises TypeError, expected None [\#467](https://github.com/OpenVoiceOS/ovos-date-parser/issues/467)
+
+**Merged pull requests:**
+
+- fix\(it\): read minutes around an hour, "fa" after a duration, and do not raise [\#472](https://github.com/OpenVoiceOS/ovos-date-parser/pull/472) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.34.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.5a1) (2026-10-22)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.3a1...0.34.5a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.4a1...0.34.5a1)
+
+## [0.34.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.4a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.3a1...0.34.4a1)
 
 **Closed issues:**
 
@@ -174,10 +204,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a8...0.31.5a9)
 
-**Merged pull requests:**
-
-- test: build the month "own" set from the extractor source alone [\#347](https://github.com/OpenVoiceOS/ovos-date-parser/pull/347) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.31.5a8](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a8) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a7...0.31.5a8)
@@ -219,10 +245,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a2...0.31.5a3)
 
-**Merged pull requests:**
-
-- translate\(kab\): update era\_unix\_prefix.voc [\#348](https://github.com/OpenVoiceOS/ovos-date-parser/pull/348) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-
 ## [0.31.5a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a2) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a1...0.31.5a2)
@@ -231,17 +253,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.4a1...0.31.5a1)
 
-**Merged pull requests:**
-
-- fix\(ar\): nice\_time reads twenty to the hour and noon as the sources give them [\#344](https://github.com/OpenVoiceOS/ovos-date-parser/pull/344) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.31.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.4a1) (2026-09-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a7...0.31.4a1)
-
-**Merged pull requests:**
-
-- fix\(fr\): restore French date vocabulary overwritten with Kabyle [\#341](https://github.com/OpenVoiceOS/ovos-date-parser/pull/341) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.31.3a7](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a7) (2026-09-19)
 
@@ -251,10 +265,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a5...0.31.3a6)
 
-**Merged pull requests:**
-
-- translate\(kab\): update months.voc [\#336](https://github.com/OpenVoiceOS/ovos-date-parser/pull/336) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-
 ## [0.31.3a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a5) (2026-09-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a4...0.31.3a5)
@@ -262,12 +272,6 @@
 ## [0.31.3a4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a4) (2026-09-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a3...0.31.3a4)
-
-**Merged pull requests:**
-
-- translate\(kab\): update season\_winter.voc [\#335](https://github.com/OpenVoiceOS/ovos-date-parser/pull/335) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-- translate\(kab\): update unit\_day.voc [\#334](https://github.com/OpenVoiceOS/ovos-date-parser/pull/334) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-- translate\(kab\): update unit\_year.voc [\#333](https://github.com/OpenVoiceOS/ovos-date-parser/pull/333) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
 
 ## [0.31.3a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a3) (2026-09-18)
 

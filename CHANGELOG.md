@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.1a1...0.34.2a1)
+
+**Closed issues:**
+
+- es-ES: "reserva mañana el check-in" returns the remainder "reserva check in", expected "reserva check-in" [\#466](https://github.com/OpenVoiceOS/ovos-date-parser/issues/466)
+- it-IT: "ricordami domani di comprare il pane perché" returns the remainder with "perche'", expected "perché" [\#465](https://github.com/OpenVoiceOS/ovos-date-parser/issues/465)
+- pt-PT: "compra pão amanhã" returns the remainder "compra pao", expected "compra pão" [\#464](https://github.com/OpenVoiceOS/ovos-date-parser/issues/464)
+- ast-ES: "recuérdame mañana mercar pan" returns the remainder "recuerdame mercar pan", expected "recuérdame mercar pan" [\#453](https://github.com/OpenVoiceOS/ovos-date-parser/issues/453)
+- gl-ES: "recórdame mañá mercar pan" returns the remainder "recordame mercar pan", expected "recórdame mercar pan" [\#452](https://github.com/OpenVoiceOS/ovos-date-parser/issues/452)
+- es-ES: "recuérdame mañana comprar pan" returns the remainder "recuerdame comprar pan", expected "recuérdame comprar pan" [\#451](https://github.com/OpenVoiceOS/ovos-date-parser/issues/451)
+
+**Merged pull requests:**
+
+- fix\(es,gl,ast,pt,it\): keep the user's words in the remainder [\#459](https://github.com/OpenVoiceOS/ovos-date-parser/pull/459) ([JarbasAl](https://github.com/JarbasAl))
+- fix\(fr\): read an unaccented "a" before an hour as "à" [\#397](https://github.com/OpenVoiceOS/ovos-date-parser/pull/397) ([goldyfruit](https://github.com/goldyfruit))
+
 ## [0.34.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.1a1) (2026-10-08)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.0a1...0.34.1a1)
@@ -300,10 +318,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.1a1...0.30.2a1)
 
-**Merged pull requests:**
-
-- fix: strip dangling conjunctions from extract\_duration remainder [\#293](https://github.com/OpenVoiceOS/ovos-date-parser/pull/293) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.30.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.1a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.0a1...0.30.1a1)
@@ -324,17 +338,11 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.0...0.29.1a1)
 
-**Closed issues:**
-
-- Declarative datetime engine: design and 1.0.0 roadmap [\#291](https://github.com/OpenVoiceOS/ovos-date-parser/issues/291)
-
 **Merged pull requests:**
 
 - fix: remove committed diff marker from dates\_an.py [\#301](https://github.com/OpenVoiceOS/ovos-date-parser/pull/301) ([JarbasAl](https://github.com/JarbasAl))
 - docs: rewrite README in Simplified Technical English [\#299](https://github.com/OpenVoiceOS/ovos-date-parser/pull/299) ([JarbasAl](https://github.com/JarbasAl))
 - Improved kabyle data [\#295](https://github.com/OpenVoiceOS/ovos-date-parser/pull/295) ([athmanemokraoui](https://github.com/athmanemokraoui))
-- Refine duration parser regex and correct typos [\#294](https://github.com/OpenVoiceOS/ovos-date-parser/pull/294) ([Juanpabl](https://github.com/Juanpabl))
-- Change Aragonese date parser with improved synonyms and tests [\#292](https://github.com/OpenVoiceOS/ovos-date-parser/pull/292) ([Juanpabl](https://github.com/Juanpabl))
 
 ## [0.29.0](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.29.0) (2026-07-21)
 
@@ -344,17 +352,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.10a1...0.29.0a1)
 
-**Merged pull requests:**
-
-- feat: add extract\_datetime and extract\_duration for Aragonese and West Frisian [\#288](https://github.com/OpenVoiceOS/ovos-date-parser/pull/288) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.28.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.10a1) (2026-07-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.9a1...0.28.10a1)
-
-**Merged pull requests:**
-
-- Release 0.28.10a1 [\#289](https://github.com/OpenVoiceOS/ovos-date-parser/pull/289) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.28.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.9a1) (2026-07-21)
 
@@ -363,11 +363,6 @@
 ## [0.28.8a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.8a1) (2026-07-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.7a1...0.28.8a1)
-
-**Merged pull requests:**
-
-- Release 0.28.9a1 [\#287](https://github.com/OpenVoiceOS/ovos-date-parser/pull/287) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Release 0.28.8a1 [\#286](https://github.com/OpenVoiceOS/ovos-date-parser/pull/286) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
 

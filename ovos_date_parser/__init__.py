@@ -30,7 +30,7 @@ from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
 from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
-from ovos_date_parser.holidays import (extract_holiday_date,
+from ovos_date_parser.holidays import (_holiday_answer, extract_holiday_date,
                                        extract_holiday_span,
                                        holiday_overrides_engine,
                                        holiday_surfaces)
@@ -536,15 +536,15 @@ def extract_datetime(
     if found is not None and not holiday_overrides_engine(
             text, lang, found[0], found[1], anchorDate=anchorDate):
         return found
-    holiday = extract_holiday_span(text, lang, anchorDate=anchorDate)
+    holiday = _holiday_answer(text, lang, anchorDate)
     if holiday is None:
         # one return for both ways of arriving here: the engine read nothing
         # and ``found`` is None, which is the old contract, or the override
         # sent an engine answer to a holiday layer that then declined, and
         # the engine's answer stands.
         return found
-    moment, remainder = holiday
-    if default_time is not None:
+    moment, remainder, clock_read = holiday
+    if default_time is not None and not clock_read:
         moment = moment.replace(hour=default_time.hour,
                                 minute=default_time.minute,
                                 second=default_time.second,

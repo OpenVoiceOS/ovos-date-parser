@@ -328,21 +328,93 @@ def test_a_time_beside_a_holiday_name_keeps_no_half_of_the_name(
     assert not (remainder_words & WEEKDAY_NAMED_HOLIDAY_WORDS)
 
 
-def test_a_time_beside_a_holiday_name_is_left_in_the_remainder():
-    """Known answer, and the bound on this round: the holiday layer answers
-    with a date, so the engine's time of day is not carried onto it.
+#: (lang, utterance, expected datetime, expected remainder). Easter 2027 is
+#: 28 March, so Good Friday is 26 March, Palm Sunday 21 March and Easter
+#: Monday 29 March. Pentecost 2027 is 16 May, so Whit Monday is 17 May.
+HOLIDAYS_WITH_A_CLOCK_TIME = [
+    ("en-US", "good friday at 9am", datetime(2027, 3, 26, 9, 0), ""),
+    ("en-US", "good friday at 5pm", datetime(2027, 3, 26, 17, 0), ""),
+    ("en-US", "palm sunday at noon", datetime(2027, 3, 21, 12, 0), ""),
+    ("en-US", "remind me on good friday at 9am to call mum",
+     datetime(2027, 3, 26, 9, 0), "remind me on to call mum"),
+    ("en-US", "easter monday at 9am", datetime(2027, 3, 29, 9, 0), ""),
+    ("pt-PT", "sexta-feira santa às 9", datetime(2027, 3, 26, 9, 0), ""),
+    ("pt-PT", "domingo de ramos às 10 horas",
+     datetime(2027, 3, 21, 10, 0), ""),
+    ("pt-PT", "sexta-feira santa às 9 da manhã",
+     datetime(2027, 3, 26, 9, 0), ""),
+    ("en-US", "remind me at home on good friday at 9am",
+     datetime(2027, 3, 26, 9, 0), "remind me at home on"),
+    ("en-US", "good friday at 9am at the office",
+     datetime(2027, 3, 26, 9, 0), "at the office"),
+    ("de-DE", "karfreitag um 9 uhr", datetime(2027, 3, 26, 9, 0), ""),
+    ("de-DE", "ostermontag um 9 uhr", datetime(2027, 3, 29, 9, 0), ""),
+    ("de-DE", "pfingstmontag um 10 uhr", datetime(2027, 5, 17, 10, 0), ""),
+]
 
-    "good friday at 9am" gives Good Friday at midnight and leaves "at 9am" in
-    the remainder. The time is not lost, but a caller that reads only the
-    datetime sees midnight. Carrying it would also have to take the time words
-    out of the remainder, which is a second change this round does not make.
-    The day the time is carried this cell fails and says so.
-    """
-    got = extract_datetime("good friday at 9am", "en-US", REF)
+
+@pytest.mark.parametrize("lang,utterance,expected,remainder",
+                         HOLIDAYS_WITH_A_CLOCK_TIME)
+def test_the_holiday_layer_keeps_the_time_of_day(lang, utterance, expected,
+                                                 remainder):
+    """The clock time beside a holiday name is part of the answer and leaves
+    the remainder."""
+    assert extract_holiday_span(utterance, lang, REF) == (expected, remainder)
+
+
+@pytest.mark.parametrize("lang,utterance,expected,remainder", [
+    case for case in HOLIDAYS_WITH_A_CLOCK_TIME
+    if case[0] in ("en-US", "pt-PT")])
+def test_extract_datetime_keeps_the_time_of_a_weekday_named_holiday(
+        lang, utterance, expected, remainder):
+    """German is not listed: the German engine answers "karfreitag um 9 uhr"
+    with tomorrow at nine before the holiday layer is asked."""
+    assert extract_datetime(utterance, lang, REF) == (expected, remainder)
+
+
+def test_a_default_time_does_not_replace_a_time_that_was_read():
+    got = extract_datetime("good friday at 9am", "en-US", REF,
+                           default_time=time(18, 30))
+    assert got[0] == datetime(2027, 3, 26, 9, 0)
+
+
+@pytest.mark.parametrize("utterance,expected", [
+    ("good friday at midnight", datetime(2027, 3, 26, 0, 0)),
+    ("easter monday at midnight", datetime(2027, 3, 29, 0, 0)),
+    ("palm sunday at 12am", datetime(2027, 3, 21, 0, 0)),
+])
+def test_a_default_time_does_not_replace_a_midnight_that_was_said(
+        utterance, expected):
+    got = extract_datetime(utterance, "en-US", REF,
+                           default_time=time(18, 30))
+    assert got == (expected, "")
+
+
+@pytest.mark.parametrize("utterance,expected,remainder", [
+    ("easter at 25:00", datetime(2027, 3, 28, 0, 0), "at 25:00"),
+    ("good friday at 9am tomorrow", datetime(2027, 3, 26, 0, 0),
+     "at 9am tomorrow"),
+])
+def test_a_clock_chronologia_did_not_apply_stays_in_the_remainder(
+        utterance, expected, remainder):
+    """chronologia names a clock_time match in both phrases and leaves its
+    words in its own remainder; the words are not cut from ours either."""
+    assert extract_holiday_span(utterance, "en-US", REF) == (expected,
+                                                             remainder)
+
+
+def test_a_default_time_still_fills_a_holiday_with_no_time():
+    got = extract_datetime("good friday", "en-US", REF,
+                           default_time=time(18, 30))
+    assert got[0] == datetime(2027, 3, 26, 18, 30)
+
+
+def test_two_clock_times_leave_the_holiday_without_one():
+    """Which of two times belongs to the holiday is a guess; none is taken."""
+    got = extract_holiday_span("good friday at 9am and then at 5pm", "en-US",
+                               REF)
     assert got is not None
-    assert got[0].date() == date(2027, 3, 26)
-    assert got[0].time() == time(0, 0)
-    assert "9am" in got[1]
+    assert got[0] == datetime(2027, 3, 26, 0, 0)
 
 
 def test_a_plain_weekday_still_answers_with_the_weekday(utterance=None):

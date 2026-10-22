@@ -97,10 +97,8 @@ class TestExtractDateMonthNames(unittest.TestCase):
                          (date(2027, 6, 1), ""))
 
     def test_worded_ordinal_with_year(self):
-        # "the fifth of november 1955" -> "november 1955" parses (month + bare
-        # year, day 1); the spelled ordinal is left in the remainder
         self.assertEqual(extract_date_en("the fifth of november 1955", ANCHOR),
-                         (date(1955, 11, 1), "the fifth"))
+                         (date(1955, 11, 5), ""))
 
 
 class TestExtractDateRelative(unittest.TestCase):

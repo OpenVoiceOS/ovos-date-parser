@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.34.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.4a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.3a1...0.34.4a1)
+
+**Closed issues:**
+
+- es-ES: "mañana a las 22:30" parses as today 22:30, expected tomorrow 22:30 [\#488](https://github.com/OpenVoiceOS/ovos-date-parser/issues/488)
+- es-ES: "mañana a las 10:30" raises TypeError, expected 18 October 10:30 [\#487](https://github.com/OpenVoiceOS/ovos-date-parser/issues/487)
+- de-DE: "ein Tag vor morgen" parses as tomorrow, expected today [\#458](https://github.com/OpenVoiceOS/ovos-date-parser/issues/458)
+- es-ES: "el viernes de la semana pasada" parses as 10 October, expected 9 October [\#427](https://github.com/OpenVoiceOS/ovos-date-parser/issues/427)
+- es-ES: "la semana que viene" returns None, expected 24 October [\#413](https://github.com/OpenVoiceOS/ovos-date-parser/issues/413)
+- es-ES: "el viernes pasado" parses as 23 October, expected 16 October [\#412](https://github.com/OpenVoiceOS/ovos-date-parser/issues/412)
+- es-ES: "el siguiente viernes" parses as 30 October, expected 23 October [\#401](https://github.com/OpenVoiceOS/ovos-date-parser/issues/401)
+- nl-NL: "de dag na vandaag" parses as today, expected tomorrow [\#399](https://github.com/OpenVoiceOS/ovos-date-parser/issues/399)
+- de-DE: "der tag nach morgen" parses as tomorrow, expected the day after tomorrow [\#398](https://github.com/OpenVoiceOS/ovos-date-parser/issues/398)
+
+**Merged pull requests:**
+
+- fix\(de,nl\): parse "der Tag nach morgen" and "de dag na vandaag" as the day after [\#410](https://github.com/OpenVoiceOS/ovos-date-parser/pull/410) ([JarbasAl](https://github.com/JarbasAl))
+- fix\(es\): read "siguiente", "pasado" and "que viene" around weekdays and weeks [\#408](https://github.com/OpenVoiceOS/ovos-date-parser/pull/408) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.34.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.3a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.2a1...0.34.3a1)
@@ -9,8 +30,6 @@
 - nl-NL: a number that is not a time moves the result to tomorrow \("3 mensen 4 uur"\) [\#508](https://github.com/OpenVoiceOS/ovos-date-parser/issues/508)
 - nl-NL: "morgen om 10, want vanavond kan ik niet" parses as 19:00, expected 10:00 [\#502](https://github.com/OpenVoiceOS/ovos-date-parser/issues/502)
 - nl-NL: "om kwart over half 9" parses as 21:00, expected 20:45 [\#501](https://github.com/OpenVoiceOS/ovos-date-parser/issues/501)
-- es-ES: "mañana a las 22:30" parses as today 22:30, expected tomorrow 22:30 [\#488](https://github.com/OpenVoiceOS/ovos-date-parser/issues/488)
-- es-ES: "mañana a las 10:30" raises TypeError, expected 18 October 10:30 [\#487](https://github.com/OpenVoiceOS/ovos-date-parser/issues/487)
 - nl-NL: "om 25 uur" parses as a time, expected none [\#486](https://github.com/OpenVoiceOS/ovos-date-parser/issues/486)
 - nl-NL: "om tien over half drie" returns None, expected 14:40 [\#485](https://github.com/OpenVoiceOS/ovos-date-parser/issues/485)
 - nl-NL: "om half 9" parses as 21:00, expected 20:30 \(half, kwart over, kwart voor not read\) [\#471](https://github.com/OpenVoiceOS/ovos-date-parser/issues/471)
@@ -24,15 +43,15 @@
 - nl-NL: "vanochtend om 9:00" parses as 21:00, expected 09:00 \(morning word ignored for a bare hour\) [\#440](https://github.com/OpenVoiceOS/ovos-date-parser/issues/440)
 - nl-NL: "vanmorgen" returns None, expected today 08:00 [\#437](https://github.com/OpenVoiceOS/ovos-date-parser/issues/437)
 - nl-NL: "vanochtend" parses as tomorrow 08:00 after 08:00, expected today [\#436](https://github.com/OpenVoiceOS/ovos-date-parser/issues/436)
-- es-ES: "el viernes de la semana pasada" parses as 10 October, expected 9 October [\#427](https://github.com/OpenVoiceOS/ovos-date-parser/issues/427)
 - nl-NL: "overmorgenavond" parses as today 19:00, expected 19 October 19:00 [\#426](https://github.com/OpenVoiceOS/ovos-date-parser/issues/426)
 - nl-NL: "eergisteravond" parses as today 19:00, expected 15 October 19:00 [\#425](https://github.com/OpenVoiceOS/ovos-date-parser/issues/425)
 - nl-NL: "gisteravond" parses as today 19:00, expected 16 October 19:00 [\#424](https://github.com/OpenVoiceOS/ovos-date-parser/issues/424)
 - nl-NL: "morgen om 8 uur" parses as 20:00, expected 08:00 \("om N uur" read as "in N hours"\) [\#420](https://github.com/OpenVoiceOS/ovos-date-parser/issues/420)
 - nl-NL: "gisteren" and "eergisteren" return None, expected 16 and 15 October [\#419](https://github.com/OpenVoiceOS/ovos-date-parser/issues/419)
-- es-ES: "la semana que viene" returns None, expected 24 October [\#413](https://github.com/OpenVoiceOS/ovos-date-parser/issues/413)
-- es-ES: "el viernes pasado" parses as 23 October, expected 16 October [\#412](https://github.com/OpenVoiceOS/ovos-date-parser/issues/412)
-- es-ES: "el siguiente viernes" parses as 30 October, expected 23 October [\#401](https://github.com/OpenVoiceOS/ovos-date-parser/issues/401)
+
+**Merged pull requests:**
+
+- fix\(nl\): parse "gisteren" and "eergisteren", and read "om N uur" as a clock time [\#423](https://github.com/OpenVoiceOS/ovos-date-parser/pull/423) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
 
@@ -265,10 +284,6 @@
 ## [0.31.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a1) (2026-09-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.2a1...0.31.3a1)
-
-**Merged pull requests:**
-
-- fix\(oc\): apply native-speaker observations from issue \#300 [\#328](https://github.com/OpenVoiceOS/ovos-date-parser/pull/328) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.31.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.2a1) (2026-09-11)
 

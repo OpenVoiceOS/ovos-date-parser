@@ -22,7 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "python-dateutil~=2.6",
+    "python-dateutil~=3.0",
     "quebra_frases>=0.3.7",
     "ovos-number-parser>=0.19.6a2,<1.0.0",
     "dateparser",

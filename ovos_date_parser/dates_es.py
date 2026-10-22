@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_es import pronounce_number_es, numbers_to_digits_es
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.common import restore_typed_words
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
@@ -1071,7 +1072,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
     # resultStr = pt_pruning(resultStr)
-    return [extractedDate, resultStr]
+    return [extractedDate, restore_typed_words(resultStr, text)]
 
 
 def extract_duration_es(text, resolution=DurationResolution.TIMEDELTA,

@@ -5,6 +5,7 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_ast import AST
 from ovos_utils.time import now_local
+from ovos_date_parser.common import restore_typed_words
 
 WEEKDAYS_AST = {
     0: "llunes",
@@ -1003,7 +1004,7 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
 
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
-    return [extractedDate, resultStr]
+    return [extractedDate, restore_typed_words(resultStr, text)]
 
 
 def extract_duration_ast(text):

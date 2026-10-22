@@ -5,6 +5,7 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_gl import pronounce_number_gl
 from ovos_utils.time import now_local
+from ovos_date_parser.common import restore_typed_words
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
@@ -1013,7 +1014,7 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
 
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
-    return [extractedDate, resultStr]
+    return [extractedDate, restore_typed_words(resultStr, text)]
 
 
 def extract_duration_gl(text, resolution=DurationResolution.TIMEDELTA,

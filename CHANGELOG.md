@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.34.12a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.12a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.11a1...0.34.12a1)
+
+**Merged pull requests:**
+
+- fix\(holidays\): keep the clock time beside a holiday name [\#520](https://github.com/OpenVoiceOS/ovos-date-parser/pull/520) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.34.11a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.11a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.10a1...0.34.11a1)
@@ -17,8 +25,6 @@
 - ast-ES: "el vienres de la selmana que vien" parses as 24 October, expected 23 October [\#434](https://github.com/OpenVoiceOS/ovos-date-parser/issues/434)
 - gl-ES: "o venres da semana que vén" parses as 24 October, expected 23 October [\#433](https://github.com/OpenVoiceOS/ovos-date-parser/issues/433)
 - ast-ES: "el vienres pasáu" parses as 23 October, expected 16 October [\#418](https://github.com/OpenVoiceOS/ovos-date-parser/issues/418)
-- ast-ES: "el siguiente vienres" parses as 30 October, expected 23 October [\#417](https://github.com/OpenVoiceOS/ovos-date-parser/issues/417)
-- ca-ES: "el vinent divendres" parses as 30 October, expected 23 October [\#416](https://github.com/OpenVoiceOS/ovos-date-parser/issues/416)
 
 **Merged pull requests:**
 

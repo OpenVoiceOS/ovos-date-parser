@@ -1,5 +1,6 @@
+import calendar
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_es import pronounce_number_es, numbers_to_digits_es
@@ -251,6 +252,21 @@ _MORNING = "\u200b"
 _THIS_MORNING = "\u200c"
 
 
+def _year_of(tail, thisYear):
+    """Year and words used by a leading "año ..." phrase."""
+    words = tail.split()
+    if len(words) > 1 and words[0] == "año" and words[1].isdigit() and \
+            len(words[1]) == 4:
+        return int(words[1]), 2
+    for phrase, shift in (("año que viene", 1), ("año siguiente", 1),
+                          ("año proximo", 1), ("proximo año", 1),
+                          ("siguiente año", 1), ("año pasado", -1),
+                          ("año anterior", -1), ("año", 0)):
+        if tail == phrase or tail.startswith(phrase + " "):
+            return thisYear + shift, len(phrase.split())
+    return None, 0
+
+
 def extract_datetime_es(text, anchorDate=None, default_time=None):
     def clean_string(s):
         # cleans the input string of unneeded punctuation and capitalization
@@ -358,9 +374,10 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
               'diciembre']
     monthsShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago',
                    'sep', 'oct', 'nov', 'dic']
-    nexts = ["siguiente", "próximo", "próxima"]
-    suffix_nexts = ["siguientes", "subsecuentes"]
-    lasts = ["último", "última"]
+    nexts = ["siguiente", "proximo", "proxima"]
+    suffix_nexts = ["siguiente", "siguientes", "subsecuentes", "proximo",
+                    "proxima"]
+    lasts = ["último", "última", "ultimo", "ultima"]
     suffix_lasts = ["pasada", "pasado", "anterior", "antes"]
     nxts = ["después", "siguiente", "próximo", "próxima"]
     prevs = ["antes", "previa", "previo", "anterior"]
@@ -472,13 +489,29 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     dayOffset = -7 + weekShift
                     start -= 1
                     used = 2
-            if queViene or wordNext in suffix_nexts + ["siguiente"]:
+            if queViene or wordNext in suffix_nexts:
                 dayOffset = 7 + weekShift
                 used = 3 if queViene else 2
             elif wordNext in suffix_lasts:
                 dayOffset = -7 + weekShift
                 used = 2
         # parse 10 months, next month, last month
+        elif word == "mes" and not fromFlag and not (
+                wordPrev and wordPrev[0].isdigit()) and (
+                wordNext in months or
+                (wordNext == "año" and wordPrev in lasts)):
+            # "el próximo mes de diciembre", "el último mes del año": the
+            # first day of that month
+            month = months.index(wordNext) + 1 if wordNext in months else 12
+            year = dateNow.year + (
+                month < dateNow.month or
+                (month == dateNow.month and wordPrev in nexts))
+            dayOffset = (date(year, month, 1) - dateNow.date()).days
+            if wordPrev in nexts + lasts:
+                start -= 1
+                used = 3
+            else:
+                used = 2
         elif word == "mes" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
                 # "hace N / N ... atrás" = N periods in the past (RAE/DPD)
@@ -492,24 +525,20 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     used = 2
             for w in nexts:
                 if wordPrev == w:
-                    monthOffset = 7
+                    monthOffset = 1
                     start -= 1
                     used = 2
             for w in lasts:
                 if wordPrev == w:
-                    monthOffset = -7
+                    monthOffset = -1
                     start -= 1
                     used = 2
-            for w in suffix_nexts:
-                if wordNext == w:
-                    monthOffset = 7
-                    start -= 1
-                    used = 2
-            for w in suffix_lasts:
-                if wordNext == w:
-                    monthOffset = -7
-                    start -= 1
-                    used = 2
+            if queViene or wordNext in suffix_nexts:
+                monthOffset = 1
+                used = 3 if queViene else 2
+            elif wordNext in suffix_lasts:
+                monthOffset = -1
+                used = 2
         # parse 5 years, next year, last year
         elif word == "año" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
@@ -524,24 +553,20 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                     used = 2
             for w in nexts:
                 if wordPrev == w:
-                    yearOffset = 7
+                    yearOffset = 1
                     start -= 1
                     used = 2
             for w in lasts:
                 if wordPrev == w:
-                    yearOffset = -7
+                    yearOffset = -1
                     start -= 1
                     used = 2
-            for w in suffix_nexts:
-                if wordNext == w:
-                    yearOffset = 7
-                    start -= 1
-                    used = 2
-            for w in suffix_lasts:
-                if wordNext == w:
-                    yearOffset = -7
-                    start -= 1
-                    used = 2
+            if queViene or wordNext in suffix_nexts:
+                yearOffset = 1
+                used = 3 if queViene else 2
+            elif wordNext in suffix_lasts:
+                yearOffset = -1
+                used = 2
         # parse Monday, Tuesday, etc., and next Monday,
         # last Tuesday, etc.
         elif word in days and not fromFlag:
@@ -551,7 +576,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
             used = 1
             if dayOffset < 0:
                 dayOffset += 7
-            if wordPrev == "siguiente":
+            if wordPrev in nexts:
                 if dayOffset == 0:
                     dayOffset = 7
                 used += 1
@@ -560,7 +585,62 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                 dayOffset -= 7
                 used += 1
                 start -= 1
-            if queViene or wordNext == "siguiente":
+            elif wordPrev in lasts:
+                # "el último viernes", "... del mes", "... de octubre de 2027"
+                used += 1
+                start -= 1
+                dayOffset -= 7
+                tail = " ".join(words[idx + 1:idx + 4])
+                year = month = None
+                skip = 0
+                if wordNext == "mes" and wordNextNext in months:
+                    # "del mes de noviembre": the month name decides
+                    skip = 1
+                    used += 1
+                    tail = ""
+                    wordNext, wordNextNext = wordNextNext, wordNextNextNext
+                for phrase, ahead in (
+                        ("mes que viene", 1), ("mes siguiente", 1),
+                        ("mes proximo", 1), ("proximo mes", 1),
+                        ("siguiente mes", 1), ("mes pasado", -1),
+                        ("mes anterior", -1), ("mes", 0)):
+                    if tail == phrase or tail.startswith(phrase + " "):
+                        year, month = divmod(dateNow.year * 12 +
+                                             dateNow.month - 1 + ahead, 12)
+                        month += 1
+                        used += len(phrase.split())
+                        break
+                else:
+                    yearOf, n = _year_of(" ".join(words[idx + 1:idx + 4]),
+                                         dateNow.year)
+                    if wordNext in months:
+                        month = months.index(wordNext) + 1
+                        used += 1
+                        yearOf, n = _year_of(
+                            " ".join(words[idx + 2 + skip:idx + 5 + skip]),
+                            dateNow.year)
+                        if yearOf is not None:
+                            year = yearOf
+                            used += n
+                        elif wordNextNext.isdigit() and \
+                                len(wordNextNext) == 4:
+                            year = int(wordNextNext)
+                            used += 1
+                        else:
+                            year = dateNow.year + (month < dateNow.month)
+                    elif yearOf is not None:
+                        year, month = yearOf, 12
+                        used += n
+                    elif wordNext.isdigit() and len(wordNext) == 4:
+                        year, month = int(wordNext), 12
+                        used += 1
+                if month is not None:
+                    lastDay = date(year, month,
+                                   calendar.monthrange(year, month)[1])
+                    lastDay -= timedelta(days=(lastDay.weekday() - d) % 7)
+                    dayOffset = (lastDay - dateNow.date()).days
+            if wordPrev not in lasts and wordNextNext != "semana" and (
+                    queViene or wordNext in suffix_nexts):
                 if dayOffset == 0:
                     dayOffset = 7
                 used += 2 if queViene else 1
@@ -684,7 +764,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                 dayOffset += tmpOffset
                 # if wordNextNextNext == "feira":
                 #     used += 1
-        if wordNext in months:
+        if wordNext in months and wordPrev not in lasts and word != "mes":
             used -= 1
         if used > 0:
             if start - 1 > 0 and words[start - 1] in lists:

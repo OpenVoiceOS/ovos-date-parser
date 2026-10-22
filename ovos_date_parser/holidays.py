@@ -330,8 +330,66 @@ def extract_holiday_span(text: str, lang: str,
     start = result.span.start_datetime
     if start is None:  # a span outside the datetime range
         return None
+    start = _in_anchor_zone(start, anchor)
     remainder = re.sub(r"\s{2,}", " ", text[:first] + " " + text[last:])
     return start, remainder.strip()
+
+
+def _in_anchor_zone(moment: datetime, anchor: datetime) -> datetime:
+    """``moment``, a wall-clock reading, as an instant in ``anchor``'s zone.
+
+    chronologia answers wall-clock and naive by design: its extractor keeps
+    zones out of the computing core, and a caller that wants an instant
+    crosses the wall-clock-to-instant seam itself, with
+    :func:`chronologia.resolve_wall_clock`. This library's per-language
+    engines answer in the anchor's zone, so the holiday answer crosses that
+    seam here; a caller comparing it with an aware "now" otherwise raised
+    ``TypeError`` on the holiday alone.
+
+    ``resolve_wall_clock`` does not guess at a DST discontinuity. On a fold
+    (the reading happens twice) the earlier instant is taken. On a gap (a
+    spring-forward at midnight, so the day has no 00:00) the first reading
+    that exists that day is taken, which is the instant the day begins. A
+    naive anchor names no zone, and the answer stays naive.
+    """
+    tz = anchor.tzinfo
+    if tz is None or moment.tzinfo is not None:
+        return moment
+    zone = _as_zoneinfo(tz)
+    try:
+        from chronologia import resolve_wall_clock
+        for minutes in range(moment.hour * 60 + moment.minute,
+                             moment.hour * 60 + moment.minute + 4 * 60, 30):
+            resolved = resolve_wall_clock(moment.year, moment.month,
+                                          moment.day, minutes // 60,
+                                          minutes % 60, zone)
+            if isinstance(resolved, tuple):  # a fold: the earlier instant
+                resolved = resolved[0]
+            if hasattr(resolved, "datetime"):  # not NeverExisted (a gap)
+                when = resolved.datetime()
+                if when is not None:
+                    return when.replace(second=moment.second,
+                                        microsecond=moment.microsecond)
+    except Exception:
+        pass
+    return moment.replace(tzinfo=zone)
+
+
+def _as_zoneinfo(tz):
+    """``tz`` as a :class:`zoneinfo.ZoneInfo` when it names an IANA zone.
+
+    A pytz zone attached without ``localize()`` reads the zone's oldest
+    offset (Copenhagen's local mean time, +00:53), so chronologia, which
+    attaches the zone it is given, needs the IANA zone itself.
+    """
+    key = getattr(tz, "zone", None) or getattr(tz, "key", None)
+    if isinstance(key, str):
+        try:
+            from zoneinfo import ZoneInfo
+            return ZoneInfo(key)
+        except Exception:
+            pass
+    return tz
 
 
 def extract_holiday_date(text: str, lang: str,

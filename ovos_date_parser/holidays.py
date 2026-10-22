@@ -45,6 +45,7 @@ from __future__ import annotations
 import re
 import threading
 import unicodedata
+from collections import Counter
 from datetime import date, datetime
 from typing import Dict, FrozenSet, Optional, Set, Tuple
 
@@ -287,6 +288,31 @@ def _holiday_extent(text: str, lang: str, anchor: datetime
     return None
 
 
+def _clock_extent(text: str, lang: str, anchor: datetime,
+                  holiday: Tuple[int, int]) -> Optional[Tuple[int, int]]:
+    """The characters of the one clock time that stands beside the holiday.
+
+    "good friday at 9am" holds two constructions, the holiday and a clock
+    time. None is returned unless exactly one clock time sits outside the
+    holiday's characters, so a text with two clock times keeps the holiday
+    alone rather than guess which time belongs to it.
+    """
+    try:
+        from chronologia import explain
+        trace = explain(text, _spec(lang), anchor)
+        extents = []
+        for won in trace.winners:
+            if won.match.construction != "clock_time":
+                continue
+            tokens = trace.tokens[won.match.span[0]:won.match.span[1]]
+            extents.append((min(t.char_start for t in tokens),
+                            max(t.char_end for t in tokens)))
+    except Exception:
+        return None
+    outside = [e for e in extents if e[1] <= holiday[0] or e[0] >= holiday[1]]
+    return outside[0] if len(extents) == 1 and outside else None
+
+
 def extract_holiday_span(text: str, lang: str,
                          anchorDate: Optional[datetime] = None
                          ) -> Optional[Tuple[datetime, str]]:
@@ -307,6 +333,17 @@ def extract_holiday_span(text: str, lang: str,
 
     Returns None when the utterance names no holiday in its own language, or
     when chronologia answered from something other than a holiday.
+    """
+    answer = _holiday_answer(text, lang, anchorDate)
+    return answer[:2] if answer is not None else None
+
+
+def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
+                    ) -> Optional[Tuple[datetime, str, bool]]:
+    """:func:`extract_holiday_span` plus whether a clock time was read.
+
+    The flag tells a caller that a midnight in the answer was said ("good
+    friday at midnight") and is not the absence of a time of day.
     """
     if not text:
         return None
@@ -330,8 +367,32 @@ def extract_holiday_span(text: str, lang: str,
     start = result.span.start_datetime
     if start is None:  # a span outside the datetime range
         return None
-    remainder = re.sub(r"\s{2,}", " ", text[:first] + " " + text[last:])
-    return start, remainder.strip()
+    cut = [(first, last)]
+    clock_read = False
+    clock = _clock_extent(written, lang, anchor, (first, last))
+    if clock is not None:
+        # the time of day is read from the whole phrase, so the holiday's
+        # date and the clock time compose the way chronologia composes them.
+        # chronologia can win a clock_time match and still leave its words in
+        # the remainder ("easter at 25:00"); only a clock it consumed counts.
+        try:
+            whole = extract_timespan(written, lang=_base_lang(lang),
+                                     anchor=anchor,
+                                     jurisdiction=_jurisdiction(lang))
+        except Exception:
+            whole = None
+        moment = whole.span.start_datetime if whole is not None else None
+        if (moment is not None and moment.date() == start.date()
+                and not _words(written[clock[0]:clock[1]])
+                <= _words(whole.remainder)):
+            start = moment
+            cut.append(clock)
+            clock_read = True
+    remainder = text
+    for begin, end in sorted(cut, reverse=True):
+        remainder = remainder[:begin] + " " + remainder[end:]
+    remainder = re.sub(r"\s{2,}", " ", remainder)
+    return start, remainder.strip(), clock_read
 
 
 # "a good friday" is the adjective and the weekday; a holiday name is a proper
@@ -428,6 +489,12 @@ def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
     inner = _extract_datetime_engine(written[first:last], lang,
                                      anchorDate=anchor)
     return inner is not None and inner[0].date() == engine_date.date()
+
+
+def _words(text: str) -> Counter:
+    """The folded words of ``text`` with their counts, so a word the clock
+    shares with the rest of the sentence ("at") is counted once per use."""
+    return Counter(_fold(word) for word in re.findall(r"\w+", text or ""))
 
 
 def _word_set(text: str) -> FrozenSet[str]:

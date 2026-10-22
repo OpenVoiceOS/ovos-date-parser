@@ -643,6 +643,9 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
     today = dateNow.strftime("%w")
     currentYear = dateNow.strftime("%Y")
     fromFlag = False
+    weekdayIdx = None
+    weekRel = None
+    weekRelEnd = -1
     datestr = ""
     hasYear = False
     timeQualifier = ""
@@ -658,7 +661,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
               'desembre']
     monthsShort = ['gen', 'feb', 'març', 'abr', 'maig', 'juny', 'jul', 'ag',
                    'set', 'oct', 'nov', 'des']
-    nexts = ["pròxim", "pròxima", "vinent"]
+    nexts = ["pròxim", "pròxima", "proper", "propera", "vinent"]
     suffix_nexts = ["següent", "després"]
     lasts = ["últim", "última", "darrer", "darrera", "passat", "passada"]
     suffix_lasts = ["passada", "passat", "anterior", "abans"]
@@ -735,6 +738,9 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                 used += 2
 
         elif word == "setmana" and not fromFlag:
+            # a weekday named before the week lies in the Monday-based week
+            weekShift = 0 if weekdayIdx is None else \
+                weekdayIdx - dateNow.weekday()
             if wordPrev and wordPrev[0].isdigit():
                 # "fa N ..." = N periods in the past (DIEC2/GDLC)
                 if wordPrevPrev == "fa":
@@ -747,24 +753,26 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                     used = 2
             for w in nexts:
                 if wordPrev == w:
-                    dayOffset = 7
+                    dayOffset = 7 + weekShift
+                    weekRel = 7
                     start -= 1
                     used = 2
             for w in lasts:
                 if wordPrev == w:
-                    dayOffset = -7
+                    dayOffset = -7 + weekShift
+                    weekRel = -7
                     start -= 1
                     used = 2
-            for w in suffix_nexts:
-                if wordNext == w:
-                    dayOffset = 7
-                    start -= 1
-                    used = 2
-            for w in suffix_lasts:
-                if wordNext == w:
-                    dayOffset = -7
-                    start -= 1
-                    used = 2
+            if wordNext in suffix_nexts + ["vinent"]:
+                dayOffset = 7 + weekShift
+                weekRel = 7
+                used = 2
+            elif wordNext in suffix_lasts:
+                dayOffset = -7 + weekShift
+                weekRel = -7
+                used = 2
+            if weekRel is not None:
+                weekRelEnd = start + used
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
             if wordPrev and wordPrev[0].isdigit():
@@ -831,31 +839,37 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                     used = 2
         # parse Monday, Tuesday, etc., and next Monday,
         # last Tuesday, etc.
+        elif word in days and not fromFlag and idx == weekRelEnd:
+            # a weekday right after "next week" or "last week" lies in that week
+            weekdayIdx = days.index(word)
+            dayOffset = weekRel + weekdayIdx - dateNow.weekday()
+            used = 1
         elif word in days and not fromFlag:
 
             d = days.index(word)
+            weekdayIdx = d
             dayOffset = (d + 1) - int(today)
             used = 1
             if dayOffset < 0:
                 dayOffset += 7
             for w in nexts:
                 if wordPrev == w:
-                    dayOffset += 7
+                    if dayOffset == 0:
+                        dayOffset = 7
                     used += 1
                     start -= 1
             for w in lasts:
                 if wordPrev == w:
-                    dayOffset -= 7
+                    dayOffset = (d - dateNow.weekday()) % 7 - 7
                     used += 1
                     start -= 1
-            for w in suffix_nexts:
-                if wordNext == w:
-                    dayOffset += 7
-                    used += 1
-                    start -= 1
+            if wordNext in suffix_nexts + ["vinent"]:
+                if dayOffset == 0:
+                    dayOffset = 7
+                used += 1
             for w in suffix_lasts:
                 if wordNext == w:
-                    dayOffset -= 7
+                    dayOffset = (d - dateNow.weekday()) % 7 - 7
                     used += 1
                     start -= 1
             if wordNext == "feira":
@@ -954,6 +968,8 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                     used += 1
                 if tmpOffset < 0:
                     tmpOffset += 7
+                if tmpOffset == 0 and word in nexts:
+                    tmpOffset = 7
                 if wordNextNext:
                     if wordNextNext in nxts:
                         tmpOffset += 7
@@ -1037,7 +1053,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
         elif word == "vespre" or (word == "final" and wordNext == "tarda"):
             if not hrAbs:
                 hrAbs = 19
-            used += 2
+            used += 2 if word == "final" else 1
         elif word == "final" and wordNext == "matí":
             if not hrAbs:
                 hrAbs = 11

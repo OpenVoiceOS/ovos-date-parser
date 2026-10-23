@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.34.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.13a1) (2026-10-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.12a1...0.34.13a1)
+
+**Merged pull requests:**
+
+- fix: require chronologia with the date fixes [\#522](https://github.com/OpenVoiceOS/ovos-date-parser/pull/522) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.34.12a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.12a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.11a1...0.34.12a1)
@@ -24,7 +32,6 @@
 - gl-ES: "a semana que vén" leaves the word "seguinte" in the remainder, expected an empty remainder [\#449](https://github.com/OpenVoiceOS/ovos-date-parser/issues/449)
 - ast-ES: "el vienres de la selmana que vien" parses as 24 October, expected 23 October [\#434](https://github.com/OpenVoiceOS/ovos-date-parser/issues/434)
 - gl-ES: "o venres da semana que vén" parses as 24 October, expected 23 October [\#433](https://github.com/OpenVoiceOS/ovos-date-parser/issues/433)
-- ast-ES: "el vienres pasáu" parses as 23 October, expected 16 October [\#418](https://github.com/OpenVoiceOS/ovos-date-parser/issues/418)
 
 **Merged pull requests:**
 
@@ -154,7 +161,6 @@
 - nl-NL: "eergisteravond" parses as today 19:00, expected 15 October 19:00 [\#425](https://github.com/OpenVoiceOS/ovos-date-parser/issues/425)
 - nl-NL: "gisteravond" parses as today 19:00, expected 16 October 19:00 [\#424](https://github.com/OpenVoiceOS/ovos-date-parser/issues/424)
 - nl-NL: "morgen om 8 uur" parses as 20:00, expected 08:00 \("om N uur" read as "in N hours"\) [\#420](https://github.com/OpenVoiceOS/ovos-date-parser/issues/420)
-- nl-NL: "gisteren" and "eergisteren" return None, expected 16 and 15 October [\#419](https://github.com/OpenVoiceOS/ovos-date-parser/issues/419)
 
 **Merged pull requests:**
 

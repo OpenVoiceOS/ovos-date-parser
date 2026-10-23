@@ -160,7 +160,6 @@
 - nl-NL: "overmorgenavond" parses as today 19:00, expected 19 October 19:00 [\#426](https://github.com/OpenVoiceOS/ovos-date-parser/issues/426)
 - nl-NL: "eergisteravond" parses as today 19:00, expected 15 October 19:00 [\#425](https://github.com/OpenVoiceOS/ovos-date-parser/issues/425)
 - nl-NL: "gisteravond" parses as today 19:00, expected 16 October 19:00 [\#424](https://github.com/OpenVoiceOS/ovos-date-parser/issues/424)
-- nl-NL: "morgen om 8 uur" parses as 20:00, expected 08:00 \("om N uur" read as "in N hours"\) [\#420](https://github.com/OpenVoiceOS/ovos-date-parser/issues/420)
 
 **Merged pull requests:**
 

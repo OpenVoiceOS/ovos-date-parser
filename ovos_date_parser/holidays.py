@@ -395,6 +395,71 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     return start, remainder.strip(), clock_read
 
 
+def _engine_read_only_a_clock(written: str, lang: str, anchor: datetime,
+                              holiday: Tuple[int, int],
+                              consumed: FrozenSet[str]) -> bool:
+    """Whether the words the engine consumed are a clock time and nothing
+    that places a date.
+
+    A word the engine consumed beside the clock counts as a filler ("um" in
+    "weihnachten um 18:30") unless chronologia reads it as part of another
+    match ("friday", "tomorrow"). The date of such an answer is only the day
+    the clock next comes round.
+    """
+    clock = _clock_extent(written, lang, anchor, holiday)
+    if clock is None or not consumed:
+        return False
+    try:
+        from chronologia import explain
+        trace = explain(written, _spec(lang), anchor)
+        placed = []
+        for won in trace.winners:
+            tokens = trace.tokens[won.match.span[0]:won.match.span[1]]
+            placed.append((min(t.char_start for t in tokens),
+                           max(t.char_end for t in tokens)))
+    except Exception:
+        return False
+    for word in re.finditer(r"\w+", written):
+        if _fold(word.group()) not in consumed:
+            continue
+        if clock[0] <= word.start() < clock[1]:
+            continue
+        if any(begin <= word.start() < end for begin, end in placed):
+            return False
+    if not _word_set(written[clock[0]:clock[1]]) & consumed:
+        return False
+    return _clock_is_the_holidays(written, lang, holiday, clock)
+
+
+def _clock_is_the_holidays(written: str, lang: str, holiday: Tuple[int, int],
+                           clock: Tuple[int, int]) -> bool:
+    """Whether the clock time is said of the holiday, not of the sentence.
+
+    "christmas at 9am" and "at 9am on christmas" say when the holiday is.
+    "play christmas music at 9pm" and "musique de noël à 21 heures" use the
+    holiday as an adjective of something else, so the clock is the date.
+    The holiday and the clock must touch, with only the locale's own
+    connectors (at, on, the) between them. When the holiday comes first, the
+    word before it must be one of those connectors or nothing. A genitive
+    connector (de, of, van) is not one: it makes the holiday a modifier.
+    """
+    connectors = _spec(lang).connectors
+    linking = set()
+    for name in ("at", "on", "in", "until", "article"):
+        for surface in connectors.get(name, ()):
+            linking.update(_fold(word) for word in re.findall(r"\w+", surface))
+    for surface in connectors.get("of", ()):
+        linking.difference_update(_fold(word)
+                                  for word in re.findall(r"\w+", surface))
+    between = written[min(holiday[1], clock[1]):max(holiday[0], clock[0])]
+    if any(_fold(word) not in linking for word in re.findall(r"\w+", between)):
+        return False
+    if clock[0] < holiday[0]:
+        return True
+    before = re.findall(r"\w+", written[:holiday[0]])
+    return not before or _fold(before[-1]) in linking
+
+
 def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
                             engine_remainder: str = "",
                             anchorDate: Optional[datetime] = None) -> bool:
@@ -427,6 +492,11 @@ def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
     the Friday came from elsewhere and stays the engine's. For "good friday
     and next friday" the slice gives the coming Friday and the whole text
     gives the one after, so the dates differ and the engine keeps its answer.
+
+    When the engine consumed no word of the holiday phrase, the override
+    fires only if what it consumed is one clock time and nothing that places
+    a date, as in "christmas at 9am": the engine's date is then the day the
+    clock next comes round, and the holiday date is the one asked for.
 
     Only the date is compared, never the time. A time of day beside the
     holiday name does not move the date, so "good friday at 9am" and
@@ -472,8 +542,15 @@ def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
         # The engine read its date from words the phrase does not cover, so
         # the slice below cannot give the same date except by coincidence.
         # Declining here is what keeps a text that merely names a holiday
-        # ("play christmas music on friday") to one engine call.
-        return False
+        # ("play christmas music on friday") to one engine call. The one
+        # exception is a clock time beside the name: "christmas at 9am" has
+        # no date word outside the holiday, and the engine's date is only
+        # the day its clock next comes round.
+        if not _engine_read_only_a_clock(written, lang, anchor, (first, last),
+                                         consumed):
+            return False
+        answer = _holiday_answer(text, lang, anchor)
+        return answer is not None and answer[2]
     # imported here, not at module scope: ovos_date_parser/__init__.py imports
     # this module, so a top-level import would be a cycle.
     from ovos_date_parser import _extract_datetime_engine

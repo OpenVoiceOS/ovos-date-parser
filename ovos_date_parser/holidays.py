@@ -395,12 +395,6 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     return start, remainder.strip(), clock_read
 
 
-# "a good friday" is the adjective and the weekday; a holiday name is a proper
-# noun and takes no indefinite article
-_INDEFINITE_ARTICLES = {"en": frozenset({"a", "an"}),
-                        "nl": frozenset({"een"})}
-
-
 def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
                             engine_remainder: str = "",
                             anchorDate: Optional[datetime] = None) -> bool:
@@ -451,7 +445,8 @@ def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
     reason, which is not the date they name.
 
     A holiday name takes no indefinite article, so "have a good friday" is a
-    weekday and keeps the engine's answer.
+    weekday and keeps the engine's answer. chronologia matches no holiday
+    after an indefinite article, so no extent is found and this declines.
 
     The engine is asked twice for a text that names a holiday of its
     language, once by the caller and once here, so such a text costs more
@@ -470,10 +465,6 @@ def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
     first, last = extent
     phrase_words = _word_set(written[first:last])
     consumed = _word_set(text) - _word_set(engine_remainder)
-    articles = _INDEFINITE_ARTICLES.get(lang.split("-")[0].lower(),
-                                        frozenset())
-    if _word_set(" ".join(written[:first].split()[-1:])) & articles:
-        return False
     outside_words = _word_set(written[:first] + " " + written[last:])
     if consumed & phrase_words & outside_words:
         return False

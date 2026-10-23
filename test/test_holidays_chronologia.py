@@ -523,8 +523,8 @@ def test_an_indefinite_article_before_the_name_is_a_weekday(
 
 
 # Anchor Friday 2026-09-25. Western Easter 2027 is 28 March, so Good Friday is
-# 26 March. The indefinite-article guard reads only English and Dutch; in
-# Portuguese "a" is "the", so the holiday still wins. German names the weekday
+# 26 March. chronologia refuses a holiday after an indefinite article only
+# in English and Dutch; in Portuguese "a" is "the", so the holiday still wins. German names the weekday
 # outside the holiday phrase and keeps the engine's coming Friday.
 HOLIDAYS_IN_OTHER_LANGUAGES = [
     ("pt-PT", "sexta-feira santa", date(2027, 3, 26)),

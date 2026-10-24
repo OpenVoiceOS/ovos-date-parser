@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.35.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.7a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.6a1...0.35.7a1)
+
+**Merged pull requests:**
+
+- fix: honour minutes in the en bare 12-hour clock and read "12 tonight" as midnight [\#536](https://github.com/OpenVoiceOS/ovos-date-parser/pull/536) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.6a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.5a1...0.35.6a1)
@@ -79,7 +87,6 @@
 - ast-ES: "la selmana que vien" leaves the word "siguiente" in the remainder, expected an empty remainder [\#450](https://github.com/OpenVoiceOS/ovos-date-parser/issues/450)
 - gl-ES: "a semana que vén" leaves the word "seguinte" in the remainder, expected an empty remainder [\#449](https://github.com/OpenVoiceOS/ovos-date-parser/issues/449)
 - ast-ES: "el vienres de la selmana que vien" parses as 24 October, expected 23 October [\#434](https://github.com/OpenVoiceOS/ovos-date-parser/issues/434)
-- gl-ES: "o venres da semana que vén" parses as 24 October, expected 23 October [\#433](https://github.com/OpenVoiceOS/ovos-date-parser/issues/433)
 
 ## [0.34.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.10a1) (2026-10-22)
 
@@ -90,7 +97,6 @@
 - es-ES: "el mes de diciembre" parses as today, expected 1 December [\#489](https://github.com/OpenVoiceOS/ovos-date-parser/issues/489)
 - es-ES: "el último viernes del mes" parses as 23 October, expected 30 October [\#439](https://github.com/OpenVoiceOS/ovos-date-parser/issues/439)
 - es-ES: "el último viernes" parses as 23 October, expected 16 October [\#438](https://github.com/OpenVoiceOS/ovos-date-parser/issues/438)
-- es-ES: "el año pasado" parses as 17 October 2019, expected 17 October 2025 [\#432](https://github.com/OpenVoiceOS/ovos-date-parser/issues/432)
 
 **Merged pull requests:**
 

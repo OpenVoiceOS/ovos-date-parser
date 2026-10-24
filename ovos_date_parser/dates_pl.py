@@ -299,6 +299,9 @@ def nice_duration_pl(duration, speech=True):
     Returns:
         str: timespan as a string
     """
+    if isinstance(duration, timedelta):
+        duration = duration.total_seconds()
+
     if not speech:
         # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
         _days = int(duration // 86400)
@@ -473,7 +476,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
         wordList = s.split()
         for idx, word in enumerate(wordList):
             ordinals = ["ci", "szy", "gi"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     if ordinal in word:
                         word = word.replace(ordinal, "")
@@ -583,7 +586,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
         elif word == "tydzień" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -597,7 +600,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif word == "miesiąc" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -611,7 +614,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 years, next year, last year
         elif word == "rok" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -782,7 +785,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -863,15 +866,15 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                     remainder = wordNext.replace(".", "").lstrip().rstrip()
                 if (
                         remainder == "pm" or
-                        (word[0].isdigit() and (wordNext == 'wieczorem' or wordNext == 'wieczór')) or
-                        (word[0].isdigit() and wordNext == 'po' and wordNextNext == 'południu') or
-                        (word[0].isdigit() and wordNext == 'w' and wordNextNext == 'nocy')):
+                        (word and word[0].isdigit() and (wordNext == 'wieczorem' or wordNext == 'wieczór')) or
+                        (word and word[0].isdigit() and wordNext == 'po' and wordNextNext == 'południu') or
+                        (word and word[0].isdigit() and wordNext == 'w' and wordNextNext == 'nocy')):
                     strHH = strNum
                     remainder = "pm"
                     used = 2 if wordNext in ['po', 'w'] else 1
                 elif (
                         remainder == "am" or
-                        (word[0].isdigit() and wordNext == 'rano')):
+                        (word and word[0].isdigit() and wordNext == 'rano')):
                     strHH = strNum
                     remainder = "am"
                     used = 1
@@ -1107,7 +1110,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "i" and \
+        if word == "i" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

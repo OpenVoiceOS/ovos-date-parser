@@ -85,6 +85,26 @@ class TestExtractDurationEN(unittest.TestCase):
         self.assertEqual(extract_duration("hello there", lang="en-us"),
                          (None, "hello there"))
 
+    def test_remainder_has_no_dangling_conjunctions(self):
+        # a leftover "and"/"," that only joined two consumed duration
+        # chunks must be removed, not left dangling in the remainder
+        res = extract_duration(
+            "It will take about 2 hours and 30 minutes", lang="en-us")
+        self.assertEqual(res[0], timedelta(seconds=9000))
+        self.assertEqual(res[1], "It will take about")
+
+        res = extract_duration(
+            "It will take about 2 hours, 30 minutes, and 10 seconds",
+            lang="en-us")
+        self.assertEqual(res[0], timedelta(seconds=9010))
+        self.assertEqual(res[1], "It will take about")
+
+        # "and" that connects unconsumed text on both sides must survive
+        res = extract_duration(
+            "two hours and rest and relax", lang="en-us")
+        self.assertEqual(res[0], timedelta(seconds=7200))
+        self.assertEqual(res[1], "and rest and relax")
+
 
 if __name__ == "__main__":
     unittest.main()

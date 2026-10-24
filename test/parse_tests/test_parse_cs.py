@@ -63,7 +63,14 @@ class TestExtractDateTimeCS(unittest.TestCase):
         self.extract("v poledne", datetime(2017, 6, 27, 12, 0))
 
     def test_next_week(self):
-        self.extract("příští týden", datetime(2017, 7, 4, 0, 0))
+        """Next week begins on its Monday, not seven days from today.
+
+        The anchor is Tuesday 27 June, so the week after it opens on Monday
+        3 July. Adding seven days to the anchor lands on Tuesday the 4th,
+        which is this weekday next week -- a different thing, and not what
+        "příští týden" says.
+        """
+        self.extract("příští týden", datetime(2017, 7, 3, 0, 0))
 
     def test_no_date(self):
         self.assertIsNone(extract_datetime("ahoj jak se máš", "cs",

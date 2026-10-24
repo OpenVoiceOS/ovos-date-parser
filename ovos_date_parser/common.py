@@ -1,6 +1,8 @@
 import datetime
 import json
 import os.path
+import re
+import unicodedata
 
 from ovos_number_parser import pronounce_number
 
@@ -145,3 +147,40 @@ def nice_duration_generic(lang, duration, speech=True):
         out += str(seconds)
 
     return out
+
+
+def restore_typed_words(remainder: str, text: str) -> str:
+    """Give the words of a remainder back the spelling the user typed.
+
+    A parser lower-cases the sentence, strips its accents, turns hyphens into
+    spaces and drops punctuation before it reads it, so the remainder holds
+    words the user did not type. Each run of remainder words that matches one
+    of the typed words, in order, is replaced by that word. Case stays lower.
+    """
+    def bare(word):
+        return "".join(c for c in unicodedata.normalize("NFD", word)
+                       if not unicodedata.combining(c) and c not in "'_")
+
+    typed = []
+    for chunk in text.lower().split():
+        chunk = "".join(c for c in chunk if c not in ".,;?!ºª")
+        parts = [bare(part) for part in chunk.split("-") if bare(part)]
+        if parts:
+            typed.append((chunk, parts))
+
+    words = remainder.split()
+    out = []
+    pos = 0
+    i = 0
+    while i < len(words):
+        for j in range(pos, len(typed)):
+            chunk, parts = typed[j]
+            if [bare(w) for w in words[i:i + len(parts)]] == parts:
+                out.append(chunk)
+                i += len(parts)
+                pos = j + 1
+                break
+        else:
+            out.append(words[i])
+            i += 1
+    return " ".join(out)

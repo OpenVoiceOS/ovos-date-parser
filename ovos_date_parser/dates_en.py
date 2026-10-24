@@ -763,12 +763,14 @@ def _scan_time_en(words, anchorDate, date_state):
             strHH = ""
             strMM = ""
             remainder = ""
+            tonight = False
             wordNextNextNext = words[idx + 3] \
                 if idx + 3 < len(words) else ""
             if wordNext == "tonight" or wordNextNext == "tonight" or \
                     wordPrev == "tonight" or wordPrevPrev == "tonight" or \
                     wordNextNextNext == "tonight":
                 remainder = "pm"
+                tonight = True
                 used += 1
                 if wordPrev == "tonight":
                     words[idx - 1] = ""
@@ -1044,7 +1046,7 @@ def _scan_time_en(words, anchorDate, date_state):
                 if anchorDate.hour < HH or (anchorDate.hour == HH and
                                             anchorDate.minute < MM):
                     pass  # No modification needed
-                elif anchorDate.hour < HH + 12:
+                elif (anchorDate.hour, anchorDate.minute) < (HH + 12, MM):
                     HH += 12
                 else:
                     # has passed, assume the next morning
@@ -1052,6 +1054,12 @@ def _scan_time_en(words, anchorDate, date_state):
 
             if timeQualifier in timeQualifiersPM and HH < 12:
                 HH += 12
+
+            if tonight and isTime and HH == 12:
+                # "12 tonight" is the midnight that ends the day
+                HH = 0
+                if daySpecified:
+                    dayOffset += 1
 
             if HH > 24 or MM > 59:
                 isTime = False

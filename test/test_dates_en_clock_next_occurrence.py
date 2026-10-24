@@ -6,7 +6,7 @@ value is plain datetime arithmetic: today at the spoken time, plus a day when
 that moment is not after the anchor.
 """
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ovos_date_parser import extract_datetime
 
@@ -123,6 +123,122 @@ class TestSpokenNoon(unittest.TestCase):
 
     def test_12_30_am(self):
         self.check("at 12:30 am", 0, 30)
+
+
+class TestBareTwelveHourMinutes(unittest.TestCase):
+    """A bare "H:MM" is the earlier of H:MM and H+12:MM strictly after the anchor."""
+
+    ANCHORS = [datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 9, 0),
+               datetime(2026, 10, 23, 11, 59), datetime(2026, 10, 23, 13, 10),
+               datetime(2026, 10, 23, 15, 0), datetime(2026, 10, 23, 23, 59)]
+
+    @staticmethod
+    def earliest_after(anchor, hour, minute):
+        return min(next_after(anchor, h, minute) for h in (hour, hour + 12))
+
+    def check(self, text, hour, minute):
+        for anchor in self.ANCHORS:
+            with self.subTest(text=text, anchor=anchor.isoformat()):
+                got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+                self.assertIsNotNone(got)
+                self.assertEqual(got[0],
+                                 self.earliest_after(anchor, hour, minute))
+                self.assertEqual(got[1], "")
+
+    def test_half_past_the_hour(self):
+        for hour in range(1, 12):
+            self.check(f"at {hour}:30", hour, 30)
+
+    def test_quarter_to_and_past_the_hour(self):
+        for hour in range(1, 12):
+            self.check(f"at {hour}:15", hour, 15)
+            self.check(f"at {hour}:45", hour, 45)
+
+    def test_after_the_afternoon_hour_in_the_same_hour(self):
+        anchor = datetime(2026, 10, 23, 13, 10)
+        got = extract_datetime("at 1:45", lang="en-US", anchorDate=anchor)
+        self.assertEqual(got[0], datetime(2026, 10, 23, 13, 45))
+
+    def test_a_named_today_keeps_the_afternoon_reading(self):
+        anchor = datetime(2026, 10, 23, 15, 0)
+        got = extract_datetime("at 3:30 today", lang="en-US", anchorDate=anchor)
+        self.assertEqual(got[0], datetime(2026, 10, 23, 15, 30))
+
+
+class TestSpokenMidnightTonight(unittest.TestCase):
+    """"12 tonight" is the next 00:MM strictly after the anchor.
+
+    With a named day it is the 00:MM that ends that day.
+    """
+
+    ANCHORS = [datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 15, 0),
+               datetime(2026, 10, 23, 23, 59)]
+
+    def check(self, text, minute):
+        for anchor in self.ANCHORS:
+            with self.subTest(text=text, anchor=anchor.isoformat()):
+                got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+                self.assertIsNotNone(got)
+                self.assertEqual(got[0], next_after(anchor, 0, minute))
+                self.assertEqual(got[1], "")
+
+    def test_12_tonight(self):
+        self.check("at 12 tonight", 0)
+
+    def test_12_30_tonight(self):
+        self.check("at 12:30 tonight", 30)
+
+    def test_tonight_at_12(self):
+        self.check("tonight at 12", 0)
+
+    def test_tonight_at_eleven_is_unchanged(self):
+        got = extract_datetime("at 11 tonight", lang="en-US",
+                               anchorDate=datetime(2026, 10, 23, 15, 0))
+        self.assertEqual(got[0], datetime(2026, 10, 23, 23, 0))
+
+    def test_spoken_minutes(self):
+        self.check("at twelve thirty tonight", 30)
+        self.check("tonight at twelve thirty", 30)
+        self.check("at 12 30 tonight", 30)
+
+
+class TestSpokenMidnightTonightOnANamedDay(unittest.TestCase):
+    """With a named day, "12 tonight" is the midnight that ends that day."""
+
+    ANCHORS = [datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 15, 0),
+               datetime(2026, 10, 23, 15, 30), datetime(2026, 10, 23, 23, 59),
+               datetime(2026, 10, 23, 15, 0,
+                        tzinfo=timezone(timedelta(hours=-5)))]
+
+    def check(self, text, days_until_end_of_day):
+        for anchor in self.ANCHORS:
+            with self.subTest(text=text, anchor=anchor.isoformat()):
+                got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+                self.assertIsNotNone(got)
+                midnight = anchor.replace(hour=0, minute=0, second=0,
+                                          microsecond=0)
+                self.assertEqual(got[0], midnight + timedelta(
+                    days=days_until_end_of_day))
+                self.assertEqual(got[1], "")
+
+    def test_today(self):
+        self.check("at 12 tonight today", 1)
+
+    def test_on_the_anchor_weekday(self):
+        # 2026-10-23 is a Friday
+        self.check("at 12 tonight on friday", 1)
+
+    def test_tomorrow(self):
+        self.check("at 12 tonight tomorrow", 2)
+
+    def test_in_two_days(self):
+        self.check("at 12 tonight in 2 days", 3)
+
+    def test_a_duration_is_not_a_clock_time(self):
+        anchor = datetime(2026, 10, 23, 15, 0)
+        got = extract_datetime("set a timer for 12 minutes tonight",
+                               lang="en-US", anchorDate=anchor)
+        self.assertEqual(got[0], datetime(2026, 10, 23, 15, 12))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.35.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.6a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.5a1...0.35.6a1)
+
+**Merged pull requests:**
+
+- fix: read "at 12:MM" at an afternoon anchor as the next noon-hour time [\#534](https://github.com/OpenVoiceOS/ovos-date-parser/pull/534) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.5a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.4a1...0.35.5a1)
@@ -83,8 +91,6 @@
 - es-ES: "el último viernes del mes" parses as 23 October, expected 30 October [\#439](https://github.com/OpenVoiceOS/ovos-date-parser/issues/439)
 - es-ES: "el último viernes" parses as 23 October, expected 16 October [\#438](https://github.com/OpenVoiceOS/ovos-date-parser/issues/438)
 - es-ES: "el año pasado" parses as 17 October 2019, expected 17 October 2025 [\#432](https://github.com/OpenVoiceOS/ovos-date-parser/issues/432)
-- es-ES: "el mes pasado" parses as 17 March 2026, expected 17 September 2026 [\#431](https://github.com/OpenVoiceOS/ovos-date-parser/issues/431)
-- es-ES: "el año que viene" returns None, expected 17 October 2027 [\#430](https://github.com/OpenVoiceOS/ovos-date-parser/issues/430)
 
 **Merged pull requests:**
 

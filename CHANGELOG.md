@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.35.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.5a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.4a1...0.35.5a1)
+
+**Merged pull requests:**
+
+- fix: roll en 24-hour clock times to the next occurrence; keep da weekday beside a date out of the offset; use the public DAY\_PARTS [\#526](https://github.com/OpenVoiceOS/ovos-date-parser/pull/526) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.4a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.3a1...0.35.4a1)
+
 ## [0.35.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.3a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.2a1...0.35.3a1)
@@ -73,8 +85,6 @@
 - es-ES: "el año pasado" parses as 17 October 2019, expected 17 October 2025 [\#432](https://github.com/OpenVoiceOS/ovos-date-parser/issues/432)
 - es-ES: "el mes pasado" parses as 17 March 2026, expected 17 September 2026 [\#431](https://github.com/OpenVoiceOS/ovos-date-parser/issues/431)
 - es-ES: "el año que viene" returns None, expected 17 October 2027 [\#430](https://github.com/OpenVoiceOS/ovos-date-parser/issues/430)
-- es-ES: "el mes que viene" returns None, expected 17 November [\#429](https://github.com/OpenVoiceOS/ovos-date-parser/issues/429)
-- es-ES: "la próxima semana" returns None, expected 24 October [\#428](https://github.com/OpenVoiceOS/ovos-date-parser/issues/428)
 
 **Merged pull requests:**
 

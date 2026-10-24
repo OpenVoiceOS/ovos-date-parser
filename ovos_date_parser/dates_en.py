@@ -1033,7 +1033,7 @@ def _scan_time_en(words, anchorDate, date_state):
             HH = HH + 12 if remainder == "pm" and HH < 12 else HH
             HH = HH - 12 if remainder == "am" and HH >= 12 else HH
 
-            if (not military and
+            if (not military and 0 < HH <= 12 and
                     remainder not in ['am', 'pm', 'hours', 'minutes',
                                       "second", "seconds",
                                       "hour", "minute"] and
@@ -1463,6 +1463,7 @@ def _extract_datetime_en(text, anchorDate=None, default_time=None):
     if hrAbs != -1 and minAbs != -1 and not hrOffset and not minOffset and not secOffset:
         # If no time was supplied in the string set the time to default
         # time if it's available
+        spoken = hrAbs is not None or minAbs is not None
         if hrAbs is None and minAbs is None and default_time is not None:
             hrAbs, minAbs = default_time.hour, default_time.minute
         else:
@@ -1477,8 +1478,8 @@ def _extract_datetime_en(text, anchorDate=None, default_time=None):
             # to hour 24 or beyond; report nothing rather than a wrong guess
             return None, False, False
 
-        if (hrAbs != 0 or minAbs != 0) and datestr == "":
-            if not daySpecified and anchorDate > extractedDate:
+        if (spoken or hrAbs != 0 or minAbs != 0) and datestr == "":
+            if not daySpecified and anchorDate >= extractedDate:
                 extractedDate = extractedDate + relativedelta(days=1)
 
     for idx, word in enumerate(words):

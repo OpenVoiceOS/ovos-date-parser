@@ -160,12 +160,11 @@ class TestExtractDuration(unittest.TestCase):
         self.assertEqual(remains, "om")
 
     def test_invalid_extract_duration(self):
-        """No duration in sentence."""
-        res = extract_duration("vad är en myrslok", lang='sv-se')
-        self.assertEqual(res, None)
-
-        res = extract_duration("svaret är 42", lang='sv-se')
-        self.assertEqual(res, None)
+        """No duration in sentence: a None value, with the text left over."""
+        self.assertEqual(extract_duration("vad är en myrslok", lang='sv-se'),
+                         (None, "vad är en myrslok"))
+        self.assertEqual(extract_duration("svaret är 42", lang='sv-se'),
+                         (None, "svaret är 42"))
 
 
 if __name__ == "__main__":

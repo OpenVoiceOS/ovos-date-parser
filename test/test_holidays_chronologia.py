@@ -363,14 +363,84 @@ def test_the_holiday_layer_keeps_the_time_of_day(lang, utterance, expected,
     assert extract_holiday_span(utterance, lang, REF) == (expected, remainder)
 
 
-@pytest.mark.parametrize("lang,utterance,expected,remainder", [
-    case for case in HOLIDAYS_WITH_A_CLOCK_TIME
-    if case[0] in ("en-US", "pt-PT")])
-def test_extract_datetime_keeps_the_time_of_a_weekday_named_holiday(
+@pytest.mark.parametrize("lang,utterance,expected,remainder",
+                         HOLIDAYS_WITH_A_CLOCK_TIME)
+def test_extract_datetime_keeps_the_time_of_a_holiday(
         lang, utterance, expected, remainder):
-    """German is not listed: the German engine answers "karfreitag um 9 uhr"
-    with tomorrow at nine before the holiday layer is asked."""
     assert extract_datetime(utterance, lang, REF) == (expected, remainder)
+
+
+#: Holidays whose name is no calendar word, so the engine reads only the clock
+#: and answers with the day that clock next comes round (26 September 2026).
+#: 25 December is Christmas by decree; Christmas Eve is the day before.
+HOLIDAYS_THE_ENGINE_READS_ONLY_A_CLOCK_BESIDE = [
+    ("en-US", "christmas at 9am", datetime(2026, 12, 25, 9, 0), ""),
+    ("en-US", "christmas at 9 am", datetime(2026, 12, 25, 9, 0), ""),
+    ("en-US", "christmas 9am", datetime(2026, 12, 25, 9, 0), ""),
+    ("en-US", "christmas eve at noon", datetime(2026, 12, 24, 12, 0), ""),
+    ("de-DE", "weihnachten um 18:30", datetime(2026, 12, 25, 18, 30), "um"),
+    ("de-DE", "ostern um 9 uhr", datetime(2027, 3, 28, 9, 0), ""),
+    ("fr-FR", "pâques à 9 heures", datetime(2027, 3, 28, 9, 0), ""),
+    ("es-ES", "navidad a las 9", datetime(2026, 12, 25, 9, 0), ""),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected,remainder",
+                         HOLIDAYS_THE_ENGINE_READS_ONLY_A_CLOCK_BESIDE)
+def test_a_clock_beside_a_holiday_name_is_not_the_engines_next_day(
+        lang, utterance, expected, remainder):
+    assert extract_datetime(utterance, lang, REF) == (expected, remainder)
+
+
+#: A holiday word that modifies something else, or a clock that belongs to
+#: another part of the sentence, leaves the engine's day: the next time the
+#: clock comes round after 25 September 2026 12:00. 9am has passed today, so
+#: it is the 26th; 5pm, 9pm and 21 hours are still to come on the 25th.
+CLOCK_NOT_BESIDE_THE_HOLIDAY = [
+    ("en-US", "buy christmas presents at 5pm", datetime(2026, 9, 25, 17, 0)),
+    ("en-US", "play christmas music at 9pm", datetime(2026, 9, 25, 21, 0)),
+    ("en-US", "remind me at 5pm to buy christmas cards",
+     datetime(2026, 9, 25, 17, 0)),
+    ("en-US", "christmas island at 9am", datetime(2026, 9, 26, 9, 0)),
+    ("en-US", "call mom at 9am about easter", datetime(2026, 9, 26, 9, 0)),
+    ("fr-FR", "musique de noël à 21 heures", datetime(2026, 9, 25, 21, 0)),
+    ("de-DE", "geschenke für weihnachten um 17 uhr kaufen",
+     datetime(2026, 9, 25, 17, 0)),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected",
+                         CLOCK_NOT_BESIDE_THE_HOLIDAY)
+def test_a_clock_that_is_not_the_holidays_keeps_the_engines_day(
+        lang, utterance, expected):
+    got = extract_datetime(utterance, lang, REF)
+    assert got is not None
+    assert got[0] == expected
+
+
+@pytest.mark.parametrize("utterance", [
+    "play christmas music on friday",
+    "play christmas music on friday at 9am",
+    "remind me on friday at 9am about christmas",
+    "christmas tomorrow at 9am",
+])
+def test_a_date_word_beside_the_clock_keeps_the_engines_date(utterance):
+    """The engine read a date word as well as the clock, so the holiday does
+    not replace its answer."""
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    assert got[0].date() != date(2026, 12, 25)
+    assert got[0].date() <= date(2026, 10, 2)
+
+
+@pytest.mark.parametrize("utterance", [
+    "remind me at 9am on christmas",
+    "remind me on christmas at 9am",
+])
+def test_a_clock_before_or_after_the_holiday_is_the_holidays(utterance):
+    got = extract_datetime(utterance, "en-US", REF)
+    assert got is not None
+    assert got[0] == datetime(2026, 12, 25, 9, 0)
 
 
 def test_a_default_time_does_not_replace_a_time_that_was_read():

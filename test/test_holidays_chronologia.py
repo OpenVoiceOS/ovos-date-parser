@@ -8,7 +8,8 @@ the anchor, so the next one from September 2026 is 2027's).
 The anchor is fixed at 25 September 2026, so "the next one" is a stated date
 rather than whatever today makes it.
 """
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -545,3 +546,35 @@ def test_holiday_phrases_in_languages_without_an_article_rule(
     got = extract_datetime(utterance, lang, REF)
     assert got is not None
     assert got[0].date() == expected
+
+
+# --- the anchor's time zone --------------------------------------------------
+
+NEW_YORK = ZoneInfo("America/New_York")
+AWARE_REF = datetime(2026, 10, 17, 12, 0, tzinfo=NEW_YORK)
+
+
+@pytest.mark.parametrize("utterance", ["christmas", "how many days until christmas"])
+def test_a_holiday_answer_keeps_the_anchors_time_zone(utterance):
+    """The engine answers in the anchor's zone, so a caller that subtracts the
+    anchor from the answer must not meet a naive datetime."""
+    got = extract_datetime(utterance, "en-US", AWARE_REF)
+    assert got is not None
+    assert got[0].tzinfo is NEW_YORK
+    assert got[0] - AWARE_REF == timedelta(days=68, hours=12)
+
+
+def test_a_holiday_in_winter_has_the_winter_offset():
+    """25 December 2026 is New York standard time, five hours behind UTC."""
+    got = extract_datetime("christmas", "en-US", AWARE_REF)
+    assert got[0].utcoffset() == timedelta(hours=-5)
+
+
+def test_the_holiday_span_keeps_the_anchors_time_zone():
+    got = extract_holiday_span("christmas at 9am", "en-US", AWARE_REF)
+    assert got[0] == datetime(2026, 12, 25, 9, 0, tzinfo=NEW_YORK)
+
+
+def test_a_naive_anchor_still_gets_a_naive_answer():
+    got = extract_datetime("christmas", "en-US", REF)
+    assert got[0].tzinfo is None

@@ -392,7 +392,7 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     for begin, end in sorted(cut, reverse=True):
         remainder = remainder[:begin] + " " + remainder[end:]
     remainder = re.sub(r"\s{2,}", " ", remainder)
-    return start, remainder.strip(), clock_read
+    return start.replace(tzinfo=anchor.tzinfo), remainder.strip(), clock_read
 
 
 def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,

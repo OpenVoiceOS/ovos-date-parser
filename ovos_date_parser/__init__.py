@@ -50,8 +50,7 @@ from ovos_date_parser.eras import (
 # Newer reckoning-core surface, re-exported so downstream code can reach the
 # timeline, named-period and radiocarbon-calibration facilities alongside the
 # established date-parsing API.
-from chronologia import TIMELINES, PERIODS, calibrate_c14
-from chronologia.dayparts import _LANGUAGES as DAYPARTS
+from chronologia import TIMELINES, PERIODS, calibrate_c14, DAY_PARTS
 from ovos_date_parser.duration import (
     DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
 )
@@ -535,7 +534,8 @@ _DAY = timedelta(days=1)
 def _daypart_bands(lang: str) -> frozenset:
     """The (start, end) times of the locale's declared parts of the day."""
     code = lang.split("-")[0]
-    return frozenset((b.start, b.end) for b in DAYPARTS if b.lang == code)
+    return frozenset((b.start, b.end) for b in DAY_PARTS.values()
+                     if b.lang == code)
 
 
 def _is_daypart(span, lang: str) -> bool:

@@ -92,5 +92,38 @@ class TestSpokenMidnight(unittest.TestCase):
         self.check("at midnight")
 
 
+class TestSpokenNoon(unittest.TestCase):
+    """A spoken twelve o'clock is the next such moment strictly after the anchor."""
+
+    ANCHORS = [datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 11, 59),
+               datetime(2026, 10, 23, 12, 0), datetime(2026, 10, 23, 12, 30),
+               datetime(2026, 10, 23, 15, 0), datetime(2026, 10, 23, 23, 59)]
+
+    def check(self, text, hour, minute):
+        for anchor in self.ANCHORS:
+            with self.subTest(text=text, anchor=anchor.isoformat()):
+                got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+                self.assertIsNotNone(got)
+                self.assertEqual(got[0], next_after(anchor, hour, minute))
+
+    def test_12_00(self):
+        self.check("at 12:00", 12, 0)
+
+    def test_12_30(self):
+        self.check("at 12:30", 12, 30)
+
+    def test_12_pm(self):
+        self.check("at 12 pm", 12, 0)
+
+    def test_noon(self):
+        self.check("at noon", 12, 0)
+
+    def test_12_00_pm(self):
+        self.check("at 12:00 pm", 12, 0)
+
+    def test_12_30_am(self):
+        self.check("at 12:30 am", 0, 30)
+
+
 if __name__ == "__main__":
     unittest.main()

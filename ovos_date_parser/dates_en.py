@@ -1033,7 +1033,7 @@ def _scan_time_en(words, anchorDate, date_state):
             HH = HH + 12 if remainder == "pm" and HH < 12 else HH
             HH = HH - 12 if remainder == "am" and HH >= 12 else HH
 
-            if (not military and 0 < HH <= 12 and
+            if (not military and 0 < HH < 12 and
                     remainder not in ['am', 'pm', 'hours', 'minutes',
                                       "second", "seconds",
                                       "hour", "minute"] and

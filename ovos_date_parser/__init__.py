@@ -1354,6 +1354,8 @@ class DateTimeFormat:
         """
         format_str = 'date_full'
         lang = lang.split("-")[0]
+        if lang not in self.lang_config:
+            raise NotImplementedError(f"Unsupported language: {lang}")
         if now:
             if dt.year == now.year:
                 format_str = 'date_full_no_year'
@@ -1391,6 +1393,8 @@ class DateTimeFormat:
 
     def year_format(self, dt, lang, bc, ad=False):
         lang = lang.split("-")[0]
+        if lang not in self.lang_config:
+            raise NotImplementedError(f"Unsupported language: {lang}")
         number_tuple = self._number_strings(dt.year, lang)
         formatted_bc = (
             self.lang_config[lang]['year_format']['bc'] if bc else '')

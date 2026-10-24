@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.35.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.1a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.0a1...0.35.1a1)
+
+**Merged pull requests:**
+
+- fix: give a holiday answer the time zone of the anchor [\#527](https://github.com/OpenVoiceOS/ovos-date-parser/pull/527) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.0a1) (2026-10-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.13a1...0.35.0a1)
+
 ## [0.34.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.13a1) (2026-10-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.12a1...0.34.13a1)
@@ -32,10 +44,6 @@
 - gl-ES: "a semana que vén" leaves the word "seguinte" in the remainder, expected an empty remainder [\#449](https://github.com/OpenVoiceOS/ovos-date-parser/issues/449)
 - ast-ES: "el vienres de la selmana que vien" parses as 24 October, expected 23 October [\#434](https://github.com/OpenVoiceOS/ovos-date-parser/issues/434)
 - gl-ES: "o venres da semana que vén" parses as 24 October, expected 23 October [\#433](https://github.com/OpenVoiceOS/ovos-date-parser/issues/433)
-
-**Merged pull requests:**
-
-- fix\(gl,ca,ast\): read a next or last marker around a weekday as one occurrence [\#421](https://github.com/OpenVoiceOS/ovos-date-parser/pull/421) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.34.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.10a1) (2026-10-22)
 
@@ -92,7 +100,6 @@
 **Closed issues:**
 
 - en-US: "after july 4th" returns today at 16:00, expected 4 July 2027 [\#484](https://github.com/OpenVoiceOS/ovos-date-parser/issues/484)
-- en-US: "july fourth" parses as 1 July 2027, expected 4 July 2027 [\#422](https://github.com/OpenVoiceOS/ovos-date-parser/issues/422)
 
 ## [0.34.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.6a1) (2026-10-22)
 

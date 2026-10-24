@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.35.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.3a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.2a1...0.35.3a1)
+
+**Merged pull requests:**
+
+- fix: require chronologia 0.31.7a1 for the Basque and Persian holiday names [\#528](https://github.com/OpenVoiceOS/ovos-date-parser/pull/528) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.2a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.1a1...0.35.2a1)
+
+**Merged pull requests:**
+
+- fix: give a holiday its date when only a clock stands beside the name [\#525](https://github.com/OpenVoiceOS/ovos-date-parser/pull/525) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.1a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.0a1...0.35.1a1)
@@ -164,8 +180,6 @@
 - nl-NL: "vanochtend om 9:00" parses as 21:00, expected 09:00 \(morning word ignored for a bare hour\) [\#440](https://github.com/OpenVoiceOS/ovos-date-parser/issues/440)
 - nl-NL: "vanmorgen" returns None, expected today 08:00 [\#437](https://github.com/OpenVoiceOS/ovos-date-parser/issues/437)
 - nl-NL: "vanochtend" parses as tomorrow 08:00 after 08:00, expected today [\#436](https://github.com/OpenVoiceOS/ovos-date-parser/issues/436)
-- nl-NL: "overmorgenavond" parses as today 19:00, expected 19 October 19:00 [\#426](https://github.com/OpenVoiceOS/ovos-date-parser/issues/426)
-- nl-NL: "eergisteravond" parses as today 19:00, expected 15 October 19:00 [\#425](https://github.com/OpenVoiceOS/ovos-date-parser/issues/425)
 
 ## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
 

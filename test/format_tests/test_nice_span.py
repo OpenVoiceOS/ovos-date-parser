@@ -202,9 +202,9 @@ GOLD_BC_BY_LANG = {
     "pt-pt": ["Sábado, um de Janeiro, trezentos a.C.",
               "Janeiro trezentos a.C.",
               "trezentos a.C."],
-    "de-de": ["Samstag, erster Januar, drei hundert v.d.Z.",
-              "Januar drei hundert v.d.Z.",
-              "drei hundert v.d.Z."],
+    "de-de": ["Samstag, erster Januar, dreihundert v.d.Z.",
+              "Januar dreihundert v.d.Z.",
+              "dreihundert v.d.Z."],
 }
 
 BC_WIDTHS = [

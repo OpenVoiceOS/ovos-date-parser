@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.22a1...0.35.23a1)
+
+**Merged pull requests:**
+
+- fix: eu part-of-day prefix follows the hour said, noon and evening bands [\#569](https://github.com/OpenVoiceOS/ovos-date-parser/pull/569) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.22a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.22a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.21a1...0.35.22a1)
+
+## [0.35.21a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.21a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.20a1...0.35.21a1)
+
+**Merged pull requests:**
+
+- fix: pt and es nice\_day day unpadded, es day label with "de" [\#565](https://github.com/OpenVoiceOS/ovos-date-parser/pull/565) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.20a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.20a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.19a1...0.35.20a1)
+
+**Merged pull requests:**
+
+- fix: eu 24-hour time reading per Araua 35, section 5 c\) [\#564](https://github.com/OpenVoiceOS/ovos-date-parser/pull/564) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: eu nice\_time KeyError from 0:31 to 0:59 and 12:31 to 12:59 [\#563](https://github.com/OpenVoiceOS/ovos-date-parser/pull/563) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.19a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.19a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.18a1...0.35.19a1)
@@ -193,7 +222,6 @@
 - pt-PT: "a próxima semana" leaves the article "a" in the remainder [\#470](https://github.com/OpenVoiceOS/ovos-date-parser/issues/470)
 - pt-PT: "o primeiro dia do mês" returns None, expected 1 November [\#469](https://github.com/OpenVoiceOS/ovos-date-parser/issues/469)
 - pt-PT: "a segunda opção" parses as Monday 19 October, expected None \(ordinal read as weekday\) [\#468](https://github.com/OpenVoiceOS/ovos-date-parser/issues/468)
-- pt-PT: "o último dia do mês" returns None, expected 31 October [\#463](https://github.com/OpenVoiceOS/ovos-date-parser/issues/463)
 
 ## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
 
@@ -258,12 +286,6 @@
 ## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.1a1...0.34.2a1)
-
-**Closed issues:**
-
-- es-ES: "reserva mañana el check-in" returns the remainder "reserva check in", expected "reserva check-in" [\#466](https://github.com/OpenVoiceOS/ovos-date-parser/issues/466)
-- it-IT: "ricordami domani di comprare il pane perché" returns the remainder with "perche'", expected "perché" [\#465](https://github.com/OpenVoiceOS/ovos-date-parser/issues/465)
-- pt-PT: "compra pão amanhã" returns the remainder "compra pao", expected "compra pão" [\#464](https://github.com/OpenVoiceOS/ovos-date-parser/issues/464)
 
 ## [0.34.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.1a1) (2026-10-08)
 

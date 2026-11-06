@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.35.18a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.18a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.16a1...0.35.18a1)
+
+**Merged pull requests:**
+
+- fix: eu time inessive in nice\_date\_time, hour words per Araua 35 [\#559](https://github.com/OpenVoiceOS/ovos-date-parser/pull/559) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: es date time doubled article, relative day on another month [\#558](https://github.com/OpenVoiceOS/ovos-date-parser/pull/558) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: pt meia-noite and meio-dia hyphens, midnight countdown, day label [\#557](https://github.com/OpenVoiceOS/ovos-date-parser/pull/557) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.16a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.16a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.15a1...0.35.16a1)

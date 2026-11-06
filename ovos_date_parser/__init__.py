@@ -1222,9 +1222,21 @@ class DateTimeFormat:
     def __init__(self, config_path):
         self.lang_config = {}
         self.config_path = config_path
+        self._resource_keys = {}
+
+    def _resource_key(self, lang):
+        """The key ``lang`` is cached under: the full tag when a regional
+        resource folder ships for it (``res/pt-br/``), else the language."""
+        if lang not in self._resource_keys:
+            tag = lang.lower()
+            regional = os.path.join(self.config_path, tag, 'date_time.json')
+            self._resource_keys[lang] = (
+                tag if "-" in tag and os.path.isfile(regional)
+                else tag.split("-")[0])
+        return self._resource_keys[lang]
 
     def cache(self, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         # "no" is a common alias for Norwegian Bokmål (nb); the dedicated
         # nice_time/extract_datetime/extract_duration functions already
         # special-case it, but this generic JSON-driven engine (used by
@@ -1251,7 +1263,7 @@ class DateTimeFormat:
                     i = i + 1
 
     def _number_strings(self, number, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         x = (self.lang_config[lang]['number'].get(str(number % 10)) or
              str(number % 10))
         xx = (self.lang_config[lang]['number'].get(str(number % 100)) or
@@ -1288,7 +1300,7 @@ class DateTimeFormat:
             x_in_x000, x0_in_x000, x_in_0x00)
 
     def _format_string(self, number, format_section, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         s = self.lang_config[lang][format_section]['default']
         i = 1
         while self.lang_config[lang][format_section].get(str(i)):
@@ -1353,7 +1365,7 @@ class DateTimeFormat:
             str: The formatted date string, localized and optionally including the weekday.
         """
         format_str = 'date_full'
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         if lang not in self.lang_config:
             raise NotImplementedError(f"Unsupported language: {lang}")
         if now:
@@ -1384,7 +1396,7 @@ class DateTimeFormat:
         return unformatted.format(**args)
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         date_str = self.date_format(dt, lang, now)
         time_str = nice_time(dt, lang, use_24hour=use_24hour,
                              use_ampm=use_ampm)
@@ -1392,7 +1404,7 @@ class DateTimeFormat:
             formatted_date=date_str, formatted_time=time_str)
 
     def year_format(self, dt, lang, bc, ad=False):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         if lang not in self.lang_config:
             raise NotImplementedError(f"Unsupported language: {lang}")
         number_tuple = self._number_strings(dt.year, lang)
@@ -1450,6 +1462,7 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     """
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_pt(dt, now, include_weekday)
@@ -1471,8 +1484,8 @@ def nice_date(dt, lang, now=None, include_weekday=True):
         return nice_date_an(dt, now, include_weekday)
     if lang.startswith("fy"):
         return nice_date_fy(dt, now, include_weekday)
-    date_time_format.cache(lang)
-    return date_time_format.date_format(dt, lang, now, include_weekday)
+    date_time_format.cache(tag)
+    return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
 def nice_date_time(dt, lang, now=None, use_24hour=False,
@@ -1498,6 +1511,7 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     """
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_time_pt(dt, now, use_24hour, use_ampm)
@@ -1519,8 +1533,8 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         return nice_date_time_an(dt, now, use_24hour, use_ampm)
     if lang.startswith("fy"):
         return nice_date_time_fy(dt, now, use_24hour, use_ampm)
-    date_time_format.cache(lang)
-    return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
+    date_time_format.cache(tag)
+    return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
@@ -1644,6 +1658,7 @@ def nice_year(dt, lang, bc=False, ad=False):
         # AstroDate counts years astronomically (1 BC is year 0, 300 BC is
         # -299); what is spoken is the era year, so hand the formatters that.
         dt = datetime(1 - dt.year, 1, 1)
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_year_pt(dt, bc)
@@ -1671,8 +1686,8 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_et(dt, bc)
     if lang.startswith("eu"):
         return nice_year_eu(dt, bc)
-    date_time_format.cache(lang)
-    return date_time_format.year_format(dt, lang, bc, ad)
+    date_time_format.cache(tag)
+    return date_time_format.year_format(dt, tag, bc, ad)
 
 
 #: English month names, indexed 1..12. The unbounded :class:`AstroDate`

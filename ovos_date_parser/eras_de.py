@@ -21,12 +21,25 @@ as "im Jahr 1996" still fall through to the ordinary scanner because
 ``__bare_year__`` matches outside the ``datetime`` range — verified in
 ``test/test_eras_de.py``.
 """
+from functools import lru_cache
+
 from ovos_number_parser.numbers_de import numbers_to_digits_de
 
 from ovos_date_parser.eras_scan import (EraPatterns, extract_era_date,
                                         load_era_patterns)
 
-ERA_PATTERNS_DE: EraPatterns = load_era_patterns("de")
+
+@lru_cache(maxsize=None)
+def _era_patterns_de() -> EraPatterns:
+    return load_era_patterns("de")
+
+
+def __getattr__(name):
+    # The phrase sets load on first use, so importing the package does
+    # not compile every language's patterns.
+    if name == "ERA_PATTERNS_DE":
+        return _era_patterns_de()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def extract_era_date_de(text: str):
@@ -41,5 +54,5 @@ def extract_era_date_de(text: str):
     <ovos_number_parser.numbers_de.numbers_to_digits_de>` is the public,
     non-deprecated entry point used instead.
     """
-    return extract_era_date(text, ERA_PATTERNS_DE,
+    return extract_era_date(text, _era_patterns_de(),
                             normalize=numbers_to_digits_de)

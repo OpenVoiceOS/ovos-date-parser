@@ -183,7 +183,7 @@ class TestNiceDatePt(unittest.TestCase):
         dt = datetime(2023, 2, 10, 14, 0)
         
         result = nice_date_pt(dt, now=now)
-        self.assertIn("Fevereiro", result)
+        self.assertIn("fevereiro", result)
     
     def test_nice_date_different_year(self):
         """Test date in different year"""
@@ -191,7 +191,7 @@ class TestNiceDatePt(unittest.TestCase):
         dt = datetime(2024, 1, 10, 14, 0)
         
         result = nice_date_pt(dt, now=now)
-        self.assertIn("Janeiro", result)
+        self.assertIn("janeiro", result)
         self.assertIn("dois mil e vinte e quatro", result)
     
     def test_nice_date_without_weekday(self):
@@ -209,7 +209,7 @@ class TestNiceDatePt(unittest.TestCase):
         dt = datetime(2023, 1, 15, 12, 0)  # Sunday
         
         result = nice_date_pt(dt, include_weekday=True)
-        self.assertIn("Domingo", result)
+        self.assertIn("domingo", result)
 
 
 class TestNiceTimePt(unittest.TestCase):
@@ -734,7 +734,7 @@ class TestComplexDateTimeExtractionScenarios(unittest.TestCase):
         # Test leap year scenarios
         leap_year_date = datetime(2024, 2, 29, 12, 0)
         result = nice_date_pt(leap_year_date)
-        self.assertIn("Fevereiro", result)
+        self.assertIn("fevereiro", result)
         self.assertIn("vinte e nove", result)
     
     def test_duration_extraction_edge_cases(self):

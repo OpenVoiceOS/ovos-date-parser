@@ -5,6 +5,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time, tzinfo
 from functools import lru_cache
+from importlib import import_module
 from typing import Callable, List, Optional, Tuple, Union
 from zoneinfo import ZoneInfo
 
@@ -12,7 +13,6 @@ import dateparser # fallback parser
 from dateparser.conf import settings as dateparser_settings
 from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
-from ovos_config import Configuration
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
@@ -30,17 +30,17 @@ from ovos_date_parser.ranges import (
 from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
-from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
+from ovos_date_parser.scoped_en import extract_scoped_date_en
 from ovos_date_parser.holidays import (_holiday_answer, extract_holiday_date,
                                        extract_holiday_span,
                                        holiday_overrides_engine,
                                        holiday_surfaces)
-from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
-from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
-from ovos_date_parser.eras_es import extract_era_date_es, ERA_PATTERNS_ES
-from ovos_date_parser.eras_fr import extract_era_date_fr, ERA_PATTERNS_FR
-from ovos_date_parser.eras_de import extract_era_date_de, ERA_PATTERNS_DE
-from ovos_date_parser.eras_it import extract_era_date_it, ERA_PATTERNS_IT
+from ovos_date_parser.eras_en import extract_era_date_en
+from ovos_date_parser.eras_pt import extract_era_date_pt
+from ovos_date_parser.eras_es import extract_era_date_es
+from ovos_date_parser.eras_fr import extract_era_date_fr
+from ovos_date_parser.eras_de import extract_era_date_de
+from ovos_date_parser.eras_it import extract_era_date_it
 from ovos_date_parser.astrodate import (AstroDate, DateSpan, civil_add,
                                         resolve_wall_clock)
 from ovos_date_parser.eras import (
@@ -758,6 +758,7 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
     match = _JA_WEEKDAY.search(text)
     if match is None or _JA_CLOCK.search(text):
         return None
+    from ovos_config import Configuration
     tz = ZoneInfo(Configuration()["location"]["timezone"]["code"])
     anchor = anchorDate or now_local()
     if anchor.tzinfo is None:
@@ -877,6 +878,9 @@ def _extract_datetime_engine(
     # fallback parser
     LOG.warning(f"{lang} is not implemented! attempting to use fallback date parser")
 
+    # ovos-config creates its config folder on import, so it loads here and
+    # not when the package is imported.
+    from ovos_config import Configuration
     tzstr = Configuration()["location"]["timezone"]["code"]
     fmt = Configuration().get("date_format", 'DMY')
     settings = {'RELATIVE_BASE': anchorDate or now_local(),
@@ -1222,9 +1226,21 @@ class DateTimeFormat:
     def __init__(self, config_path):
         self.lang_config = {}
         self.config_path = config_path
+        self._resource_keys = {}
+
+    def _resource_key(self, lang):
+        """The key ``lang`` is cached under: the full tag when a regional
+        resource folder ships for it (``res/pt-br/``), else the language."""
+        if lang not in self._resource_keys:
+            tag = lang.lower()
+            regional = os.path.join(self.config_path, tag, 'date_time.json')
+            self._resource_keys[lang] = (
+                tag if "-" in tag and os.path.isfile(regional)
+                else tag.split("-")[0])
+        return self._resource_keys[lang]
 
     def cache(self, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         # "no" is a common alias for Norwegian Bokmål (nb); the dedicated
         # nice_time/extract_datetime/extract_duration functions already
         # special-case it, but this generic JSON-driven engine (used by
@@ -1251,7 +1267,7 @@ class DateTimeFormat:
                     i = i + 1
 
     def _number_strings(self, number, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         x = (self.lang_config[lang]['number'].get(str(number % 10)) or
              str(number % 10))
         xx = (self.lang_config[lang]['number'].get(str(number % 100)) or
@@ -1288,7 +1304,7 @@ class DateTimeFormat:
             x_in_x000, x0_in_x000, x_in_0x00)
 
     def _format_string(self, number, format_section, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         s = self.lang_config[lang][format_section]['default']
         i = 1
         while self.lang_config[lang][format_section].get(str(i)):
@@ -1356,7 +1372,7 @@ class DateTimeFormat:
             str: The formatted date string, localized and optionally including the weekday.
         """
         format_str = 'date_full'
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         if lang not in self.lang_config:
             raise NotImplementedError(f"Unsupported language: {lang}")
         if now:
@@ -1383,12 +1399,12 @@ class DateTimeFormat:
         if include_weekday:
             args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
         else:
-            unformatted = re.sub(r"{weekday}\s*,?\s*", "", unformatted).strip(", ")
+            unformatted = re.sub(r"{weekday}\s*[,،]?\s*", "", unformatted).strip(", ،")
         return unformatted.format(**args)
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm,
                          formatted_year=None):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         date_str = self.date_format(dt, lang, now,
                                     formatted_year=formatted_year)
         time_str = nice_time(dt, lang, use_24hour=use_24hour,
@@ -1397,7 +1413,7 @@ class DateTimeFormat:
             formatted_date=date_str, formatted_time=time_str)
 
     def year_format(self, dt, lang, bc, ad=False):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         if lang not in self.lang_config:
             raise NotImplementedError(f"Unsupported language: {lang}")
         number_tuple = self._number_strings(dt.year, lang)
@@ -1455,6 +1471,7 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     """
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_pt(dt, now, include_weekday)
@@ -1476,12 +1493,12 @@ def nice_date(dt, lang, now=None, include_weekday=True):
         return nice_date_an(dt, now, include_weekday)
     if lang.startswith("fy"):
         return nice_date_fy(dt, now, include_weekday)
-    date_time_format.cache(lang)
+    date_time_format.cache(tag)
     if lang == "eu":
         return date_time_format.date_format(
-            dt, lang, now, include_weekday,
+            dt, tag, now, include_weekday,
             formatted_year=nice_date_year_eu(dt))
-    return date_time_format.date_format(dt, lang, now, include_weekday)
+    return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
 def nice_date_time(dt, lang, now=None, use_24hour=False,
@@ -1507,6 +1524,7 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     """
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_time_pt(dt, now, use_24hour, use_ampm)
@@ -1528,12 +1546,12 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         return nice_date_time_an(dt, now, use_24hour, use_ampm)
     if lang.startswith("fy"):
         return nice_date_time_fy(dt, now, use_24hour, use_ampm)
-    date_time_format.cache(lang)
+    date_time_format.cache(tag)
     if lang == "eu":
         return date_time_format.date_time_format(
-            dt, lang, now, use_24hour, use_ampm,
+            dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_date_year_eu(dt))
-    return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
+    return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
@@ -1657,6 +1675,7 @@ def nice_year(dt, lang, bc=False, ad=False):
         # AstroDate counts years astronomically (1 BC is year 0, 300 BC is
         # -299); what is spoken is the era year, so hand the formatters that.
         dt = datetime(1 - dt.year, 1, 1)
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_year_pt(dt, bc)
@@ -1684,8 +1703,8 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_et(dt, bc)
     if lang.startswith("eu"):
         return nice_year_eu(dt, bc)
-    date_time_format.cache(lang)
-    return date_time_format.year_format(dt, lang, bc, ad)
+    date_time_format.cache(tag)
+    return date_time_format.year_format(dt, tag, bc, ad)
 
 
 #: English month names, indexed 1..12. The unbounded :class:`AstroDate`
@@ -1943,6 +1962,7 @@ def nice_span(span: "DateSpan", lang: str = "en-us") -> str:
 
 
 def get_date_strings(dt, lang, date_format=None, time_format="full"):
+    from ovos_config import Configuration
     date_format = date_format or Configuration().get("date_format", 'DMY')
     lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
@@ -1967,3 +1987,15 @@ def get_date_strings(dt, lang, date_format=None, time_format="full"):
         'year_string': yearstr,
         "weekday_string": weekdaystr
     }
+
+
+#: Tables the package re-exports from the modules that build them on first use.
+_LAZY_TABLES = {"SCOPED_VOCAB_EN": "scoped_en",
+                **{f"ERA_PATTERNS_{code.upper()}": f"eras_{code}"
+                   for code in ("en", "pt", "es", "fr", "de", "it")}}
+
+
+def __getattr__(name):
+    if name in _LAZY_TABLES:
+        return getattr(import_module(f"ovos_date_parser.{_LAZY_TABLES[name]}"), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

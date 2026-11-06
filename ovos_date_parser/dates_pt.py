@@ -10,6 +10,9 @@ from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
+# Lowercase in running text, as the Acordo Ortográfico de 1990, Base XIX
+# 1.º b), writes the names of days and months. nice_weekday_pt and
+# nice_month_pt capitalise them as standalone labels.
 WEEKDAYS_PT = {
     0: "segunda-feira",
     1: "terça-feira",
@@ -124,15 +127,14 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
         if dt.date() == now.date() - timedelta(days=1):
             return "ontem"
         if dt.month != now.month or dt.year != now.year:
-            nice = nice + " de " + nice_month_pt(dt)
+            nice = nice + " de " + MONTHS_PT[dt.month]
         if dt.year != now.year:
             nice = nice + ", " + nice_year_pt(dt)
     else:
-        nice = f"{day} de {nice_month_pt(dt)}, {nice_year_pt(dt)}"
+        nice = f"{day} de {MONTHS_PT[dt.month]}, {nice_year_pt(dt)}"
 
     if include_weekday:
-        weekday = nice_weekday_pt(dt)
-        nice = f"{weekday}, {nice}"
+        nice = f"{WEEKDAYS_PT[dt.weekday()]}, {nice}"
     return nice
 
 

@@ -86,7 +86,8 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
             _hour -= 12
 
         if (minute > 30):
-            _hour += 1
+            # counts down to the next hour, and 12 is followed by 1
+            _hour = _hour % 12 + 1
 
         speak = HOUR_STRING_EU[_hour]
 

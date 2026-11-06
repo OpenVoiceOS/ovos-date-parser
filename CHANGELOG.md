@@ -1,8 +1,27 @@
 # Changelog
 
+## [0.35.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.13a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.12a1...0.35.13a1)
+
+**Merged pull requests:**
+
+- fix\(es\): write month and weekday names in lowercase [\#552](https://github.com/OpenVoiceOS/ovos-date-parser/pull/552) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(eu\): spell September and 28 as Euskaltzaindia does in the date resource [\#551](https://github.com/OpenVoiceOS/ovos-date-parser/pull/551) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(pt\): lowercase month and weekday labels, and write "às" before the time [\#550](https://github.com/OpenVoiceOS/ovos-date-parser/pull/550) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(eu\): spell the year in nice\_date with its -ko suffix [\#540](https://github.com/OpenVoiceOS/ovos-date-parser/pull/540) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.12a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.12a1) (2026-11-06)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.9a1...0.35.12a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.11a1...0.35.12a1)
+
+## [0.35.11a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.11a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.10a1...0.35.11a1)
+
+## [0.35.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.10a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.9a1...0.35.10a1)
 
 **Merged pull requests:**
 
@@ -111,7 +130,6 @@
 - gl-ES: "o próximo venres" on a Friday parses as today, expected next Friday 23 October [\#496](https://github.com/OpenVoiceOS/ovos-date-parser/issues/496)
 - ca-ES: "vespre" raises IndexError, expected no error [\#495](https://github.com/OpenVoiceOS/ovos-date-parser/issues/495)
 - ast-ES: "la selmana que vien" leaves the word "siguiente" in the remainder, expected an empty remainder [\#450](https://github.com/OpenVoiceOS/ovos-date-parser/issues/450)
-- gl-ES: "a semana que vén" leaves the word "seguinte" in the remainder, expected an empty remainder [\#449](https://github.com/OpenVoiceOS/ovos-date-parser/issues/449)
 
 ## [0.34.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.10a1) (2026-10-22)
 
@@ -144,11 +162,6 @@
 - pt-PT: "a última sexta-feira de novembro" parses as 23 October, expected 27 November [\#462](https://github.com/OpenVoiceOS/ovos-date-parser/issues/462)
 - pt-PT: "próximo sábado" said on a Saturday parses as today, expected 24 October [\#461](https://github.com/OpenVoiceOS/ovos-date-parser/issues/461)
 - pt-PT: "sexta-feira passada" parses as 23 October, expected 16 October [\#460](https://github.com/OpenVoiceOS/ovos-date-parser/issues/460)
-- pt-PT: "a última sexta-feira do mês" parses as 16 October, expected 30 October [\#448](https://github.com/OpenVoiceOS/ovos-date-parser/issues/448)
-- pt-PT: "o último mês" returns None, expected 17 September 2026 \("último" with accent is not recognised\) [\#447](https://github.com/OpenVoiceOS/ovos-date-parser/issues/447)
-- pt-PT: "o mês que vem" returns None, expected 17 November 2026 [\#446](https://github.com/OpenVoiceOS/ovos-date-parser/issues/446)
-- pt-PT: "o mês passado" parses as 17 March 2026, expected 17 September 2026 [\#445](https://github.com/OpenVoiceOS/ovos-date-parser/issues/445)
-- pt-PT: "no próximo mês" parses as 17 May 2027, expected 17 November 2026 [\#444](https://github.com/OpenVoiceOS/ovos-date-parser/issues/444)
 
 ## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
 
@@ -214,7 +227,6 @@
 - nl-NL: a day-part word in an earlier clause overrides "morgen om 9" [\#456](https://github.com/OpenVoiceOS/ovos-date-parser/issues/456)
 - nl-NL: spelled-out numbers before a unit are not read \("om tien uur" parses as 13:00\) [\#455](https://github.com/OpenVoiceOS/ovos-date-parser/issues/455)
 - nl-NL: "3 uur geleden" parses as 15:00, expected 09:00 \(hours, minutes and seconds ago are added\) [\#454](https://github.com/OpenVoiceOS/ovos-date-parser/issues/454)
-- nl-NL: "om 0:00" parses as 12:00 today, expected the next midnight [\#443](https://github.com/OpenVoiceOS/ovos-date-parser/issues/443)
 
 ## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
 

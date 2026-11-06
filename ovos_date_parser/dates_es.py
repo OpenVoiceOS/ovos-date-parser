@@ -10,6 +10,8 @@ from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
+# Lowercase, as the Ortografía de la lengua española (RAE and ASALE, 2010,
+# p. 502) writes the names of days and months.
 WEEKDAYS_ES = {
     0: "lunes",
     1: "martes",
@@ -54,13 +56,11 @@ def nice_year_es(dt, bc=False):
 
 
 def nice_weekday_es(dt):
-    weekday = WEEKDAYS_ES[dt.weekday()]
-    return weekday.capitalize()
+    return WEEKDAYS_ES[dt.weekday()]
 
 
 def nice_month_es(dt):
-    month = MONTHS_ES[dt.month]
-    return month.capitalize()
+    return MONTHS_ES[dt.month]
 
 
 def nice_day_es(dt, date_format='DMY', include_month=True):

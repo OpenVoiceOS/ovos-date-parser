@@ -1392,7 +1392,7 @@ class DateTimeFormat:
         if include_weekday:
             args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
         else:
-            unformatted = re.sub(r"{weekday}\s*,?\s*", "", unformatted).strip(", ")
+            unformatted = re.sub(r"{weekday}\s*[,،]?\s*", "", unformatted).strip(", ،")
         return unformatted.format(**args)
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm):

@@ -1,12 +1,19 @@
 # Changelog
 
-## [0.35.14a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.14a1) (2026-11-06)
+## [0.35.15a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.15a1) (2026-11-06)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.12a1...0.35.14a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.13a1...0.35.15a1)
 
 **Merged pull requests:**
 
 - fix\(es\): write month and weekday names in lowercase [\#552](https://github.com/OpenVoiceOS/ovos-date-parser/pull/552) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.13a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.12a1...0.35.13a1)
+
+**Merged pull requests:**
+
 - fix\(eu\): spell September and 28 as Euskaltzaindia does in the date resource [\#551](https://github.com/OpenVoiceOS/ovos-date-parser/pull/551) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(pt\): lowercase month and weekday labels, and write "às" before the time [\#550](https://github.com/OpenVoiceOS/ovos-date-parser/pull/550) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(eu\): spell the year in nice\_date with its -ko suffix [\#540](https://github.com/OpenVoiceOS/ovos-date-parser/pull/540) ([openvoiceos-bot](https://github.com/openvoiceos-bot))

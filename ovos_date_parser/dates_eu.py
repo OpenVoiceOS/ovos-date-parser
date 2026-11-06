@@ -62,18 +62,18 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
     # Generate a speakable version of the time
     speak = ""
     if use_24hour:
-        # Tenemos que tener en cuenta que cuando hablamos en formato
-        # 24h, no hay que especificar ninguna precisión adicional
-        # como "la noche", "la tarde" o "la mañana"
-        # http://lema.rae.es/dpd/srv/search?id=YNoTWNJnAD6bhhVBf9
-        speak += pronounce_number_eu(dt.hour) + 'ak'
-
-        # las 14:04 son "las catorce cero cuatro"
-
-        if dt.minute < 10:
-            speak += " zero " + pronounce_number_eu(dt.minute)
+        # Araua 35, section 5 c), the formal reading: "Hamabostak eta
+        # bostean", "Zero ordua / orena eta hogeita hamarrean". Only hiru and
+        # lau keep the old -r- (EBE, "lau (4) eta hiru (3) zenbakiak"), so 13
+        # is "hamahiruak"
+        if dt.hour == 0:
+            speak = "zero ordua"
+        elif dt.hour <= 12:
+            speak = HOUR_STRING_EU[dt.hour]
         else:
-            speak += " " + pronounce_number_eu(dt.minute)
+            speak = pronounce_number_eu(dt.hour) + "ak"
+        if dt.minute:
+            speak += " eta " + pronounce_number_eu(dt.minute)
 
     else:
         minute = dt.minute
@@ -151,10 +151,6 @@ def nice_time_inessive_eu(dt, use_24hour=False, use_ampm=False):
         (str): the time in the inessive case
     """
     time = nice_time_eu(dt, use_24hour=use_24hour, use_ampm=use_ampm)
-    if use_24hour:
-        # Araua 35 reads a 24-hour time as "hamabostak eta bostean", a form
-        # that nice_time_eu does not build
-        return f"{time}tan"
     on_the_hour = time.endswith(" puntuan")
     if on_the_hour:
         time = time[:-len(" puntuan")]
@@ -175,6 +171,8 @@ def nice_time_inessive_eu(dt, use_24hour=False, use_ampm=False):
             time += "ean"
     elif time.endswith("ordu bata"):
         time = time[:-len("a")] + "ean"
+    elif time == "zero ordua":
+        time += "n"
     else:
         time = time[:-len("ak")] + "etan"
     if on_the_hour:

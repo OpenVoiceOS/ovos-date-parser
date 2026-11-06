@@ -13,7 +13,7 @@
     "bc": "k.a."
   },
     "date_format": {
-    "date_full": "{weekday}, {formatted_year}ko {month}ren {day}",
+    "date_full": "{weekday}, {formatted_year} {month}ren {day}",
     "date_full_no_year": "{weekday}, {month}ren {day}",
     "date_full_no_year_month": "{weekday}, {day}",
     "today": "gaur",

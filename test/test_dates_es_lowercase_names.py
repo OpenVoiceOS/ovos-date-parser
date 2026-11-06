@@ -31,7 +31,7 @@ class TestSpanishLowercaseNames(unittest.TestCase):
     def test_labels(self):
         self.assertEqual(nice_month(TUESDAY, "es-ES"), "marzo")
         self.assertEqual(nice_weekday(TUESDAY, "es-ES"), "martes")
-        self.assertEqual(nice_day(TUESDAY, "es-ES"), "12 marzo")
+        self.assertEqual(nice_day(TUESDAY, "es-ES"), "12 de marzo")
 
 
 if __name__ == "__main__":

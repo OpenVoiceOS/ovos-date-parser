@@ -67,11 +67,12 @@ def nice_month_pt(dt):
 def nice_day_pt(dt, date_format='DMY', include_month=True):
     if include_month:
         month = nice_month_pt(dt)
+        # Unicode CLDR pt, availableFormats MMMMd: "d 'de' MMMM", with the
+        # day unpadded
         if date_format == 'MDY':
-            return "{} {}".format(month, dt.strftime("%d"))
+            return f"{month} {dt.day}"
         else:
-            # Unicode CLDR pt, availableFormats MMMMd: "d 'de' MMMM"
-            return "{} de {}".format(dt.strftime("%d"), month)
+            return f"{dt.day} de {month}"
     return dt.strftime("%d")
 
 

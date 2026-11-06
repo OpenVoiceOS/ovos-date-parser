@@ -70,7 +70,8 @@ def nice_day_pt(dt, date_format='DMY', include_month=True):
         if date_format == 'MDY':
             return "{} {}".format(month, dt.strftime("%d"))
         else:
-            return "{} {}".format(dt.strftime("%d"), month)
+            # Unicode CLDR pt, availableFormats MMMMd: "d 'de' MMMM"
+            return "{} de {}".format(dt.strftime("%d"), month)
     return dt.strftime("%d")
 
 
@@ -95,10 +96,10 @@ def nice_date_time_pt(dt, now=None, use_24hour=False,
     """
     now = now or now_local()
     time = nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)
-    # a + the article of the hour: à uma, às duas, à meia noite, ao meio dia
-    if time.startswith("meio dia"):
+    # a + the article of the hour: à uma, às duas, à meia-noite, ao meio-dia
+    if time.startswith("meio-dia"):
         at = "ao"
-    elif time.startswith(("uma", "meia noite")):
+    elif time.startswith(("uma", "meia-noite")):
         at = "à"
     else:
         at = "às"
@@ -203,11 +204,12 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
         else:
             minute = dt.minute
             hour = dt.hour
+        hour %= 24
 
         if hour == 0:
-            speak += "meia noite"
+            speak += "meia-noite"
         elif hour == 12:
-            speak += "meio dia"
+            speak += "meio-dia"
         elif hour < 13:
             speak = pronounce_number_pt(hour, gender=GrammaticalGender.FEMININE)
         else:

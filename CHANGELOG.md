@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.35.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.9a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.7a1...0.35.9a1)
+
+**Merged pull requests:**
+
+- fix: pass the full language tag to the date resource formatter [\#542](https://github.com/OpenVoiceOS/ovos-date-parser/pull/542) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(ar\): drop the Arabic comma with the weekday in nice\_date [\#538](https://github.com/OpenVoiceOS/ovos-date-parser/pull/538) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.7a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.6a1...0.35.7a1)

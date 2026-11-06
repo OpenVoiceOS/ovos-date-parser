@@ -160,6 +160,27 @@ def nice_date_year_eu(dt):
     return f"{year}eko"
 
 
+def nice_date_day_eu(dt):
+    """Format the day of a date with the article of Basque dates.
+
+    Euskaltzaindia, Araua 37 ("Data nola adierazi"), writes the day with the
+    article -a: "1995eko martxoaren 7a(n)", "urtarrilaren 20a". Only the
+    inessive -n is optional. A word that ends in -a takes no second -a
+    ("hamaika"), and a final r doubles ("hamarra").
+
+    Args:
+        dt (datetime): date whose day to format
+    Returns:
+        (str): the day in words with its article
+    """
+    day = pronounce_number_eu(dt.day)
+    if day[-1] == "a":
+        return day
+    if day[-1] == "r":
+        return f"{day}ra"
+    return f"{day}a"
+
+
 def nice_relative_time_eu(when, relative_to):
     """Create a relative phrase to roughly describe a datetime
 

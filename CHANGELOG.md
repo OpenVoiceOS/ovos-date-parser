@@ -1,13 +1,5 @@
 # Changelog
 
-## [0.35.15a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.15a1) (2026-11-06)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.13a1...0.35.15a1)
-
-**Merged pull requests:**
-
-- fix\(es\): write month and weekday names in lowercase [\#552](https://github.com/OpenVoiceOS/ovos-date-parser/pull/552) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.13a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.12a1...0.35.13a1)

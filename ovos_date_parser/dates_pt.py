@@ -10,9 +10,8 @@ from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
-# Lowercase in running text, as the Acordo Ortográfico de 1990, Base XIX
-# 1.º b), writes the names of days and months. nice_weekday_pt and
-# nice_month_pt capitalise them as standalone labels.
+# Lowercase, as the Acordo Ortográfico de 1990, Base XIX 1.º b), writes the
+# names of days and months.
 WEEKDAYS_PT = {
     0: "segunda-feira",
     1: "terça-feira",
@@ -58,13 +57,11 @@ def nice_year_pt(dt, bc=False):
 
 
 def nice_weekday_pt(dt):
-    weekday = WEEKDAYS_PT[dt.weekday()]
-    return weekday.capitalize()
+    return WEEKDAYS_PT[dt.weekday()]
 
 
 def nice_month_pt(dt):
-    month = MONTHS_PT[dt.month]
-    return month.capitalize()
+    return MONTHS_PT[dt.month]
 
 
 def nice_day_pt(dt, date_format='DMY', include_month=True):
@@ -97,7 +94,15 @@ def nice_date_time_pt(dt, now=None, use_24hour=False,
             (str): The formatted date time string
     """
     now = now or now_local()
-    return f"{nice_date_pt(dt, now)} ás {nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
+    time = nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)
+    # a + the article of the hour: à uma, às duas, à meia noite, ao meio dia
+    if time.startswith("meio dia"):
+        at = "ao"
+    elif time.startswith(("uma", "meia noite")):
+        at = "à"
+    else:
+        at = "às"
+    return f"{nice_date_pt(dt, now)} {at} {time}"
 
 
 def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):

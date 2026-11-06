@@ -5,6 +5,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time, tzinfo
 from functools import lru_cache
+from importlib import import_module
 from typing import Callable, List, Optional, Tuple, Union
 from zoneinfo import ZoneInfo
 
@@ -12,7 +13,6 @@ import dateparser # fallback parser
 from dateparser.conf import settings as dateparser_settings
 from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
-from ovos_config import Configuration
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
@@ -30,17 +30,17 @@ from ovos_date_parser.ranges import (
 from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
-from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
+from ovos_date_parser.scoped_en import extract_scoped_date_en
 from ovos_date_parser.holidays import (_holiday_answer, extract_holiday_date,
                                        extract_holiday_span,
                                        holiday_overrides_engine,
                                        holiday_surfaces)
-from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
-from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
-from ovos_date_parser.eras_es import extract_era_date_es, ERA_PATTERNS_ES
-from ovos_date_parser.eras_fr import extract_era_date_fr, ERA_PATTERNS_FR
-from ovos_date_parser.eras_de import extract_era_date_de, ERA_PATTERNS_DE
-from ovos_date_parser.eras_it import extract_era_date_it, ERA_PATTERNS_IT
+from ovos_date_parser.eras_en import extract_era_date_en
+from ovos_date_parser.eras_pt import extract_era_date_pt
+from ovos_date_parser.eras_es import extract_era_date_es
+from ovos_date_parser.eras_fr import extract_era_date_fr
+from ovos_date_parser.eras_de import extract_era_date_de
+from ovos_date_parser.eras_it import extract_era_date_it
 from ovos_date_parser.astrodate import (AstroDate, DateSpan, civil_add,
                                         resolve_wall_clock)
 from ovos_date_parser.eras import (
@@ -758,6 +758,7 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
     match = _JA_WEEKDAY.search(text)
     if match is None or _JA_CLOCK.search(text):
         return None
+    from ovos_config import Configuration
     tz = ZoneInfo(Configuration()["location"]["timezone"]["code"])
     anchor = anchorDate or now_local()
     if anchor.tzinfo is None:
@@ -877,6 +878,9 @@ def _extract_datetime_engine(
     # fallback parser
     LOG.warning(f"{lang} is not implemented! attempting to use fallback date parser")
 
+    # ovos-config creates its config folder on import, so it loads here and
+    # not when the package is imported.
+    from ovos_config import Configuration
     tzstr = Configuration()["location"]["timezone"]["code"]
     fmt = Configuration().get("date_format", 'DMY')
     settings = {'RELATIVE_BASE': anchorDate or now_local(),
@@ -1945,6 +1949,7 @@ def nice_span(span: "DateSpan", lang: str = "en-us") -> str:
 
 
 def get_date_strings(dt, lang, date_format=None, time_format="full"):
+    from ovos_config import Configuration
     date_format = date_format or Configuration().get("date_format", 'DMY')
     lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
@@ -1969,3 +1974,15 @@ def get_date_strings(dt, lang, date_format=None, time_format="full"):
         'year_string': yearstr,
         "weekday_string": weekdaystr
     }
+
+
+#: Tables the package re-exports from the modules that build them on first use.
+_LAZY_TABLES = {"SCOPED_VOCAB_EN": "scoped_en",
+                **{f"ERA_PATTERNS_{code.upper()}": f"eras_{code}"
+                   for code in ("en", "pt", "es", "fr", "de", "it")}}
+
+
+def __getattr__(name):
+    if name in _LAZY_TABLES:
+        return getattr(import_module(f"ovos_date_parser.{_LAZY_TABLES[name]}"), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

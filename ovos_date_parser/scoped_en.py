@@ -11,6 +11,8 @@ year", "the first decade of the 21st century", "summer of 1969",
 "next winter", "last spring", "this autumn"/"this fall", and the
 named holidays English binds in chronologia ("christmas", "next easter").
 """
+from functools import lru_cache
+
 from ovos_number_parser.numbers_en import numbers_to_digits_en
 
 from ovos_date_parser.ranges import Hemisphere
@@ -18,7 +20,17 @@ from ovos_date_parser.scoped_scan import (ScopedVocabulary,
                                           extract_scoped_date,
                                           load_scoped_vocabulary)
 
-SCOPED_VOCAB_EN: ScopedVocabulary = load_scoped_vocabulary("en")
+@lru_cache(maxsize=None)
+def _scoped_vocab_en() -> ScopedVocabulary:
+    return load_scoped_vocabulary("en")
+
+
+def __getattr__(name):
+    # The vocabulary loads on first use, so importing the package does not
+    # read every phrase set.
+    if name == "SCOPED_VOCAB_EN":
+        return _scoped_vocab_en()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def extract_scoped_date_en(text: str, ref_date=None,
@@ -30,5 +42,5 @@ def extract_scoped_date_en(text: str, ref_date=None,
     :func:`ovos_date_parser.scoped_scan.extract_scoped_date`.
     """
     return extract_scoped_date(
-        numbers_to_digits_en(text, ordinals=True), SCOPED_VOCAB_EN,
+        numbers_to_digits_en(text, ordinals=True), _scoped_vocab_en(),
         ref_date=ref_date, hemisphere=hemisphere, lang="en")

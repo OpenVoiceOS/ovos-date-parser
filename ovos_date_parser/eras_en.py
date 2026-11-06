@@ -16,16 +16,28 @@ forms immediately adjacent to a number, mirroring the permissive-parse-
 then-validate stance used across the parser libs.
 """
 import re
+from functools import lru_cache
 
 from ovos_number_parser.numbers_en import numbers_to_digits_en
 
 from ovos_date_parser.eras_scan import (EraPatterns, extract_era_date,
                                         load_era_patterns)
 
-ERA_PATTERNS_EN: EraPatterns = load_era_patterns("en") + [
-    ("holocene",
-     re.compile(r"(?<![\w.])(\d{5,})\s+he(?=\W|$)", re.IGNORECASE)),
-]
+
+@lru_cache(maxsize=None)
+def _era_patterns_en() -> EraPatterns:
+    return load_era_patterns("en") + [
+        ("holocene",
+         re.compile(r"(?<![\w.])(\d{5,})\s+he(?=\W|$)", re.IGNORECASE)),
+    ]
+
+
+def __getattr__(name):
+    # The phrase sets load on first use, so importing the package does
+    # not compile every language's patterns.
+    if name == "ERA_PATTERNS_EN":
+        return _era_patterns_en()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def extract_era_date_en(text: str):
@@ -36,5 +48,5 @@ def extract_era_date_en(text: str):
     :func:`ovos_date_parser.eras_scan.extract_era_date` for the contract.
     """
     return extract_era_date(
-        text, ERA_PATTERNS_EN,
+        text, _era_patterns_en(),
         normalize=lambda s: numbers_to_digits_en(s, ordinals=True))

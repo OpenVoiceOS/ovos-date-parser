@@ -2,7 +2,8 @@
 
 The Ortografía de la lengua española (RAE and ASALE, 2010) makes the
 lowercase initial the norm for days and months, with the example "Hoy es
-martes 13 de febrero" (p. 502)."""
+martes 13 de febrero". A classroom digest of the book gives this text and
+the locator p. 502; the book itself was not read."""
 import unittest
 from datetime import datetime
 

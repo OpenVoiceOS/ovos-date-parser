@@ -89,7 +89,7 @@ class TestNiceDayPt(unittest.TestCase):
         """Test day formatting with month in DMY format"""
         dt = datetime(2023, 1, 15)
         result = nice_day_pt(dt, date_format='DMY', include_month=True)
-        self.assertEqual(result, "15 janeiro")
+        self.assertEqual(result, "15 de janeiro")
     
     def test_day_with_month_mdy(self):
         """Test day formatting with month in MDY format"""
@@ -227,13 +227,13 @@ class TestNiceTimePt(unittest.TestCase):
         """Test midnight in speech format"""
         dt = datetime(2023, 1, 1, 0, 0)
         result = nice_time_pt(dt, speech=True, use_24hour=False)
-        self.assertIn("meia noite", result)
+        self.assertIn("meia-noite", result)
     
     def test_nice_time_noon_speech(self):
         """Test noon in speech format"""
         dt = datetime(2023, 1, 1, 12, 0)
         result = nice_time_pt(dt, speech=True, use_24hour=False)
-        self.assertIn("meio dia", result)
+        self.assertIn("meio-dia", result)
     
     def test_nice_time_quarter_past(self):
         """Test quarter past in speech format"""

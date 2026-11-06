@@ -28,7 +28,7 @@ class TestPortugueseLabels(unittest.TestCase):
                          "terça-feira")
 
     def test_nice_day(self):
-        self.assertEqual(nice_day(datetime(2024, 3, 12), "pt-PT"), "12 março")
+        self.assertEqual(nice_day(datetime(2024, 3, 12), "pt-PT"), "12 de março")
 
 
 class TestPortugueseCrase(unittest.TestCase):
@@ -46,8 +46,8 @@ class TestPortugueseCrase(unittest.TestCase):
         self.check(13, 5, "à uma e cinco")
 
     def test_midnight_and_noon(self):
-        self.check(0, 30, "à meia noite e meia")
-        self.check(12, 30, "ao meio dia e meia")
+        self.check(0, 30, "à meia-noite e meia")
+        self.check(12, 30, "ao meio-dia e meia")
 
 
 if __name__ == "__main__":

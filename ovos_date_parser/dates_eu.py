@@ -140,6 +140,26 @@ def nice_year_eu(dt, bc=False):
     return year
 
 
+def nice_date_year_eu(dt):
+    """Format the year of a date with the -ko suffix of Basque dates.
+
+    Euskaltzaindia, Araua 37 ("Data nola adierazi") writes the year as
+    "1983ko" and "1995eko": the suffix is -ko after a vowel and -eko after
+    a consonant, where a final r doubles ("hamarreko").
+
+    Args:
+        dt (datetime): date whose year to format
+    Returns:
+        (str): the year in words with its suffix
+    """
+    year = pronounce_number_eu(dt.year)
+    if year[-1] in "aeiou":
+        return f"{year}ko"
+    if year[-1] == "r":
+        return f"{year}reko"
+    return f"{year}eko"
+
+
 def nice_relative_time_eu(when, relative_to):
     """Create a relative phrase to roughly describe a datetime
 

@@ -107,7 +107,7 @@ from ovos_date_parser.dates_es import (
 )
 from ovos_date_parser.dates_eu import (
     extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
-    nice_year_eu,
+    nice_year_eu, nice_date_year_eu,
 )
 from ovos_date_parser.dates_et import (
     extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
@@ -1339,7 +1339,8 @@ class DateTimeFormat:
                         formatted_hundreds=formatted_hundreds,
                         number=str(number % 10000))
 
-    def date_format(self, dt, lang, now, include_weekday=True):
+    def date_format(self, dt, lang, now, include_weekday=True,
+                    formatted_year=None):
         """
         Format a datetime object as a localized date string according to language-specific templates.
         
@@ -1348,6 +1349,8 @@ class DateTimeFormat:
             lang (str): Language code for localization.
             now (datetime): Reference date for relative formatting (e.g., today, tomorrow).
             include_weekday (bool): If True, includes the weekday name in the output.
+            formatted_year (str, optional): The year as the language's own
+                speller writes it, used instead of the ``year_format`` resource.
         
         Returns:
             str: The formatted date string, localized and optionally including the weekday.
@@ -1375,7 +1378,7 @@ class DateTimeFormat:
         args = dict(
                 month=self.lang_config[lang]['month'][str(dt.month)],
                 day=self.lang_config[lang]['date'][str(dt.day)],
-                formatted_year=self.year_format(dt, lang, False)
+                formatted_year=formatted_year or self.year_format(dt, lang, False)
         )
         if include_weekday:
             args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
@@ -1383,9 +1386,11 @@ class DateTimeFormat:
             unformatted = re.sub(r"{weekday}\s*,?\s*", "", unformatted).strip(", ")
         return unformatted.format(**args)
 
-    def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
+    def date_time_format(self, dt, lang, now, use_24hour, use_ampm,
+                         formatted_year=None):
         lang = lang.split("-")[0]
-        date_str = self.date_format(dt, lang, now)
+        date_str = self.date_format(dt, lang, now,
+                                    formatted_year=formatted_year)
         time_str = nice_time(dt, lang, use_24hour=use_24hour,
                              use_ampm=use_ampm)
         return self.lang_config[lang]['date_time_format']['date_time'].format(
@@ -1472,6 +1477,10 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     if lang.startswith("fy"):
         return nice_date_fy(dt, now, include_weekday)
     date_time_format.cache(lang)
+    if lang == "eu":
+        return date_time_format.date_format(
+            dt, lang, now, include_weekday,
+            formatted_year=nice_date_year_eu(dt))
     return date_time_format.date_format(dt, lang, now, include_weekday)
 
 
@@ -1520,6 +1529,10 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     if lang.startswith("fy"):
         return nice_date_time_fy(dt, now, use_24hour, use_ampm)
     date_time_format.cache(lang)
+    if lang == "eu":
+        return date_time_format.date_time_format(
+            dt, lang, now, use_24hour, use_ampm,
+            formatted_year=nice_date_year_eu(dt))
     return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
 
 

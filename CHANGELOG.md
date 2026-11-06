@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.35.21a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.21a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.19a1...0.35.21a1)
+
+**Merged pull requests:**
+
+- fix: pt and es nice\_day day unpadded, es day label with "de" [\#565](https://github.com/OpenVoiceOS/ovos-date-parser/pull/565) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: eu 24-hour time reading per Araua 35, section 5 c\) [\#564](https://github.com/OpenVoiceOS/ovos-date-parser/pull/564) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: eu nice\_time KeyError from 0:31 to 0:59 and 12:31 to 12:59 [\#563](https://github.com/OpenVoiceOS/ovos-date-parser/pull/563) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.19a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.19a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.18a1...0.35.19a1)

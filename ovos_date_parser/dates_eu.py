@@ -10,15 +10,17 @@ from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
+# Euskaltzaindia Araua 35, "Orduak nola esan", decision 1: "ordu bata, ordu
+# biak, hirurak, laurak, bostak, seiak, zazpiak"
 HOUR_STRING_EU = {
-    1: 'ordubata',
-    2: 'ordubiak',
+    1: 'ordu bata',
+    2: 'ordu biak',
     3: 'hirurak',
     4: 'laurak',
     5: 'bostak',
-    6: 'seirak',
-    7: 'zazpirak',
-    8: 'zortzirak',
+    6: 'seiak',
+    7: 'zazpiak',
+    8: 'zortziak',
     9: 'bederatziak',
     10: 'hamarrak',
     11: 'hamaikak',
@@ -60,18 +62,18 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
     # Generate a speakable version of the time
     speak = ""
     if use_24hour:
-        # Tenemos que tener en cuenta que cuando hablamos en formato
-        # 24h, no hay que especificar ninguna precisión adicional
-        # como "la noche", "la tarde" o "la mañana"
-        # http://lema.rae.es/dpd/srv/search?id=YNoTWNJnAD6bhhVBf9
-        speak += pronounce_number_eu(dt.hour) + 'ak'
-
-        # las 14:04 son "las catorce cero cuatro"
-
-        if dt.minute < 10:
-            speak += " zero " + pronounce_number_eu(dt.minute)
+        # Araua 35, section 5 c), the formal reading: "Hamabostak eta
+        # bostean", "Zero ordua / orena eta hogeita hamarrean". Only hiru and
+        # lau keep the old -r- (EBE, "lau (4) eta hiru (3) zenbakiak"), so 13
+        # is "hamahiruak"
+        if dt.hour == 0:
+            speak = "zero ordua"
+        elif dt.hour <= 12:
+            speak = HOUR_STRING_EU[dt.hour]
         else:
-            speak += " " + pronounce_number_eu(dt.minute)
+            speak = pronounce_number_eu(dt.hour) + "ak"
+        if dt.minute:
+            speak += " eta " + pronounce_number_eu(dt.minute)
 
     else:
         minute = dt.minute
@@ -84,7 +86,8 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
             _hour -= 12
 
         if (minute > 30):
-            _hour += 1
+            # counts down to the next hour, and 12 is followed by 1
+            _hour = _hour % 12 + 1
 
         speak = HOUR_STRING_EU[_hour]
 
@@ -93,7 +96,11 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
                 if minute == 15:
                     speak += " eta laurden"
                 elif minute == 30:
-                    speak += " eta erdi"
+                    # Araua 35, decision 2: the plural mark goes on erdi only,
+                    # "ordu bat eta erdiak", "hiru eta erdiak"
+                    hour_number = {1: "ordu bat", 2: "ordu bi"}.get(
+                        _hour, pronounce_number_eu(_hour))
+                    speak = f"{hour_number} eta erdiak"
                 else:
                     speak += " eta " + pronounce_number_eu(minute)
             else:
@@ -108,21 +115,130 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
             speak += " puntuan"
 
         if use_ampm:
-            # "de la noche" es desde que anochece hasta medianoche
-            # así que decir que es desde las 21h es algo subjetivo
-            # en España a las 20h se dice "de la tarde"
-            # en castellano, las 12h es de la mañana o mediodía
-            # así que diremos "de la tarde" a partir de las 13h.
-            # http://lema.rae.es/dpd/srv/search?id=YNoTWNJnAD6bhhVBf9
-            if hour >= 6 and hour < 13:
+            # The part of the day belongs to the hour that is said, which is
+            # the next hour after half past. Araua 35 and the EBE entry
+            # "orduak nola esan": "gaueko hamabiak" (00:00), "goiz(ald)eko
+            # ordu bata" (01:00), "goizeko 11,30etan", "Eguardiko amabiak
+            # laurden gutxitan", "arratsaldeko 5etan", "iluntzeko 8etatik 11k
+            # arte"
+            said_hour = (hour + 1 if minute > 30 else hour) % 24
+            if said_hour == 0:
+                speak = "gaueko " + speak
+            elif said_hour < 12:
                 speak = "goizeko " + speak
-            elif hour >= 13 and hour < 20:
+            elif said_hour == 12:
+                speak = "eguerdiko " + speak
+            elif said_hour < 20:
                 speak = "arratsaldeko " + speak
             else:
-                speak = "gaueko " + speak
+                speak = "iluntzeko " + speak
     return speak
     # hemen dago tranpa
     # return str(dt.hour) + ":" + str(dt.minute)
+
+
+def nice_time_inessive_eu(dt, use_24hour=False, use_ampm=False):
+    """Format a time in the inessive case, the "at" form of a date and time.
+
+    The forms follow Euskaltzaindia Araua 35, "Orduak nola esan": the hour
+    takes the plural inessive ("ordu batean", "bietan", "hiruretan"), erdi
+    and laurden take it after "eta" ("bost eta erdietan", "hirurak eta
+    laurdenetan"), "gutxi" takes -tan ("bostak laurden gutxitan"), and a
+    minute takes the singular inessive ("seiak eta bostean", "laurak eta
+    hogeian"). "puntuan" follows the inflected hour ("zazpietan puntuan",
+    Elhuyar, "en punto").
+
+    Args:
+        dt (datetime): time to format
+        use_24hour (bool): output in 24-hour format
+        use_ampm (bool): include the part of the day for 12-hour format
+    Returns:
+        (str): the time in the inessive case
+    """
+    time = nice_time_eu(dt, use_24hour=use_24hour, use_ampm=use_ampm)
+    on_the_hour = time.endswith(" puntuan")
+    if on_the_hour:
+        time = time[:-len(" puntuan")]
+    if time.endswith(" gutxi"):
+        time += "tan"
+    elif time.endswith(" erdiak"):
+        time = time[:-len("ak")] + "etan"
+    elif time.endswith(" laurden"):
+        time += "etan"
+    elif " eta " in time:
+        if time.endswith("r"):
+            time += "rean"
+        elif time.endswith("a"):
+            time += "n"
+        elif time.endswith(("e", "i", "o", "u")):
+            time += "an"
+        else:
+            time += "ean"
+    elif time.endswith("ordu bata"):
+        time = time[:-len("a")] + "ean"
+    elif time == "zero ordua":
+        time += "n"
+    else:
+        time = time[:-len("ak")] + "etan"
+    if on_the_hour:
+        time += " puntuan"
+    return time
+
+
+def nice_year_eu(dt, bc=False):
+    """Format a year in a pronounceable Basque form.
+
+    Args:
+        dt (datetime): date to format (assumed already in the local timezone)
+        bc (bool): append "k.a." after the year
+    Returns:
+        (str): the year formatted as a string
+    """
+    year = pronounce_number_eu(dt.year)
+    if bc:
+        return f"{year} k.a."
+    return year
+
+
+def nice_date_year_eu(dt):
+    """Format the year of a date with the -ko suffix of Basque dates.
+
+    Euskaltzaindia, Araua 37 ("Data nola adierazi") writes the year as
+    "1983ko" and "1995eko": the suffix is -ko after a vowel and -eko after
+    a consonant, where a final r doubles ("hamarreko").
+
+    Args:
+        dt (datetime): date whose year to format
+    Returns:
+        (str): the year in words with its suffix
+    """
+    year = pronounce_number_eu(dt.year)
+    if year[-1] in "aeiou":
+        return f"{year}ko"
+    if year[-1] == "r":
+        return f"{year}reko"
+    return f"{year}eko"
+
+
+def nice_date_day_eu(dt):
+    """Format the day of a date with the article of Basque dates.
+
+    Euskaltzaindia, Araua 37 ("Data nola adierazi"), writes the day with the
+    article -a: "1995eko martxoaren 7a(n)", "urtarrilaren 20a". Only the
+    inessive -n is optional. A word that ends in -a takes no second -a
+    ("hamaika"), and a final r doubles ("hamarra").
+
+    Args:
+        dt (datetime): date whose day to format
+    Returns:
+        (str): the day in words with its article
+    """
+    day = pronounce_number_eu(dt.day)
+    if day[-1] == "a":
+        return day
+    if day[-1] == "r":
+        return f"{day}ra"
+    return f"{day}a"
 
 
 def nice_relative_time_eu(when, relative_to):
@@ -386,7 +502,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                 used += 2
 
         elif word == "aste" or word == "astea" or word == "asteko" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -412,7 +528,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                     used = 2
         # parse 10 months, next month, last month
         elif word == "hilabete" or word == "hilabetea" or word == "hilabeteko" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -438,7 +554,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                     used = 2
         # parse 5 years, next year, last year
         elif word == "urte" or word == "urtea" or word == "urteko" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -694,7 +810,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
         # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -867,7 +983,7 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                                     remainder = "pm"
                                 used += 1
 
-                    elif wordNext[0].isdigit():
+                    elif wordNext and wordNext.isdigit():
                         strHH = strNum
                         strMM = wordNext
                         used += 1

@@ -55,11 +55,10 @@ class TestDatetimeAst(unittest.TestCase):
             datetime(1998, 1, 5, tzinfo=default_timezone()))
 
     def test_tomorrow(self):
-        # "mañana" defaults to morning (8:00) of the next day when the
-        # anchor is past 8:00
+        # a bare tomorrow is the next day, not its morning hour
         self.assertEqual(
             extract_datetime("mañana", anchorDate=self.ANCHOR_NOON)[0],
-            datetime(1998, 1, 2, 8, 0, tzinfo=default_timezone()))
+            datetime(1998, 1, 2, tzinfo=default_timezone()))
 
     def test_today(self):
         self.assertEqual(

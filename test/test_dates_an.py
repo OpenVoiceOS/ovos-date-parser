@@ -176,10 +176,10 @@ class TestAragoneseExtractDatetime(unittest.TestCase):
         self.assertEqual(_ex("güe")[0], _dt(2017, 6, 27))
 
     def test_tomorrow(self):
-        self.assertEqual(_ex("veyremos demán"), [_dt(2017, 6, 28), "veyremos"])
+        self.assertEqual(_ex("veyeremos manyana"), [_dt(2017, 6, 28), "veyeremos"])
 
     def test_day_after_tomorrow(self):
-        self.assertEqual(_ex("pasadoman")[0], _dt(2017, 6, 29))
+        self.assertEqual(_ex("dimpués de manyana")[0], _dt(2017, 6, 29))
 
     def test_yesterday_is_backward(self):
         self.assertEqual(_ex("ahiere plevió"), [_dt(2017, 6, 26), "plevió"])
@@ -188,7 +188,7 @@ class TestAragoneseExtractDatetime(unittest.TestCase):
         self.assertEqual(_ex("ayere")[0], _dt(2017, 6, 26))
 
     def test_day_before_yesterday_is_backward(self):
-        self.assertEqual(_ex("antesahiere")[0], _dt(2017, 6, 25))
+        self.assertEqual(_ex("antes d'ahiere")[0], _dt(2017, 6, 25))
 
     def test_day_before_yesterday_phrase(self):
         self.assertEqual(_ex("antes de ahiere")[0], _dt(2017, 6, 25))
@@ -206,16 +206,16 @@ class TestAragoneseExtractDatetime(unittest.TestCase):
         self.assertEqual(_ex("en 5 minutos")[0], _dt(2017, 6, 27, 13, 9))
 
     def test_next_week_vinient(self):
-        self.assertEqual(_ex("a semana vinient")[0], _dt(2017, 7, 4))
+        self.assertEqual(_ex("la semana vinient")[0], _dt(2017, 7, 4))
 
     def test_next_week_que_viene(self):
-        self.assertEqual(_ex("a semana que viene")[0], _dt(2017, 7, 4))
+        self.assertEqual(_ex("la semana que viene")[0], _dt(2017, 7, 4))
 
     def test_last_week_is_backward(self):
         self.assertEqual(_ex("a semana pasada")[0], _dt(2017, 6, 20))
 
     def test_next_month(self):
-        self.assertEqual(_ex("o mes vinient")[0], _dt(2017, 7, 27))
+        self.assertEqual(_ex("lo mes vinient")[0], _dt(2017, 7, 27))
 
     def test_last_month_is_backward(self):
         self.assertEqual(_ex("o mes pasau")[0], _dt(2017, 5, 27))
@@ -230,16 +230,16 @@ class TestAragoneseExtractDatetime(unittest.TestCase):
         self.assertEqual(_ex("o viernes")[0], _dt(2017, 6, 30))
 
     def test_next_weekday(self):
-        self.assertEqual(_ex("o martes que viene")[0], _dt(2017, 7, 4))
+        self.assertEqual(_ex("lo martes que viene")[0], _dt(2017, 7, 4))
 
     def test_next_weekday_vinient(self):
-        self.assertEqual(_ex("o luns vinient")[0], _dt(2017, 7, 3))
+        self.assertEqual(_ex("lo luns vinient")[0], _dt(2017, 7, 3))
 
     def test_last_weekday_is_backward(self):
         self.assertEqual(_ex("o viernes pasau")[0], _dt(2017, 6, 23))
 
     def test_day_month_rolls_to_next_year(self):
-        self.assertEqual(_ex("o 5 de chunyo")[0], _dt(2018, 6, 5))
+        self.assertEqual(_ex("lo 5 de chunyo")[0], _dt(2018, 6, 5))
 
     def test_day_month_this_year(self):
         self.assertEqual(_ex("o 15 de chuliol")[0], _dt(2017, 7, 15))
@@ -257,18 +257,18 @@ class TestAragoneseExtractDatetime(unittest.TestCase):
         self.assertEqual(_ex("a las 8")[0], _dt(2017, 6, 27, 20))
 
     def test_morning_qualifier(self):
-        self.assertEqual(_ex("a las 9 de la maitín")[0], _dt(2017, 6, 28, 9))
+        self.assertEqual(_ex("a las 9 d'o maitín")[0], _dt(2017, 6, 28, 9))
 
     def test_afternoon_qualifier(self):
-        self.assertEqual(_ex("a las 5 de la tardi")[0], _dt(2017, 6, 27, 17))
+        self.assertEqual(_ex("a las 5 d'a tardi")[0], _dt(2017, 6, 27, 17))
 
     def test_date_and_time(self):
         self.assertEqual(
-            _ex("o 15 de chuliol de 2018 a las 9 de la maitín")[0],
+            _ex("o 15 de chuliol de 2018 a las 9 d'o maitín")[0],
             _dt(2018, 7, 15, 9))
 
     def test_remainder_kept(self):
-        self.assertEqual(_ex("reunión demán a las 5 de la tardi"),
+        self.assertEqual(_ex("reunión manyana a las 5 de la tardi"),
                          [_dt(2017, 6, 28, 17), "reunión"])
 
 
@@ -326,7 +326,7 @@ class TestAragoneseExtractAdversarial(unittest.TestCase):
 class TestAragoneseExtractRouting(unittest.TestCase):
     def test_routes_an(self):
         self.assertEqual(
-            _odp.extract_datetime("demán", "an", anchorDate=_ANCHOR)[0],
+            _odp.extract_datetime("manyana", "an", anchorDate=_ANCHOR)[0],
             _dt(2017, 6, 28))
 
     def test_routes_an_region(self):
@@ -335,7 +335,7 @@ class TestAragoneseExtractRouting(unittest.TestCase):
             _dt(2017, 6, 26))
 
     def test_duration_routes_an(self):
-        dur, _rem = _odp.extract_duration("esperar 3 horas y 20 minutos", "an")
+        dur, _rem = _odp.extract_duration("aguardar 3 horas y 20 minutos", "an")
         self.assertEqual(dur.total_seconds(), 3 * 3600 + 20 * 60)
 
     def test_duration_an_direct(self):

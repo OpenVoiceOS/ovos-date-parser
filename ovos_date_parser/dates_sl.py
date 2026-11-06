@@ -300,7 +300,7 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
                 used = 2
         # parse "naslednji mesec", "čez 3 mesece"
         elif word == "mesec" and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -318,7 +318,7 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
                 used = 2
         # parse "naslednje leto", "čez 2 leti"
         elif word == "leto" and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -457,7 +457,7 @@ def extract_datetime_sl(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 1
             hrAbs = _apply_time_qualifier(hrAbs)
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             strHH = ""
             strMM = ""
             if ':' in word:

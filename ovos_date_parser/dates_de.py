@@ -161,6 +161,9 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
     monthsShort = ['jan', 'feb', 'mär', 'apr', 'mai', 'juni', 'juli', 'aug',
                    'sept', 'oct', 'nov', 'dez']
 
+    relativeDays = {'vorgestern': -2, 'gestern': -1, 'heute': 0,
+                    'morgen': 1, 'übermorgen': 2}
+
     validFollowups = days + months + monthsShort
     validFollowups.append("heute")
     validFollowups.append("morgen")
@@ -212,6 +215,18 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word == "übermorgen" and not fromFlag:
             dayOffset = 2
             used += 1
+        # parse the day after/before today, tomorrow, yesterday
+        elif word in ("tag", "tage") and wordNext in ("nach", "vor") and \
+                wordNextNext in relativeDays and not fromFlag and \
+                wordPrev not in ("guten", "jeden") and \
+                (word == "tag" or is_number_de(wordPrev)):
+            num = is_number_de(wordPrev)
+            dayOffset = relativeDays[wordNextNext] + \
+                int(num or 1) * (1 if wordNext == "nach" else -1)
+            if num:
+                start -= 1
+                used += 1
+            used += 3
             # parse 5 days, 10 weeks, last week, next week
         elif word[:3] == "tag" and len(word) <= 5:
             num = is_number_de(wordPrev)
@@ -283,7 +298,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                 yearOffset = 1
                 start -= 1
                 used = 2
-            elif wordPrev[:6] == "nächst":
+            elif wordPrev[:5] == "letzt":
                 yearOffset = -1
                 start -= 1
                 used = 2
@@ -314,9 +329,9 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                 m = monthsShort.index(word)
             used += 1
             datestr = months[m]
-            if wordPrev and (wordPrev[0].isdigit() or
-                             (wordPrev == "of" and wordPrevPrev[0].isdigit())):
-                if wordPrev == "of" and wordPrevPrev[0].isdigit():
+            if wordPrev and (wordPrev and wordPrev[0].isdigit() or
+                             (wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == "of" and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -443,7 +458,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
             # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -829,8 +844,8 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "und" and words[idx - 1] == "" \
-                and words[idx + 1] == "":
+        if word == "und" and 0 < idx < len(words) - 1 and \
+                words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 
     resultStr = " ".join(words)

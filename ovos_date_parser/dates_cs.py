@@ -393,7 +393,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                     start -= 1
 
         elif word == "týden" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -412,7 +412,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif word == "měsíc" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -431,7 +431,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 years, next year, last year
         elif word == "rok" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -474,9 +474,9 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
             used += 1
             # Convert czech months to english
             datestr = _MONTHS_CONVERSION.get(m)
-            if wordPrev and (wordPrev[0].isdigit() or
-                             (wordPrev == " " and wordPrevPrev[0].isdigit())):
-                if wordPrev == " " and wordPrevPrev[0].isdigit():
+            if wordPrev and (wordPrev and wordPrev[0].isdigit() or
+                             (wordPrev == " " and wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == " " and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -660,7 +660,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -1045,7 +1045,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "a" and \
+        if word == "a" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

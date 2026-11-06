@@ -86,7 +86,6 @@
 - ca-ES: "vespre" raises IndexError, expected no error [\#495](https://github.com/OpenVoiceOS/ovos-date-parser/issues/495)
 - ast-ES: "la selmana que vien" leaves the word "siguiente" in the remainder, expected an empty remainder [\#450](https://github.com/OpenVoiceOS/ovos-date-parser/issues/450)
 - gl-ES: "a semana que vén" leaves the word "seguinte" in the remainder, expected an empty remainder [\#449](https://github.com/OpenVoiceOS/ovos-date-parser/issues/449)
-- ast-ES: "el vienres de la selmana que vien" parses as 24 October, expected 23 October [\#434](https://github.com/OpenVoiceOS/ovos-date-parser/issues/434)
 
 ## [0.34.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.10a1) (2026-10-22)
 
@@ -97,10 +96,6 @@
 - es-ES: "el mes de diciembre" parses as today, expected 1 December [\#489](https://github.com/OpenVoiceOS/ovos-date-parser/issues/489)
 - es-ES: "el último viernes del mes" parses as 23 October, expected 30 October [\#439](https://github.com/OpenVoiceOS/ovos-date-parser/issues/439)
 - es-ES: "el último viernes" parses as 23 October, expected 16 October [\#438](https://github.com/OpenVoiceOS/ovos-date-parser/issues/438)
-
-**Merged pull requests:**
-
-- fix\(es\): read next and last week, month, year and weekday [\#435](https://github.com/OpenVoiceOS/ovos-date-parser/pull/435) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.34.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.9a1) (2026-10-22)
 
@@ -200,7 +195,6 @@
 - nl-NL: "vanavond om 9:00" parses as tomorrow 09:00 after 21:00, expected today 21:00 \(evening word ignored for a bare hour\) [\#441](https://github.com/OpenVoiceOS/ovos-date-parser/issues/441)
 - nl-NL: "vanochtend om 9:00" parses as 21:00, expected 09:00 \(morning word ignored for a bare hour\) [\#440](https://github.com/OpenVoiceOS/ovos-date-parser/issues/440)
 - nl-NL: "vanmorgen" returns None, expected today 08:00 [\#437](https://github.com/OpenVoiceOS/ovos-date-parser/issues/437)
-- nl-NL: "vanochtend" parses as tomorrow 08:00 after 08:00, expected today [\#436](https://github.com/OpenVoiceOS/ovos-date-parser/issues/436)
 
 ## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
 

@@ -21,7 +21,7 @@
     "yesterday": "atzo"
   },
     "date_time_format": {
-    "date_time": "{formatted_date} {formatted_time}tan"
+    "date_time": "{formatted_date} {formatted_time}"
   },
     "weekday": {
     "0": "astelehena",

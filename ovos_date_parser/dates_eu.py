@@ -10,15 +10,17 @@ from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
+# Euskaltzaindia Araua 35, "Orduak nola esan", decision 1: "ordu bata, ordu
+# biak, hirurak, laurak, bostak, seiak, zazpiak"
 HOUR_STRING_EU = {
-    1: 'ordubata',
-    2: 'ordubiak',
+    1: 'ordu bata',
+    2: 'ordu biak',
     3: 'hirurak',
     4: 'laurak',
     5: 'bostak',
-    6: 'seirak',
-    7: 'zazpirak',
-    8: 'zortzirak',
+    6: 'seiak',
+    7: 'zazpiak',
+    8: 'zortziak',
     9: 'bederatziak',
     10: 'hamarrak',
     11: 'hamaikak',
@@ -93,7 +95,11 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
                 if minute == 15:
                     speak += " eta laurden"
                 elif minute == 30:
-                    speak += " eta erdi"
+                    # Araua 35, decision 2: the plural mark goes on erdi only,
+                    # "ordu bat eta erdiak", "hiru eta erdiak"
+                    hour_number = {1: "ordu bat", 2: "ordu bi"}.get(
+                        _hour, pronounce_number_eu(_hour))
+                    speak = f"{hour_number} eta erdiak"
                 else:
                     speak += " eta " + pronounce_number_eu(minute)
             else:
@@ -123,6 +129,56 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
     return speak
     # hemen dago tranpa
     # return str(dt.hour) + ":" + str(dt.minute)
+
+
+def nice_time_inessive_eu(dt, use_24hour=False, use_ampm=False):
+    """Format a time in the inessive case, the "at" form of a date and time.
+
+    The forms follow Euskaltzaindia Araua 35, "Orduak nola esan": the hour
+    takes the plural inessive ("ordu batean", "bietan", "hiruretan"), erdi
+    and laurden take it after "eta" ("bost eta erdietan", "hirurak eta
+    laurdenetan"), "gutxi" takes -tan ("bostak laurden gutxitan"), and a
+    minute takes the singular inessive ("seiak eta bostean", "laurak eta
+    hogeian"). "puntuan" follows the inflected hour ("zazpietan puntuan",
+    Elhuyar, "en punto").
+
+    Args:
+        dt (datetime): time to format
+        use_24hour (bool): output in 24-hour format
+        use_ampm (bool): include the part of the day for 12-hour format
+    Returns:
+        (str): the time in the inessive case
+    """
+    time = nice_time_eu(dt, use_24hour=use_24hour, use_ampm=use_ampm)
+    if use_24hour:
+        # Araua 35 reads a 24-hour time as "hamabostak eta bostean", a form
+        # that nice_time_eu does not build
+        return f"{time}tan"
+    on_the_hour = time.endswith(" puntuan")
+    if on_the_hour:
+        time = time[:-len(" puntuan")]
+    if time.endswith(" gutxi"):
+        time += "tan"
+    elif time.endswith(" erdiak"):
+        time = time[:-len("ak")] + "etan"
+    elif time.endswith(" laurden"):
+        time += "etan"
+    elif " eta " in time:
+        if time.endswith("r"):
+            time += "rean"
+        elif time.endswith("a"):
+            time += "n"
+        elif time.endswith(("e", "i", "o", "u")):
+            time += "an"
+        else:
+            time += "ean"
+    elif time.endswith("ordu bata"):
+        time = time[:-len("a")] + "ean"
+    else:
+        time = time[:-len("ak")] + "etan"
+    if on_the_hour:
+        time += " puntuan"
+    return time
 
 
 def nice_year_eu(dt, bc=False):

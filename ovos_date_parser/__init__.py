@@ -107,7 +107,7 @@ from ovos_date_parser.dates_es import (
 )
 from ovos_date_parser.dates_eu import (
     extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
-    nice_year_eu, nice_date_year_eu, nice_date_day_eu,
+    nice_year_eu, nice_date_year_eu, nice_date_day_eu, nice_time_inessive_eu,
 )
 from ovos_date_parser.dates_et import (
     extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
@@ -1405,13 +1405,15 @@ class DateTimeFormat:
         return unformatted.format(**args)
 
     def date_time_format(self, dt, lang, now, use_24hour, use_ampm,
-                         formatted_year=None, formatted_day=None):
+                         formatted_year=None, formatted_day=None,
+                         formatted_time=None):
         lang = self._resource_key(lang)
         date_str = self.date_format(dt, lang, now,
                                     formatted_year=formatted_year,
                                     formatted_day=formatted_day)
-        time_str = nice_time(dt, lang, use_24hour=use_24hour,
-                             use_ampm=use_ampm)
+        time_str = formatted_time or nice_time(dt, lang,
+                                               use_24hour=use_24hour,
+                                               use_ampm=use_ampm)
         return self.lang_config[lang]['date_time_format']['date_time'].format(
             formatted_date=date_str, formatted_time=time_str)
 
@@ -1555,7 +1557,8 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_date_year_eu(dt),
-            formatted_day=nice_date_day_eu(dt))
+            formatted_day=nice_date_day_eu(dt),
+            formatted_time=nice_time_inessive_eu(dt, use_24hour, use_ampm))
     return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 

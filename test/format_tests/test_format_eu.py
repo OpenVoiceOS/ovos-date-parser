@@ -22,6 +22,8 @@ from ovos_date_parser import (
 )
 
 
+# Hour words and the half follow Euskaltzaindia Araua 35, "Orduak nola esan":
+# "ordu bata, ordu biak, ... seiak, zazpiak", "bost eta erdiak"
 class TestNiceDateFormat(unittest.TestCase):
     def test_convert_times(self):
         dt = datetime.datetime(2017, 1, 31,
@@ -32,9 +34,9 @@ class TestNiceDateFormat(unittest.TestCase):
                          nice_time(dt, "eu-eu", True, False, False))
 
         self.assertEqual(nice_time(dt, lang="eu"),
-                         "ordubata eta hogeita bi")
+                         "ordu bata eta hogeita bi")
         self.assertEqual(nice_time(dt, lang="eu", use_ampm=True),
-                         "arratsaldeko ordubata eta hogeita bi")
+                         "arratsaldeko ordu bata eta hogeita bi")
         self.assertEqual(nice_time(dt, lang="eu", speech=False), "1:22")
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
                                    use_ampm=True), "1:22 PM")
@@ -50,9 +52,9 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                13, 0, 3)
         self.assertEqual(nice_time(dt, lang="eu"),
-                         "ordubata puntuan")
+                         "ordu bata puntuan")
         self.assertEqual(nice_time(dt, lang="eu", use_ampm=True),
-                         "arratsaldeko ordubata")
+                         "arratsaldeko ordu bata")
         self.assertEqual(nice_time(dt, lang="eu", speech=False),
                          "1:00")
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
@@ -68,7 +70,7 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True),
                          "hamahiruak zero bi")
         self.assertEqual(nice_time(dt, lang="eu", use_ampm=True),
-                         "arratsaldeko ordubata eta bi")
+                         "arratsaldeko ordu bata eta bi")
         self.assertEqual(nice_time(dt, lang="eu", speech=False),
                          "1:02")
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
@@ -131,9 +133,9 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                19, 40, 49)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "zortzirak hogei gutxi")
+                         "zortziak hogei gutxi")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_ampm=True),
-                         "arratsaldeko zortzirak hogei gutxi")
+                         "arratsaldeko zortziak hogei gutxi")
         self.assertEqual(nice_time(dt, lang="eu-eu", speech=False),
                          "7:40")
         self.assertEqual(nice_time(dt, lang="eu-eu", speech=False,
@@ -160,12 +162,12 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                1, 35, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "ordubiak hogeita bost gutxi")
+                         "ordu biak hogeita bost gutxi")
 
         dt = datetime.datetime(2017, 1, 31,
                                1, 45, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "ordubiak laurden gutxi")
+                         "ordu biak laurden gutxi")
 
         dt = datetime.datetime(2017, 1, 31,
                                4, 50, 00)
@@ -175,12 +177,12 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                5, 55, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "seirak bost gutxi")
+                         "seiak bost gutxi")
 
         dt = datetime.datetime(2017, 1, 31,
                                5, 30, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu", use_ampm=True),
-                         "gaueko bostak eta erdi")
+                         "gaueko bost eta erdiak")
 
         dt = datetime.datetime(2017, 1, 31,
                                23, 15, 9)

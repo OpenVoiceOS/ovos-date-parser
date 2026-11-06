@@ -10,8 +10,9 @@ from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
-# Lowercase, as the Ortografía de la lengua española (RAE and ASALE, 2010,
-# p. 502) writes the names of days and months.
+# Lowercase, as the Ortografía de la lengua española (RAE and ASALE, 2010)
+# writes the names of days and months. The locator p. 502 comes from a
+# classroom digest that cites the book; the book itself was not read.
 WEEKDAYS_ES = {
     0: "lunes",
     1: "martes",
@@ -91,7 +92,8 @@ def nice_date_time_es(dt, now=None, use_24hour=False,
             (str): La cadena de fecha y hora formateada
     """
     now = now or now_local()
-    return f"{nice_date_es(dt, now)} a las {nice_time_es(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
+    # nice_time_es starts with the article: a la una, a las dos
+    return f"{nice_date_es(dt, now)} a {nice_time_es(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
 def nice_date_es(dt: datetime, now: datetime = None, include_weekday=True):
@@ -113,13 +115,13 @@ def nice_date_es(dt: datetime, now: datetime = None, include_weekday=True):
     day = pronounce_number_es(dt.day)
     if now is not None:
         nice = day
-        if dt.day == now.day:
+        if dt.date() == now.date():
             return "hoy"
-        if dt.day == now.day + 1:
+        if dt.date() == now.date() + timedelta(days=1):
             return "mañana"
-        if dt.day == now.day - 1:
+        if dt.date() == now.date() - timedelta(days=1):
             return "ayer"
-        if dt.month != now.month:
+        if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + nice_month_es(dt)
         if dt.year != now.year:
             nice = nice + ", " + nice_year_es(dt)

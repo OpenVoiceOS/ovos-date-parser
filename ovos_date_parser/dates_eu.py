@@ -115,18 +115,23 @@ def nice_time_eu(dt, speech=True, use_24hour=False, use_ampm=False):
             speak += " puntuan"
 
         if use_ampm:
-            # "de la noche" es desde que anochece hasta medianoche
-            # así que decir que es desde las 21h es algo subjetivo
-            # en España a las 20h se dice "de la tarde"
-            # en castellano, las 12h es de la mañana o mediodía
-            # así que diremos "de la tarde" a partir de las 13h.
-            # http://lema.rae.es/dpd/srv/search?id=YNoTWNJnAD6bhhVBf9
-            if hour >= 6 and hour < 13:
+            # The part of the day belongs to the hour that is said, which is
+            # the next hour after half past. Araua 35 and the EBE entry
+            # "orduak nola esan": "gaueko hamabiak" (00:00), "goiz(ald)eko
+            # ordu bata" (01:00), "goizeko 11,30etan", "Eguardiko amabiak
+            # laurden gutxitan", "arratsaldeko 5etan", "iluntzeko 8etatik 11k
+            # arte"
+            said_hour = (hour + 1 if minute > 30 else hour) % 24
+            if said_hour == 0:
+                speak = "gaueko " + speak
+            elif said_hour < 12:
                 speak = "goizeko " + speak
-            elif hour >= 13 and hour < 20:
+            elif said_hour == 12:
+                speak = "eguerdiko " + speak
+            elif said_hour < 20:
                 speak = "arratsaldeko " + speak
             else:
-                speak = "gaueko " + speak
+                speak = "iluntzeko " + speak
     return speak
     # hemen dago tranpa
     # return str(dt.hour) + ":" + str(dt.minute)

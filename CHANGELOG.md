@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.35.30a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.30a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.28a1...0.35.30a1)
+
+**Merged pull requests:**
+
+- fix\(fa\): read the year as a Persian cardinal joined with "و" [\#580](https://github.com/OpenVoiceOS/ovos-date-parser/pull/580) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(cs\): put the day before the genitive month and localize the era [\#579](https://github.com/OpenVoiceOS/ovos-date-parser/pull/579) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(pt\): spell numbers in the Brazilian forms for a pt-BR tag [\#571](https://github.com/OpenVoiceOS/ovos-date-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.28a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.28a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.27a1...0.35.28a1)
+
+**Merged pull requests:**
+
+- fix\(pl\): read dates, years and date-times in Polish [\#578](https://github.com/OpenVoiceOS/ovos-date-parser/pull/578) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(nl\): write year and number words as Taaladvies Regel 1 does [\#577](https://github.com/OpenVoiceOS/ovos-date-parser/pull/577) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.27a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.27a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.26a1...0.35.27a1)
@@ -242,8 +261,6 @@
 - pt-PT: "31 de novembro" parses as the anchor day, expected None [\#504](https://github.com/OpenVoiceOS/ovos-date-parser/issues/504)
 - pt-PT: "sexta-feira da semana que vem" parses as 23 October on a Monday, expected 30 October [\#503](https://github.com/OpenVoiceOS/ovos-date-parser/issues/503)
 - pt-PT: "daqui a uma semana e dois dias" returns None, expected 26 October [\#483](https://github.com/OpenVoiceOS/ovos-date-parser/issues/483)
-- pt-PT: "sexta-feira daqui a duas semanas" parses as 23 October, expected 30 October \(word order changes the answer\) [\#482](https://github.com/OpenVoiceOS/ovos-date-parser/issues/482)
-- pt-PT: "o dia 5 do mês que vem" parses as 22 March 2027, expected 5 November 2026 [\#481](https://github.com/OpenVoiceOS/ovos-date-parser/issues/481)
 
 ## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
 

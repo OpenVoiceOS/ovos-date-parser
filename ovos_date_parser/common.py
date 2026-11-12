@@ -71,12 +71,32 @@ def nice_relative_time_generic(lang, when, relative_to):
         return f"{nice} " + _translate_word("days", lang)
 
 
-#: German counts one of a unit with the article form, not the numeral:
-#: "ein Tag", "eine Stunde". CLDR RBNF de has "1: ein;" in
-#: %spellout-cardinal-masculine and "1: eine;" in %spellout-cardinal-feminine;
-#: "eins" is the numeral said alone.
+#: One of a unit takes the form that agrees with the unit's gender, not the
+#: numeral said alone ("eins", "uno", "ett"). The forms are the "1:" rules of
+#: CLDR RBNF %spellout-cardinal-masculine, -feminine, -neuter, -common and
+#: -reale. The genders are the CLDR units genders of duration-day, -hour,
+#: -minute and -second, or a dictionary where CLDR names another noun or no
+#: gender: SAOB "DAG ... r." (sv), Bokmålsordboka "minutt n3" and
+#: "sekund m1" (nb), Real Academia Galega "hora: substantivo feminino" (gl),
+#: Речник на българския език (bg). Italian elides "una" before a vowel,
+#: "una ora -> un'ora" (Treccani, Enciclopedia dell'Italiano, "elisione").
 _ONE_BEFORE_UNIT = {
+    "bg": {"day": "един", "hour": "един", "minute": "една", "second": "една"},
+    "ca": {"day": "un", "hour": "una", "minute": "un", "second": "un"},
+    "cs": {"day": "jeden", "hour": "jedna", "minute": "jedna", "second": "jedna"},
+    "da": {"day": "en", "hour": "en", "minute": "et", "second": "et"},
     "de": {"day": "ein", "hour": "eine", "minute": "eine", "second": "eine"},
+    "el": {"day": "μία", "hour": "μία", "minute": "ένα", "second": "ένα"},
+    "es": {"day": "un", "hour": "una", "minute": "un", "second": "un"},
+    "fr": {"day": "un", "hour": "une", "minute": "une", "second": "une"},
+    "gl": {"day": "un", "hour": "unha", "minute": "un", "second": "un"},
+    "hr": {"day": "jedan", "hour": "jedan", "minute": "jedna", "second": "jedna"},
+    "it": {"day": "un", "hour": "un'", "minute": "un", "second": "un"},
+    "nb": {"minute": "ett"},
+    "pt": {"day": "um", "hour": "uma", "minute": "um", "second": "um"},
+    "sk": {"day": "jeden", "hour": "jedna", "minute": "jedna", "second": "jedna"},
+    "sl": {"day": "en", "hour": "ena", "minute": "ena", "second": "ena"},
+    "sv": {"day": "en", "hour": "en", "minute": "en", "second": "en"},
 }
 
 
@@ -117,38 +137,16 @@ def nice_duration_generic(lang, duration, speech=True):
     seconds = int(duration % 60)
 
     if speech:
-        out = ""
-        if days > 0:
-            out += _count(days, "day", lang) + " "
-            if days == 1:
-                out += _translate_word("day", lang)
-            else:
-                out += _translate_word("days", lang)
-            out += " "
-        if hours > 0:
-            if out:
-                out += " "
-            out += _count(hours, "hour", lang) + " "
-            if hours == 1:
-                out += _translate_word("hour", lang)
-            else:
-                out += _translate_word("hours", lang)
-        if minutes > 0:
-            if out:
-                out += " "
-            out += _count(minutes, "minute", lang) + " "
-            if minutes == 1:
-                out += _translate_word("minute", lang)
-            else:
-                out += _translate_word("minutes", lang)
-        if seconds > 0:
-            if out:
-                out += " "
-            out += _count(seconds, "second", lang) + " "
-            if seconds == 1:
-                out += _translate_word("second", lang)
-            else:
-                out += _translate_word("seconds", lang)
+        parts = []
+        for count, unit in ((days, "day"), (hours, "hour"),
+                            (minutes, "minute"), (seconds, "second")):
+            if count > 0:
+                number = _count(count, unit, lang)
+                word = _translate_word(unit if count == 1 else unit + "s", lang)
+                # an elided "un'" joins its noun with no space
+                parts.append(number + word if number.endswith("'")
+                             else f"{number} {word}")
+        out = " ".join(parts)
     else:
         # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
         out = ""

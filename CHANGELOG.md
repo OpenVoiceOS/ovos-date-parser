@@ -1,13 +1,20 @@
 # Changelog
 
-## [0.35.31a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.31a1) (2026-11-12)
+## [0.35.32a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.32a1) (2026-11-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.29a1...0.35.31a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.30a1...0.35.32a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): spell numbers in the Brazilian forms for a pt-BR tag [\#571](https://github.com/OpenVoiceOS/ovos-date-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.30a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.30a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.29a1...0.35.30a1)
 
 **Merged pull requests:**
 
 - fix\(fa\): read the year as a Persian cardinal joined with "و" [\#580](https://github.com/OpenVoiceOS/ovos-date-parser/pull/580) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(pt\): spell numbers in the Brazilian forms for a pt-BR tag [\#571](https://github.com/OpenVoiceOS/ovos-date-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.29a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.29a1) (2026-11-12)
 
@@ -271,10 +278,6 @@
 ## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.6a1...0.34.7a1)
-
-**Closed issues:**
-
-- en-US: "after july 4th" returns today at 16:00, expected 4 July 2027 [\#484](https://github.com/OpenVoiceOS/ovos-date-parser/issues/484)
 
 ## [0.34.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.6a1) (2026-10-22)
 

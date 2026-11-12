@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.35.49a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.49a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.48a1...0.35.49a1)
+
+**Merged pull requests:**
+
+- fix\(cs\): read a year as a Czech cardinal number [\#613](https://github.com/OpenVoiceOS/ovos-date-parser/pull/613) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(gl, an\): join the date and the time without a doubled article or verb [\#610](https://github.com/OpenVoiceOS/ovos-date-parser/pull/610) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(gl, ast, an\): compare whole dates in nice\_date with `now` [\#609](https://github.com/OpenVoiceOS/ovos-date-parser/pull/609) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: count one of a unit by its gender in nice\_duration, one space per part [\#604](https://github.com/OpenVoiceOS/ovos-date-parser/pull/604) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.48a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.48a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.47a1...0.35.48a1)
+
+## [0.35.47a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.47a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.46a1...0.35.47a1)
+
+## [0.35.46a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.46a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.45a1...0.35.46a1)
+
+## [0.35.45a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.45a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.44a2...0.35.45a1)
+
+## [0.35.44a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.44a2) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.44a1...0.35.44a2)
+
+## [0.35.44a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.44a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.43a1...0.35.44a1)
+
+**Merged pull requests:**
+
+- fix\(gl\): write weekday and month names with a lowercase initial [\#617](https://github.com/OpenVoiceOS/ovos-date-parser/pull/617) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(sv\): read a year in Swedish hundreds, written as one word [\#616](https://github.com/OpenVoiceOS/ovos-date-parser/pull/616) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(fr\): keep "cent" invariable in a year [\#606](https://github.com/OpenVoiceOS/ovos-date-parser/pull/606) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(it\): accent the compounds of "tre" in years and day names [\#605](https://github.com/OpenVoiceOS/ovos-date-parser/pull/605) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.43a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.43a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.42a1...0.35.43a1)
@@ -316,17 +358,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.12a1...0.34.13a1)
 
-**Merged pull requests:**
-
-- fix: require chronologia with the date fixes [\#522](https://github.com/OpenVoiceOS/ovos-date-parser/pull/522) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.34.12a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.12a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.11a1...0.34.12a1)
-
-**Merged pull requests:**
-
-- fix\(holidays\): keep the clock time beside a holiday name [\#520](https://github.com/OpenVoiceOS/ovos-date-parser/pull/520) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.34.11a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.11a1) (2026-10-22)
 

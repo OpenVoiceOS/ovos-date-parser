@@ -574,7 +574,14 @@ def _instant(span, lang: str, default_time: Optional[time],
     middle is whatever the locale's own boundaries make it: French ``matin``
     opens at 04:00, so its opening edge would answer "ce matin" with four in
     the morning, which no speaker means. Everything else starts when it
-    starts. ``default_time`` supplies the time of day only where the phrase
+    starts. A band that crosses midnight is cut at midnight before its middle
+    is taken, so the night is the night of the day it opens on: Wiktionary
+    "tonight" is "During the night following the current day; during the
+    evening of today", and the CLDR day periods for English start night1 at
+    21:00 and morning1 at 00:00. With the default 21:00-06:00 band, "tonight"
+    at a 13:04 anchor is 22:30 that day, not 01:30 the next. An hour said
+    inside the band ("at 3 at night") is an exact time and keeps its own
+    reading. ``default_time`` supplies the time of day only where the phrase
     left it unsaid: a day or wider that opens at midnight names a date, while
     a counted offset has already fixed a moment and keeps the anchor's clock.
     "in two hours" is 15:04 at a 13:04 anchor, and "in three days" is three
@@ -598,7 +605,10 @@ def _instant(span, lang: str, default_time: Optional[time],
                                       second=default_time.second)
             if span.contains(candidate):
                 return _fits_datetime(candidate, zone)
-        return _fits_datetime(start + (span.end - start) / 2, zone)
+        since_midnight = start - start.replace(hour=0, minute=0, second=0,
+                                               microsecond=0)
+        width = min(span.end - start, _DAY - since_midnight)
+        return _fits_datetime(start + width / 2, zone)
     if (span.end - start >= _DAY and start.time() == time(0, 0)
             and default_time is not None):
         # A stretch of whole days that opens at midnight names a date, and
@@ -690,7 +700,11 @@ def extract_datetime(
     the holiday name does not stop this, because it does not move the date.
     A date the engine read from a calendar word the phrase does not cover is
     a different date, and stays the engine's.
+
+    No text (None or "") is no date, on every locale.
     """
+    if not text:
+        return None
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
     if found is not None and not holiday_overrides_engine(

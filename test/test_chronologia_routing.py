@@ -138,6 +138,44 @@ def test_no_text_is_no_date(lang):
     assert extract_datetime("", lang, anchorDate=ANCHOR) is None
 
 
+@pytest.mark.parametrize("lang", ["en", "pt"])
+def test_no_text_is_no_date_on_an_unrouted_locale(lang):
+    """The contract does not depend on routing."""
+    assert lang not in CHRONOLOGIA_LOCALES
+    assert extract_datetime(None, lang, anchorDate=ANCHOR) is None
+    assert extract_datetime("", lang, anchorDate=ANCHOR) is None
+
+
+@pytest.fixture
+def route_en(monkeypatch):
+    """Route en through chronologia, which reads its parts of the day with
+    the default bands (night 21:00 to 06:00)."""
+    import ovos_date_parser
+    monkeypatch.setattr(ovos_date_parser, "CHRONOLOGIA_LOCALES",
+                        CHRONOLOGIA_LOCALES | {"en"})
+
+
+@pytest.mark.parametrize("text,expected", [
+    # the night band 21:00-06:00 cut at midnight is 21:00-24:00, whose
+    # middle is 22:30 on the day the band opens
+    ("tonight", datetime(2017, 6, 27, 22, 30)),
+    ("tomorrow night", datetime(2017, 6, 28, 22, 30)),
+])
+def test_tonight_is_the_night_of_its_own_day(route_en, text, expected):
+    """Wiktionary "tonight": "During the night following the current day;
+    during the evening of today." The CLDR day periods for English start
+    night1 at 21:00 and morning1 at 00:00, so the night ends at midnight."""
+    got = extract_datetime(text, "en", anchorDate=ANCHOR)
+    assert got == [expected, ""]
+
+
+def test_an_hour_inside_the_night_band_keeps_its_own_reading(route_en):
+    """3 o'clock at night has passed at 13:04, so it is 03:00 tomorrow; the
+    cut at midnight does not move an hour that was said."""
+    got = extract_datetime("at 3 at night", "en", anchorDate=ANCHOR)
+    assert got[0] == datetime(2017, 6, 28, 3, 0)
+
+
 def test_a_locale_without_its_own_day_parts_takes_the_default_bands():
     """Asturian has no CLDR day-period rows, so chronologia reads its parts
     of the day with the default bands, and the adapter must know them as

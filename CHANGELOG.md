@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.35.33a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.33a1) (2026-11-12)
+## [0.35.34a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.34a1) (2026-11-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.32a1...0.35.33a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.32a1...0.35.34a1)
 
 **Merged pull requests:**
 

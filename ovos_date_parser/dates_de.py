@@ -161,6 +161,9 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
     monthsShort = ['jan', 'feb', 'mär', 'apr', 'mai', 'juni', 'juli', 'aug',
                    'sept', 'oct', 'nov', 'dez']
 
+    relativeDays = {'vorgestern': -2, 'gestern': -1, 'heute': 0,
+                    'morgen': 1, 'übermorgen': 2}
+
     validFollowups = days + months + monthsShort
     validFollowups.append("heute")
     validFollowups.append("morgen")
@@ -212,6 +215,18 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         elif word == "übermorgen" and not fromFlag:
             dayOffset = 2
             used += 1
+        # parse the day after/before today, tomorrow, yesterday
+        elif word in ("tag", "tage") and wordNext in ("nach", "vor") and \
+                wordNextNext in relativeDays and not fromFlag and \
+                wordPrev not in ("guten", "jeden") and \
+                (word == "tag" or is_number_de(wordPrev)):
+            num = is_number_de(wordPrev)
+            dayOffset = relativeDays[wordNextNext] + \
+                int(num or 1) * (1 if wordNext == "nach" else -1)
+            if num:
+                start -= 1
+                used += 1
+            used += 3
             # parse 5 days, 10 weeks, last week, next week
         elif word[:3] == "tag" and len(word) <= 5:
             num = is_number_de(wordPrev)

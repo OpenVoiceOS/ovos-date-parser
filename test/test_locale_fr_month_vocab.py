@@ -16,6 +16,7 @@ month of its own language (``marzo`` is both Spanish and Italian).
 import ast
 import os
 import shutil
+import unicodedata
 from datetime import date
 
 import pytest
@@ -132,6 +133,11 @@ def test_months_voc_matches_the_extractor(lang):
         f"names in dates_{lang}.py: {sorted(set(expected) - set(kept))}")
 
 
+def _unaccented(word):
+    return "".join(c for c in unicodedata.normalize("NFD", word)
+                   if not unicodedata.combining(c))
+
+
 def _foreign_offenders(lang, lang_dir):
     """Lines in ``lang_dir`` that are another shipped language's month name.
 
@@ -141,15 +147,19 @@ def _foreign_offenders(lang, lang_dir):
     names they happen to share with the folders; az, el and eu share none,
     so reading LANGS alone passed them in silence.
 
-    "Own" comes from the extractor source alone. Reading ``months.voc``
-    here would make the file vouch for itself: a whole-file swap of
-    another language into ``locale/<lang>/months.voc`` would put that
-    language's names into "own", and every one of its month names would
-    then pass this check. reviewer-b proved that live with es into fr on
+    "Own" comes from the extractor source alone, each name with its accents
+    and without them: ``locale/fr`` writes ``decembre`` beside ``décembre``
+    for a transcript with no accents, and that spelling is French even
+    though Occitan writes its own December the same way. Reading
+    ``months.voc`` here would make the file vouch for itself: a whole-file
+    swap of another language into ``locale/<lang>/months.voc`` would put
+    that language's names into "own", and every one of its month names
+    would then pass this check. reviewer-b proved that live with es into fr on
     #341, and ``test_a_whole_file_language_swap_is_caught`` below is the
     failing-first case for it.
     """
-    own = set(_module_months(lang) or [])
+    own = {form for month in _module_months(lang) or []
+           for form in (month, _unaccented(month))}
     foreign = {}
     for other in MONTH_LANGS:
         if other == lang:
@@ -226,9 +236,12 @@ def test_the_foreign_set_reads_the_modules_not_the_locale_folders():
     """The definition itself, so a narrowing of it fails here.
 
     Every language with a month table takes part, including those with no
-    locale folder; LANGS stays the set of folders to scan.
+    locale folder; LANGS stays the set of folders to scan. The 18 languages
+    below each declare a 12-name month table, so a set that drops any of
+    them fails here; a new module with a table only widens it.
     """
-    with_tables = [lang for lang in MONTH_LANGS if _module_months(lang)]
-    no_folder = [lang for lang in with_tables if lang not in LANGS]
-    assert {"az", "el", "eu"} <= set(no_folder)
-    assert len(with_tables) > len(LANGS)
+    with_tables = {lang for lang in MONTH_LANGS if _module_months(lang)}
+    assert with_tables >= {
+        "an", "ast", "az", "ca", "da", "de", "el", "es", "eu", "fr", "fy",
+        "gl", "it", "nl", "oc", "pt", "ro", "sv"}
+    assert {"az", "el", "eu"}.isdisjoint(LANGS)

@@ -2,7 +2,9 @@ import re
 from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
-from ovos_number_parser.numbers_pt import pronounce_number_pt, numbers_to_digits_pt
+from ovos_number_parser.numbers_pt import (
+    PortugueseVariant, pronounce_number_pt, numbers_to_digits_pt
+)
 from ovos_number_parser.util import GrammaticalGender
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 from ovos_date_parser.common import restore_typed_words
@@ -37,7 +39,18 @@ MONTHS_PT = {
 }
 
 
-def nice_year_pt(dt, bc=False):
+def portuguese_variant(lang: str) -> PortugueseVariant:
+    """The spelling of the numbers for a Portuguese BCP-47 tag.
+
+    Priberam, "dezesseis": "Grafia no Brasil: dezesseis. Grafia em Portugal:
+    dezasseis." Brazil (BR) takes the Brazilian forms; every other region,
+    and a tag with no region, takes the European ones.
+    """
+    regions = lang.lower().replace("_", "-").split("-")[1:]
+    return PortugueseVariant.BR if "br" in regions else PortugueseVariant.PT
+
+
+def nice_year_pt(dt, bc=False, variant=PortugueseVariant.PT):
     """
         Format a datetime to a pronounceable year
 
@@ -47,10 +60,12 @@ def nice_year_pt(dt, bc=False):
             dt (datetime): date to format (assumes already in local timezone)
             bc (bool) pust B.C. after the year (python does not support dates
                 B.C. in datetime)
+            variant (PortugueseVariant): the spelling of the numbers
         Returns:
             (str): The formatted year string
     """
-    year = pronounce_number_pt(dt.year, gender=GrammaticalGender.MASCULINE)
+    year = pronounce_number_pt(dt.year, variant=variant,
+                               gender=GrammaticalGender.MASCULINE)
     if bc:
         return f"{year} a.C."
     return year
@@ -77,7 +92,7 @@ def nice_day_pt(dt, date_format='DMY', include_month=True):
 
 
 def nice_date_time_pt(dt, now=None, use_24hour=False,
-                      use_ampm=False):
+                      use_ampm=False, variant=PortugueseVariant.PT):
     """
         Format a datetime to a pronounceable date and time
 
@@ -92,11 +107,13 @@ def nice_date_time_pt(dt, now=None, use_24hour=False,
                 is returned.
             use_24hour (bool): output in 24-hour/military or 12-hour format
             use_ampm (bool): include the am/pm for 12-hour format
+            variant (PortugueseVariant): the spelling of the numbers
         Returns:
             (str): The formatted date time string
     """
     now = now or now_local()
-    time = nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)
+    time = nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm,
+                        variant=variant)
     # a + the article of the hour: à uma, às duas, à meia-noite, ao meio-dia
     if time.startswith("meio-dia"):
         at = "ao"
@@ -104,10 +121,11 @@ def nice_date_time_pt(dt, now=None, use_24hour=False,
         at = "à"
     else:
         at = "às"
-    return f"{nice_date_pt(dt, now)} {at} {time}"
+    return f"{nice_date_pt(dt, now, variant=variant)} {at} {time}"
 
 
-def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
+def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True,
+                 variant=PortugueseVariant.PT):
     """
     Format a datetime to a pronounceable date
 
@@ -120,11 +138,13 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
             same year as td, no month is returned if now is in the same month
             as td. If now and td is the same day, 'today' is returned.
         include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
+        variant (PortugueseVariant): the spelling of the numbers
 
     Returns:
         (str): The formatted date string
     """
-    day = pronounce_number_pt(dt.day, gender=GrammaticalGender.MASCULINE)
+    day = pronounce_number_pt(dt.day, variant=variant,
+                              gender=GrammaticalGender.MASCULINE)
     if now is not None:
         nice = day
         if dt.date() == now.date():
@@ -136,16 +156,17 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
         if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + MONTHS_PT[dt.month]
         if dt.year != now.year:
-            nice = nice + ", " + nice_year_pt(dt)
+            nice = nice + ", " + nice_year_pt(dt, variant=variant)
     else:
-        nice = f"{day} de {MONTHS_PT[dt.month]}, {nice_year_pt(dt)}"
+        nice = f"{day} de {MONTHS_PT[dt.month]}, {nice_year_pt(dt, variant=variant)}"
 
     if include_weekday:
         nice = f"{WEEKDAYS_PT[dt.weekday()]}, {nice}"
     return nice
 
 
-def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
+def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False,
+                 variant=PortugueseVariant.PT):
     """
     Format a time to a comfortable human format
      For example, generate 'cinco treinta' for speech or '5:30' for
@@ -155,6 +176,7 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
         speech (bool): format for speech (default/True) or display (False)=Fal
         use_24hour (bool): output in 24-hour/military or 12-hour format
         use_ampm (bool): include the am/pm for 12-hour format
+        variant (PortugueseVariant): the spelling of the numbers
     Returns:
         (str): The formatted time string
     """
@@ -178,11 +200,14 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
     speak = ""
     if use_24hour:
         # simply speak the number
-        speak += pronounce_number_pt(dt.hour, gender=GrammaticalGender.FEMININE)
+        speak += pronounce_number_pt(dt.hour, variant=variant,
+                                     gender=GrammaticalGender.FEMININE)
 
         # equivalent to "quarter past ten"
         if dt.minute > 0:
-            speak += " e " + pronounce_number_pt(dt.minute, gender=GrammaticalGender.MASCULINE)
+            speak += " e " + pronounce_number_pt(
+                dt.minute, variant=variant,
+                gender=GrammaticalGender.MASCULINE)
 
     else:
         # speak number and add daytime identifier
@@ -212,9 +237,11 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
         elif hour == 12:
             speak += "meio-dia"
         elif hour < 13:
-            speak = pronounce_number_pt(hour, gender=GrammaticalGender.FEMININE)
+            speak = pronounce_number_pt(hour, variant=variant,
+                                        gender=GrammaticalGender.FEMININE)
         else:
-            speak = pronounce_number_pt(hour - 12, gender=GrammaticalGender.FEMININE)
+            speak = pronounce_number_pt(hour - 12, variant=variant,
+                                        gender=GrammaticalGender.FEMININE)
 
         if minute != 0:
             if minute == 15:
@@ -225,9 +252,13 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
                 speak += " menos um quarto"
             else:
                 if minute > 0:
-                    speak += " e " + pronounce_number_pt(minute, gender=GrammaticalGender.MASCULINE)
+                    speak += " e " + pronounce_number_pt(
+                        minute, variant=variant,
+                        gender=GrammaticalGender.MASCULINE)
                 else:
-                    speak += " " + pronounce_number_pt(minute, gender=GrammaticalGender.MASCULINE)
+                    speak += " " + pronounce_number_pt(
+                        minute, variant=variant,
+                        gender=GrammaticalGender.MASCULINE)
 
         # exact time
         if minute == 0 and not use_ampm:

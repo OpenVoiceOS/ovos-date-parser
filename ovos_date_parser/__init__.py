@@ -157,7 +157,7 @@ from ovos_date_parser.dates_pl import (
 )
 from ovos_date_parser.dates_pt import (
     extract_datetime_pt, extract_duration_pt, nice_time_pt, nice_date_pt, nice_year_pt, nice_date_time_pt,
-    nice_month_pt, nice_weekday_pt, nice_day_pt
+    nice_month_pt, nice_weekday_pt, nice_day_pt, portuguese_variant
 )
 from ovos_date_parser.dates_ru import (
     extract_datetime_ru, extract_duration_ru, nice_time_ru, nice_duration_ru
@@ -285,7 +285,8 @@ def nice_time(
     if lang.startswith("pl"):
         return nice_time_pl(dt, speech, use_24hour, use_ampm)
     if lang.startswith("pt"):
-        return nice_time_pt(dt, speech, use_24hour, use_ampm)
+        return nice_time_pt(dt, speech, use_24hour, use_ampm,
+                            variant=portuguese_variant(lang))
     if lang.startswith("ru"):
         return nice_time_ru(dt, speech, use_24hour, use_ampm)
     if lang.startswith("sv"):
@@ -1479,7 +1480,8 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
-        return nice_date_pt(dt, now, include_weekday)
+        return nice_date_pt(dt, now, include_weekday,
+                            variant=portuguese_variant(tag))
     if lang.startswith("es"):
         return nice_date_es(dt, now, include_weekday)
     if lang.startswith("gl"):
@@ -1533,7 +1535,8 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
-        return nice_date_time_pt(dt, now, use_24hour, use_ampm)
+        return nice_date_time_pt(dt, now, use_24hour, use_ampm,
+                                 variant=portuguese_variant(tag))
     if lang.startswith("es"):
         return nice_date_time_es(dt, now, use_24hour, use_ampm)
     if lang.startswith("gl"):
@@ -1686,7 +1689,7 @@ def nice_year(dt, lang, bc=False, ad=False):
     tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
-        return nice_year_pt(dt, bc)
+        return nice_year_pt(dt, bc, variant=portuguese_variant(tag))
     if lang.startswith("es"):
         return nice_year_es(dt, bc)
     if lang.startswith("gl"):

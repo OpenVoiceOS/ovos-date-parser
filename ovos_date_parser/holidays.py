@@ -288,6 +288,36 @@ def _holiday_extent(text: str, lang: str, anchor: datetime
     return None
 
 
+def _caller_spelling(text: str, written: str, remainder: str) -> Optional[str]:
+    """``remainder``, which is cut from ``written``, re-spelled from ``text``.
+
+    :func:`_as_written` may have put an accent back that the caller never
+    typed, and the remainder is handed to the caller, so it must come back in
+    the caller's own characters. Every substitution there replaces the same
+    number of characters, so the two strings are the same length and a
+    position in one is the same position in the other; that equality is
+    checked rather than assumed, and a mismatch returns None so the caller can
+    fall back.
+
+    Each word of the remainder is found in ``written`` left to right, never
+    searched for in the whole string, so a word that occurs twice takes its
+    own occurrence. A word that is not found returns None: chronologia owns
+    the remainder's spelling and may normalise a word one day, and a wrong
+    offset must not be guessed at.
+    """
+    if len(written) != len(text):
+        return None
+    out = []
+    at = 0
+    for word in remainder.split():
+        found = written.find(word, at)
+        if found < 0:
+            return None
+        out.append(text[found:found + len(word)])
+        at = found + len(word)
+    return " ".join(out)
+
+
 def _clock_extent(text: str, lang: str, anchor: datetime,
                   holiday: Tuple[int, int]) -> Optional[Tuple[int, int]]:
     """The characters of the one clock time that stands beside the holiday.
@@ -318,18 +348,55 @@ def extract_holiday_span(text: str, lang: str,
                          ) -> Optional[Tuple[datetime, str]]:
     """Resolve a named holiday in ``text`` to ``(datetime, remainder)``.
 
-    The date is the occurrence the holiday phrase asks for: the next one by
-    default, and the one a determiner inside the phrase names when it
-    carries one ("next easter", "last christmas", "christmas eve"), as
-    chronologia reckons it from ``anchorDate``. A verb tense is not read —
-    "when was easter" answers with the next Easter, because chronologia
-    reads no verb — so this claims the determiner only. A word outside the holiday phrase is not read: it
-    stays in the remainder, so "how many days until christmas" and the
-    French "combien de jours avant noël" both answer with Christmas and both
-    keep their question.
+    The date is the occurrence the phrase asks for: the next one by default,
+    the one a determiner inside the phrase names when it carries one ("next
+    easter", "last christmas", "christmas eve"), and the one an offset
+    outside the phrase names ("the day after christmas", "two days after
+    christmas", "le jour après noël"), as chronologia reckons it from
+    ``anchorDate``. A verb tense is not read — "when was easter" answers with
+    the next Easter, because chronologia reads no verb — so this claims the
+    determiner and the offset, never the verb.
 
-    The remainder is the caller's own text with the holiday phrase cut out of
-    it, and nothing else removed.
+    The whole text is parsed, not the holiday construction's own characters.
+    Parsing the substring was what lost the offset: a modifier outside the
+    construction was never applied, so "the day after christmas" answered
+    25 December and handed "the day after" back as though it were question
+    words. :func:`_holiday_extent` stays, as the gate alone: a holiday
+    reading is kept only when a winning match is a holiday construction. What
+    the answer covers is then chronologia's to say, and it says it through
+    ``DateSpanResult.remainder``.
+
+    The remainder is therefore chronologia's, re-spelled with the caller's own
+    characters by :func:`_caller_spelling`, and it keeps every word the parse
+    did not consume: "how many days until christmas" and "quantos dias faltam
+    para o natal" both answer with Christmas and both keep their question.
+
+    **Two known families of wrong answers, and both are chronologia's.**
+
+    The French "combien de jours avant noël" asks how many days remain before
+    Christmas, so the date is Christmas, and this answers 24 December with the
+    remainder "combien": chronologia reads "avant" after an interrogative
+    quantity as an offset. The English "how many days until christmas" and the
+    French "combien de jours jusqu'a noël" are both read correctly. Telling the
+    two French shapes apart needs a table of interrogatives per language, which
+    belongs to chronologia and is not copied here.
+    ``test_holidays_chronologia.py`` carries a cell holding that answer, so the
+    day chronologia fixes it the cell says so.
+
+    **A part-of-day offset is read as a time of day on the holiday, and the
+    direction is dropped.** "the night before christmas" answers 21:00 on
+    25 December, not the night of the 24th, and "the morning after christmas"
+    answers 06:00 on the 25th, not the morning of the 26th. The before and the
+    after make no difference to the answer, and every row of this family comes
+    back with an EMPTY remainder, so a caller cannot see that the modifier was
+    read at all. Eight rows are measured, in English, French and Portuguese.
+
+    This is the same defect as the French row above and is chronologia's in the
+    same way: the day offset is read correctly, so "the day after christmas"
+    gives 26 December, and only the part-of-day word is misread. Task T-7350
+    carries it. ``test_holidays_chronologia.py`` holds all eight answers in one
+    parametrised cell, so the day chronologia fixes any of them the cell says
+    which.
 
     Returns None when the utterance names no holiday in its own language, or
     when chronologia answered from something other than a holiday.
@@ -354,10 +421,9 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     extent = _holiday_extent(written, lang, anchor)
     if extent is None:
         return None
-    first, last = extent
     try:
         from chronologia import extract_timespan
-        result = extract_timespan(written[first:last], lang=_base_lang(lang),
+        result = extract_timespan(written, lang=_base_lang(lang),
                                   anchor=anchor,
                                   jurisdiction=_jurisdiction(lang))
     except Exception:
@@ -367,30 +433,28 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     start = result.span.start_datetime
     if start is None:  # a span outside the datetime range
         return None
-    cut = [(first, last)]
+    first, last = extent
+    if _words(written[first:last]) <= _words(result.remainder):
+        # chronologia answered from something other than the holiday
+        return None
     clock_read = False
+    cut = [(first, last)]
     clock = _clock_extent(written, lang, anchor, (first, last))
-    if clock is not None:
-        # the time of day is read from the whole phrase, so the holiday's
-        # date and the clock time compose the way chronologia composes them.
-        # chronologia can win a clock_time match and still leave its words in
-        # the remainder ("easter at 25:00"); only a clock it consumed counts.
-        try:
-            whole = extract_timespan(written, lang=_base_lang(lang),
-                                     anchor=anchor,
-                                     jurisdiction=_jurisdiction(lang))
-        except Exception:
-            whole = None
-        moment = whole.span.start_datetime if whole is not None else None
-        if (moment is not None and moment.date() == start.date()
-                and not _words(written[clock[0]:clock[1]])
-                <= _words(whole.remainder)):
-            start = moment
-            cut.append(clock)
-            clock_read = True
-    remainder = text
-    for begin, end in sorted(cut, reverse=True):
-        remainder = remainder[:begin] + " " + remainder[end:]
+    if clock is not None and not (_words(written[clock[0]:clock[1]])
+                                  <= _words(result.remainder)):
+        # chronologia can win a clock_time match and still leave its words
+        # in the remainder ("easter at 25:00"); only a clock it consumed
+        # counts as read.
+        clock_read = True
+        cut.append(clock)
+    remainder = _caller_spelling(text, written, result.remainder)
+    if remainder is None:
+        # the offsets do not line up, so the holiday phrase and a clock read
+        # beside it are cut out by their extents instead; the date stands,
+        # only the remainder falls back
+        remainder = text
+        for begin, end in sorted(cut, reverse=True):
+            remainder = remainder[:begin] + " " + remainder[end:]
     remainder = re.sub(r"\s{2,}", " ", remainder)
     return start.replace(tzinfo=anchor.tzinfo), remainder.strip(), clock_read
 

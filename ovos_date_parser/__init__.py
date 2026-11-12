@@ -1889,6 +1889,11 @@ def _bc_day_label(start: "AstroDate", lang: str) -> str:
     return label.replace(astronomical, nice_year(start, lang, bc=True))
 
 
+#: The word between the month and the year in a month-year label, from the
+#: CLDR yMMMM pattern: pt, es and gl "MMMM 'de' y", ast "LLLL 'de' y".
+_MONTH_YEAR_JOIN = {"ast": "de", "es": "de", "gl": "de", "pt": "de"}
+
+
 def _nice_span_generic(span: "DateSpan", scale: str, lang: str) -> str:
     """Span label built from the locale's own ``nice_*`` formatters.
 
@@ -1906,7 +1911,11 @@ def _nice_span_generic(span: "DateSpan", scale: str, lang: str) -> str:
             return _bc_day_label(start, lang)
         return nice_date(start, lang)
     if scale == "month":
-        return f"{nice_month(start, lang)} {nice_year(start, lang, bc=start.is_bc)}"
+        month = nice_month(start, lang)
+        join = _MONTH_YEAR_JOIN.get(lang.lower().split("-")[0])
+        if join:
+            month = f"{month} {join}"
+        return f"{month} {nice_year(start, lang, bc=start.is_bc)}"
     if scale == "year":
         return nice_year(start, lang, bc=start.is_bc)
     raise NotImplementedError(f"nice_span has no {scale} label for '{lang}'")

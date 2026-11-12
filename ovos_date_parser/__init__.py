@@ -515,11 +515,13 @@ def _extract_date_zh_unspaced(text: str, settings: dict,
 #: * French strands the article before a date ("le 15 juin").
 #: * Polish reads a bare past month as this year rather than next, so
 #:   "stycznia" said in June is five months behind.
-#: * Ukrainian marks a day of the month with a bare genitive ordinal
-#:   ("dvadtsyatoho"), where chronologia licenses a bare ordinal only behind a
-#:   preposition, as English does with "on the 20th". That is a library-wide
-#:   rule, not a Ukrainian omission, and changing it is not a vocabulary fix.
-CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "sk"})
+#: * Slovene and Hungarian read a bare past month the same way ("januar",
+#:   "január").
+#: * Hungarian also strands the case suffix of a written day or clock
+#:   ("augusztus 3-án", "17:30-kor"), reads "este fél kilenc" (half past eight
+#:   this evening) as tomorrow, and drops the clock after a suffixed day
+#:   ("február 29-én 8 órakor").
+CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "ru", "sk", "uk"})
 
 #: A span this narrow names an instant rather than a stretch: "at 9am
 #: tomorrow" is a named day composed with a clock, and the clock is what the

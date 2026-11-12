@@ -398,8 +398,15 @@ class TestFragments(unittest.TestCase):
                                               anchorDate=ANCHOR))
 
     def test_trailing_ordinal_ukrainian(self):
-        self.assertIsNotNone(extract_datetime("двадцятого", "uk",
-                                              anchorDate=ANCHOR))
+        """A lone genitive ordinal is no clock time and reports no date.
+
+        "двадцятого" names the twentieth of the month only where the context
+        elides the month; the same form is the twentieth of anything else
+        ("я чекаю двадцятого" -- the twentieth bus, or the twentieth day).
+        Reading it as 20:00 today answers neither.
+        """
+        self.assertIsNone(extract_datetime("двадцятого", "uk",
+                                           anchorDate=ANCHOR))
 
     def test_every_language_survives_its_own_windows(self):
         """Every window of a phrase must parse as safely as the whole."""

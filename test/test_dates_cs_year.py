@@ -1,6 +1,6 @@
 """Czech reads a year as a cardinal number.
 
-CLDR RBNF cs: "%spellout-numbering-year: 0: =%spellout-numbering=;", with
+CLDR 49 RBNF cs: "%spellout-numbering-year: 0: =%spellout-numbering=;", with
 "1000: tisíc[ >>];" and "2000: <%spellout-cardinal-masculine<
 $(cardinal,one{tisíc}few{tisíce}other{tisíc})$[ >>];".
 ÚJČ Internetová jazyková příručka, heslo "sto": "ve spojení s výrazem dvě
@@ -11,7 +11,9 @@ mají tvary 1., 4. a 5. p. mn. č. podobu stě (dvě stě)"; nominative plural
 import datetime
 import unittest
 
-from ovos_date_parser import nice_date, nice_date_time, nice_year
+from chronologia import AstroDate, DateSpan
+
+from ovos_date_parser import nice_date, nice_date_time, nice_span, nice_year
 
 GOLD = {
     454: "čtyři sta padesát čtyři",
@@ -36,6 +38,22 @@ class TestCzechYear(unittest.TestCase):
         for year, words in GOLD.items():
             with self.subTest(year=year):
                 self.assertEqual(nice_year(datetime.datetime(year, 1, 1), "cs"), words)
+
+    def test_six_to_eight_thousand(self):
+        for year, words in ((6000, "šest tisíc"),
+                            (7342, "sedm tisíc tři sta čtyřicet dva"),
+                            (8999, "osm tisíc devět set devadesát devět")):
+            with self.subTest(year=year):
+                self.assertEqual(nice_year(datetime.datetime(year, 1, 1), "cs"), words)
+
+    def test_a_bc_day_span_keeps_its_label(self):
+        # 91 BC is astronomical year -90; nice_span names the era year
+        span = DateSpan(AstroDate(-90, 3, 23), AstroDate(-90, 3, 24))
+        self.assertEqual(nice_span(span, "cs"),
+                         "středa, dvacátého třetího března devadesát jedna př. n. l.")
+
+    def test_astronomical_year_zero(self):
+        self.assertEqual(nice_year(AstroDate(0, 1, 1), "cs"), "nula")
 
     def test_bc(self):
         self.assertEqual(nice_year(datetime.datetime(1988, 1, 1), "cs-CZ", bc=True),

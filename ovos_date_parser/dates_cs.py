@@ -65,10 +65,12 @@ _THOUSANDS_CS = {1: "tisíc", 2: "dva tisíce", 3: "tři tisíce",
 def nice_year_cs(dt, bc=False):
     """Format a year as Czech reads it: a cardinal number.
 
-    CLDR RBNF cs reads a year with ``%spellout-numbering``: 1988 is
+    CLDR 49 RBNF cs reads a year with ``%spellout-numbering``: 1988 is
     "tisíc devět set osmdesát osm" and 2018 is "dva tisíce osmnáct".
     The tens and units below a hundred keep the counting form of
-    pronounce_number_cs ("dvacet jedna").
+    pronounce_number_cs ("dvacet jedna"), the form ÚJČ writes for a number
+    in words (Internetová jazyková příručka, id=791). An astronomical year
+    below 1 is read by pronounce_number_cs as it stands.
 
     Args:
         dt (datetime): date whose year to format
@@ -76,6 +78,9 @@ def nice_year_cs(dt, bc=False):
     Returns:
         (str): the year in words
     """
+    if dt.year < 1:
+        year = pronounce_number_cs(dt.year)
+        return f"{year} př. n. l." if bc else year
     thousands, rest = divmod(dt.year, 1000)
     hundreds, below = divmod(rest, 100)
     words = []

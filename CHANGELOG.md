@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.35.34a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.34a2) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.34a1...0.35.34a2)
+
+## [0.35.34a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.34a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.33a1...0.35.34a1)
+
+## [0.35.33a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.33a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.32a1...0.35.33a1)
+
+**Merged pull requests:**
+
+- fix\(es\): keep spelled numbers as typed in the remainder [\#572](https://github.com/OpenVoiceOS/ovos-date-parser/pull/572) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.32a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.32a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.31a1...0.35.32a1)
@@ -262,10 +278,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.9a1...0.34.10a1)
 
-**Closed issues:**
-
-- es-ES: "el mes de diciembre" parses as today, expected 1 December [\#489](https://github.com/OpenVoiceOS/ovos-date-parser/issues/489)
-
 ## [0.34.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.9a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.8a1...0.34.9a1)
@@ -295,8 +307,6 @@
 - it-IT: "dal 10 al 15 marzo" raises IndexError, expected no error [\#494](https://github.com/OpenVoiceOS/ovos-date-parser/issues/494)
 - it-IT: "alle 0 meno 10" parses as 18 October 22:00, expected 17 October 23:50 [\#493](https://github.com/OpenVoiceOS/ovos-date-parser/issues/493)
 - it-IT: "quanto fa 5 meno 2" parses as 14:00, expected no date [\#492](https://github.com/OpenVoiceOS/ovos-date-parser/issues/492)
-- it-IT: "due giorni fa" parses as 14:00, expected 15 October [\#491](https://github.com/OpenVoiceOS/ovos-date-parser/issues/491)
-- it-IT: "tre ore fa" parses as 15:00, expected 09:00 [\#490](https://github.com/OpenVoiceOS/ovos-date-parser/issues/490)
 
 ## [0.34.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.5a1) (2026-10-22)
 

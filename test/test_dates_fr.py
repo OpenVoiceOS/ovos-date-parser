@@ -99,21 +99,37 @@ class TestSpacedClockNotation(unittest.TestCase):
 class TestMidnightHourZero(unittest.TestCase):
     """Hour 0 is midnight on the 24-hour clock. "0 h" and "0 heures" are the
     written forms of "minuit", so each one gives the instant "minuit" gives.
+    A clock time with no date is the next one after the anchor: at 13:30 on
+    3 September, midnight is 00:00 on 4 September.
     """
 
     def test_a_zero_h(self):
-        self.assertEqual(extract("à 0 h")[0], dt(2117, 9, 3, 0))
+        self.assertEqual(extract("à 0 h")[0], dt(2117, 9, 4, 0))
 
     def test_a_zero_heures(self):
-        self.assertEqual(extract("à 0 heures")[0], dt(2117, 9, 3, 0))
+        self.assertEqual(extract("à 0 heures")[0], dt(2117, 9, 4, 0))
 
     def test_bare_zero_h(self):
-        self.assertEqual(extract("0 h")[0], dt(2117, 9, 3, 0))
+        self.assertEqual(extract("0 h")[0], dt(2117, 9, 4, 0))
 
     def test_zero_h_is_the_minuit_instant(self):
-        midnight = dt(2117, 9, 3, 0)
+        midnight = dt(2117, 9, 4, 0)
         self.assertEqual(extract("minuit")[0], midnight)
         self.assertEqual(extract("à 0 h")[0], midnight)
+
+    def test_two_digit_zero_h(self):
+        self.assertEqual(extract("à 00 h")[0], dt(2117, 9, 4, 0))
+
+    def test_minuit_in_sentence_is_the_next_midnight(self):
+        res = extract("réveille-moi à minuit")
+        self.assertEqual(res[0], dt(2117, 9, 4, 0))
+        self.assertEqual(res[1], "réveille-moi")
+
+    def test_in_zero_hours_is_now(self):
+        self.assertEqual(extract("dans 0 heures")[0], dt(2117, 9, 3, 13, 30))
+
+    def test_in_zero_minutes_is_now(self):
+        self.assertEqual(extract("dans 0 minutes")[0], dt(2117, 9, 3, 13, 30))
 
     def test_zero_h_with_minutes(self):
         self.assertEqual(extract("à 0 h 30")[0], dt(2117, 9, 4, 0, 30))
@@ -145,7 +161,7 @@ class TestMidnightHourZero(unittest.TestCase):
 
     def test_zero_h_in_sentence_is_consumed(self):
         res = extract("réveille-moi à 0 h")
-        self.assertEqual(res[0], dt(2117, 9, 3, 0))
+        self.assertEqual(res[0], dt(2117, 9, 4, 0))
         self.assertEqual(res[1], "réveille-moi")
 
     def test_zero_h_minutes_with_date_keeps_the_minutes(self):

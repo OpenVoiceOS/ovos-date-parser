@@ -22,6 +22,10 @@ from ovos_date_parser import (
 )
 
 
+# Hour words and the half follow Euskaltzaindia Araua 35, "Orduak nola esan":
+# "ordu bata, ordu biak, ... seiak, zazpiak", "bost eta erdiak". The 24-hour
+# reading follows its section 5 c): "Hamabostak eta bostean". The part of the
+# day follows the hour that is said; test_dates_eu_part_of_day.py has the bands
 class TestNiceDateFormat(unittest.TestCase):
     def test_convert_times(self):
         dt = datetime.datetime(2017, 1, 31,
@@ -32,9 +36,9 @@ class TestNiceDateFormat(unittest.TestCase):
                          nice_time(dt, "eu-eu", True, False, False))
 
         self.assertEqual(nice_time(dt, lang="eu"),
-                         "ordubata eta hogeita bi")
+                         "ordu bata eta hogeita bi")
         self.assertEqual(nice_time(dt, lang="eu", use_ampm=True),
-                         "arratsaldeko ordubata eta hogeita bi")
+                         "arratsaldeko ordu bata eta hogeita bi")
         self.assertEqual(nice_time(dt, lang="eu", speech=False), "1:22")
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
                                    use_ampm=True), "1:22 PM")
@@ -43,16 +47,16 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
                                    use_24hour=True, use_ampm=True), "13:22")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True,
-                                   use_ampm=True), "hamahiruak hogeita bi")
+                                   use_ampm=True), "hamahiruak eta hogeita bi")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True,
-                                   use_ampm=False), "hamahiruak hogeita bi")
+                                   use_ampm=False), "hamahiruak eta hogeita bi")
 
         dt = datetime.datetime(2017, 1, 31,
                                13, 0, 3)
         self.assertEqual(nice_time(dt, lang="eu"),
-                         "ordubata puntuan")
+                         "ordu bata puntuan")
         self.assertEqual(nice_time(dt, lang="eu", use_ampm=True),
-                         "arratsaldeko ordubata")
+                         "arratsaldeko ordu bata")
         self.assertEqual(nice_time(dt, lang="eu", speech=False),
                          "1:00")
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
@@ -62,13 +66,13 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
                                    use_24hour=True, use_ampm=True), "13:00")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True,
-                                   use_ampm=True), "hamahiruak zero zero")
+                                   use_ampm=True), "hamahiruak")
         dt = datetime.datetime(2017, 1, 31,
                                13, 2, 3)
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True),
-                         "hamahiruak zero bi")
+                         "hamahiruak eta bi")
         self.assertEqual(nice_time(dt, lang="eu", use_ampm=True),
-                         "arratsaldeko ordubata eta bi")
+                         "arratsaldeko ordu bata eta bi")
         self.assertEqual(nice_time(dt, lang="eu", speech=False),
                          "1:02")
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
@@ -78,9 +82,9 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
                                    use_24hour=True, use_ampm=True), "13:02")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True,
-                                   use_ampm=True), "hamahiruak zero bi")
+                                   use_ampm=True), "hamahiruak eta bi")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True,
-                                   use_ampm=False), "hamahiruak zero bi")
+                                   use_ampm=False), "hamahiruak eta bi")
 
         dt = datetime.datetime(2017, 1, 31,
                                0, 2, 3)
@@ -89,7 +93,7 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="eu", use_ampm=True),
                          "gaueko hamabiak eta bi")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True),
-                         "zeroak zero bi")
+                         "zero ordua eta bi")
         self.assertEqual(nice_time(dt, lang="eu", speech=False),
                          "12:02")
         self.assertEqual(nice_time(dt, lang="eu", speech=False,
@@ -100,16 +104,16 @@ class TestNiceDateFormat(unittest.TestCase):
                                    use_24hour=True,
                                    use_ampm=True), "00:02")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True,
-                                   use_ampm=True), "zeroak zero bi")
+                                   use_ampm=True), "zero ordua eta bi")
         self.assertEqual(nice_time(dt, lang="eu", use_24hour=True,
-                                   use_ampm=False), "zeroak zero bi")
+                                   use_ampm=False), "zero ordua eta bi")
 
         dt = datetime.datetime(2017, 1, 31,
                                12, 15, 9)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
                          "hamabiak eta laurden")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_ampm=True),
-                         "goizeko hamabiak eta laurden")
+                         "eguerdiko hamabiak eta laurden")
         self.assertEqual(nice_time(dt, lang="eu-eu", speech=False),
                          "12:15")
         self.assertEqual(nice_time(dt, lang="eu-eu", speech=False,
@@ -123,17 +127,17 @@ class TestNiceDateFormat(unittest.TestCase):
                          "12:15")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_24hour=True,
                                    use_ampm=True),
-                         "hamabiak hamabost")
+                         "hamabiak eta hamabost")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_24hour=True,
                                    use_ampm=False),
-                         "hamabiak hamabost")
+                         "hamabiak eta hamabost")
 
         dt = datetime.datetime(2017, 1, 31,
                                19, 40, 49)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "zortzirak hogei gutxi")
+                         "zortziak hogei gutxi")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_ampm=True),
-                         "arratsaldeko zortzirak hogei gutxi")
+                         "iluntzeko zortziak hogei gutxi")
         self.assertEqual(nice_time(dt, lang="eu-eu", speech=False),
                          "7:40")
         self.assertEqual(nice_time(dt, lang="eu-eu", speech=False,
@@ -147,25 +151,25 @@ class TestNiceDateFormat(unittest.TestCase):
                          "19:40")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_24hour=True,
                                    use_ampm=True),
-                         "hemeretziak berrogei")
+                         "hemeretziak eta berrogei")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_24hour=True,
                                    use_ampm=False),
-                         "hemeretziak berrogei")
+                         "hemeretziak eta berrogei")
 
         dt = datetime.datetime(2017, 1, 31,
                                1, 15, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu", use_24hour=True),
-                         "batak hamabost")
+                         "ordu bata eta hamabost")
 
         dt = datetime.datetime(2017, 1, 31,
                                1, 35, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "ordubiak hogeita bost gutxi")
+                         "ordu biak hogeita bost gutxi")
 
         dt = datetime.datetime(2017, 1, 31,
                                1, 45, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "ordubiak laurden gutxi")
+                         "ordu biak laurden gutxi")
 
         dt = datetime.datetime(2017, 1, 31,
                                4, 50, 00)
@@ -175,21 +179,21 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                5, 55, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu"),
-                         "seirak bost gutxi")
+                         "seiak bost gutxi")
 
         dt = datetime.datetime(2017, 1, 31,
                                5, 30, 00)
         self.assertEqual(nice_time(dt, lang="eu-eu", use_ampm=True),
-                         "gaueko bostak eta erdi")
+                         "goizeko bost eta erdiak")
 
         dt = datetime.datetime(2017, 1, 31,
                                23, 15, 9)
         self.assertEqual(nice_time(dt, lang="eu-eu", use_24hour=True,
                                    use_ampm=True),
-                         "hogeita hiruak hamabost")
+                         "hogeita hiruak eta hamabost")
         self.assertEqual(nice_time(dt, lang="eu-eu", use_24hour=False,
                                    use_ampm=True),
-                         "gaueko hamaikak eta laurden")
+                         "iluntzeko hamaikak eta laurden")
 
 
 if __name__ == "__main__":

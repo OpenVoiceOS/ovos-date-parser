@@ -152,7 +152,7 @@ class TestNormalize(unittest.TestCase):
         testExtract("quin temps farà demà a les 2",
                     "2017-06-28 02:00:00", "temps farà")
         testExtract("quin temps farà a les 2 de la tarda de divendres vinent",
-                    "2017-06-30 14:00:00", "temps farà vinent")
+                    "2017-06-30 14:00:00", "temps farà")
         testExtract("recorda'm de despertar en 4 anys",
                     "2021-06-27 00:00:00", "recorda m despertar")
         testExtract("recorda'm de despertar en 4 anys i 4 dies",

@@ -268,10 +268,6 @@
 - it-IT: "due giorni fa" parses as 14:00, expected 15 October [\#491](https://github.com/OpenVoiceOS/ovos-date-parser/issues/491)
 - it-IT: "tre ore fa" parses as 15:00, expected 09:00 [\#490](https://github.com/OpenVoiceOS/ovos-date-parser/issues/490)
 - it-IT: "tra un quarto d'ora" returns None, expected 12:15 [\#480](https://github.com/OpenVoiceOS/ovos-date-parser/issues/480)
-- it-IT: "tre quarti" raises ValueError, expected None [\#479](https://github.com/OpenVoiceOS/ovos-date-parser/issues/479)
-- it-IT: "alle tre meno dieci" parses as 22:00, expected 14:50 [\#478](https://github.com/OpenVoiceOS/ovos-date-parser/issues/478)
-- it-IT: "alle tre e venti" parses as 20:00, expected 15:20 [\#477](https://github.com/OpenVoiceOS/ovos-date-parser/issues/477)
-- it-IT: "alle tre e un quarto" parses as 15:00, expected 15:15 [\#476](https://github.com/OpenVoiceOS/ovos-date-parser/issues/476)
 
 ## [0.34.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.5a1) (2026-10-22)
 

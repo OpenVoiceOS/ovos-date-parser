@@ -1,3 +1,31 @@
+"""Date and time tools for Portuguese, European (pt-PT) and Brazilian (pt-BR).
+
+Sources for the rules of the spoken time in this module:
+
+Day periods in 12-hour speech. Unicode CLDR 49, supplemental dayPeriods.xml,
+rules for "pt" (pt_PT has no rules of its own and inherits them): night1
+from 00:00 before 06:00, morning1 from 06:00 before 12:00, afternoon1 from
+12:00 before 19:00, evening1 from 19:00 before 24:00. CLDR 49 pt.xml, format
+names: "da madrugada", "da manhã", "da tarde", "da noite". Senado Federal,
+"Manual de Comunicação", entry "Hora": "A noite, das 18h às 24h (ou à
+meia-noite)", and for the hour from 18h "tanto fica correto usar «às seis da
+tarde» quanto «às seis da noite»". So "da noite" starts at 19:00 in pt-PT
+and pt-BR. Priberam gives no clock hour: "tarde" is the "Espaço do dia
+compreendido entre o meio-dia e o anoitecer", and "madrugada" (sense 3) the
+"Período de tempo entre a meia-noite e o amanhecer". Ciberdúvidas, answer
+33303: in "às sete da tarde" the period is a "modificador restritivo do nome
+horas, que se encontra omitido", so the period follows the hour the phrase
+names ("sete menos um quarto da noite" at 18:45).
+
+Minutes before the hour. Ciberdúvidas, answer 38623: "Depois da meia hora,
+no registo corrente em Portugal, existem duas maneiras de indicar os minutos
+que faltam para a hora", "são três menos um quarto" and "é um quarto para as
+três". Priberam, "quarto", sense 3: "falta um quarto para as nove"; "para",
+sense 5: "faltam cinco para a uma". Both forms are standard; this module
+says "dez menos um quarto". For pt-BR, only teaching sites say that
+"quinze para as dez" is the usual Brazilian form; no dictionary or grammar
+was found, so pt-BR keeps the same form.
+"""
 import re
 from datetime import datetime, timedelta
 
@@ -270,7 +298,7 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False,
                 speak += " da madrugada"
             elif hour >= 6 and hour < 12:
                 speak += " da manhã"
-            elif hour >= 13 and hour < 21:
+            elif hour >= 13 and hour < 19:
                 speak += " da tarde"
             elif hour != 0 and hour != 12:
                 speak += " da noite"

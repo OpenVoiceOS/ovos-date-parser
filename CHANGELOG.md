@@ -1,5 +1,68 @@
 # Changelog
 
+## [0.35.32a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.32a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.31a1...0.35.32a1)
+
+## [0.35.31a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.31a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.30a1...0.35.31a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): spell numbers in the Brazilian forms for a pt-BR tag [\#571](https://github.com/OpenVoiceOS/ovos-date-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.30a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.30a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.29a1...0.35.30a1)
+
+**Merged pull requests:**
+
+- fix\(fa\): read the year as a Persian cardinal joined with "و" [\#580](https://github.com/OpenVoiceOS/ovos-date-parser/pull/580) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.29a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.29a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.28a1...0.35.29a1)
+
+**Merged pull requests:**
+
+- fix\(cs\): put the day before the genitive month and localize the era [\#579](https://github.com/OpenVoiceOS/ovos-date-parser/pull/579) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.28a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.28a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.27a1...0.35.28a1)
+
+**Merged pull requests:**
+
+- fix\(pl\): read dates, years and date-times in Polish [\#578](https://github.com/OpenVoiceOS/ovos-date-parser/pull/578) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(nl\): write year and number words as Taaladvies Regel 1 does [\#577](https://github.com/OpenVoiceOS/ovos-date-parser/pull/577) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.27a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.27a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.26a1...0.35.27a1)
+
+**Merged pull requests:**
+
+- fix\(pt,es,gl,ast\): put "de" before the year in nice\_date [\#573](https://github.com/OpenVoiceOS/ovos-date-parser/pull/573) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.26a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.26a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.25a1...0.35.26a1)
+
+## [0.35.25a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.25a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.24a1...0.35.25a1)
+
+## [0.35.24a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.24a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.23a1...0.35.24a1)
+
+**Merged pull requests:**
+
+- fix\(de\): say "eine Minute" and "ein Tag" in nice\_duration [\#582](https://github.com/OpenVoiceOS/ovos-date-parser/pull/582) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(uk\): spell 16 and the hundreds 500, 600 and 900 in Ukrainian [\#575](https://github.com/OpenVoiceOS/ovos-date-parser/pull/575) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(sl\): spell the ordinal of 15 as "petnajsti" in the date resource [\#574](https://github.com/OpenVoiceOS/ovos-date-parser/pull/574) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.22a1...0.35.23a1)
@@ -215,21 +278,10 @@
 
 - pt-PT: "31 de novembro" parses as the anchor day, expected None [\#504](https://github.com/OpenVoiceOS/ovos-date-parser/issues/504)
 - pt-PT: "sexta-feira da semana que vem" parses as 23 October on a Monday, expected 30 October [\#503](https://github.com/OpenVoiceOS/ovos-date-parser/issues/503)
-- pt-PT: "daqui a uma semana e dois dias" returns None, expected 26 October [\#483](https://github.com/OpenVoiceOS/ovos-date-parser/issues/483)
-- pt-PT: "sexta-feira daqui a duas semanas" parses as 23 October, expected 30 October \(word order changes the answer\) [\#482](https://github.com/OpenVoiceOS/ovos-date-parser/issues/482)
-- pt-PT: "o dia 5 do mês que vem" parses as 22 March 2027, expected 5 November 2026 [\#481](https://github.com/OpenVoiceOS/ovos-date-parser/issues/481)
-- pt-PT: "a segunda semana de outubro" parses as the anchor day, expected the Monday that starts that week [\#475](https://github.com/OpenVoiceOS/ovos-date-parser/issues/475)
-- pt-PT: "a próxima semana" leaves the article "a" in the remainder [\#470](https://github.com/OpenVoiceOS/ovos-date-parser/issues/470)
-- pt-PT: "o primeiro dia do mês" returns None, expected 1 November [\#469](https://github.com/OpenVoiceOS/ovos-date-parser/issues/469)
-- pt-PT: "a segunda opção" parses as Monday 19 October, expected None \(ordinal read as weekday\) [\#468](https://github.com/OpenVoiceOS/ovos-date-parser/issues/468)
 
 ## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.6a1...0.34.7a1)
-
-**Closed issues:**
-
-- en-US: "after july 4th" returns today at 16:00, expected 4 July 2027 [\#484](https://github.com/OpenVoiceOS/ovos-date-parser/issues/484)
 
 ## [0.34.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.6a1) (2026-10-22)
 
@@ -245,17 +297,6 @@
 - it-IT: "quanto fa 5 meno 2" parses as 14:00, expected no date [\#492](https://github.com/OpenVoiceOS/ovos-date-parser/issues/492)
 - it-IT: "due giorni fa" parses as 14:00, expected 15 October [\#491](https://github.com/OpenVoiceOS/ovos-date-parser/issues/491)
 - it-IT: "tre ore fa" parses as 15:00, expected 09:00 [\#490](https://github.com/OpenVoiceOS/ovos-date-parser/issues/490)
-- it-IT: "tra un quarto d'ora" returns None, expected 12:15 [\#480](https://github.com/OpenVoiceOS/ovos-date-parser/issues/480)
-- it-IT: "tre quarti" raises ValueError, expected None [\#479](https://github.com/OpenVoiceOS/ovos-date-parser/issues/479)
-- it-IT: "alle tre meno dieci" parses as 22:00, expected 14:50 [\#478](https://github.com/OpenVoiceOS/ovos-date-parser/issues/478)
-- it-IT: "alle tre e venti" parses as 20:00, expected 15:20 [\#477](https://github.com/OpenVoiceOS/ovos-date-parser/issues/477)
-- it-IT: "alle tre e un quarto" parses as 15:00, expected 15:15 [\#476](https://github.com/OpenVoiceOS/ovos-date-parser/issues/476)
-- it-IT: "compra tre pani domani" parses as 03:00, expected no time of day [\#474](https://github.com/OpenVoiceOS/ovos-date-parser/issues/474)
-- it-IT: "è tardi" raises TypeError, expected None [\#467](https://github.com/OpenVoiceOS/ovos-date-parser/issues/467)
-
-**Merged pull requests:**
-
-- fix\(it\): read minutes around an hour, "fa" after a duration, and do not raise [\#472](https://github.com/OpenVoiceOS/ovos-date-parser/pull/472) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.34.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.5a1) (2026-10-22)
 
@@ -264,11 +305,6 @@
 ## [0.34.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.4a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.3a1...0.34.4a1)
-
-**Closed issues:**
-
-- es-ES: "mañana a las 22:30" parses as today 22:30, expected tomorrow 22:30 [\#488](https://github.com/OpenVoiceOS/ovos-date-parser/issues/488)
-- es-ES: "mañana a las 10:30" raises TypeError, expected 18 October 10:30 [\#487](https://github.com/OpenVoiceOS/ovos-date-parser/issues/487)
 
 ## [0.34.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.3a1) (2026-10-22)
 
@@ -279,9 +315,6 @@
 - nl-NL: a number that is not a time moves the result to tomorrow \("3 mensen 4 uur"\) [\#508](https://github.com/OpenVoiceOS/ovos-date-parser/issues/508)
 - nl-NL: "morgen om 10, want vanavond kan ik niet" parses as 19:00, expected 10:00 [\#502](https://github.com/OpenVoiceOS/ovos-date-parser/issues/502)
 - nl-NL: "om kwart over half 9" parses as 21:00, expected 20:45 [\#501](https://github.com/OpenVoiceOS/ovos-date-parser/issues/501)
-- nl-NL: "om 25 uur" parses as a time, expected none [\#486](https://github.com/OpenVoiceOS/ovos-date-parser/issues/486)
-- nl-NL: "om tien over half drie" returns None, expected 14:40 [\#485](https://github.com/OpenVoiceOS/ovos-date-parser/issues/485)
-- nl-NL: "om half 9" parses as 21:00, expected 20:30 \(half, kwart over, kwart voor not read\) [\#471](https://github.com/OpenVoiceOS/ovos-date-parser/issues/471)
 
 ## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
 

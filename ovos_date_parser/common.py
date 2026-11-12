@@ -74,12 +74,13 @@ def nice_relative_time_generic(lang, when, relative_to):
 
 #: One of a unit takes the form that agrees with the unit's gender, not the
 #: numeral said alone ("eins", "uno", "ett"). The forms are the "1:" rules of
-#: CLDR RBNF %spellout-cardinal-masculine, -feminine, -neuter, -common and
-#: -reale. The genders are the CLDR units genders of duration-day, -hour,
+#: CLDR 49 RBNF %spellout-cardinal-masculine, -feminine, -neuter, -common and
+#: -reale. The genders are the CLDR 49 units genders of duration-day, -hour,
 #: -minute and -second, or a dictionary where CLDR names another noun or no
-#: gender: SAOB "DAG ... r." (sv), Bokmålsordboka "minutt n3" and
-#: "sekund m1" (nb), Real Academia Galega "hora: substantivo feminino" (gl),
-#: Речник на българския език (bg). Italian elides "una" before a vowel,
+#: gender: SAOB "DAG ... r." (sv), Bokmålsordboka "minutt" n3 (article
+#: 38590) and "sekund" n3, the unit of time (article 50558) (nb), Real
+#: Academia Galega "hora: substantivo feminino" (gl), Речник на българския
+#: език (bg). Italian elides "una" before a vowel,
 #: "una ora -> un'ora" (Treccani, Enciclopedia dell'Italiano, "elisione").
 _ONE_BEFORE_UNIT = {
     "bg": {"day": "един", "hour": "един", "minute": "една", "second": "една"},
@@ -93,7 +94,7 @@ _ONE_BEFORE_UNIT = {
     "gl": {"day": "un", "hour": "unha", "minute": "un", "second": "un"},
     "hr": {"day": "jedan", "hour": "jedan", "minute": "jedna", "second": "jedna"},
     "it": {"day": "un", "hour": "un'", "minute": "un", "second": "un"},
-    "nb": {"minute": "ett"},
+    "nb": {"minute": "ett", "second": "ett"},
     "pt": {"day": "um", "hour": "uma", "minute": "um", "second": "um"},
     "sk": {"day": "jeden", "hour": "jedna", "minute": "jedna", "second": "jedna"},
     "sl": {"day": "en", "hour": "ena", "minute": "ena", "second": "ena"},

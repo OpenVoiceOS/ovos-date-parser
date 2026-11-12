@@ -1,12 +1,13 @@
 """nice_duration counts one of a unit in the form of the unit's gender.
 
-CLDR RBNF gives the form of 1 for each gender, for example es
+CLDR 49 RBNF gives the form of 1 for each gender, for example es
 %spellout-cardinal-masculine "1: un;" and %spellout-cardinal-feminine
 "1: una;", sv %spellout-cardinal-reale "1: en;", da %spellout-cardinal-neuter
-"1: et;". CLDR units give the gender of each unit, for example es
+"1: et;". CLDR 49 units give the gender of each unit, for example es
 duration-hour "feminine", da duration-minute "neuter". Where CLDR has no
 gender or names another noun, a dictionary gives it: SAOB "DAG ... r. ...
-best. -en" (sv), Bokmålsordboka "minutt" neuter (nb), Real Academia Galega
+best. -en" (sv), Bokmålsordboka "minutt" n3 (article 38590) and "sekund"
+n3, the unit of time (article 50558) (nb), Real Academia Galega
 "hora: substantivo feminino" and "un (feminino: unha)" (gl), Речник на
 българския език "ден", "час": "мъжки род", "минута", "секунда": "женски
 род" (bg). Treccani, Enciclopedia dell'Italiano, "elisione": "una ora ->
@@ -33,7 +34,7 @@ EXPECTED = {
     "gl": "un día unha hora un minuto un segundo",
     "hr": "jedan dan jedan sat jedna minuta jedna sekunda",
     "it": "un giorno un'ora un minuto un secondo",
-    "nb": "en dag en time ett minutt en sekund",
+    "nb": "en dag en time ett minutt ett sekund",
     "pt": "um dia uma hora um minuto um segundo",
     "sk": "jeden deň jedna hodina jedna minúta jedna sekunda",
     "sl": "en dan ena ura ena minuta ena sekunda",
@@ -58,6 +59,11 @@ class TestDurationOne(unittest.TestCase):
     def test_days_then_seconds_have_one_space(self):
         self.assertEqual(nice_duration(2 * 86400 + 5, "en"),
                          "two days five seconds")
+
+    def test_a_count_ending_in_one_keeps_the_numeral(self):
+        # only a count of exactly 1 takes the gendered form
+        self.assertEqual(nice_duration(21 * 3600 + 31 * 60, "de"),
+                         "einundzwanzig Stunden einunddreißig Minuten")
 
     def test_two_keeps_the_numeral(self):
         self.assertEqual(nice_duration(2 * 3600 + 2 * 60, "es"),

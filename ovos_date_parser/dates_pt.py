@@ -433,6 +433,8 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
               'dezembro']
     monthsShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago',
                    'set', 'out', 'nov', 'dez']
+    # Unicode CLDR 49 pt, short date "dd/MM/y": the day comes first
+    numeric_date = re.compile(r"(\d{1,2})/(0?[1-9]|1[0-2])(?:/(\d{4}))?")
     nexts = ["proximo", "proxima"]
     suffix_nexts = ["seguinte", "subsequente", "seguir"]
     lasts = ["ultimo", "ultima"]
@@ -696,7 +698,16 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                     dayOffset += int(wordPrev)
                     start -= 1
                     used += 2
-            elif wordNext and wordNext[0].isdigit() and wordNextNext not in \
+            elif numeric_date.fullmatch(wordNext):
+                # "dia 25/12/2023": day, month and an optional year
+                day, month, year = numeric_date.fullmatch(wordNext).groups()
+                datestr = f"{months[int(month) - 1]} {day}"
+                if year:
+                    datestr += " " + year
+                hasYear = bool(year)
+                start -= 1
+                used += 2
+            elif wordNext.isdigit() and wordNextNext not in \
                     months and wordNextNext not in monthsShort:
                 dayOffset += int(wordNext)
                 start -= 1

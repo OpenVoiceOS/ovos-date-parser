@@ -31,6 +31,15 @@ class TestNiceDateNow(unittest.TestCase):
                 self.assertEqual(nice_date(dt, lang, now=datetime(2024, 3, 12)),
                                  nice_date(dt, lang))
 
+    def test_same_month_and_day_in_another_year(self):
+        for lang in ("gl", "ast"):
+            today = WORDS[lang][0]
+            dt = datetime(2018, 3, 5)
+            with self.subTest(lang=lang):
+                said = nice_date(dt, lang, now=datetime(2019, 3, 5))
+                self.assertNotEqual(said, today)
+                self.assertEqual(said, nice_date(dt, lang))
+
     def test_same_day_of_month_in_another_month(self):
         for lang in ("gl", "ast"):
             today = WORDS[lang][0]

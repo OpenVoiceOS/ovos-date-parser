@@ -159,7 +159,7 @@ class TestNiceDateFormat(unittest.TestCase):
                          "thirteen hours fifty three minutes twenty seconds")
         self.assertEqual(nice_duration(50000, "en", speech=False), "13:53:20")
         self.assertEqual(nice_duration(500000, "en"),
-                         "five days  eighteen hours fifty three minutes twenty seconds")  # nopep8
+                         "five days eighteen hours fifty three minutes twenty seconds")  # nopep8
         self.assertEqual(nice_duration(500000, "en", speech=False), "5d 18:53:20")
         self.assertEqual(nice_duration(datetime.timedelta(seconds=500000), "en",
                                        speech=False),

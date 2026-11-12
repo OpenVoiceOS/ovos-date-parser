@@ -202,7 +202,7 @@ class TestNiceDateFormat(unittest.TestCase):
                          "trinajst ur triinpetdeset minut dvajset sekund")
         self.assertEqual(nice_duration(50000, "sl", speech=False), "13:53:20")
         self.assertEqual(nice_duration(500000, "sl"),
-                         "pet dni  osemnajst ur triinpetdeset minut dvajset sekund")  # nopep8
+                         "pet dni osemnajst ur triinpetdeset minut dvajset sekund")  # nopep8
         self.assertEqual(nice_duration(500000, "sl", speech=False), "5d 18:53:20")
         self.assertEqual(nice_duration(datetime.timedelta(seconds=500000), "sl",
                                        speech=False),

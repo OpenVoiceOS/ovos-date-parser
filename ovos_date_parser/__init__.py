@@ -1601,7 +1601,14 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
     if lang.startswith("fy"):
         return nice_day_fy(dt, date_format, include_month)
     if include_month:
-        month = nice_month(dt, lang, date_format)
+        # a day and a month take the month's format form (CLDR monthContext
+        # "format"), the genitive in cs and pl: "21 ledna", "11 stycznia"
+        key = lang.lower().split("-")[0]
+        date_time_format.cache(key)
+        month_format = date_time_format.lang_config.get(key, {}).get(
+            'month_format')
+        month = (month_format[str(dt.month)] if month_format
+                 else nice_month(dt, lang, date_format))
         if date_format == 'MDY':
             return "{} {}".format(month, dt.strftime("%d"))
         else:

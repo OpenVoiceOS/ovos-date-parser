@@ -26,6 +26,15 @@ class TestBrazilianNumbers(unittest.TestCase):
             nice_date(DT, "pt-BR", now=NOW, include_weekday=False),
             "dezesseis de março")
 
+    def test_date_with_year(self):
+        # The year is spoken when no reference date is given, and when the
+        # reference date falls in another year.
+        for now in (None, datetime(2024, 1, 1)):
+            with self.subTest(now=now):
+                spoken = nice_date(DT, "pt-BR", now=now, include_weekday=False)
+                self.assertTrue(spoken.startswith("dezesseis de março"), spoken)
+                self.assertTrue(spoken.endswith(" dois mil e dezesseis"), spoken)
+
     def test_time_24_hour(self):
         self.assertEqual(nice_time(DT, "pt-BR", use_24hour=True),
                          "dezesseis e dezessete")

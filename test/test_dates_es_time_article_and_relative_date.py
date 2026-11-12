@@ -12,7 +12,7 @@ from datetime import datetime
 from ovos_date_parser import nice_date, nice_date_time
 
 NOW = datetime(2020, 1, 1)
-DATE = "martes, doce de marzo, dos mil veinticuatro"
+DATE = "martes, doce de marzo de dos mil veinticuatro"
 
 
 class TestSpanishTimeArticle(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestSpanishRelativeDate(unittest.TestCase):
 
     def test_same_day_and_month_other_year(self):
         self.check(datetime(2025, 3, 12), datetime(2024, 3, 12),
-                   "miércoles, doce de marzo, dos mil veinticinco")
+                   "miércoles, doce de marzo de dos mil veinticinco")
 
     def test_tomorrow_across_a_month(self):
         self.check(datetime(2024, 2, 1), datetime(2024, 1, 31), "mañana")

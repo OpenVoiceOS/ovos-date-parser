@@ -156,9 +156,9 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True,
         if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + MONTHS_PT[dt.month]
         if dt.year != now.year:
-            nice = nice + ", " + nice_year_pt(dt, variant=variant)
+            nice = nice + " de " + nice_year_pt(dt, variant=variant)
     else:
-        nice = f"{day} de {MONTHS_PT[dt.month]}, {nice_year_pt(dt, variant=variant)}"
+        nice = f"{day} de {MONTHS_PT[dt.month]} de {nice_year_pt(dt, variant=variant)}"
 
     if include_weekday:
         nice = f"{WEEKDAYS_PT[dt.weekday()]}, {nice}"

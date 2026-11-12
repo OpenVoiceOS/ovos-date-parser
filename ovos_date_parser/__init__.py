@@ -1393,8 +1393,12 @@ class DateTimeFormat:
                 format_str = 'yesterday'
 
         unformatted = self.lang_config[lang]['date_format'][format_str]
+        # a date takes the month's format form (CLDR monthContext "format"),
+        # the genitive in Polish; "month" keeps the stand-alone form
+        months = self.lang_config[lang].get('month_format',
+                                            self.lang_config[lang]['month'])
         args = dict(
-                month=self.lang_config[lang]['month'][str(dt.month)],
+                month=months[str(dt.month)],
                 day=formatted_day or self.lang_config[lang]['date'][str(dt.day)],
                 formatted_year=formatted_year or self.year_format(dt, lang, False)
         )

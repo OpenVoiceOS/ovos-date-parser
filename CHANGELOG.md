@@ -1,17 +1,20 @@
 # Changelog
 
-## [0.35.41a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.41a1) (2026-11-12)
+## [0.35.42a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.42a1) (2026-11-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.40a1...0.35.41a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.40a1...0.35.42a1)
 
 **Merged pull requests:**
 
 - fix\(gl\): write weekday and month names with a lowercase initial [\#617](https://github.com/OpenVoiceOS/ovos-date-parser/pull/617) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(sv\): read a year in Swedish hundreds, written as one word [\#616](https://github.com/OpenVoiceOS/ovos-date-parser/pull/616) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - test\(ru\): look up the date fixtures by string keys [\#615](https://github.com/OpenVoiceOS/ovos-date-parser/pull/615) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(nice\_span\): join month and year as the CLDR yMMMM pattern does [\#612](https://github.com/OpenVoiceOS/ovos-date-parser/pull/612) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(ast\): elide "de" to "d'" before a month that starts with a vowel [\#611](https://github.com/OpenVoiceOS/ovos-date-parser/pull/611) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(cs, pl\): put the genitive month in nice\_day [\#608](https://github.com/OpenVoiceOS/ovos-date-parser/pull/608) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix: read the language tag in any letter case in nice\_time, nice\_day, nice\_duration and nice\_relative\_time [\#607](https://github.com/OpenVoiceOS/ovos-date-parser/pull/607) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(fr\): keep "cent" invariable in a year [\#606](https://github.com/OpenVoiceOS/ovos-date-parser/pull/606) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(it\): accent the compounds of "tre" in years and day names [\#605](https://github.com/OpenVoiceOS/ovos-date-parser/pull/605) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.40a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.40a1) (2026-11-12)
 
@@ -350,10 +353,6 @@
 ## [0.34.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.3a1) (2026-10-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.2a1...0.34.3a1)
-
-**Closed issues:**
-
-- nl-NL: a number that is not a time moves the result to tomorrow \("3 mensen 4 uur"\) [\#508](https://github.com/OpenVoiceOS/ovos-date-parser/issues/508)
 
 ## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
 

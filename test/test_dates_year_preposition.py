@@ -2,7 +2,7 @@
 
 CLDR 49 gives the full date pattern "EEEE, d 'de' MMMM 'de' y" for pt, pt-PT,
 es and gl, and "EEEE, d MMMM 'de' y" for ast, whose month names carry "de"
-("de marzu"). RAE and ASALE, Diccionario panhispánico de dudas, "fechas",
+("de marzu"). RAE and ASALE, Diccionario panhispánico de dudas, "fecha",
 § 3 c: "La preposición de se emplea entre la mención del día y el mes, y entre
 la del mes y el año: Murió el 15 de julio de 1957." § 4 keeps the comma after
 the weekday: "Hoy es sábado, 18 de agosto de 2001."

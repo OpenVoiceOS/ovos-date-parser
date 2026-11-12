@@ -33,7 +33,7 @@ dependencies = [
     # which "have a good friday" relies on, and reads a weekday of next or
     # last week, which the Czech, Croatian and Slovak routing relies on, and
     # names the Basque and Persian holidays extract_holiday_date reads.
-    "chronologia>=0.31.7a1",
+    "chronologia>=0.31.12a1",
 ]
 dynamic = ["version"]
 

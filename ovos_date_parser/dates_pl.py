@@ -436,18 +436,20 @@ _ORDINAL_THOUSANDS_PL = {
 }
 
 
-def nice_year_pl(dt, bc=False):
-    """Format a year as Polish reads it: a genitive ordinal.
+def nice_year_pl(dt, bc=False, genitive=False):
+    """Format a year as Polish reads it: an ordinal.
 
-    CLDR RBNF pl reads a year with ``%spellout-numbering-year``, which is
-    ``%spellout-ordinal-masculine-genitive``: 1905 is "tysiąc dziewięćset
-    piątego", 2024 "dwa tysiące dwudziestego czwartego". The thousands stay
-    cardinal before a remainder; a round number takes the isolated ordinal
-    ("dwutysięcznego", "tysiąc dziewięćsetnego").
+    A year said alone is a nominative ordinal (CLDR RBNF pl
+    ``%spellout-ordinal-masculine``): 2024 is "dwa tysiące dwudziesty
+    czwarty". Inside a date the year is a genitive ordinal (CLDR
+    ``%spellout-numbering-year``): 1905 is "tysiąc dziewięćset piątego".
+    The thousands stay cardinal before a remainder; a round number takes
+    the isolated ordinal ("dwutysięczny", "tysiąc dziewięćsetny").
 
     Args:
         dt (datetime): date whose year to format
         bc (bool): append "p.n.e." after the year
+        genitive (bool): the genitive form a date takes
     Returns:
         (str): the year in words
     """
@@ -469,6 +471,10 @@ def nice_year_pl(dt, bc=False):
             else:
                 words += [_ORDINAL_TENS_PL[tens], _ORDINAL_DAY_UNITS_PL[units]]
     year = " ".join(words)
+    if not genitive:
+        # the nominative ending replaces the genitive -ego:
+        # "drugiego" -> "drugi", "piątego" -> "piąty"
+        year = re.sub(r"ego\b", "y", re.sub(r"iego\b", "i", year))
     if bc:
         return f"{year} p.n.e."
     return year

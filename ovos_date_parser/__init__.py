@@ -1510,8 +1510,9 @@ def nice_date(dt, lang, now=None, include_weekday=True):
             formatted_year=nice_date_year_eu(dt),
             formatted_day=nice_date_day_eu(dt))
     if lang == "pl":
-        return date_time_format.date_format(dt, tag, now, include_weekday,
-                                            formatted_year=nice_year_pl(dt))
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday,
+            formatted_year=nice_year_pl(dt, genitive=True))
     return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
@@ -1570,7 +1571,7 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     if lang == "pl":
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
-            formatted_year=nice_year_pl(dt))
+            formatted_year=nice_year_pl(dt, genitive=True))
     return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 

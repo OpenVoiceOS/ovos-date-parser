@@ -2,36 +2,57 @@
 
 CLDR cs gives the full date "EEEE d. MMMM y", the month in a date in the
 genitive (monthContext "format": "ledna", "února", ...) and the era
-abbreviation "př. n. l.". CLDR RBNF cs %spellout-ordinal-masculine-genitive
-has "20: dvacátého[ >>];": the parts of an ordinal are apart, with no hyphen.
-ovos-number-parser spells the same ordinals in the nominative, with a space."""
-import json
-import os
+abbreviation "př. n. l.". The CLDR cs format-wide months are "ledna, února,
+března, dubna, května, června, července, srpna, září, října, listopadu,
+prosince".
+
+CLDR RBNF cs %spellout-ordinal-masculine-genitive reads "1: prvního;
+2: druhého; 3: třetího;" and "20: dvacátého[ >>];": the parts of an ordinal
+are apart, with no hyphen. ovos-number-parser spells the same ordinals in
+the nominative ("první", "dvacátý druhý"). The genitive of a hard adjective
+ends in -ého for the nominative -ý, and of a soft adjective in -ího for -í,
+so the nominative gives the expected genitive day name."""
 import unittest
 from datetime import datetime
 
 from ovos_number_parser import pronounce_ordinal
 
-import ovos_date_parser
 from ovos_date_parser import nice_date, nice_date_time, nice_month, nice_year
 
-RESOURCE = os.path.join(os.path.dirname(ovos_date_parser.__file__),
-                        "res", "cs", "date_time.json")
+CLDR_FORMAT_MONTHS = ("ledna", "února", "března", "dubna", "května", "června",
+                      "července", "srpna", "září", "října", "listopadu",
+                      "prosince")
+NOW = datetime(2024, 6, 15)
+
+
+def genitive(ordinal):
+    return " ".join(word[:-1] + ("ého" if word.endswith("ý") else "ího")
+                    for word in ordinal.split())
 
 
 class TestCzechDateWords(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        with open(RESOURCE, encoding="utf8") as f:
-            cls.resource = json.load(f)
-
-    def test_day_names_are_split_like_the_ordinals(self):
+    def test_day_names(self):
         for day in range(1, 32):
             with self.subTest(day=day):
                 self.assertEqual(
-                    len(self.resource["date"][str(day)].split()),
-                    len(pronounce_ordinal(day, lang="cs").split()))
+                    nice_date(datetime(2024, 1, day), "cs", now=NOW,
+                              include_weekday=False),
+                    genitive(pronounce_ordinal(day, lang="cs")) + " ledna")
+
+    def test_month_names(self):
+        for month, name in enumerate(CLDR_FORMAT_MONTHS, start=1):
+            with self.subTest(month=month):
+                self.assertEqual(
+                    nice_date(datetime(2024, month, 1), "cs", now=NOW,
+                              include_weekday=False),
+                    "prvního " + name)
+
+    def test_nice_date_with_the_year(self):
+        date = datetime(2023, 1, 21)
+        self.assertEqual(nice_date(date, "cs"),
+                         "sobota, dvacátého prvního ledna "
+                         + nice_year(date, "cs"))
 
     def test_nice_date(self):
         self.assertEqual(

@@ -47,7 +47,7 @@ def dt(y, mo, d, h=0, mi=0, s=0):
 
 class TestPeriodOffsetInflections(unittest.TestCase):
     def test_year_future_already_worked(self):
-        self.assertEqual(extract("za 2 roky")[0], dt(2019, 6, 27))
+        self.assertEqual(extract("za 2 roky")[0], dt(2019, 6, 27, 13, 4))
 
     def test_year_instrumental_plural_lety_now_matches(self):
         result = extract("viděli jsme se před 2 lety")
@@ -57,7 +57,7 @@ class TestPeriodOffsetInflections(unittest.TestCase):
         self.assertIn(result[0].year, (2015, 2019))
 
     def test_day_plural_dny_already_worked(self):
-        self.assertEqual(extract("za 2 dny")[0], dt(2017, 6, 29))
+        self.assertEqual(extract("za 2 dny")[0], dt(2017, 6, 29, 13, 4))
 
     def test_day_locative_plural_dnech_now_matches(self):
         result = extract("potkali jsme se před 2 dnech")
@@ -65,11 +65,11 @@ class TestPeriodOffsetInflections(unittest.TestCase):
         self.assertIn(result[0].date(), (dt(2017, 6, 25).date(), dt(2017, 6, 29).date()))
 
     def test_week_plural_tydny_already_worked(self):
-        self.assertEqual(extract("za 2 týdny")[0], dt(2017, 7, 11))
+        self.assertEqual(extract("za 2 týdny")[0], dt(2017, 7, 11, 13, 4))
 
     def test_month_locative_plural_mesici_already_worked(self):
         result = extract("za 2 měsíce")
-        self.assertEqual(result[0], dt(2017, 8, 27))
+        self.assertEqual(result[0], dt(2017, 8, 27, 13, 4))
 
     def test_adversarial_letos_does_not_match_lety(self):
         # "letos" ("this year") is a different word entirely; normalisation

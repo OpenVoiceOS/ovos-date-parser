@@ -33,6 +33,7 @@ from datetime import date
 from typing import Dict, List, Optional, Tuple
 
 from ovos_spec_tools import LocaleResources
+from ovos_utils.log import LOG
 
 from ovos_date_parser.eras_scan import (LOCALE_DIR, _alt, _voc_reader,
                                         _positional_voc_reader)
@@ -84,6 +85,79 @@ class ScopedVocabulary:
     #: season qualifiers
     next_word: str
     this_word: str
+
+
+#: One ``.voc`` per month, ``month_1`` for January through ``month_12`` for
+#: December. The number is in the FILE NAME, never a line position: the name
+#: maps to the month, so a file's lines are an unordered set and a spelling
+#: may sit on any of them. OVOS-INTENT-2 §4.3 requires that -- each slot-free
+#: file "loads as the union of the sample sets of all its lines" -- so nothing
+#: may depend on which line a spelling is on or on how many lines a file has.
+#:
+#: This is the shape ``chronologia`` already ships for all 61 of its packaged
+#: locales, and its own loader reads. Using the same names means one shape for
+#: one thing across the two roots this loader searches, rather than a second
+#: spelling that would need a translation layer or a migration of a
+#: dependency.
+_MONTH_VOC = tuple(f"month_{i}" for i in range(1, 13))
+
+#: ``months.voc`` is read only when no per-month file exists for the locale,
+#: and the read warns. Removal is at this version.
+MONTHS_VOC_REMOVAL_VERSION = "1.0.0"
+
+
+def _load_months(lang: str, read_lines, read) -> List[str]:
+    """The twelve month fragments, by FILE NAME rather than by line number.
+
+    ``read`` is the union reader for one named file and ``read_lines`` is the
+    per-line reader, used only for the deprecated ``months.voc`` path.
+
+    Three cases, and the loud one is the middle one:
+
+    * every per-month file present -> the twelve fragments, in ``_MONTH_VOC``
+      order. A month's spellings are the union of its file's lines, so two or
+      three spellings of one month are just two or three lines and no line
+      order means anything.
+    * SOME present and some missing -> a locale part-way through migration,
+      which would silently lose a month. Fail loud, naming the locale and the
+      month that is missing.
+    * none present -> fall back to the deprecated ``months.voc`` and warn.
+    """
+    def spellings(name):
+        """Every line of one month's file, as one phrase set. Which line a
+        spelling sits on means nothing; the file is a union."""
+        try:
+            return read(name)
+        except FileNotFoundError:
+            return None
+
+    found = {name: spellings(name) for name in _MONTH_VOC}
+    present = [n for n, v in found.items() if v]
+    if present and len(present) < len(_MONTH_VOC):
+        missing = [n for n in _MONTH_VOC if not found[n]]
+        raise FileNotFoundError(
+            f"locale {lang!r} has {len(present)} of {len(_MONTH_VOC)} month "
+            f"vocabularies and is missing "
+            f"{', '.join(m + '.voc' for m in missing)}. A month per file is "
+            f"the whole table: a partial set would drop a month silently.")
+    if present:
+        # the same fragment form the positional path produced, so a month
+        # spelled two ways is one deduped, longest-first alternation
+        return [_month_alt(found[name]) for name in _MONTH_VOC]
+
+    try:
+        lines = read_lines("months")
+    except FileNotFoundError:
+        return []
+    if lines:
+        LOG.warning(
+            f"locale {lang!r} still ships months.voc, which is read by "
+            f"position and cannot hold a spelling on its own line. It is "
+            f"deprecated and stops being read in "
+            f"{MONTHS_VOC_REMOVAL_VERSION}; split it into "
+            f"{_MONTH_VOC[0]}.voc .. {_MONTH_VOC[-1]}.voc, one month per "
+            f"file, every spelling on its own line.")
+    return [_month_alt(m) for m in lines]
 
 
 def _month_alt(variants: List[str]) -> str:
@@ -143,13 +217,13 @@ def load_scoped_vocabulary(lang: str,
             return None
         return _alt(phrases) if phrases else None
 
-    months = read_lines("months")
+    months = _load_months(lang, read_lines, read)
     ord_suf = voc("ordinal_suffixes")
     return ScopedVocabulary(
         units={u: voc(f"unit_{u}") for u in
                ("day", "week", "month", "year", "decade", "century",
                 "millennium") if voc(f"unit_{u}")},
-        months=[_month_alt(m) for m in months],
+        months=months,
         seasons={s: voc(f"season_{n}") for s, n in
                  ((Season.SPRING, "spring"), (Season.SUMMER, "summer"),
                   (Season.FALL, "fall"), (Season.WINTER, "winter"))

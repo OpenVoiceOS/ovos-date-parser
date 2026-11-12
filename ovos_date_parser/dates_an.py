@@ -131,7 +131,7 @@ def nice_date_an(dt: datetime, now: datetime = None, include_weekday=True):
     nice = f"{day} {month} {year}"
     if now is not None:
         nice = day
-        if dt.month != now.month:
+        if dt.month != now.month or dt.year != now.year:
             nice = nice + " " + _de_connector_an(nice_month_an(dt))
         if dt.year != now.year:
             nice = nice + " " + _de_connector_an(nice_year_an(dt))

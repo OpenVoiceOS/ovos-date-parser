@@ -111,11 +111,11 @@ def nice_date_ast(dt: datetime, now: datetime = None, include_weekday=True):
     day = pronounce_number_ast(dt.day)
     if now is not None:
         nice = day
-        if dt.day == now.day:
+        if dt.date() == now.date():
             return "güei"
-        if dt.day == now.day + 1:
+        if dt.date() == now.date() + timedelta(days=1):
             return "mañana"
-        if dt.day == now.day - 1:
+        if dt.date() == now.date() - timedelta(days=1):
             return "ayeri"
         if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + nice_month_ast(dt)

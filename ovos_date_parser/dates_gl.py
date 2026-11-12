@@ -90,7 +90,15 @@ def nice_date_time_gl(dt, now=None, use_24hour=False, use_ampm=False):
             (str): A cadea de data e hora formatada
     """
     now = now or now_local()
-    return f"{nice_date_gl(dt, now)} ás {nice_time_gl(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
+    time = nice_time_gl(dt, use_24hour=use_24hour, use_ampm=use_ampm)
+    # the preposition "a" contracts with the article of the hour:
+    # a + a = á, a + as = ás ("á unha", "ás catro")
+    article, _, hour = time.partition(" ")
+    if article in ("a", "as"):
+        time = f"á{article[1:]} {hour}"
+    else:
+        time = f"a {time}"
+    return f"{nice_date_gl(dt, now)} {time}"
 
 
 def nice_date_gl(dt: datetime, now: datetime = None, include_weekday=True):

@@ -153,7 +153,8 @@ from ovos_date_parser.dates_nl import (
     extract_datetime_nl, nice_part_of_day_nl, extract_duration_nl, nice_time_nl
 )
 from ovos_date_parser.dates_pl import (
-    extract_datetime_pl, extract_duration_pl, nice_time_pl, nice_duration_pl
+    extract_datetime_pl, extract_duration_pl, nice_time_pl, nice_duration_pl,
+    nice_year_pl
 )
 from ovos_date_parser.dates_pt import (
     extract_datetime_pt, extract_duration_pt, nice_time_pt, nice_date_pt, nice_year_pt, nice_date_time_pt,
@@ -1393,8 +1394,12 @@ class DateTimeFormat:
                 format_str = 'yesterday'
 
         unformatted = self.lang_config[lang]['date_format'][format_str]
+        # a date takes the month's format form (CLDR monthContext "format"),
+        # the genitive in Polish; "month" keeps the stand-alone form
+        months = self.lang_config[lang].get('month_format',
+                                            self.lang_config[lang]['month'])
         args = dict(
-                month=self.lang_config[lang]['month'][str(dt.month)],
+                month=months[str(dt.month)],
                 day=formatted_day or self.lang_config[lang]['date'][str(dt.day)],
                 formatted_year=formatted_year or self.year_format(dt, lang, False)
         )
@@ -1504,6 +1509,9 @@ def nice_date(dt, lang, now=None, include_weekday=True):
             dt, tag, now, include_weekday,
             formatted_year=nice_date_year_eu(dt),
             formatted_day=nice_date_day_eu(dt))
+    if lang == "pl":
+        return date_time_format.date_format(dt, tag, now, include_weekday,
+                                            formatted_year=nice_year_pl(dt))
     return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
@@ -1559,6 +1567,10 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
             formatted_year=nice_date_year_eu(dt),
             formatted_day=nice_date_day_eu(dt),
             formatted_time=nice_time_inessive_eu(dt, use_24hour, use_ampm))
+    if lang == "pl":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_year_pl(dt))
     return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 
@@ -1711,6 +1723,8 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_et(dt, bc)
     if lang.startswith("eu"):
         return nice_year_eu(dt, bc)
+    if lang.startswith("pl"):
+        return nice_year_pl(dt, bc)
     date_time_format.cache(tag)
     return date_time_format.year_format(dt, tag, bc, ad)
 

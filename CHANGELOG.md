@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.35.36a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.36a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.35a1...0.35.36a1)
+
+**Merged pull requests:**
+
+- fix\(deps\): require chronologia\>=0.31.12a1 [\#599](https://github.com/OpenVoiceOS/ovos-date-parser/pull/599) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.35a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.35a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.34a2...0.35.35a1)
+
+**Merged pull requests:**
+
+- fix\(it\): say the years 3001 to 9099 in words, and drop the overlapping rules [\#588](https://github.com/OpenVoiceOS/ovos-date-parser/pull/588) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.34a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.34a2) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.34a1...0.35.34a2)
@@ -305,8 +321,6 @@
 - it-IT: "ne voglio 3" parses as 15:00, expected no date [\#506](https://github.com/OpenVoiceOS/ovos-date-parser/issues/506)
 - it-IT: "siamo in 10" parses as 22:00, expected no date [\#505](https://github.com/OpenVoiceOS/ovos-date-parser/issues/505)
 - it-IT: "dal 10 al 15 marzo" raises IndexError, expected no error [\#494](https://github.com/OpenVoiceOS/ovos-date-parser/issues/494)
-- it-IT: "alle 0 meno 10" parses as 18 October 22:00, expected 17 October 23:50 [\#493](https://github.com/OpenVoiceOS/ovos-date-parser/issues/493)
-- it-IT: "quanto fa 5 meno 2" parses as 14:00, expected no date [\#492](https://github.com/OpenVoiceOS/ovos-date-parser/issues/492)
 
 ## [0.34.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.5a1) (2026-10-22)
 

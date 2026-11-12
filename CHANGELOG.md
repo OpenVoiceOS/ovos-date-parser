@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.35.39a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.39a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.38a1...0.35.39a1)
+
+**Merged pull requests:**
+
+- fix\(pl\): say the hour as a feminine ordinal in nice\_time [\#587](https://github.com/OpenVoiceOS/ovos-date-parser/pull/587) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(da,nb,nn\): read an ordinal word as a date only before a month [\#576](https://github.com/OpenVoiceOS/ovos-date-parser/pull/576) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.38a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.38a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.37a1...0.35.38a1)
@@ -296,9 +305,6 @@
 **Closed issues:**
 
 - ast-ES: "mañana a les 22:30" parses as today 22:30, expected tomorrow 22:30 [\#500](https://github.com/OpenVoiceOS/ovos-date-parser/issues/500)
-- gl-ES: "mañá ás 22:30" parses as today 22:30, expected tomorrow 22:30 [\#499](https://github.com/OpenVoiceOS/ovos-date-parser/issues/499)
-- ast-ES: "el próximu vienres" on a Friday parses as today, expected next Friday 23 October [\#498](https://github.com/OpenVoiceOS/ovos-date-parser/issues/498)
-- ca-ES: "el pròxim divendres" on a Friday parses as today, expected next Friday 23 October [\#497](https://github.com/OpenVoiceOS/ovos-date-parser/issues/497)
 
 ## [0.34.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.10a1) (2026-10-22)
 

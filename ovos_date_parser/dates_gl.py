@@ -53,14 +53,16 @@ def nice_year_gl(dt, bc=False):
     return year
 
 
+# Weekday and month names are common nouns and take a lowercase initial.
+# RAG Normas ortográficas e morfolóxicas, 4 "O uso das maiúsculas", lists
+# the cases for a capital, and these names are not among them. The RAG
+# dictionary writes "En xaneiro fago eu anos" and "O luns é día de traballo".
 def nice_weekday_gl(dt):
-    weekday = WEEKDAYS_GL[dt.weekday()]
-    return weekday.capitalize()
+    return WEEKDAYS_GL[dt.weekday()]
 
 
 def nice_month_gl(dt):
-    month = MONTHS_GL[dt.month]
-    return month.capitalize()
+    return MONTHS_GL[dt.month]
 
 
 def nice_day_gl(dt, date_format='DMY', include_month=True):
@@ -90,7 +92,16 @@ def nice_date_time_gl(dt, now=None, use_24hour=False, use_ampm=False):
             (str): A cadea de data e hora formatada
     """
     now = now or now_local()
-    return f"{nice_date_gl(dt, now)} ás {nice_time_gl(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
+    time = nice_time_gl(dt, use_24hour=use_24hour, use_ampm=use_ampm)
+    # the preposition "a" contracts with the article of the hour, RAG Normas
+    # ortográficas e morfolóxicas (2012), 2.7.1: "á (a + a artigo; subst.)",
+    # "ás (a + as artigo; subst.)" ("á unha", "ás catro")
+    article, _, hour = time.partition(" ")
+    if article in ("a", "as"):
+        time = f"á{article[1:]} {hour}"
+    else:
+        time = f"a {time}"
+    return f"{nice_date_gl(dt, now)} {time}"
 
 
 def nice_date_gl(dt: datetime, now: datetime = None, include_weekday=True):
@@ -112,11 +123,11 @@ def nice_date_gl(dt: datetime, now: datetime = None, include_weekday=True):
     day = pronounce_number_gl(dt.day)
     if now is not None:
         nice = day
-        if dt.day == now.day:
+        if dt.date() == now.date():
             return "hoxe"
-        if dt.day == now.day + 1:
+        if dt.date() == now.date() + timedelta(days=1):
             return "mañá"
-        if dt.day == now.day - 1:
+        if dt.date() == now.date() - timedelta(days=1):
             return "onte"
         if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + nice_month_gl(dt)

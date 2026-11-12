@@ -90,7 +90,7 @@ class TestAragoneseClock(unittest.TestCase):
 
     def test_date_time_combines(self):
         out = nice_date_time(datetime(2018, 6, 5, 4, 30), "an")
-        self.assertIn("Ye la meya pa las cinco", out)
+        self.assertIn(", ye la meya pa las cinco", out)
         self.assertIn("de Chunyo", out)
 
     def test_bad_time_input_raises(self):

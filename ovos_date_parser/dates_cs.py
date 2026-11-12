@@ -51,6 +51,49 @@ _TIME_UNITS_CONVERSION = {
 }
 
 
+#: The hundreds as ÚJČ declines "sto": "dvě stě", then "tři sta", then
+#: "pět set" (Internetová jazyková příručka, heslo "sto").
+_HUNDREDS_CS = {1: "sto", 2: "dvě stě", 3: "tři sta", 4: "čtyři sta",
+                5: "pět set", 6: "šest set", 7: "sedm set", 8: "osm set",
+                9: "devět set"}
+#: The masculine count before "tisíc", a masculine noun (ÚJČ, heslo "tisíc").
+_THOUSANDS_CS = {1: "tisíc", 2: "dva tisíce", 3: "tři tisíce",
+                 4: "čtyři tisíce", 5: "pět tisíc", 6: "šest tisíc",
+                 7: "sedm tisíc", 8: "osm tisíc", 9: "devět tisíc"}
+
+
+def nice_year_cs(dt, bc=False):
+    """Format a year as Czech reads it: a cardinal number.
+
+    CLDR 49 RBNF cs reads a year with ``%spellout-numbering``: 1988 is
+    "tisíc devět set osmdesát osm" and 2018 is "dva tisíce osmnáct".
+    The tens and units below a hundred keep the counting form of
+    pronounce_number_cs ("dvacet jedna"), the form ÚJČ writes for a number
+    in words (Internetová jazyková příručka, id=791). An astronomical year
+    below 1 is read by pronounce_number_cs as it stands.
+
+    Args:
+        dt (datetime): date whose year to format
+        bc (bool): append "př. n. l." after the year
+    Returns:
+        (str): the year in words
+    """
+    if dt.year < 1:
+        year = pronounce_number_cs(dt.year)
+        return f"{year} př. n. l." if bc else year
+    thousands, rest = divmod(dt.year, 1000)
+    hundreds, below = divmod(rest, 100)
+    words = []
+    if thousands:
+        words.append(_THOUSANDS_CS[thousands])
+    if hundreds:
+        words.append(_HUNDREDS_CS[hundreds])
+    if below:
+        words.append(pronounce_number_cs(below))
+    year = " ".join(words)
+    return f"{year} př. n. l." if bc else year
+
+
 def nice_time_cs(dt, speech=True, use_24hour=True, use_ampm=False):
     """
     Format a time to a comfortable human format

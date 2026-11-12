@@ -6,6 +6,33 @@ from ovos_number_parser.util import tokenize
 from ovos_utils.time import now_local
 
 
+def nice_year_sv(dt, bc=False):
+    """Format a year as Swedish reads it.
+
+    CLDR RBNF sv ``%spellout-numbering-year`` reads 1100 to 9999 in
+    hundreds, "1100/100: <<hundra[>>]": 1988 is "nittonhundraåttioåtta".
+    Other years read as the cardinal number: 1012 is "ettusentolv".
+    Språkrådet writes a number in words as one word: "Övriga tal skrivs
+    ihop: tjugofem, femtusentrettio." The era is the CLDR sv eraName
+    "före Kristus".
+
+    Args:
+        dt (datetime): date whose year to format
+        bc (bool): append "före Kristus" after the year
+    Returns:
+        (str): the year in words
+    """
+    def words(number):
+        return pronounce_number_sv(number).replace(" ", "")
+
+    hundreds, below = divmod(dt.year, 100)
+    if 11 <= hundreds <= 99:
+        year = words(hundreds) + "hundra" + (words(below) if below else "")
+    else:
+        year = words(dt.year)
+    return f"{year} före Kristus" if bc else year
+
+
 def nice_time_sv(dt, speech=True, use_24hour=False, use_ampm=False):
     """
     Format a time to a comfortable human format

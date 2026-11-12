@@ -125,10 +125,14 @@ def extract_datetime_nn(text, anchorDate=None, default_time=None):
             .replace(' om ', ' ').replace(' på ', ' ')
         wordList = s.split()
 
+        # an ordinal word is a day of the month only before a month name
+        # ("første marts"); anywhere else it is not a date ("første
+        # påskedag", "første gang") and must not become an hour.
         for idx, word in enumerate(wordList):
-            if is_ordinal_nn(word) is not False:
-                word = str(is_ordinal_nn(word))
-                wordList[idx] = word
+            following = wordList[idx + 1] if idx + 1 < len(wordList) else ""
+            if is_ordinal_nn(word) is not False and \
+                    (following in months or following in monthsShort):
+                wordList[idx] = str(is_ordinal_nn(word))
 
         return wordList
 

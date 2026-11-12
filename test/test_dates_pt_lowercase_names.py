@@ -18,11 +18,11 @@ class TestPortugueseLowercaseNames(unittest.TestCase):
             with self.subTest(lang=lang):
                 self.assertEqual(
                     nice_date(TUESDAY, lang, include_weekday=False),
-                    "doze de março, dois mil e vinte e quatro")
+                    "doze de março de dois mil e vinte e quatro")
 
     def test_weekday(self):
         self.assertEqual(nice_date(TUESDAY, "pt-PT"),
-                         "terça-feira, doze de março, dois mil e vinte e quatro")
+                         "terça-feira, doze de março de dois mil e vinte e quatro")
 
     def test_relative_to_now(self):
         self.assertEqual(nice_date(TUESDAY, "pt-PT", now=datetime(2024, 1, 5),
@@ -30,7 +30,7 @@ class TestPortugueseLowercaseNames(unittest.TestCase):
                          "doze de março")
 
     def test_nice_date_time(self):
-        date_part = "terça-feira, doze de março, dois mil e vinte e quatro "
+        date_part = "terça-feira, doze de março de dois mil e vinte e quatro "
         spoken = nice_date_time(TUESDAY, "pt-PT", now=datetime(2020, 1, 1))
         self.assertEqual(spoken[:len(date_part)], date_part)
 

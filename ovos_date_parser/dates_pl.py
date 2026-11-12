@@ -414,6 +414,72 @@ _ORDINAL_DAY_UNITS_PL = {
 }
 
 
+_ORDINAL_TENS_PL = {
+    2: 'dwudziestego', 3: 'trzydziestego', 4: 'czterdziestego',
+    5: 'pięćdziesiątego', 6: 'sześćdziesiątego', 7: 'siedemdziesiątego',
+    8: 'osiemdziesiątego', 9: 'dziewięćdziesiątego',
+}
+_HUNDREDS_PL = {
+    1: 'sto', 2: 'dwieście', 3: 'trzysta', 4: 'czterysta', 5: 'pięćset',
+    6: 'sześćset', 7: 'siedemset', 8: 'osiemset', 9: 'dziewięćset',
+}
+_ORDINAL_HUNDREDS_PL = {
+    1: 'setnego', 2: 'dwusetnego', 3: 'trzechsetnego', 4: 'czterechsetnego',
+    5: 'pięćsetnego', 6: 'sześćsetnego', 7: 'siedemsetnego',
+    8: 'osiemsetnego', 9: 'dziewięćsetnego',
+}
+_ORDINAL_THOUSANDS_PL = {
+    1: 'tysięcznego', 2: 'dwutysięcznego', 3: 'trzytysięcznego',
+    4: 'czterotysięcznego', 5: 'pięciotysięcznego', 6: 'sześciotysięcznego',
+    7: 'siedmiotysięcznego', 8: 'ośmiotysięcznego',
+    9: 'dziewięciotysięcznego',
+}
+
+
+def nice_year_pl(dt, bc=False, genitive=False):
+    """Format a year as Polish reads it: an ordinal.
+
+    A year said alone is a nominative ordinal (CLDR RBNF pl
+    ``%spellout-ordinal-masculine``): 2024 is "dwa tysiące dwudziesty
+    czwarty". Inside a date the year is a genitive ordinal (CLDR
+    ``%spellout-numbering-year``): 1905 is "tysiąc dziewięćset piątego".
+    The thousands stay cardinal before a remainder; a round number takes
+    the isolated ordinal ("dwutysięczny", "tysiąc dziewięćsetny").
+
+    Args:
+        dt (datetime): date whose year to format
+        bc (bool): append "p.n.e." after the year
+        genitive (bool): the genitive form a date takes
+    Returns:
+        (str): the year in words
+    """
+    thousands, rest = divmod(dt.year, 1000)
+    hundreds, below = divmod(rest, 100)
+    if not rest:
+        words = [_ORDINAL_THOUSANDS_PL[thousands]]
+    else:
+        words = [pronounce_number_pl(thousands * 1000)] if thousands else []
+        if not below:
+            words.append(_ORDINAL_HUNDREDS_PL[hundreds])
+        else:
+            if hundreds:
+                words.append(_HUNDREDS_PL[hundreds])
+            tens, units = divmod(below, 10)
+            if below < 20 or not units:
+                words.append(_ORDINAL_DAY_UNITS_PL.get(below)
+                             or _ORDINAL_TENS_PL[tens])
+            else:
+                words += [_ORDINAL_TENS_PL[tens], _ORDINAL_DAY_UNITS_PL[units]]
+    year = " ".join(words)
+    if not genitive:
+        # the nominative ending replaces the genitive -ego:
+        # "drugiego" -> "drugi", "piątego" -> "piąty"
+        year = re.sub(r"ego\b", "y", re.sub(r"iego\b", "i", year))
+    if bc:
+        return f"{year} p.n.e."
+    return year
+
+
 def _build_ordinal_days_pl():
     phrases = {}
     for day in range(1, 32):

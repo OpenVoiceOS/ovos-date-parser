@@ -14,7 +14,9 @@ from datetime import datetime
 
 from ovos_date_parser import extract_datetime
 
-ANCHOR = datetime(2017, 6, 27, 13, 4)  # fixed, deliberately non-midnight
+# fixed, deliberately non-midnight: a counted offset is arithmetic on the
+# anchor, so every answer keeps its 13:04
+ANCHOR = datetime(2017, 6, 27, 13, 4)
 
 
 def _dt(text):
@@ -26,20 +28,22 @@ def _dt(text):
 
 class TestPastMarkerOffsets(unittest.TestCase):
     def test_weeks(self):
-        self.assertEqual(_dt('pred 2 týždňami'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('pred 2 týždňami'),
+                         datetime(2017, 6, 13, 13, 4))
 
     def test_days(self):
-        self.assertEqual(_dt('pred 3 dňami'), datetime(2017, 6, 24))
+        self.assertEqual(_dt('pred 3 dňami'), datetime(2017, 6, 24, 13, 4))
 
     def test_months(self):
-        self.assertEqual(_dt('pred 3 mesiacmi'), datetime(2017, 3, 27))
+        self.assertEqual(_dt('pred 3 mesiacmi'),
+                         datetime(2017, 3, 27, 13, 4))
 
     def test_years(self):
-        self.assertEqual(_dt('pred 2 rokmi'), datetime(2015, 6, 27))
+        self.assertEqual(_dt('pred 2 rokmi'), datetime(2015, 6, 27, 13, 4))
 
     def test_sentence_context(self):
         self.assertEqual(_dt('stalo sa to pred 2 týždňami'),
-                         datetime(2017, 6, 13))
+                         datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         fut = _dt('cez 2 týždne')

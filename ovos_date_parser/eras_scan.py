@@ -49,7 +49,7 @@ import re
 from datetime import date, datetime
 from typing import Callable, List, Optional, Pattern, Tuple, Union
 
-from ovos_spec_tools import LocaleResources
+from ovos_spec_tools import LocaleResources, expand, read_resource_file
 
 from ovos_date_parser.eras import AstroDate, resolve_era
 from ovos_date_parser.ranges import DateTimeResolution
@@ -112,6 +112,51 @@ def _voc_reader(lang: str, locale_dir: str = LOCALE_DIR):
                 return reader.load_vocabulary(name, lang)
             except FileNotFoundError:
                 continue
+        raise FileNotFoundError(f"{name!r} for {lang!r}")
+
+    return read
+
+
+def _positional_voc_reader(lang: str, locale_dir: str = LOCALE_DIR):
+    """Return ``read(name) -> List[List[str]]``, one entry per FILE LINE.
+
+    ``LocaleResources.load_vocabulary`` returns the expanded sample set of a
+    whole file, so a line carrying alternatives contributes several entries and
+    a line the reader rejects contributes none. Either way the entry count stops
+    matching the line count, which is fatal for a file read by position such as
+    ``months.voc`` (12 lines, January first).
+
+    So the lines are read in order with the OVOS-INTENT-2 §3 common reader, and
+    each line is expanded on its own. Line N's samples stay line N's. The
+    per-file fallback of :func:`_voc_reader` is kept: the parser's own locale
+    wins, then chronologia's.
+
+    **A malformed line raises.** ``expand`` is called with no guard, so a line
+    ``ovos-spec-tools`` rejects -- a bare pipe outside a group, say, which
+    OVOS-INTENT-1 §3.6 forbids -- raises ``MalformedTemplate`` out of this
+    reader and out of ``load_scoped_vocabulary``. It is not skipped. Skipping
+    it is what made this reader necessary: a dropped line shifts every month
+    after it by one, and the caller reads the shifted table as a month table
+    and answers November for December. A locale tree the library cannot read
+    is reported, never guessed at.
+
+    This is the loader's contract and it is not the scan's.
+    ``extract_scoped_date`` still degrades to no-match on a table of the wrong
+    length, which is a different layer on a table already in memory; see
+    ``TestAMissizedFileDoesNotRaise``. Loading fails loud, scanning fails soft.
+    """
+    roots = [locale_dir]
+    chrono = _chronologia_locale_dir()
+    if os.path.normpath(chrono) != os.path.normpath(locale_dir):
+        roots.append(chrono)
+    finders = [LocaleResources(root) for root in roots]
+
+    def read(name: str) -> List[List[str]]:
+        for finder in finders:
+            path = finder.find(name, ".voc", lang)
+            if path is None:
+                continue
+            return [expand(line) for line in read_resource_file(path)]
         raise FileNotFoundError(f"{name!r} for {lang!r}")
 
     return read

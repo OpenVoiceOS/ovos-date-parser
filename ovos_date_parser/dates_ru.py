@@ -192,6 +192,9 @@ def nice_duration_ru(duration, speech=True):
         str: timespan as a string
     """
 
+    if isinstance(duration, timedelta):
+        duration = duration.total_seconds()
+
     if not speech:
         # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
         _days = int(duration // 86400)

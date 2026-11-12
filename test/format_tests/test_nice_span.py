@@ -199,12 +199,12 @@ def test_nice_span_en_no_roundtrip(name, missing, span):
 #: answers for a BC point. The era year is spoken, never the astronomical one.
 GOLD_BC_BY_LANG = {
     "en": ["January 1st, 300 BC", "January 300 BC", "300 BC"],
-    "pt-pt": ["Sábado, um de Janeiro, trezentos a.C.",
-              "Janeiro trezentos a.C.",
+    "pt-pt": ["sábado, um de janeiro, trezentos a.C.",
+              "janeiro trezentos a.C.",
               "trezentos a.C."],
-    "de-de": ["Samstag, erster Januar, drei hundert v.d.Z.",
-              "Januar drei hundert v.d.Z.",
-              "drei hundert v.d.Z."],
+    "de-de": ["Samstag, erster Januar, dreihundert v.d.Z.",
+              "Januar dreihundert v.d.Z.",
+              "dreihundert v.d.Z."],
 }
 
 BC_WIDTHS = [

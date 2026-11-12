@@ -33,8 +33,10 @@ from datetime import date
 from typing import Dict, List, Optional, Tuple
 
 from ovos_spec_tools import LocaleResources
+from ovos_utils.log import LOG
 
-from ovos_date_parser.eras_scan import LOCALE_DIR, _alt, _voc_reader
+from ovos_date_parser.eras_scan import (LOCALE_DIR, _alt, _voc_reader,
+                                        _positional_voc_reader)
 from ovos_date_parser.ranges import (DateTimeResolution, Hemisphere, Season,
                                      get_date_ordinal, last_season_date,
                                      next_season_date, season_to_date)
@@ -85,20 +87,109 @@ class ScopedVocabulary:
     this_word: str
 
 
-def _month_alt(line: str) -> str:
+#: One ``.voc`` per month, ``month_1`` for January through ``month_12`` for
+#: December. The number is in the FILE NAME, never a line position: the name
+#: maps to the month, so a file's lines are an unordered set and a spelling
+#: may sit on any of them. OVOS-INTENT-2 §4.3 requires that -- each slot-free
+#: file "loads as the union of the sample sets of all its lines" -- so nothing
+#: may depend on which line a spelling is on or on how many lines a file has.
+#:
+#: This is the shape ``chronologia`` already ships for all 61 of its packaged
+#: locales, and its own loader reads. Using the same names means one shape for
+#: one thing across the two roots this loader searches, rather than a second
+#: spelling that would need a translation layer or a migration of a
+#: dependency.
+_MONTH_VOC = tuple(f"month_{i}" for i in range(1, 13))
+
+#: ``months.voc`` is read only when no per-month file exists for the locale,
+#: and the read warns. Removal is at this version.
+MONTHS_VOC_REMOVAL_VERSION = "1.0.0"
+
+
+def _load_months(lang: str, read_lines, read) -> List[str]:
+    """The twelve month fragments, by FILE NAME rather than by line number.
+
+    ``read`` is the union reader for one named file and ``read_lines`` is the
+    per-line reader, used only for the deprecated ``months.voc`` path.
+
+    Three cases, and the loud one is the middle one:
+
+    * every per-month file present -> the twelve fragments, in ``_MONTH_VOC``
+      order. A month's spellings are the union of its file's lines, so two or
+      three spellings of one month are just two or three lines and no line
+      order means anything.
+    * SOME present and some missing -> a locale part-way through migration,
+      which would silently lose a month. Fail loud, naming the locale and the
+      month that is missing.
+    * none present -> fall back to the deprecated ``months.voc`` and warn.
+    """
+    def spellings(name):
+        """Every line of one month's file, as one phrase set. Which line a
+        spelling sits on means nothing; the file is a union."""
+        try:
+            return read(name)
+        except FileNotFoundError:
+            return None
+
+    found = {name: spellings(name) for name in _MONTH_VOC}
+    present = [n for n, v in found.items() if v]
+    if present and len(present) < len(_MONTH_VOC):
+        missing = [n for n in _MONTH_VOC if not found[n]]
+        raise FileNotFoundError(
+            f"locale {lang!r} has {len(present)} of {len(_MONTH_VOC)} month "
+            f"vocabularies and is missing "
+            f"{', '.join(m + '.voc' for m in missing)}. A month per file is "
+            f"the whole table: a partial set would drop a month silently.")
+    if present:
+        # the same fragment form the positional path produced, so a month
+        # spelled two ways is one deduped, longest-first alternation
+        return [_month_alt(found[name]) for name in _MONTH_VOC]
+
+    try:
+        lines = read_lines("months")
+    except FileNotFoundError:
+        return []
+    if lines:
+        LOG.warning(
+            f"locale {lang!r} still ships months.voc, which is read by "
+            f"position and cannot hold a spelling on its own line. It is "
+            f"deprecated and stops being read in "
+            f"{MONTHS_VOC_REMOVAL_VERSION}; split it into "
+            f"{_MONTH_VOC[0]}.voc .. {_MONTH_VOC[-1]}.voc, one month per "
+            f"file, every spelling on its own line.")
+    return [_month_alt(m) for m in lines]
+
+
+def _month_alt(variants: List[str]) -> str:
     """One month's line from ``months.voc`` as a regex fragment.
 
     The file is read BY POSITION: line 1 is January and line 12 is December.
     A spelling variant therefore cannot have a line of its own, because an
-    extra line shifts every month after it by one and pushes December off
-    the end. Variants go on the month's own line, separated by ``|``.
+    extra line shifts every month after it by one and pushes December off the
+    end. Variants go on the month's own line, as one group: ``(février|fevrier)``.
+    A bare ``février|fevrier`` is malformed — OVOS-INTENT-1 §3.6, "a ``|`` that
+    is inside no group" — and ovos-spec-tools 1.14.0a1 skips such a line, which
+    took French to 11 months and moved every month after February.
+
+    ``variants`` is that one line's expanded sample set, from
+    :func:`_positional_voc_reader`, so the caller keeps line N's samples on
+    line N.
 
     Each variant is escaped, so nothing in a vocabulary file is ever read as
     a regex. The alternation is wrapped, so the caller can embed the result
-    in a larger group without the ``|`` escaping its scope.
+    in a larger group without the ``|`` escaping its scope. Longest first, so
+    no variant is shadowed by one of its own prefixes.
     """
-    variants = [v.strip() for v in line.split("|") if v.strip()]
-    return "(?:" + "|".join(re.escape(v) for v in variants) + ")"
+    seen = []
+    for variant in variants:
+        variant = variant.strip()
+        if variant and variant not in seen:
+            seen.append(variant)
+    # a stable sort on length alone, so two variants of the same length keep
+    # the order the file gave them: a set here made the fragment depend on the
+    # hash seed and the assertion on it flaky
+    ordered = sorted(seen, key=len, reverse=True)
+    return "(?:" + "|".join(re.escape(v) for v in ordered) + ")"
 
 
 def load_scoped_vocabulary(lang: str,
@@ -110,13 +201,14 @@ def load_scoped_vocabulary(lang: str,
     ``unit_week.voc``, ``unit_month.voc``, ``unit_year.voc``,
     ``unit_decade.voc``, ``unit_century.voc``, ``unit_millennium.voc``,
     ``months.voc`` (exactly 12 lines, January first, one line per month,
-    spelling variants on that line separated by ``|``), ``season_spring.voc``,
+    spelling variants on that line as one group, ``(a|b)``), ``season_spring.voc``,
     ``season_summer.voc``, ``season_fall.voc``, ``season_winter.voc``,
     ``ordinal_suffixes.voc``, ``marker_of.voc``, ``marker_article.voc``,
     ``marker_year_word.voc``, ``marker_last.voc``, ``marker_next.voc``,
     ``marker_this.voc``.
     """
     read = _voc_reader(lang, locale_dir)
+    read_lines = _positional_voc_reader(lang, locale_dir)
 
     def voc(name):
         try:
@@ -125,13 +217,13 @@ def load_scoped_vocabulary(lang: str,
             return None
         return _alt(phrases) if phrases else None
 
-    months = read("months")
+    months = _load_months(lang, read_lines, read)
     ord_suf = voc("ordinal_suffixes")
     return ScopedVocabulary(
         units={u: voc(f"unit_{u}") for u in
                ("day", "week", "month", "year", "decade", "century",
                 "millennium") if voc(f"unit_{u}")},
-        months=[_month_alt(m) for m in months],
+        months=months,
         seasons={s: voc(f"season_{n}") for s, n in
                  ((Season.SPRING, "spring"), (Season.SUMMER, "summer"),
                   (Season.FALL, "fall"), (Season.WINTER, "winter"))
@@ -162,10 +254,11 @@ def _art(vocab):
 
 def extract_scoped_date(text: str, vocab: ScopedVocabulary,
                         ref_date: Optional[date] = None,
-                        hemisphere: Hemisphere = Hemisphere.NORTH
+                        hemisphere: Hemisphere = Hemisphere.NORTH,
+                        lang: Optional[str] = None
                         ) -> Optional[Tuple[date, str,
                                             DateTimeResolution]]:
-    """Extract a calendar-scoped ordinal or season reference.
+    """Extract a calendar-scoped ordinal, season or named-holiday reference.
 
     Args:
         text: normalised (digits, lowercase-insensitive) phrase.
@@ -173,10 +266,17 @@ def extract_scoped_date(text: str, vocab: ScopedVocabulary,
         ref_date: anchor for relative scopes (default: today via the
             underlying range helpers).
         hemisphere: season table to use.
+        lang: the BCP-47 code of ``text``. A named holiday is the one
+            reference here whose surfaces are not in ``vocab``: the rule
+            behind "easter" lives in :mod:`chronologia`, keyed by language,
+            so the holiday reading is offered only when the caller names the
+            language. Without it the function reads exactly what it always
+            read.
 
     Returns:
         ``(date, remainder, resolution)`` or ``None`` when no scoped
-        phrasing is present.
+        phrasing is present. A holiday comes back at
+        :attr:`DateTimeResolution.DAY`, the width chronologia gives it.
     """
     if not text:
         return None
@@ -297,4 +397,12 @@ def extract_scoped_date(text: str, vocab: ScopedVocabulary,
             else:  # this / bare: the season's start in the anchor year
                 value = season_to_date(season, ref_date, hemisphere)
             return _finish(match, value, DateTimeResolution.MONTH)
+    # -- a named holiday, the one reference whose surfaces are chronologia's
+    if lang:
+        from ovos_date_parser.holidays import extract_holiday_date
+        got = extract_holiday_date(text, lang, ref_date)
+        if got is not None:
+            moment, remainder = got
+            return moment, remainder, DateTimeResolution.DAY
+
     return None

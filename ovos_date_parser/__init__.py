@@ -3,12 +3,16 @@ import os
 import re
 from collections import namedtuple
 from dataclasses import dataclass
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, tzinfo
+from functools import lru_cache
+from importlib import import_module
 from typing import Callable, List, Optional, Tuple, Union
+from zoneinfo import ZoneInfo
 
 import dateparser # fallback parser
+from dateparser.conf import settings as dateparser_settings
+from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
-from ovos_config import Configuration
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
@@ -26,13 +30,17 @@ from ovos_date_parser.ranges import (
 from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
-from ovos_date_parser.scoped_en import extract_scoped_date_en, SCOPED_VOCAB_EN
-from ovos_date_parser.eras_en import extract_era_date_en, ERA_PATTERNS_EN
-from ovos_date_parser.eras_pt import extract_era_date_pt, ERA_PATTERNS_PT
-from ovos_date_parser.eras_es import extract_era_date_es, ERA_PATTERNS_ES
-from ovos_date_parser.eras_fr import extract_era_date_fr, ERA_PATTERNS_FR
-from ovos_date_parser.eras_de import extract_era_date_de, ERA_PATTERNS_DE
-from ovos_date_parser.eras_it import extract_era_date_it, ERA_PATTERNS_IT
+from ovos_date_parser.scoped_en import extract_scoped_date_en
+from ovos_date_parser.holidays import (_holiday_answer, extract_holiday_date,
+                                       extract_holiday_span,
+                                       holiday_overrides_engine,
+                                       holiday_surfaces)
+from ovos_date_parser.eras_en import extract_era_date_en
+from ovos_date_parser.eras_pt import extract_era_date_pt
+from ovos_date_parser.eras_es import extract_era_date_es
+from ovos_date_parser.eras_fr import extract_era_date_fr
+from ovos_date_parser.eras_de import extract_era_date_de
+from ovos_date_parser.eras_it import extract_era_date_it
 from ovos_date_parser.astrodate import (AstroDate, DateSpan, civil_add,
                                         resolve_wall_clock)
 from ovos_date_parser.eras import (
@@ -42,7 +50,7 @@ from ovos_date_parser.eras import (
 # Newer reckoning-core surface, re-exported so downstream code can reach the
 # timeline, named-period and radiocarbon-calibration facilities alongside the
 # established date-parsing API.
-from chronologia import TIMELINES, PERIODS, calibrate_c14
+from chronologia import TIMELINES, PERIODS, calibrate_c14, DAY_PARTS
 from ovos_date_parser.duration import (
     DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
 )
@@ -99,6 +107,7 @@ from ovos_date_parser.dates_es import (
 )
 from ovos_date_parser.dates_eu import (
     extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
+    nice_year_eu, nice_date_year_eu, nice_date_day_eu, nice_time_inessive_eu,
 )
 from ovos_date_parser.dates_et import (
     extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
@@ -384,6 +393,270 @@ def extract_duration(
     return None, text
 
 
+def _search_dates_word_by_word(text: str, language: str, settings: dict
+                               ) -> Optional[Tuple[int, int, datetime]]:
+    """Search again with a space between the words of an unspaced language.
+
+    For a language dateparser marks ``no_word_spacing`` (zh, ja),
+    ``Locale.translate_search`` joins the English words it translates a
+    chunk into with no space either. 明天星期几 is read as 明天 + 星期 + 几,
+    and 明天星期 becomes "in 1 dayweek", which the English parser cannot
+    read, so nothing is found. A space between the words dateparser itself
+    splits the text into survives the translation, the same chunk becomes
+    "in 1 day week", and 明天 is read.
+
+    Only zh calls it. In ja the spaced search reads 時 as "hour", so
+    明日の午後3時に会議 would come back three hours past the anchor's
+    clock instead of None.
+
+    Args:
+        text: The text to search, as written.
+        language: The dateparser language code, such as ``"zh"``.
+        settings: The dateparser settings the fallback searched with.
+
+    Returns:
+        ``(start, end, date)`` for the first date found, where
+        ``text[start:end]`` is the date text as written, or None when the
+        language is spaced, the split does not cover the text, or nothing
+        is found.
+    """
+    try:
+        locale = default_loader.get_locale(language)
+        if "no_word_spacing" not in locale.info:
+            return None
+        words = locale._word_split(text, settings=dateparser_settings)
+    except Exception:  # private dateparser API, absent or changed
+        return None
+    if "".join(words) != text:
+        return None
+
+    spaced = ""
+    origin = []  # the index in ``text`` of each character of ``spaced``
+    position = 0
+    for word in words:
+        if word.isspace():  # a space already written takes no other
+            position += len(word)
+            continue
+        if spaced:
+            spaced += " "
+            origin.append(None)
+        spaced += word
+        origin.extend(range(position, position + len(word)))
+        position += len(word)
+    if spaced == text:
+        return None
+
+    dates = search_dates(spaced, languages=[language], settings=settings)
+    if not dates:
+        return None
+    date_txt, date = dates[0]
+    start = spaced.find(date_txt)
+    if start < 0:
+        return None
+    covered = [i for i in origin[start:start + len(date_txt)] if i is not None]
+    if not covered:
+        return None
+    return covered[0], covered[-1] + 1, date
+
+
+# A clock, or a part of the day, in zh. The spaced search reads none of them:
+# 明天下午三点 would come back as tomorrow at the anchor's clock.
+_ZH_CLOCK = re.compile(r"[点點时時分秒钟鐘]|上午|下午|中午|早上|早晨|晚上|凌晨"
+                       r"|傍晚|夜里|夜裡|半夜|午夜|今晚|明晚|昨晚|明早")
+
+
+def _extract_date_zh_unspaced(text: str, settings: dict,
+                              default_time: Optional[time] = None
+                              ) -> Optional[Tuple[datetime, str]]:
+    """Read a zh date the fallback missed because of dateparser's join.
+
+    The last step of the dateparser fallback for zh, reached only when the
+    other two found nothing. It reads a date only, so a text that holds a
+    clock or a part of the day is left alone and stays None: the spaced
+    search would drop the hour and answer with the anchor's.
+
+    Args:
+        text: The zh text, as written.
+        settings: The dateparser settings the fallback searched with.
+        default_time: The time to give the date, since the text has none.
+
+    Returns:
+        The date and the text with only that date's span taken out, or None.
+    """
+    if _ZH_CLOCK.search(text):
+        return None
+    found = _search_dates_word_by_word(text, "zh", settings)
+    if found is None:
+        return None
+    start, end, date = found
+    if default_time is not None:
+        date = date.replace(hour=default_time.hour,
+                            minute=default_time.minute,
+                            second=default_time.second,
+                            microsecond=default_time.microsecond)
+    return date, text[:start] + text[end:]
+
+
+#: Locales whose ``extract_datetime`` is answered by chronologia rather than
+#: by this package's own per-language extractor.
+#:
+#: A locale joins the list when chronologia answers every phrase the legacy
+#: extractor answers CORRECTLY -- not merely every phrase it answers. The
+#: legacy extractor is wrong about some of them: it reads "at 13 pm" as 13:00
+#: and "at 23 am" as 11:00, it answers a bare duration ("trois jours",
+#: "dix secondes") with a date, and it reads "j'ai vingt et un ans" -- an age --
+#: as the year 2038. Reproducing those would be a regression dressed as parity.
+#:
+#: What holds the rest back, so it can be checked rather than guessed at:
+#:
+#: * Bulgarian answers "sloji tajmer za dva chasa i trideset minuti" -- set a
+#:   timer for two and a half hours -- with two o'clock and a mangled leftover,
+#:   and strands the preposition opening a clock time.
+#: * French strands the article before a date ("le 15 juin").
+#: * Polish reads a bare past month as this year rather than next, so
+#:   "stycznia" said in June is five months behind.
+#: * Ukrainian marks a day of the month with a bare genitive ordinal
+#:   ("dvadtsyatoho"), where chronologia licenses a bare ordinal only behind a
+#:   preposition, as English does with "on the 20th". That is a library-wide
+#:   rule, not a Ukrainian omission, and changing it is not a vocabulary fix.
+CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "sk"})
+
+#: A span this narrow names an instant rather than a stretch: "at 9am
+#: tomorrow" is a named day composed with a clock, and the clock is what the
+#: speaker meant.
+_EXACT = timedelta(minutes=1)
+
+#: A stretch this wide covers whole days, so it names a date.
+_DAY = timedelta(days=1)
+
+
+@lru_cache(maxsize=None)
+def _daypart_bands(lang: str) -> frozenset:
+    """The (start, end) times of the locale's declared parts of the day."""
+    code = lang.split("-")[0]
+    return frozenset((b.start, b.end) for b in DAY_PARTS.values()
+                     if b.lang == code)
+
+
+def _is_daypart(span, lang: str) -> bool:
+    """True when the span is exactly one of the locale's parts of the day.
+
+    Width alone cannot answer this. An offset is narrow too -- "in two hours"
+    is an hour wide, being an hour-grained answer -- and taking the middle of
+    one would answer half an hour late. Only a span whose edges are a declared
+    band is a part of the day.
+    """
+    return (span.start.time(), span.end.time()) in _daypart_bands(lang)
+
+
+def _instant(span, lang: str, default_time: Optional[time],
+             zone: Optional[tzinfo]) -> Optional[datetime]:
+    """The instant that best answers a span, or None if it cannot be one.
+
+    chronologia answers a stretch of time because that is what a phrase
+    names. This signature answers an instant, so one has to be chosen.
+
+    An exact time is its own answer. A part of the day is a stretch the
+    speaker did not narrow, so ``default_time`` decides within it when the
+    caller supplied one that lands inside, and otherwise the middle of the
+    band answers -- the expected time when nothing narrows it further. The
+    middle is whatever the locale's own boundaries make it: French ``matin``
+    opens at 04:00, so its opening edge would answer "ce matin" with four in
+    the morning, which no speaker means. Everything else starts when it
+    starts. ``default_time`` supplies the time of day only where the phrase
+    left it unsaid: a day or wider that opens at midnight names a date, while
+    a counted offset has already fixed a moment and keeps the anchor's clock.
+    "in two hours" is 15:04 at a 13:04 anchor, and "in three days" is three
+    days later at 13:04, so a default must not overwrite either.
+
+    A span outside the range ``datetime`` can hold has no instant. chronologia
+    reads "44 bc" and "66 million years ago" correctly and this signature
+    cannot carry either, so the answer is None rather than an exception --
+    :func:`extract_timespan` is the way to reach them.
+
+    chronologia answers in the anchor's wall clock and drops its zone, so the
+    instant takes ``zone``, the anchor's zone.
+    """
+    start = span.start
+    if span.end - start <= _EXACT:
+        return _fits_datetime(start, zone)
+    if _is_daypart(span, lang):
+        if default_time is not None:
+            candidate = start.replace(hour=default_time.hour,
+                                      minute=default_time.minute,
+                                      second=default_time.second)
+            if span.contains(candidate):
+                return _fits_datetime(candidate, zone)
+        return _fits_datetime(start + (span.end - start) / 2, zone)
+    if (span.end - start >= _DAY and start.time() == time(0, 0)
+            and default_time is not None):
+        # A stretch of whole days that opens at midnight names a date, and
+        # the time of day is not part of what was said, so ``default_time``
+        # supplies it. A counted offset opens at the anchor's clock instead.
+        return _fits_datetime(
+            start.replace(hour=default_time.hour,
+                          minute=default_time.minute,
+                          second=default_time.second), zone)
+    return _fits_datetime(start, zone)
+
+
+def _fits_datetime(point, zone: Optional[tzinfo]) -> Optional[datetime]:
+    """An ``AstroDate`` as a ``datetime`` in ``zone``, or None when the
+    year cannot fit."""
+    try:
+        return datetime(point.year, point.month, point.day, point.hour,
+                        point.minute, point.second, point.microsecond,
+                        tzinfo=zone)
+    except ValueError:
+        return None
+
+
+def _extract_datetime_chronologia(
+        text: str, lang: str, anchorDate: Optional[datetime],
+        default_time: Optional[time]) -> Optional[Tuple[datetime, str]]:
+    """Answer through chronologia, which owns the extraction for this locale.
+
+    :func:`extract_timespan` rather than the candidate list, because it is the
+    gated reading. An impossible date leaves a candidate behind -- "31 travanj
+    2020" offers April with the 31 stranded -- and answering that would be a
+    date the speaker did not give.
+
+    With no anchor, "now" is :func:`now_local`, the configured zone's wall
+    clock, as on every other locale.
+    """
+    anchor = anchorDate or now_local()
+    found = extract_timespan(text, lang, anchor)
+    if found is None:
+        # chronologia answers spans, so it declines a phrase that names a
+        # length rather than a point -- "2 hodiny 30 minut" is two and a half
+        # hours, not a time of day.  This signature answers the instant a
+        # skill schedules, and "remind me in two and a half hours" is an
+        # ordinary thing to say, so a length the duration reader consumes
+        # whole counts forward from the anchor.
+        return _duration_offset(text, lang, anchor)
+    return _routed(found, lang, default_time, anchor.tzinfo)
+
+
+def _duration_offset(text: str, lang: str,
+                     anchor: datetime) -> Optional[list]:
+    """A bare length, read as that far from now."""
+    try:
+        got = _chronologia_duration(text, lang)
+    except Exception:
+        return None
+    if not (got and got.duration and not got.remainder.strip()):
+        return None
+    return [anchor + got.duration, ""]
+
+
+def _routed(found, lang: str, default_time: Optional[time],
+            zone: Optional[tzinfo]):
+    moment = _instant(found.span, lang, default_time, zone)
+    if moment is None:
+        return None
+    return [moment, found.remainder]
+
+
 def extract_datetime(
         text: str,
         lang: str,
@@ -402,7 +675,123 @@ def extract_datetime(
     Returns:
         A tuple with the extracted date as datetime and the leftover string,
         or None if no date or time related text is found.
+
+    A named holiday is a date this library's per-language engines carry no
+    vocabulary for: "christmas", "noel" and "proxima pascoa" are rules in
+    :mod:`chronologia`, not calendar constructions. When the language engine
+    reads no date, :func:`ovos_date_parser.holidays.extract_holiday_span`
+    asks chronologia, and its answer is taken only when chronologia says a
+    holiday construction is what matched. An utterance the engine already
+    reads keeps the engine's answer, with one exception: a holiday whose own
+    name is written with calendar vocabulary ("good friday", "palm sunday")
+    is read by the engine as that weekday, so when the engine answers the
+    holiday phrase on its own with the same date it gave the whole text
+    (:func:`~ovos_date_parser.holidays.holiday_overrides_engine`) the holiday
+    layer answers instead. A time of day, an ordinal or any other word beside
+    the holiday name does not stop this, because it does not move the date.
+    A date the engine read from a calendar word the phrase does not cover is
+    a different date, and stays the engine's.
     """
+    found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
+                                     default_time=default_time)
+    if found is not None and not holiday_overrides_engine(
+            text, lang, found[0], found[1], anchorDate=anchorDate):
+        return found
+    holiday = _holiday_answer(text, lang, anchorDate)
+    if holiday is None:
+        # one return for both ways of arriving here: the engine read nothing
+        # and ``found`` is None, which is the old contract, or the override
+        # sent an engine answer to a holiday layer that then declined, and
+        # the engine's answer stands.
+        return found
+    moment, remainder, clock_read = holiday
+    if default_time is not None and not clock_read:
+        moment = moment.replace(hour=default_time.hour,
+                                minute=default_time.minute,
+                                second=default_time.second,
+                                microsecond=default_time.microsecond)
+    return moment, remainder
+
+
+# A weekday named with the word that places it: 次の金曜日, 来週の金曜日.
+# dateparser's ja dictionary has no 次 or 今度, so 次の金曜日 is read as a bare
+# 金曜日, which it places in the past; and it joins 来週 + 金曜日 into
+# "in 1 weekfriday", which it cannot read.
+# 再来週 and 先々週 come before 来週 and 先週 so the longer word wins: in
+# 再来週の金曜日 a search for 来週 alone would start inside 再来週 and land a
+# week early.
+_JA_WEEKDAY = re.compile(
+    r"(?P<week>次の|今度の|再来週の?|先々週の?|来週の?|今週の?|先週の?)"
+    r"(?P<day>[月火水木金土日])曜日?")
+_JA_WEEKDAYS = "月火水木金土日"  # Monday first, as datetime.weekday() counts
+_JA_WEEK_OFFSET = {"再来週": 2, "来週": 1, "今週": 0, "先週": -1, "先々週": -2}
+# A clock, or a part of the day. The date is read without it, so a text that
+# holds one is left to the fallback rather than answered at midnight.
+# A numeric clock (13:00, or full-width １３：００) counts as one too.
+_JA_CLOCK = re.compile(
+    r"[時分秒]|午前|午後|正午|朝|昼|夕方|晩|夜|[0-9０-９]{1,2}[:：][0-9０-９]{2}")
+
+
+def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
+                        default_time: Optional[time] = None
+                        ) -> Optional[Tuple[datetime, str]]:
+    """Read a ja weekday named with 次の, 今度の, 再来週, 来週, 今週, 先週 or 先々週.
+
+    次の and 今度の are the first such weekday after the anchor's date, so on
+    a Friday 次の金曜日 is a week away. 来週, 今週 and 先週 are the weekday
+    in the week after, the same as, or before the anchor's, with weeks
+    starting on Monday (ISO 8601).
+
+    Args:
+        text: The ja text, as written.
+        anchorDate: The date to count from; now when None.
+        default_time: The time to give the date; midnight when None.
+
+    Returns:
+        The date and the text without the phrase read, or None when the
+        text names no such weekday or holds a clock. The date is
+        timezone-aware and counted in the configured timezone, like every
+        other ja answer: those come from the fallback, which reads a naive
+        anchor as wall time in that timezone and moves an aware one into
+        it before counting days.
+    """
+    match = _JA_WEEKDAY.search(text)
+    if match is None or _JA_CLOCK.search(text):
+        return None
+    from ovos_config import Configuration
+    tz = ZoneInfo(Configuration()["location"]["timezone"]["code"])
+    anchor = anchorDate or now_local()
+    if anchor.tzinfo is None:
+        anchor = anchor.replace(tzinfo=tz)
+    else:
+        anchor = anchor.astimezone(tz)
+    weekday = _JA_WEEKDAYS.index(match.group("day"))
+    week = match.group("week").rstrip("の")
+    if week in _JA_WEEK_OFFSET:
+        days = weekday - anchor.weekday() + 7 * _JA_WEEK_OFFSET[week]
+    else:  # 次 and 今度: the first one after today
+        days = (weekday - anchor.weekday() - 1) % 7 + 1
+    moment = default_time or time(0, 0)
+    found = (anchor + timedelta(days=days)).replace(
+        hour=moment.hour, minute=moment.minute, second=moment.second,
+        microsecond=moment.microsecond)
+    return found, text[:match.start()] + text[match.end():]
+
+
+def _extract_datetime_engine(
+        text: str,
+        lang: str,
+        anchorDate: Optional[datetime] = None,
+        default_time: Optional[time] = None,
+) -> Optional[Tuple[datetime, str]]:
+    """The per-language extractors, and the dateparser fallback behind them.
+
+    Split out of :func:`extract_datetime` so the holiday layer has a place to
+    stand behind every language at once, instead of a branch in each.
+    """
+    if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
+        return _extract_datetime_chronologia(text, lang, anchorDate,
+                                             default_time)
     if lang.startswith("an"):
         return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ar"):
@@ -481,10 +870,17 @@ def extract_datetime(
         return extract_datetime_id(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("tr"):
         return extract_datetime_tr(text, anchorDate=anchorDate, default_time=default_time)
+    if lang.split("-")[0].lower() == "ja":
+        found = _extract_weekday_ja(text, anchorDate, default_time)
+        if found:
+            return found
 
     # fallback parser
     LOG.warning(f"{lang} is not implemented! attempting to use fallback date parser")
 
+    # ovos-config creates its config folder on import, so it loads here and
+    # not when the package is imported.
+    from ovos_config import Configuration
     tzstr = Configuration()["location"]["timezone"]["code"]
     fmt = Configuration().get("date_format", 'DMY')
     settings = {'RELATIVE_BASE': anchorDate or now_local(),
@@ -512,6 +908,16 @@ def extract_datetime(
             return date, text.replace(date_txt, "")
     except:
         pass
+
+    # zh is written without spaces, and dateparser joined the English words
+    # it translated it into with no space either
+    if lang.split("-")[0].lower() == "zh":
+        try:
+            found = _extract_date_zh_unspaced(text, settings, default_time)
+            if found:
+                return found
+        except Exception:
+            pass
 
     # fallback found nothing, report no date/time found
     return None
@@ -804,6 +1210,7 @@ def extract_duration_spans(text: str, lang: str) -> List[DurationSpan]:
 #: here unchanged so the parser keeps its public surface; the legacy
 #: ``extract_datetime`` / ``extract_date_xx`` paths are untouched by this.
 from chronologia import extract_timespan, explain
+from chronologia import extract_duration as _chronologia_duration
 
 
 NUMBER_TUPLE = namedtuple(
@@ -819,9 +1226,21 @@ class DateTimeFormat:
     def __init__(self, config_path):
         self.lang_config = {}
         self.config_path = config_path
+        self._resource_keys = {}
+
+    def _resource_key(self, lang):
+        """The key ``lang`` is cached under: the full tag when a regional
+        resource folder ships for it (``res/pt-br/``), else the language."""
+        if lang not in self._resource_keys:
+            tag = lang.lower()
+            regional = os.path.join(self.config_path, tag, 'date_time.json')
+            self._resource_keys[lang] = (
+                tag if "-" in tag and os.path.isfile(regional)
+                else tag.split("-")[0])
+        return self._resource_keys[lang]
 
     def cache(self, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         # "no" is a common alias for Norwegian Bokmål (nb); the dedicated
         # nice_time/extract_datetime/extract_duration functions already
         # special-case it, but this generic JSON-driven engine (used by
@@ -848,7 +1267,7 @@ class DateTimeFormat:
                     i = i + 1
 
     def _number_strings(self, number, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         x = (self.lang_config[lang]['number'].get(str(number % 10)) or
              str(number % 10))
         xx = (self.lang_config[lang]['number'].get(str(number % 100)) or
@@ -885,7 +1304,7 @@ class DateTimeFormat:
             x_in_x000, x0_in_x000, x_in_0x00)
 
     def _format_string(self, number, format_section, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         s = self.lang_config[lang][format_section]['default']
         i = 1
         while self.lang_config[lang][format_section].get(str(i)):
@@ -936,7 +1355,8 @@ class DateTimeFormat:
                         formatted_hundreds=formatted_hundreds,
                         number=str(number % 10000))
 
-    def date_format(self, dt, lang, now, include_weekday=True):
+    def date_format(self, dt, lang, now, include_weekday=True,
+                    formatted_year=None, formatted_day=None):
         """
         Format a datetime object as a localized date string according to language-specific templates.
         
@@ -945,12 +1365,18 @@ class DateTimeFormat:
             lang (str): Language code for localization.
             now (datetime): Reference date for relative formatting (e.g., today, tomorrow).
             include_weekday (bool): If True, includes the weekday name in the output.
+            formatted_year (str, optional): The year as the language's own
+                speller writes it, used instead of the ``year_format`` resource.
+            formatted_day (str, optional): The day as the language's own
+                speller writes it, used instead of the ``date`` resource.
         
         Returns:
             str: The formatted date string, localized and optionally including the weekday.
         """
         format_str = 'date_full'
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
+        if lang not in self.lang_config:
+            raise NotImplementedError(f"Unsupported language: {lang}")
         if now:
             if dt.year == now.year:
                 format_str = 'date_full_no_year'
@@ -969,25 +1395,32 @@ class DateTimeFormat:
         unformatted = self.lang_config[lang]['date_format'][format_str]
         args = dict(
                 month=self.lang_config[lang]['month'][str(dt.month)],
-                day=self.lang_config[lang]['date'][str(dt.day)],
-                formatted_year=self.year_format(dt, lang, False)
+                day=formatted_day or self.lang_config[lang]['date'][str(dt.day)],
+                formatted_year=formatted_year or self.year_format(dt, lang, False)
         )
         if include_weekday:
             args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
         else:
-            unformatted = re.sub(r"{weekday}\s*,?\s*", "", unformatted).strip(", ")
+            unformatted = re.sub(r"{weekday}\s*[,،]?\s*", "", unformatted).strip(", ،")
         return unformatted.format(**args)
 
-    def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
-        lang = lang.split("-")[0]
-        date_str = self.date_format(dt, lang, now)
-        time_str = nice_time(dt, lang, use_24hour=use_24hour,
-                             use_ampm=use_ampm)
+    def date_time_format(self, dt, lang, now, use_24hour, use_ampm,
+                         formatted_year=None, formatted_day=None,
+                         formatted_time=None):
+        lang = self._resource_key(lang)
+        date_str = self.date_format(dt, lang, now,
+                                    formatted_year=formatted_year,
+                                    formatted_day=formatted_day)
+        time_str = formatted_time or nice_time(dt, lang,
+                                               use_24hour=use_24hour,
+                                               use_ampm=use_ampm)
         return self.lang_config[lang]['date_time_format']['date_time'].format(
             formatted_date=date_str, formatted_time=time_str)
 
     def year_format(self, dt, lang, bc, ad=False):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
+        if lang not in self.lang_config:
+            raise NotImplementedError(f"Unsupported language: {lang}")
         number_tuple = self._number_strings(dt.year, lang)
         formatted_bc = (
             self.lang_config[lang]['year_format']['bc'] if bc else '')
@@ -1043,6 +1476,7 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     """
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_pt(dt, now, include_weekday)
@@ -1064,8 +1498,13 @@ def nice_date(dt, lang, now=None, include_weekday=True):
         return nice_date_an(dt, now, include_weekday)
     if lang.startswith("fy"):
         return nice_date_fy(dt, now, include_weekday)
-    date_time_format.cache(lang)
-    return date_time_format.date_format(dt, lang, now, include_weekday)
+    date_time_format.cache(tag)
+    if lang == "eu":
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday,
+            formatted_year=nice_date_year_eu(dt),
+            formatted_day=nice_date_day_eu(dt))
+    return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
 def nice_date_time(dt, lang, now=None, use_24hour=False,
@@ -1091,6 +1530,7 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     """
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_date_time_pt(dt, now, use_24hour, use_ampm)
@@ -1112,8 +1552,14 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         return nice_date_time_an(dt, now, use_24hour, use_ampm)
     if lang.startswith("fy"):
         return nice_date_time_fy(dt, now, use_24hour, use_ampm)
-    date_time_format.cache(lang)
-    return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
+    date_time_format.cache(tag)
+    if lang == "eu":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_date_year_eu(dt),
+            formatted_day=nice_date_day_eu(dt),
+            formatted_time=nice_time_inessive_eu(dt, use_24hour, use_ampm))
+    return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
@@ -1237,6 +1683,7 @@ def nice_year(dt, lang, bc=False, ad=False):
         # AstroDate counts years astronomically (1 BC is year 0, 300 BC is
         # -299); what is spoken is the era year, so hand the formatters that.
         dt = datetime(1 - dt.year, 1, 1)
+    tag = lang
     lang = lang.lower().split("-")[0]
     if lang.startswith("pt"):
         return nice_year_pt(dt, bc)
@@ -1262,8 +1709,10 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_fy(dt, bc)
     if lang.startswith("et"):
         return nice_year_et(dt, bc)
-    date_time_format.cache(lang)
-    return date_time_format.year_format(dt, lang, bc, ad)
+    if lang.startswith("eu"):
+        return nice_year_eu(dt, bc)
+    date_time_format.cache(tag)
+    return date_time_format.year_format(dt, tag, bc, ad)
 
 
 #: English month names, indexed 1..12. The unbounded :class:`AstroDate`
@@ -1521,6 +1970,7 @@ def nice_span(span: "DateSpan", lang: str = "en-us") -> str:
 
 
 def get_date_strings(dt, lang, date_format=None, time_format="full"):
+    from ovos_config import Configuration
     date_format = date_format or Configuration().get("date_format", 'DMY')
     lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
@@ -1545,3 +1995,15 @@ def get_date_strings(dt, lang, date_format=None, time_format="full"):
         'year_string': yearstr,
         "weekday_string": weekdaystr
     }
+
+
+#: Tables the package re-exports from the modules that build them on first use.
+_LAZY_TABLES = {"SCOPED_VOCAB_EN": "scoped_en",
+                **{f"ERA_PATTERNS_{code.upper()}": f"eras_{code}"
+                   for code in ("en", "pt", "es", "fr", "de", "it")}}
+
+
+def __getattr__(name):
+    if name in _LAZY_TABLES:
+        return getattr(import_module(f"ovos_date_parser.{_LAZY_TABLES[name]}"), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

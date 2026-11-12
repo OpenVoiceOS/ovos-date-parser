@@ -192,6 +192,22 @@ def _extract_spoken_time_kab(tokens, norm) -> Optional[Tuple[int, int, set]]:
         if j >= n:
             continue
 
+        # "d" also joins the two halves of a compound cardinal
+        # ("mraw d yiwen" = ten and one = 11). When the word before
+        # "d" extends the number read from the word after "d" into a
+        # larger one, "d" is that connector, not the presentative, and
+        # this token is part of a number phrase, e.g. a duration, not
+        # a clock time. extract_duration_kab applies the same allowance
+        # from the other direction.
+        if i > 0:
+            before_val = extract_number_kab(tokens[i - 1])
+            after_val = extract_number_kab(tokens[j])
+            joined_val = extract_number_kab(
+                " ".join(tokens[i - 1:j + 1]))
+            if (before_val is not False and after_val is not False
+                    and joined_val is not False and joined_val != after_val):
+                continue
+
         consumed = {i}
 
         # regional "two" words are not ordinary cardinals, check first

@@ -46,6 +46,40 @@ None
 The returned `remaining_text` is the input with the recognized date/time words
 removed. This is the non-temporal payload, useful for intent parsing or NER.
 
+A named holiday is read too: "christmas", "next easter", the French "noel"
+and the Portuguese "proxima pascoa" all resolve to a date. The rule behind
+the name and the surfaces each language speaks it by are
+[chronologia](https://github.com/TigreGotico/chronologia)'s; this library
+copies no holiday table. The holiday reading runs only when the language
+engine reads no date, and only when chronologia says a holiday construction
+is what matched, so an utterance that parsed before parses the same way.
+A transcript that lost its accents names the holiday no less than one that
+kept them: "noel" and "noël" read the same date.
+
+Only the holiday phrase leaves the remainder. A word the question owns stays
+in it, so the same question reads the same way in every language:
+
+```python
+>>> extract_datetime("how many days until christmas", "en-US",
+...                  anchorDate=datetime(2026, 9, 25))
+[datetime.datetime(2026, 12, 25, 0, 0), 'how many days until']
+>>> extract_datetime("combien de jours avant noel", "fr-FR",
+...                  anchorDate=datetime(2026, 9, 25))
+[datetime.datetime(2026, 12, 25, 0, 0), 'combien de jours avant']
+```
+
+A tense the phrase states inside itself is still read: "next easter", "last
+christmas" and "christmas eve" each name their own date.
+
+### `holidays.extract_holiday_span(text, lang, anchorDate=None)` / `holidays.extract_holiday_date(text, lang, ref_date=None)`
+
+The holiday layer on its own, for a caller that wants a holiday and nothing
+else. Returns `(datetime, remainder)` / `(date, remainder)`, or `None` when
+the text names no holiday in its own language. `holidays.holiday_surfaces(lang)`
+returns chronologia's table of the holiday names that language speaks,
+mapped to chronologia's language-neutral keys; a language chronologia carries
+no holiday data for gets an empty map rather than a guess at English.
+
 ### `extract_duration(text, lang, *, resolution=DurationResolution.TIMEDELTA, replace_token="")`
 
 Parse a duration. Returns `(duration, remaining_text)`. `duration` is `None`

@@ -225,7 +225,12 @@ def nice_date_time_an(dt, now=None, use_24hour=False, use_ampm=False):
     """
     date_str = nice_date_an(dt, now)
     time_str = nice_time_an(dt, use_24hour=use_24hour, use_ampm=use_ampm)
-    return f"{date_str} a las {time_str}"
+    if use_24hour:
+        return f"{date_str} a las {time_str}"
+    # the 12-hour time is a whole clause ("Son las cuatro y vinte"), so it
+    # follows the date as a clause of its own; the 24-hour time is a bare
+    # number ("trece quince") and keeps "a las"
+    return f"{date_str}, {time_str[0].lower()}{time_str[1:]}"
 
 
 # Aragonese relative-time vocabulary.

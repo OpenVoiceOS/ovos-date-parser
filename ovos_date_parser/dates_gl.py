@@ -93,8 +93,9 @@ def nice_date_time_gl(dt, now=None, use_24hour=False, use_ampm=False):
     """
     now = now or now_local()
     time = nice_time_gl(dt, use_24hour=use_24hour, use_ampm=use_ampm)
-    # the preposition "a" contracts with the article of the hour:
-    # a + a = á, a + as = ás ("á unha", "ás catro")
+    # the preposition "a" contracts with the article of the hour, RAG Normas
+    # ortográficas e morfolóxicas (2012), 2.7.1: "á (a + a artigo; subst.)",
+    # "ás (a + as artigo; subst.)" ("á unha", "ás catro")
     article, _, hour = time.partition(" ")
     if article in ("a", "as"):
         time = f"á{article[1:]} {hour}"

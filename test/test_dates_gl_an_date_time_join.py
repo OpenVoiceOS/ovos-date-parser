@@ -1,15 +1,15 @@
 """The gl and an date-time joins do not repeat the article or the verb.
 
 Galician contracts the preposition "a" with the article: Real Academia
-Galega and Instituto da Lingua Galega, Normas ortográficas e morfolóxicas
-do idioma galego, 2.7.1: "á (a + a artigo; 'ala')", "ás (a + as artigo;
-'alas')". nice_time_gl gives the hour with its article ("a unha e vinte",
+Galega, Normas ortográficas e morfolóxicas do idioma galego, 23rd edition
+(2012), 2.7.1: "á (a + a artigo; subst.)", "ás (a + as artigo; subst.)". nice_time_gl gives the hour with its article ("a unha e vinte",
 "as catro e vinte"), so the date-time says "á unha e vinte" and "ás catro
 e vinte", not "ás a unha" or "ás as catro".
 
-nice_time_an gives a whole clause ("Son las cuatro y vinte"), so it cannot
-follow "a las". The date-time puts it after the date as a clause of its
-own."""
+In 12-hour form nice_time_an gives a whole clause ("Son las cuatro y
+vinte"), so it cannot follow "a las". The date-time puts it after the date
+as a clause of its own. In 24-hour form the time is a bare number
+("trece quince"), and the join stays "a las" as before."""
 import unittest
 from datetime import datetime
 
@@ -51,6 +51,16 @@ class TestDateTimeJoin(unittest.TestCase):
         dt = datetime(2024, 3, 5, 1, 20)
         self.assertEqual(nice_date_time(dt, "an"),
                          nice_date(dt, "an") + ", ye la una y vinte")
+
+    def test_an_24_hour_keeps_a_las(self):
+        for hour in range(24):
+            for minute in range(0, 60, 5):
+                dt = datetime(2024, 3, 5, hour, minute)
+                with self.subTest(hour=hour, minute=minute):
+                    self.assertEqual(
+                        nice_date_time(dt, "an", use_24hour=True),
+                        nice_date(dt, "an") + " a las "
+                        + nice_time(dt, "an", use_24hour=True))
 
 
 if __name__ == "__main__":

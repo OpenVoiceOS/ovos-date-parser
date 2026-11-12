@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pl import pronounce_number_pl, extract_number_pl, numbers_to_digits_pl
-from ovos_number_parser.util import is_numeric
+from ovos_number_parser.util import GrammaticalGender, is_numeric
 from ovos_utils.time import now_local
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
@@ -267,12 +267,9 @@ def nice_time_pl(dt, speech=True, use_24hour=True, use_ampm=False):
     # Either "0 8 hundred" or "13 hundred"
     if string[0:2] == '00':
         speak = ""
-    elif string[0] == '0':
-        speak += pronounce_number_pl(int(string[1]), ordinals=True)
-        speak = speak[:-1] + 'a'
     else:
-        speak = pronounce_number_pl(int(string[0:2]), ordinals=True)
-        speak = speak[:-1] + 'a'
+        speak = pronounce_number_pl(int(string[0:2]), ordinals=True,
+                                    gender=GrammaticalGender.FEMININE)
 
     speak += ' ' if string[0:2] != '00' else ''
     if string[3:5] == '00':

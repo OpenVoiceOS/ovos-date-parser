@@ -167,7 +167,7 @@ from ovos_date_parser.dates_sl import (
     nice_time_sl, extract_duration_sl, extract_datetime_sl
 )
 from ovos_date_parser.dates_sv import (
-    extract_datetime_sv, extract_duration_sv, nice_time_sv
+    extract_datetime_sv, extract_duration_sv, nice_time_sv, nice_year_sv
 )
 from ovos_date_parser.dates_uk import (
     extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
@@ -1518,6 +1518,9 @@ def nice_date(dt, lang, now=None, include_weekday=True):
         return date_time_format.date_format(
             dt, tag, now, include_weekday,
             formatted_year=nice_year_pl(dt, genitive=True))
+    if lang == "sv":
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday, formatted_year=nice_year_sv(dt))
     return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
@@ -1578,6 +1581,10 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_year_pl(dt, genitive=True))
+    if lang == "sv":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_year_sv(dt))
     return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 
@@ -1740,6 +1747,8 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_eu(dt, bc)
     if lang.startswith("pl"):
         return nice_year_pl(dt, bc)
+    if lang.startswith("sv"):
+        return nice_year_sv(dt, bc)
     date_time_format.cache(tag)
     return date_time_format.year_format(dt, tag, bc, ad)
 

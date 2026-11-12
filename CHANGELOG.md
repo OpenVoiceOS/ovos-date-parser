@@ -1,15 +1,5 @@
 # Changelog
 
-## [0.35.24a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.24a1) (2026-11-12)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.23a1...0.35.24a1)
-
-**Merged pull requests:**
-
-- fix\(de\): say "eine Minute" and "ein Tag" in nice\_duration [\#582](https://github.com/OpenVoiceOS/ovos-date-parser/pull/582) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(uk\): spell 16 and the hundreds 500, 600 and 900 in Ukrainian [\#575](https://github.com/OpenVoiceOS/ovos-date-parser/pull/575) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(sl\): spell the ordinal of 15 as "petnajsti" in the date resource [\#574](https://github.com/OpenVoiceOS/ovos-date-parser/pull/574) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.22a1...0.35.23a1)

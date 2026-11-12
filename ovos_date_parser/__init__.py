@@ -223,6 +223,7 @@ def nice_time(
         The formatted time string.
     """
     dt = _as_datetime(dt)
+    lang = lang.lower()
     if lang.startswith("ar"):
         return nice_time_ar(dt, speech, use_24hour, use_ampm)
     if lang.startswith("ast"):
@@ -319,6 +320,7 @@ def nice_relative_time(when, relative_to=None, lang="en-us"):
     """
     when = _as_datetime(when)
     relative_to = _as_datetime(relative_to) if relative_to is not None else now_local()
+    lang = lang.lower()
     if lang.startswith("eu"):
         return nice_relative_time_eu(when, relative_to)
     return nice_relative_time_generic(lang, when, relative_to)
@@ -338,6 +340,7 @@ def nice_duration(
     Returns:
         Timespan as a string.
     """
+    lang = lang.lower()
     if lang.startswith("ar"):
         return nice_duration_ar(duration, speech)
     if lang.startswith("az"):
@@ -1580,6 +1583,7 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
     dt = _as_datetime(dt)
+    lang = lang.lower()
     if lang.startswith("pt"):
         return nice_day_pt(dt, date_format, include_month)
     if lang.startswith("es"):

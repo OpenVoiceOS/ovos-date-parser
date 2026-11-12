@@ -101,7 +101,8 @@ def extract_duration_de(text, resolution=DurationResolution.TIMEDELTA,
 # "dd.MM.yy" (short). A two-digit year takes the POSIX strptime %y century:
 # "values in the range [69,99] shall refer to years 1969 to 1999 inclusive"
 # and "[00,68] shall refer to years 2000 to 2068 inclusive".
-_NUMERIC_DATE = re.compile(r"^\d{1,2}\.\d{1,2}\.(?:\d{2}|\d{4})$")
+_NUMERIC_DATE = re.compile(
+    r"^(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:\d{2}|\d{4})$")
 
 
 def _periods_back(word):
@@ -482,7 +483,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
             if not hrAbs:
                 hrAbs = 23
             used += 1
-        elif word[:6] == "stunde" and \
+        elif word in ("stunde", "stunden") and \
                 (wordPrev in markers or wordPrevPrev in markers):
             factor = is_number_de(word) or 1
             minOffset = 60 * factor

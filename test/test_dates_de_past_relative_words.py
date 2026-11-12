@@ -61,6 +61,15 @@ class TestPastWords(unittest.TestCase):
     def test_vorletzte_beside_another_noun_is_not_a_date(self):
         self.assertIsNone(_read("die vorletzte Seite"))
 
+    def test_a_noun_that_starts_with_stunde_after_im_is_not_an_hour(self):
+        # "Stundenplan" (timetable) names no time
+        self.assertIsNone(_read("schau im Stundenplan nach"))
+
+    def test_im_stundentakt_keeps_the_date_and_the_noun(self):
+        # "im Stundentakt" (every hour) is no offset; "ab morgen" is the date
+        self.assertEqual(tuple(_read("Busse fahren im Stundentakt ab morgen")),
+                         (datetime(2026, 9, 24), "busse fahren im stundentakt"))
+
 
 class TestNumericDates(unittest.TestCase):
     def test_day_month_year_in_digits(self):
@@ -76,6 +85,14 @@ class TestNumericDates(unittest.TestCase):
     def test_two_digit_year_century(self):
         self.assertEqual(_read("1.1.68")[0], datetime(2068, 1, 1))
         self.assertEqual(_read("1.1.69")[0], datetime(1969, 1, 1))
+
+    def test_a_version_number_is_not_a_date(self):
+        # no month 15 and no day 40, so the version is no date and "morgen" is
+        for version in ("1.15.20", "40.2.10"):
+            with self.subTest(version=version):
+                self.assertEqual(
+                    tuple(_read("Installiere Version %s morgen" % version)),
+                    (datetime(2026, 9, 24), "installiere version " + version))
 
     def test_an_impossible_date_is_none(self):
         self.assertIsNone(_read("31.02.2023"))

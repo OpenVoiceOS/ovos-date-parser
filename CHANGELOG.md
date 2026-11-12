@@ -1,14 +1,21 @@
 # Changelog
 
-## [0.35.50a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.50a1) (2026-11-12)
+## [0.35.51a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.51a1) (2026-11-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.48a1...0.35.50a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.49a1...0.35.51a1)
 
 **Merged pull requests:**
 
 - fix\(cs\): read a year as a Czech cardinal number [\#613](https://github.com/OpenVoiceOS/ovos-date-parser/pull/613) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(gl, an\): join the date and the time without a doubled article or verb [\#610](https://github.com/OpenVoiceOS/ovos-date-parser/pull/610) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(gl, ast, an\): compare whole dates in nice\_date with `now` [\#609](https://github.com/OpenVoiceOS/ovos-date-parser/pull/609) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.49a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.49a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.48a1...0.35.49a1)
+
+**Merged pull requests:**
+
+- fix\(gl, an\): join the date and the time without a doubled article or verb [\#610](https://github.com/OpenVoiceOS/ovos-date-parser/pull/610) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix: count one of a unit by its gender in nice\_duration, one space per part [\#604](https://github.com/OpenVoiceOS/ovos-date-parser/pull/604) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.48a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.48a1) (2026-11-12)

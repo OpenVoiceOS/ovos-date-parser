@@ -117,12 +117,12 @@ def nice_date_ast(dt: datetime, now: datetime = None, include_weekday=True):
             return "mañana"
         if dt.day == now.day - 1:
             return "ayeri"
-        if dt.month != now.month:
+        if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + nice_month_ast(dt)
         if dt.year != now.year:
-            nice = nice + ", " + nice_year_ast(dt)
+            nice = nice + " de " + nice_year_ast(dt)
     else:
-        nice = f"{day} de {nice_month_ast(dt)}, {nice_year_ast(dt)}"
+        nice = f"{day} de {nice_month_ast(dt)} de {nice_year_ast(dt)}"
 
     if include_weekday:
         weekday = nice_weekday_ast(dt)

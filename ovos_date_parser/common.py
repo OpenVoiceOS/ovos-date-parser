@@ -3,6 +3,7 @@ import json
 import os.path
 import re
 import unicodedata
+from typing import Callable, Optional
 
 from ovos_number_parser import pronounce_number
 
@@ -71,6 +72,23 @@ def nice_relative_time_generic(lang, when, relative_to):
         return f"{nice} " + _translate_word("days", lang)
 
 
+#: German counts one of a unit with the article form, not the numeral:
+#: "ein Tag", "eine Stunde". CLDR RBNF de has "1: ein;" in
+#: %spellout-cardinal-masculine and "1: eine;" in %spellout-cardinal-feminine;
+#: "eins" is the numeral said alone.
+_ONE_BEFORE_UNIT = {
+    "de": {"day": "ein", "hour": "eine", "minute": "eine", "second": "eine"},
+}
+
+
+def _count(number, unit, lang):
+    """Say ``number`` as it stands before ``unit`` in ``lang``."""
+    one = _ONE_BEFORE_UNIT.get(lang.lower().split("-")[0], {}).get(unit)
+    if number == 1 and one:
+        return one
+    return pronounce_number(number, lang)
+
+
 def nice_duration_generic(lang, duration, speech=True):
     """ Convert duration in seconds to a nice spoken timespan
 
@@ -102,7 +120,7 @@ def nice_duration_generic(lang, duration, speech=True):
     if speech:
         out = ""
         if days > 0:
-            out += pronounce_number(days, lang) + " "
+            out += _count(days, "day", lang) + " "
             if days == 1:
                 out += _translate_word("day", lang)
             else:
@@ -111,7 +129,7 @@ def nice_duration_generic(lang, duration, speech=True):
         if hours > 0:
             if out:
                 out += " "
-            out += pronounce_number(hours, lang) + " "
+            out += _count(hours, "hour", lang) + " "
             if hours == 1:
                 out += _translate_word("hour", lang)
             else:
@@ -119,7 +137,7 @@ def nice_duration_generic(lang, duration, speech=True):
         if minutes > 0:
             if out:
                 out += " "
-            out += pronounce_number(minutes, lang) + " "
+            out += _count(minutes, "minute", lang) + " "
             if minutes == 1:
                 out += _translate_word("minute", lang)
             else:
@@ -127,7 +145,7 @@ def nice_duration_generic(lang, duration, speech=True):
         if seconds > 0:
             if out:
                 out += " "
-            out += pronounce_number(seconds, lang) + " "
+            out += _count(seconds, "second", lang) + " "
             if seconds == 1:
                 out += _translate_word("second", lang)
             else:
@@ -149,13 +167,25 @@ def nice_duration_generic(lang, duration, speech=True):
     return out
 
 
-def restore_typed_words(remainder: str, text: str) -> str:
+#: The most words a spelled number in a remainder is read back from:
+#: "un millón doscientos mil trescientos cuarenta y cinco" is eight.
+_LONGEST_SPELLED_NUMBER = 8
+
+
+def restore_typed_words(remainder: str, text: str,
+                        to_digits: Optional[Callable[[str], str]] = None
+                        ) -> str:
     """Give the words of a remainder back the spelling the user typed.
 
     A parser lower-cases the sentence, strips its accents, turns hyphens into
     spaces and drops punctuation before it reads it, so the remainder holds
     words the user did not type. Each run of remainder words that matches one
     of the typed words, in order, is replaced by that word. Case stays lower.
+
+    A parser that turns spelled numbers into digits before it reads passes its
+    converter as ``to_digits``. A digit in the remainder then takes back the
+    longest run of typed words that the converter turns into that digit, so
+    "tres" stays "tres" and "veinte y tres" stays three words.
     """
     def bare(word):
         return "".join(c for c in unicodedata.normalize("NFD", word)
@@ -180,7 +210,27 @@ def restore_typed_words(remainder: str, text: str) -> str:
                 i += len(parts)
                 pos = j + 1
                 break
+            if to_digits is not None and words[i].isdigit():
+                run = _spelled_run(words[i], typed, j, to_digits)
+                if run:
+                    out.append(" ".join(chunk for chunk, _ in typed[j:j + run]))
+                    i += 1
+                    pos = j + run
+                    break
         else:
             out.append(words[i])
             i += 1
     return " ".join(out)
+
+
+def _spelled_run(digits: str, typed: list, start: int,
+                 to_digits: Callable[[str], str]) -> int:
+    """How many typed words from ``start`` spell ``digits``, longest first.
+
+    Zero when no run spells it.
+    """
+    for size in range(min(_LONGEST_SPELLED_NUMBER, len(typed) - start), 0, -1):
+        phrase = " ".join(chunk for chunk, _ in typed[start:start + size])
+        if to_digits(phrase) == digits:
+            return size
+    return 0

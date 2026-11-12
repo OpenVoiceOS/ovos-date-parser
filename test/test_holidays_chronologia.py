@@ -428,6 +428,15 @@ def test_a_day_offset_is_still_read_correctly():
     assert got[0] == datetime(2026, 12, 26, 0, 0)
 
 
+def test_a_whole_text_answer_that_is_not_the_holiday_is_declined():
+    """The whole text is parsed, so chronologia may answer from another date
+    word and leave the holiday in its remainder. "remind me friday about good
+    friday" reads as Friday 2 October with "good friday" left over. That date
+    is not the holiday's, so the layer must not hand it back as one."""
+    got = extract_holiday_span("remind me friday about good friday", "en-US",
+                               REF)
+    assert got is None or got[0] == datetime(2027, 3, 26, 0, 0)
+
 
 # --- finding 5 of the #369 review: a holiday named after a weekday ----------
 
@@ -577,7 +586,7 @@ HOLIDAYS_THE_ENGINE_READS_ONLY_A_CLOCK_BESIDE = [
     ("en-US", "christmas at 9 am", datetime(2026, 12, 25, 9, 0), ""),
     ("en-US", "christmas 9am", datetime(2026, 12, 25, 9, 0), ""),
     ("en-US", "christmas eve at noon", datetime(2026, 12, 24, 12, 0), ""),
-    ("de-DE", "weihnachten um 18:30", datetime(2026, 12, 25, 18, 30), "um"),
+    ("de-DE", "weihnachten um 18:30", datetime(2026, 12, 25, 18, 30), ""),
     ("de-DE", "ostern um 9 uhr", datetime(2027, 3, 28, 9, 0), ""),
     ("fr-FR", "pâques à 9 heures", datetime(2027, 3, 28, 9, 0), ""),
     ("es-ES", "navidad a las 9", datetime(2026, 12, 25, 9, 0), ""),

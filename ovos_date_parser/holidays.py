@@ -371,16 +371,17 @@ def extract_holiday_span(text: str, lang: str,
     did not consume: "how many days until christmas" and "quantos dias faltam
     para o natal" both answer with Christmas and both keep their question.
 
-    **One known wrong answer, and it is chronologia's.** The French "combien
-    de jours avant noël" asks how many days remain before Christmas, so the
-    date is Christmas, and this answers 24 December with the remainder
-    "combien": chronologia reads "avant" after an interrogative quantity as an
-    offset. The English "how many days until christmas" and the French
-    "combien de jours jusqu'a noël" are both read correctly. Telling the two
-    French shapes apart needs a table of interrogatives per language, which
+    **Two known families of wrong answers, and both are chronologia's.**
+
+    The French "combien de jours avant noël" asks how many days remain before
+    Christmas, so the date is Christmas, and this answers 24 December with the
+    remainder "combien": chronologia reads "avant" after an interrogative
+    quantity as an offset. The English "how many days until christmas" and the
+    French "combien de jours jusqu'a noël" are both read correctly. Telling the
+    two French shapes apart needs a table of interrogatives per language, which
     belongs to chronologia and is not copied here.
-    ``test_holidays_chronologia.py`` carries a cell holding that answer, so
-    the day chronologia fixes it the cell says so.
+    ``test_holidays_chronologia.py`` carries a cell holding that answer, so the
+    day chronologia fixes it the cell says so.
 
     **A part-of-day offset is read as a time of day on the holiday, and the
     direction is dropped.** "the night before christmas" answers 21:00 on
@@ -433,6 +434,9 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     if start is None:  # a span outside the datetime range
         return None
     first, last = extent
+    if _words(written[first:last]) <= _words(result.remainder):
+        # chronologia answered from something other than the holiday
+        return None
     clock_read = False
     cut = [(first, last)]
     clock = _clock_extent(written, lang, anchor, (first, last))

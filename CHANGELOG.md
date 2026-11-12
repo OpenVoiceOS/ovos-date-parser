@@ -1,14 +1,21 @@
 # Changelog
 
-## [0.35.30a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.30a1) (2026-11-12)
+## [0.35.31a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.31a1) (2026-11-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.28a1...0.35.30a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.29a1...0.35.31a1)
 
 **Merged pull requests:**
 
 - fix\(fa\): read the year as a Persian cardinal joined with "و" [\#580](https://github.com/OpenVoiceOS/ovos-date-parser/pull/580) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(cs\): put the day before the genitive month and localize the era [\#579](https://github.com/OpenVoiceOS/ovos-date-parser/pull/579) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(pt\): spell numbers in the Brazilian forms for a pt-BR tag [\#571](https://github.com/OpenVoiceOS/ovos-date-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.29a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.29a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.28a1...0.35.29a1)
+
+**Merged pull requests:**
+
+- fix\(cs\): put the day before the genitive month and localize the era [\#579](https://github.com/OpenVoiceOS/ovos-date-parser/pull/579) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.28a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.28a1) (2026-11-12)
 
@@ -260,7 +267,6 @@
 
 - pt-PT: "31 de novembro" parses as the anchor day, expected None [\#504](https://github.com/OpenVoiceOS/ovos-date-parser/issues/504)
 - pt-PT: "sexta-feira da semana que vem" parses as 23 October on a Monday, expected 30 October [\#503](https://github.com/OpenVoiceOS/ovos-date-parser/issues/503)
-- pt-PT: "daqui a uma semana e dois dias" returns None, expected 26 October [\#483](https://github.com/OpenVoiceOS/ovos-date-parser/issues/483)
 
 ## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
 

@@ -71,6 +71,23 @@ def nice_relative_time_generic(lang, when, relative_to):
         return f"{nice} " + _translate_word("days", lang)
 
 
+#: German counts one of a unit with the article form, not the numeral:
+#: "ein Tag", "eine Stunde". CLDR RBNF de has "1: ein;" in
+#: %spellout-cardinal-masculine and "1: eine;" in %spellout-cardinal-feminine;
+#: "eins" is the numeral said alone.
+_ONE_BEFORE_UNIT = {
+    "de": {"day": "ein", "hour": "eine", "minute": "eine", "second": "eine"},
+}
+
+
+def _count(number, unit, lang):
+    """Say ``number`` as it stands before ``unit`` in ``lang``."""
+    one = _ONE_BEFORE_UNIT.get(lang.lower().split("-")[0], {}).get(unit)
+    if number == 1 and one:
+        return one
+    return pronounce_number(number, lang)
+
+
 def nice_duration_generic(lang, duration, speech=True):
     """ Convert duration in seconds to a nice spoken timespan
 
@@ -102,7 +119,7 @@ def nice_duration_generic(lang, duration, speech=True):
     if speech:
         out = ""
         if days > 0:
-            out += pronounce_number(days, lang) + " "
+            out += _count(days, "day", lang) + " "
             if days == 1:
                 out += _translate_word("day", lang)
             else:
@@ -111,7 +128,7 @@ def nice_duration_generic(lang, duration, speech=True):
         if hours > 0:
             if out:
                 out += " "
-            out += pronounce_number(hours, lang) + " "
+            out += _count(hours, "hour", lang) + " "
             if hours == 1:
                 out += _translate_word("hour", lang)
             else:
@@ -119,7 +136,7 @@ def nice_duration_generic(lang, duration, speech=True):
         if minutes > 0:
             if out:
                 out += " "
-            out += pronounce_number(minutes, lang) + " "
+            out += _count(minutes, "minute", lang) + " "
             if minutes == 1:
                 out += _translate_word("minute", lang)
             else:
@@ -127,7 +144,7 @@ def nice_duration_generic(lang, duration, speech=True):
         if seconds > 0:
             if out:
                 out += " "
-            out += pronounce_number(seconds, lang) + " "
+            out += _count(seconds, "second", lang) + " "
             if seconds == 1:
                 out += _translate_word("second", lang)
             else:

@@ -1,14 +1,25 @@
 """The nl year and date words follow the Dutch spelling rules.
 
-Team Taaladvies, Aaneenschrijven 07 (Getallen, telwoorden en breuken),
-Regel 1: "Schrijf getallen in woorden aaneen tot aan het woord duizend."
-"Schrijf achter het woord duizend een spatie." "Schrijf een trema bij
-klinkerbotsing in getallen zoals tweeëndertig en drieënhalf." Examples:
-"32: tweeëndertig", "3254: drieduizend tweehonderdvierenvijftig".
-CLDR nl gives the era abbreviation "v.Chr.". A year said by its century
-(1988, 3241) splits the century from the rest, as CLDR RBNF nl
-%spellout-numbering-year does with "1100/100: <<>%%2d-year>".
-ovos-number-parser spells each part, so it is the second engine."""
+Team Taaladvies, "Aaneenschrijven van telwoorden (algemeen)":
+"Hoofdtelwoorden worden aaneengeschreven tot en met het woord duizend."
+"Na het woord duizend (en samenstellingen hiermee, zoals vierduizend)
+staat een spatie." Examples: "43 / drieënveertig", "101 / honderdeen of
+honderdeneen", "6028 / zesduizend achtentwintig".
+
+Team Taaladvies, "Jaartallen voluit": "Jaartallen volgen dezelfde regels
+voor aaneenschrijven als gewone telwoorden." "Bij klinkerbotsing krijgen
+getallen in letters, hoewel het samenstellingen zijn, een trema."
+"Voorbeelden: tweeëndertig, drieënhalf, vijfhonderddrieëntwintigduizend."
+
+Team Taaladvies, "Uitspraak 2020: twintig twintig / tweeduizend
+twintig": "Vaak wordt het woorddeel honderd in de uitspraak weggelaten."
+"1694 als 'zestien vierennegentig'". "Jaartallen in de eenentwintigste
+eeuw worden door de meeste mensen met 'tweeduizend' uitgesproken."
+
+CLDR nl gives the era abbreviation "v.Chr." and "1: een;" in
+%spellout-numbering. ovos-number-parser spells each part of a year, so
+it is the second engine. It writes the bare number 1 as "één", so the
+expected words take the CLDR "een" for that one part."""
 import json
 import os
 import unittest
@@ -25,7 +36,7 @@ FIXTURE = os.path.join(os.path.dirname(ovos_date_parser.__file__),
 
 def spoken_year(year):
     def words(number):
-        return pronounce_number(number, lang="nl").replace("één", "een")
+        return "een" if number == 1 else pronounce_number(number, lang="nl")
 
     if year < 1000:
         return words(year)
@@ -49,8 +60,7 @@ class TestDutchNumberWords(unittest.TestCase):
 
     def test_every_year(self):
         wrong = [year for year in range(1, 10000)
-                 if nice_year(datetime(year, 1, 1), "nl").replace("één", "een")
-                 != spoken_year(year)]
+                 if nice_year(datetime(year, 1, 1), "nl") != spoken_year(year)]
         self.assertEqual(wrong, [])
 
     def test_compound_numbers(self):
@@ -59,11 +69,21 @@ class TestDutchNumberWords(unittest.TestCase):
                              (22, "tweeëntwintig"),
                              (33, "drieëndertig"),
                              (88, "achtentachtig"),
+                             (101, "honderdeen"),
                              (454, "vierhonderdvierenvijftig"),
+                             (2001, "tweeduizend een"),
                              (1988, "negentien achtentachtig"),
                              (2015, "tweeduizend vijftien")):
             with self.subTest(year=year):
                 self.assertEqual(nice_year(datetime(year, 1, 1), "nl"), spoken)
+
+    def test_day_names(self):
+        for day in range(1, 32):
+            date = nice_date(datetime(2024, 1, day), "nl",
+                             now=datetime(2024, 6, 1))
+            with self.subTest(day=day):
+                self.assertEqual(date.split(", ")[1],
+                                 f"{pronounce_number(day, lang='nl')} januari")
 
     def test_era(self):
         self.assertEqual(nice_year(datetime(92, 1, 1), "nl", bc=True),

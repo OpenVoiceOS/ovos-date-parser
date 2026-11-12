@@ -1,6 +1,6 @@
 {
   "test_nice_year": {
-    "1": {"datetime_param": "1, 1, 31, 13, 22, 3", "bc": "True", "assertEqual": "één v.Chr." },
+    "1": {"datetime_param": "1, 1, 31, 13, 22, 3", "bc": "True", "assertEqual": "een v.Chr." },
     "2": {"datetime_param": "10, 1, 31, 13, 22, 3", "bc": "True", "assertEqual": "tien v.Chr." },
     "3": {"datetime_param": "92, 1, 31, 13, 22, 3", "bc": "True", "assertEqual": "tweeënnegentig v.Chr." },
     "4": {"datetime_param": "803, 1, 31, 13, 22, 3", "bc": "None", "assertEqual": "achthonderddrie" },

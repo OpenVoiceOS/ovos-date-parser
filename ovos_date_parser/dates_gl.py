@@ -53,14 +53,16 @@ def nice_year_gl(dt, bc=False):
     return year
 
 
+# Weekday and month names are common nouns and take a lowercase initial.
+# RAG Normas ortográficas e morfolóxicas, 4 "O uso das maiúsculas", lists
+# the cases for a capital, and these names are not among them. The RAG
+# dictionary writes "En xaneiro fago eu anos" and "O luns é día de traballo".
 def nice_weekday_gl(dt):
-    weekday = WEEKDAYS_GL[dt.weekday()]
-    return weekday.capitalize()
+    return WEEKDAYS_GL[dt.weekday()]
 
 
 def nice_month_gl(dt):
-    month = MONTHS_GL[dt.month]
-    return month.capitalize()
+    return MONTHS_GL[dt.month]
 
 
 def nice_day_gl(dt, date_format='DMY', include_month=True):

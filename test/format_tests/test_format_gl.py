@@ -12,14 +12,14 @@ class TestNiceDateTimeGL(unittest.TestCase):
         self.assertEqual(nice_year_gl(self.test_date, bc=True), "dous mil e vinte e tres a.C.")
 
     def test_nice_weekday_gl(self):
-        self.assertEqual(nice_weekday_gl(self.test_date), "Luns")
+        self.assertEqual(nice_weekday_gl(self.test_date), "luns")
 
     def test_nice_month_gl(self):
-        self.assertEqual(nice_month_gl(self.test_date), "Xuño")
+        self.assertEqual(nice_month_gl(self.test_date), "xuño")
 
     def test_nice_day_gl(self):
-        self.assertEqual(nice_day_gl(self.test_date, date_format='DMY'), "5 Xuño")
-        self.assertEqual(nice_day_gl(self.test_date, date_format='MDY'), "Xuño 5")
+        self.assertEqual(nice_day_gl(self.test_date, date_format='DMY'), "5 xuño")
+        self.assertEqual(nice_day_gl(self.test_date, date_format='MDY'), "xuño 5")
         self.assertEqual(nice_day_gl(self.test_date, include_month=False), "5")
 
     def test_nice_date_gl(self):

@@ -91,6 +91,15 @@ def nice_date_time_ast(dt, now=None, use_24hour=False, use_ampm=False):
     return f"{nice_date_ast(dt, now)} a {nice_time_ast(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
 
 
+def _de_month_ast(dt):
+    """The month after "de", elided to "d'" before a vowel, as the CLDR ast
+    format months write it: "de xineru", "d’abril", "d’agostu"."""
+    month = nice_month_ast(dt)
+    if month[0].lower() in "aeiou":
+        return f"d'{month}"
+    return f"de {month}"
+
+
 def nice_date_ast(dt: datetime, now: datetime = None, include_weekday=True):
     """
     Formatea una data nuna forma pronunciable.
@@ -118,11 +127,11 @@ def nice_date_ast(dt: datetime, now: datetime = None, include_weekday=True):
         if dt.date() == now.date() - timedelta(days=1):
             return "ayeri"
         if dt.month != now.month or dt.year != now.year:
-            nice = nice + " de " + nice_month_ast(dt)
+            nice = nice + " " + _de_month_ast(dt)
         if dt.year != now.year:
             nice = nice + " de " + nice_year_ast(dt)
     else:
-        nice = f"{day} de {nice_month_ast(dt)} de {nice_year_ast(dt)}"
+        nice = f"{day} {_de_month_ast(dt)} de {nice_year_ast(dt)}"
 
     if include_weekday:
         weekday = nice_weekday_ast(dt)

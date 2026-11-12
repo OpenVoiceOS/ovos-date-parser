@@ -104,3 +104,35 @@ class TestRemainderKeepsHyphens(unittest.TestCase):
 
     def test_punctuation_still_leaves_the_remainder(self):
         self.assertEqual(_rest("compra pão, amanhã.", "pt-PT"), "compra pão")
+
+
+class TestRemainderKeepsSpelledNumbers(unittest.TestCase):
+    """The es parser turns spelled numbers into digits before it reads the
+    sentence. A number word that is not part of the date stays as typed."""
+
+    def test_the_date_is_still_read(self):
+        found, rest = extract_datetime("compra tres panes mañana",
+                                       lang="es-ES", anchorDate=ANCHOR)
+        self.assertEqual(found.date(), datetime(2026, 10, 18).date())
+        self.assertEqual(rest, "compra tres panes")
+
+    def test_a_spelled_number_stays_a_word(self):
+        for text, rest in (
+                ("compra tres panes mañana", "compra tres panes"),
+                ("mañana compra tres panes", "compra tres panes"),
+                ("compra veinte y tres panes mañana",
+                 "compra veinte y tres panes"),
+                ("compra veintitrés panes mañana", "compra veintitrés panes"),
+                ("compra tres panes a las cinco", "compra tres panes"),
+                ("en tres días compra dos panes", "compra dos panes"),
+                ("compra tres panes y tres huevos mañana",
+                 "compra tres panes y tres huevos")):
+            with self.subTest(text=text):
+                self.assertEqual(_rest(text, "es-ES"), rest)
+
+    def test_a_typed_digit_stays_a_digit(self):
+        self.assertEqual(_rest("compra 3 panes mañana", "es-ES"),
+                         "compra 3 panes")
+        self.assertEqual(_rest("compra 3 panes y tres huevos mañana",
+                               "es-ES"),
+                         "compra 3 panes y tres huevos")

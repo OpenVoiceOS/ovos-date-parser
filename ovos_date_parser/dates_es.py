@@ -1188,7 +1188,8 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
     # resultStr = pt_pruning(resultStr)
-    return [extractedDate, restore_typed_words(resultStr, text)]
+    return [extractedDate, restore_typed_words(resultStr, text,
+                                               numbers_to_digits_es)]
 
 
 def extract_duration_es(text, resolution=DurationResolution.TIMEDELTA,

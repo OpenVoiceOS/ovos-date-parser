@@ -167,7 +167,7 @@ from ovos_date_parser.dates_sl import (
     nice_time_sl, extract_duration_sl, extract_datetime_sl
 )
 from ovos_date_parser.dates_sv import (
-    extract_datetime_sv, extract_duration_sv, nice_time_sv
+    extract_datetime_sv, extract_duration_sv, nice_time_sv, nice_year_sv
 )
 from ovos_date_parser.dates_uk import (
     extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
@@ -223,6 +223,7 @@ def nice_time(
         The formatted time string.
     """
     dt = _as_datetime(dt)
+    lang = lang.lower()
     if lang.startswith("ar"):
         return nice_time_ar(dt, speech, use_24hour, use_ampm)
     if lang.startswith("ast"):
@@ -319,6 +320,7 @@ def nice_relative_time(when, relative_to=None, lang="en-us"):
     """
     when = _as_datetime(when)
     relative_to = _as_datetime(relative_to) if relative_to is not None else now_local()
+    lang = lang.lower()
     if lang.startswith("eu"):
         return nice_relative_time_eu(when, relative_to)
     return nice_relative_time_generic(lang, when, relative_to)
@@ -338,6 +340,7 @@ def nice_duration(
     Returns:
         Timespan as a string.
     """
+    lang = lang.lower()
     if lang.startswith("ar"):
         return nice_duration_ar(duration, speech)
     if lang.startswith("az"):
@@ -1518,6 +1521,9 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     if lang == "cs":
         return date_time_format.date_format(
             dt, tag, now, include_weekday, formatted_year=nice_year_cs(dt))
+    if lang == "sv":
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday, formatted_year=nice_year_sv(dt))
     return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
@@ -1582,11 +1588,16 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_year_cs(dt))
+    if lang == "sv":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_year_sv(dt))
     return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
     dt = _as_datetime(dt)
+    lang = lang.lower()
     if lang.startswith("pt"):
         return nice_day_pt(dt, date_format, include_month)
     if lang.startswith("es"):
@@ -1608,7 +1619,14 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
     if lang.startswith("fy"):
         return nice_day_fy(dt, date_format, include_month)
     if include_month:
-        month = nice_month(dt, lang, date_format)
+        # a day and a month take the month's format form (CLDR monthContext
+        # "format"), the genitive in cs and pl: "21 ledna", "11 stycznia"
+        key = lang.lower().split("-")[0]
+        date_time_format.cache(key)
+        month_format = date_time_format.lang_config.get(key, {}).get(
+            'month_format')
+        month = (month_format[str(dt.month)] if month_format
+                 else nice_month(dt, lang, date_format))
         if date_format == 'MDY':
             return "{} {}".format(month, dt.strftime("%d"))
         else:
@@ -1738,6 +1756,8 @@ def nice_year(dt, lang, bc=False, ad=False):
         return nice_year_pl(dt, bc)
     if lang.startswith("cs"):
         return nice_year_cs(dt, bc)
+    if lang.startswith("sv"):
+        return nice_year_sv(dt, bc)
     date_time_format.cache(tag)
     return date_time_format.year_format(dt, tag, bc, ad)
 
@@ -1887,6 +1907,11 @@ def _bc_day_label(start: "AstroDate", lang: str) -> str:
     return label.replace(astronomical, nice_year(start, lang, bc=True))
 
 
+#: The word between the month and the year in a month-year label, from the
+#: CLDR yMMMM pattern: pt, es and gl "MMMM 'de' y", ast "LLLL 'de' y".
+_MONTH_YEAR_JOIN = {"ast": "de", "es": "de", "gl": "de", "pt": "de"}
+
+
 def _nice_span_generic(span: "DateSpan", scale: str, lang: str) -> str:
     """Span label built from the locale's own ``nice_*`` formatters.
 
@@ -1904,7 +1929,11 @@ def _nice_span_generic(span: "DateSpan", scale: str, lang: str) -> str:
             return _bc_day_label(start, lang)
         return nice_date(start, lang)
     if scale == "month":
-        return f"{nice_month(start, lang)} {nice_year(start, lang, bc=start.is_bc)}"
+        month = nice_month(start, lang)
+        join = _MONTH_YEAR_JOIN.get(lang.lower().split("-")[0])
+        if join:
+            month = f"{month} {join}"
+        return f"{month} {nice_year(start, lang, bc=start.is_bc)}"
     if scale == "year":
         return nice_year(start, lang, bc=start.is_bc)
     raise NotImplementedError(f"nice_span has no {scale} label for '{lang}'")

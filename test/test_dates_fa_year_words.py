@@ -1,11 +1,13 @@
 """The fa year is a Persian cardinal joined with "و".
 
 CLDR RBNF fa reads a year with %spellout-numbering-year, the cardinal:
-"20: بیست[ و >>];", "100: صد[ و >>];", "1000: << هزار[ و >>];", so 1345 is
-"هزار و سیصد و چهل و پنج". CLDR fa names the era before year 1
-"قبل از میلاد"; the resource had "بعد از میلاد", the era after it.
-ovos-number-parser spells the same cardinals, so it is the second engine for
-every year. The resource keeps the spoken teens پونزده, شونزده, هیفده and
+"20: بیست[ و >>];", "100: صد[ و >>];", "1000: << هزار[ و >>];". CLDR fa
+names the era before year 1 "قبل از میلاد"; the resource had "بعد از میلاد",
+the era after it. ovos-number-parser spells the same cardinals, so it is
+the second engine for every year. For 1000 to 1999 the two differ: the CLDR
+rule "<< هزار" puts "یک" before "هزار", so CLDR gives 1345 as
+"یک هزار و سیصد و چهل و پنج". The resource follows ovos-number-parser,
+which gives "هزار و سیصد و چهل و پنج". The resource keeps the spoken teens پونزده, شونزده, هیفده and
 هیجده where the number parser writes پانزده, شانزده, هفده and هجده."""
 import json
 import os

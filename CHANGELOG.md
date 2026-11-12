@@ -1,16 +1,5 @@
 # Changelog
 
-## [0.35.44a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.44a2) (2026-11-12)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.43a1...0.35.44a2)
-
-**Merged pull requests:**
-
-- fix\(gl\): write weekday and month names with a lowercase initial [\#617](https://github.com/OpenVoiceOS/ovos-date-parser/pull/617) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(sv\): read a year in Swedish hundreds, written as one word [\#616](https://github.com/OpenVoiceOS/ovos-date-parser/pull/616) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(fr\): keep "cent" invariable in a year [\#606](https://github.com/OpenVoiceOS/ovos-date-parser/pull/606) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(it\): accent the compounds of "tre" in years and day names [\#605](https://github.com/OpenVoiceOS/ovos-date-parser/pull/605) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.43a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.43a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.42a1...0.35.43a1)

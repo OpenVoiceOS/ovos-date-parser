@@ -5,8 +5,8 @@ sets in chronologia's packaged ``locale/<lang>/``, which
 ``ovos_date_parser/locale/<lang>/`` overlays file by file, and are loaded
 through ``ovos-spec-tools`` (the OVOS-wide convention for localisable
 files), so adding or improving a language's era phrasing is a translation
-task, not a code change.  :func:`load_era_patterns` composes those phrase sets into
-the ordered pattern table the scanner consumes; a language module
+task, not a code change.  :func:`load_era_patterns` composes those phrase
+sets into the ordered pattern table the scanner consumes; a language module
 contributes only its spelled-number normaliser and any genuinely
 non-translatable guard patterns (e.g. English bare "HE" needing a 5+
 digit year so the pronoun never matches).

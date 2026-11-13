@@ -1,12 +1,27 @@
 # Changelog
 
+## [0.36.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.0a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.54a1...0.36.0a1)
+
+**Merged pull requests:**
+
+- feat\(pt\): spoken form of a date, time and year from its fields [\#636](https://github.com/OpenVoiceOS/ovos-date-parser/pull/636) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.35.54a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.54a1) (2026-11-13)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.52a1...0.35.54a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.53a1...0.35.54a1)
 
 **Merged pull requests:**
 
 - fix\(pt\): read "dia 25/12/2023" as a date instead of raising [\#633](https://github.com/OpenVoiceOS/ovos-date-parser/pull/633) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.53a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.53a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.52a1...0.35.53a1)
+
+**Merged pull requests:**
+
 - fix\(pt\): "da noite" starts at 19:00 in 12-hour speech [\#632](https://github.com/OpenVoiceOS/ovos-date-parser/pull/632) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.52a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.52a1) (2026-11-12)

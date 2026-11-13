@@ -537,10 +537,16 @@ _DAY = timedelta(days=1)
 
 @lru_cache(maxsize=None)
 def _daypart_bands(lang: str) -> frozenset:
-    """The (start, end) times of the locale's declared parts of the day."""
+    """The (start, end) times of the locale's parts of the day.
+
+    A locale with no rows of its own reads its parts of the day with
+    chronologia's default bands, so those are its bands here too.
+    """
     code = lang.split("-")[0]
-    return frozenset((b.start, b.end) for b in DAY_PARTS.values()
-                     if b.lang == code)
+    own = frozenset((b.start, b.end) for b in DAY_PARTS.values()
+                    if b.lang == code)
+    return own or frozenset((b.start, b.end) for b in DAY_PARTS.values()
+                            if b.lang is None)
 
 
 def _is_daypart(span, lang: str) -> bool:
@@ -555,7 +561,7 @@ def _is_daypart(span, lang: str) -> bool:
 
 
 def _instant(span, lang: str, default_time: Optional[time],
-             zone: Optional[tzinfo]) -> Optional[datetime]:
+             anchor: datetime) -> Optional[datetime]:
     """The instant that best answers a span, or None if it cannot be one.
 
     chronologia answers a stretch of time because that is what a phrase
@@ -568,7 +574,18 @@ def _instant(span, lang: str, default_time: Optional[time],
     middle is whatever the locale's own boundaries make it: French ``matin``
     opens at 04:00, so its opening edge would answer "ce matin" with four in
     the morning, which no speaker means. Everything else starts when it
-    starts. ``default_time`` supplies the time of day only where the phrase
+    starts. A band that crosses midnight is cut at midnight before its middle
+    is taken, so the night is the night of the day it opens on: Wiktionary
+    "tonight" is "During the night following the current day; during the
+    evening of today", and the CLDR day periods for English start night1 at
+    21:00 and morning1 at 00:00. With the default 21:00-06:00 band, "tonight"
+    at a 13:04 anchor is 22:30 that day, not 01:30 the next. An hour said
+    inside the band ("at 3 at night") is an exact time and keeps its own
+    reading. A band that holds the anchor answers the anchor once its middle
+    has passed: "tonight" said at 23:30 is 23:30, never a time already gone.
+    The cut holds in every locale, because it follows from what "tonight"
+    names, not from the English clock: CLDR gives hr a night of 21:00-04:00
+    and cs and sk one of 22:00-04:00, so hr "noću" at 13:04 is 22:30. ``default_time`` supplies the time of day only where the phrase
     left it unsaid: a day or wider that opens at midnight names a date, while
     a counted offset has already fixed a moment and keeps the anchor's clock.
     "in two hours" is 15:04 at a 13:04 anchor, and "in three days" is three
@@ -580,8 +597,9 @@ def _instant(span, lang: str, default_time: Optional[time],
     :func:`extract_timespan` is the way to reach them.
 
     chronologia answers in the anchor's wall clock and drops its zone, so the
-    instant takes ``zone``, the anchor's zone.
+    instant takes the anchor's zone.
     """
+    zone = anchor.tzinfo
     start = span.start
     if span.end - start <= _EXACT:
         return _fits_datetime(start, zone)
@@ -592,7 +610,17 @@ def _instant(span, lang: str, default_time: Optional[time],
                                       second=default_time.second)
             if span.contains(candidate):
                 return _fits_datetime(candidate, zone)
-        return _fits_datetime(start + (span.end - start) / 2, zone)
+        since_midnight = start - start.replace(hour=0, minute=0, second=0,
+                                               microsecond=0)
+        width = min(span.end - start, _DAY - since_midnight)
+        middle = start + width / 2
+        now = start.replace(year=anchor.year, month=anchor.month,
+                            day=anchor.day, hour=anchor.hour,
+                            minute=anchor.minute, second=anchor.second,
+                            microsecond=anchor.microsecond)
+        if middle < now < start + width:
+            return _fits_datetime(now, zone)
+        return _fits_datetime(middle, zone)
     if (span.end - start >= _DAY and start.time() == time(0, 0)
             and default_time is not None):
         # A stretch of whole days that opens at midnight names a date, and
@@ -628,35 +656,21 @@ def _extract_datetime_chronologia(
 
     With no anchor, "now" is :func:`now_local`, the configured zone's wall
     clock, as on every other locale.
+
+    A bare length ("2 hodiny 30 minut") names no point in time, so
+    chronologia declines it and so does this signature. A counted offset
+    with a direction word ("za 2 hodiny") names one.
     """
     anchor = anchorDate or now_local()
     found = extract_timespan(text, lang, anchor)
     if found is None:
-        # chronologia answers spans, so it declines a phrase that names a
-        # length rather than a point -- "2 hodiny 30 minut" is two and a half
-        # hours, not a time of day.  This signature answers the instant a
-        # skill schedules, and "remind me in two and a half hours" is an
-        # ordinary thing to say, so a length the duration reader consumes
-        # whole counts forward from the anchor.
-        return _duration_offset(text, lang, anchor)
-    return _routed(found, lang, default_time, anchor.tzinfo)
-
-
-def _duration_offset(text: str, lang: str,
-                     anchor: datetime) -> Optional[list]:
-    """A bare length, read as that far from now."""
-    try:
-        got = _chronologia_duration(text, lang)
-    except Exception:
         return None
-    if not (got and got.duration and not got.remainder.strip()):
-        return None
-    return [anchor + got.duration, ""]
+    return _routed(found, lang, default_time, anchor)
 
 
 def _routed(found, lang: str, default_time: Optional[time],
-            zone: Optional[tzinfo]):
-    moment = _instant(found.span, lang, default_time, zone)
+            anchor: datetime):
+    moment = _instant(found.span, lang, default_time, anchor)
     if moment is None:
         return None
     return [moment, found.remainder]
@@ -696,7 +710,11 @@ def extract_datetime(
     the holiday name does not stop this, because it does not move the date.
     A date the engine read from a calendar word the phrase does not cover is
     a different date, and stays the engine's.
+
+    No text (None or "") is no date, on every locale.
     """
+    if not text:
+        return None
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
     if found is not None and not holiday_overrides_engine(
@@ -1215,7 +1233,6 @@ def extract_duration_spans(text: str, lang: str) -> List[DurationSpan]:
 #: here unchanged so the parser keeps its public surface; the legacy
 #: ``extract_datetime`` / ``extract_date_xx`` paths are untouched by this.
 from chronologia import extract_timespan, explain
-from chronologia import extract_duration as _chronologia_duration
 
 
 NUMBER_TUPLE = namedtuple(

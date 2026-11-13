@@ -76,9 +76,12 @@ class TestRemainderKeepsHyphens(unittest.TestCase):
         ("es-ES", "recuérdame mañana el check-in", "recuérdame check-in"),
         ("gl-ES", "recórdame mañá o check-in", "recórdame check-in"),
         ("ast-ES", "recuérdame mañana el check-in", "recuérdame check-in"),
-        ("pt-PT", "lembra-me amanhã de comprar pão", "lembra-me comprar pão"),
+        # "de" and "do" belong to "lembrar-se de", not to the date, so the
+        # remainder keeps them with the other words the user typed
+        ("pt-PT", "lembra-me amanhã de comprar pão",
+         "lembra-me de comprar pão"),
         ("pt-PT", "lembra-me amanhã do guarda-chuva",
-         "lembra-me guarda-chuva"),
+         "lembra-me do guarda-chuva"),
         ("it-IT", "ricordami domani il check-in", "ricordami check-in"),
     )
 

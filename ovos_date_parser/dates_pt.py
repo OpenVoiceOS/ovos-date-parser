@@ -433,8 +433,10 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
               'dezembro']
     monthsShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago',
                    'set', 'out', 'nov', 'dez']
-    # Unicode CLDR 49 pt, short date "dd/MM/y": the day comes first
-    numeric_date = re.compile(r"(\d{1,2})/(0?[1-9]|1[0-2])(?:/(\d{4}))?")
+    # Unicode CLDR 49 short dates put the day first: pt_PT "dd/MM/yy",
+    # pt "dd/MM/y"
+    numeric_date = re.compile(
+        r"(\d{1,2})/(0?[1-9]|1[0-2])(?:/(\d{4}|\d{2}))?")
     nexts = ["proximo", "proxima"]
     suffix_nexts = ["seguinte", "subsequente", "seguir"]
     lasts = ["ultimo", "ultima"]
@@ -682,11 +684,11 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         elif word == "dia":
             if wordNext == "depois" or wordNext == "antes":
                 used += 1
-                if wordPrev and wordPrev[0].isdigit():
+                if wordPrev.isdigit():
                     dayOffset += int(wordPrev)
                     start -= 1
                     used += 1
-            elif (wordPrev and wordPrev[0].isdigit() and
+            elif (wordPrev.isdigit() and
                   wordNext not in months and
                   wordNext not in monthsShort):
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
@@ -702,11 +704,23 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 # "dia 25/12/2023": day, month and an optional year
                 day, month, year = numeric_date.fullmatch(wordNext).groups()
                 datestr = f"{months[int(month) - 1]} {day}"
+                if year and len(year) == 2:
+                    # a two-digit year falls in the 100 years from 80 before
+                    # the anchor to 19 after it, the window chronologia uses
+                    # (Java SimpleDateFormat: "within 80 years before and 20
+                    # years after")
+                    full = dateNow.year // 100 * 100 + int(year)
+                    if full > dateNow.year + 19:
+                        full -= 100
+                    elif full < dateNow.year - 80:
+                        full += 100
+                    year = str(full)
                 if year:
                     datestr += " " + year
                 hasYear = bool(year)
-                start -= 1
-                used += 2
+                # "dia" and the date; a preposition before "dia" is taken
+                # with the other words of `lists` below
+                used = 2
             elif wordNext.isdigit() and wordNextNext not in \
                     months and wordNextNext not in monthsShort:
                 dayOffset += int(wordNext)
@@ -714,7 +728,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 used += 2
 
         elif word == "semana" and not fromFlag:
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 weeksCounted = True
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
                 if past:
@@ -748,7 +762,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                     used = 2
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
                 if past:
                     monthOffset = -int(wordPrev)
@@ -781,7 +795,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                     used = 2
         # parse 5 years, next year, last year
         elif word == "ano" and not fromFlag:
-            if wordPrev and wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
                 if past:
                     yearOffset = -int(wordPrev)

@@ -1,12 +1,32 @@
 """Date and time tools for Portuguese, European (pt-PT) and Brazilian (pt-BR).
 
-Sources for the rules of the spoken time in this module:
+Sources for the rules of the spoken date and time in this module:
+
+The first day of the month. Ciberdúvidas, answer 32700 ("Numerais em
+datas"), citing Cunha & Cintra, "Nova Gramática do Português
+Contemporâneo", p. 374: "nas referências aos dias do mês usam-se os
+cardinais, salvo na designação do primeiro dia, em que é de regra o uso do
+numeral ordinal". Its examples: "Chegaremos às seis horas do dia primeiro de
+maio", "São duas horas da tarde [...]". So day 1 is "primeiro", every other day a
+cardinal, and a whole hour takes the noun: "às seis horas".
+
+The clock with unit words. Ciberdúvidas, answer 14586 ("Minuto"): "20 h 30 m
+24 s [...] vinte horas, trinta minutos e vinte e quatro segundos".
+Ciberdúvidas, answer 14648 ("A grafia das horas"): "a representação
+correcta de dezassete horas e trinta minutos, com algarismos, é: 17h30 min".
+The spoken form here has no comma: "vinte horas trinta minutos e vinte e
+quatro segundos".
+
+Zero hours. Dicio, "Zero grau ou zero graus" (Flávia Neves): "No Brasil, o
+zero é encarado como singular: zero grau; zero real; zero hora. Em Portugal,
+o zero é encarado como plural: zero graus; zero reais; zero horas."
 
 Day periods in 12-hour speech. Unicode CLDR 49, supplemental dayPeriods.xml,
 rules for "pt" (pt_PT has no rules of its own and inherits them): night1
 from 00:00 before 06:00, morning1 from 06:00 before 12:00, afternoon1 from
-12:00 before 19:00, evening1 from 19:00 before 24:00. CLDR 49 pt.xml, format
-names: "da madrugada", "da manhã", "da tarde", "da noite". The rules divide
+12:00 before 19:00, evening1 from 19:00 before 24:00, and midnight at 00:00
+and noon at 12:00. CLDR 49 pt.xml, format names: "da madrugada", "da manhã",
+"da tarde", "da noite", "meia-noite", "meio-dia". The rules divide
 the time of day, so the period is the one of the moment itself, also when the
 phrase names the next hour ("sete menos um quarto da tarde" at 18:45). This
 module follows CLDR in pt-PT and pt-BR: "da noite" starts at 19:00. Senado
@@ -28,6 +48,7 @@ was found, so pt-BR keeps the same form.
 """
 import re
 from datetime import datetime, timedelta
+from typing import Optional
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pt import (
@@ -92,11 +113,114 @@ def nice_year_pt(dt, bc=False, variant=PortugueseVariant.PT):
         Returns:
             (str): The formatted year string
     """
-    year = pronounce_number_pt(dt.year, variant=variant,
-                               gender=GrammaticalGender.MASCULINE)
+    year = spoken_year_pt(dt.year, variant=variant)
     if bc:
         return f"{year} a.C."
     return year
+
+
+def spoken_year_pt(year: int, variant=PortugueseVariant.PT) -> str:
+    """A year read as a masculine cardinal: "dois mil e vinte e quatro"."""
+    return pronounce_number_pt(year, variant=variant,
+                               gender=GrammaticalGender.MASCULINE)
+
+
+def spoken_day_pt(day: int, variant=PortugueseVariant.PT) -> str:
+    """The day of the month: an ordinal for the first day, else a cardinal."""
+    if day == 1:
+        return "primeiro"
+    return pronounce_number_pt(day, variant=variant,
+                               gender=GrammaticalGender.MASCULINE)
+
+
+def spoken_date_pt(day: Optional[int], month: Optional[int],
+                   year: Optional[int], weekday: Optional[int] = None,
+                   variant=PortugueseVariant.PT) -> str:
+    """The fields of a date that are given, joined by "de", with no comma:
+    "primeiro de maio de dois mil e vinte e quatro", "março de dois mil"."""
+    words = []
+    if day is not None:
+        words.append(spoken_day_pt(day, variant))
+    if month is not None:
+        words.append(MONTHS_PT[month])
+    if year is not None:
+        words.append(spoken_year_pt(year, variant))
+    date = " de ".join(words)
+    if weekday is not None:
+        date = f"{WEEKDAYS_PT[weekday]} {date}"
+    return date
+
+
+def _hours_pt(hour: int, variant) -> str:
+    """A count of hours with the noun: "uma hora", "vinte e uma horas";
+    zero takes the singular in pt-BR and the plural in pt-PT."""
+    count = pronounce_number_pt(hour, variant=variant,
+                                gender=GrammaticalGender.FEMININE)
+    if hour == 1 or (hour == 0 and variant == PortugueseVariant.BR):
+        return f"{count} hora"
+    return f"{count} horas"
+
+
+def _count_pt(value: int, noun: str, variant) -> str:
+    """A masculine count with its noun: "um minuto", "trinta segundos"."""
+    count = pronounce_number_pt(value, variant=variant,
+                                gender=GrammaticalGender.MASCULINE)
+    return f"{count} {noun}" if value == 1 else f"{count} {noun}s"
+
+
+def spoken_time_pt(hour: int, minute: int, second: Optional[int] = None,
+                   clock: str = "24h", style: str = "digits",
+                   period: bool = False,
+                   variant=PortugueseVariant.PT) -> Optional[str]:
+    """A clock time in one style, or None for a style with no reading.
+
+    digits: "catorze e trinta", and "vinte e uma horas" on the hour.
+    units: "catorze horas e trinta minutos", with the seconds if given.
+    phrase: the 12-hour conversational reading of nice_time_pt, "duas e
+    meia da tarde".
+    """
+    if style == "phrase":
+        if clock != "12h" or second is not None:
+            return None
+        return nice_time_pt(datetime(2000, 1, 1, hour, minute),
+                            use_24hour=False, use_ampm=period,
+                            variant=variant)
+    shown = hour if clock == "24h" else hour % 12 or 12
+    if style == "units":
+        parts = [_hours_pt(shown, variant)]
+        if minute:
+            parts.append(_count_pt(minute, "minuto", variant))
+        if second is not None:
+            parts.append(_count_pt(second, "segundo", variant))
+        speak = " e ".join(parts) if len(parts) < 3 \
+            else f"{parts[0]} {parts[1]} e {parts[2]}"
+    else:
+        if second is not None:
+            return None
+        if minute:
+            speak = pronounce_number_pt(
+                shown, variant=variant, gender=GrammaticalGender.FEMININE
+            ) + " e " + pronounce_number_pt(
+                minute, variant=variant, gender=GrammaticalGender.MASCULINE)
+        else:
+            speak = _hours_pt(shown, variant)
+    if clock == "12h" and period:
+        if minute == 0 and second is None and hour in (0, 12):
+            # CLDR pt: midnight at 00:00, noon at 12:00
+            return "meia-noite" if hour == 0 else "meio-dia"
+        speak += " " + _day_period_pt(hour)
+    return speak
+
+
+def _day_period_pt(hour: int) -> str:
+    """The CLDR day period of an hour (see the module docstring)."""
+    if hour < 6:
+        return "da madrugada"
+    if hour < 12:
+        return "da manhã"
+    if hour < 19:
+        return "da tarde"
+    return "da noite"
 
 
 def nice_weekday_pt(dt):
@@ -171,8 +295,7 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True,
     Returns:
         (str): The formatted date string
     """
-    day = pronounce_number_pt(dt.day, variant=variant,
-                              gender=GrammaticalGender.MASCULINE)
+    day = spoken_day_pt(dt.day, variant)
     if now is not None:
         nice = day
         if dt.date() == now.date():
@@ -296,14 +419,7 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False,
         if use_ampm and hour not in (0, 12):
             # the period of the moment itself, also when the phrase names
             # the next hour: 18:45 is "sete menos um quarto da tarde"
-            if dt.hour < 6:
-                speak += " da madrugada"
-            elif dt.hour < 12:
-                speak += " da manhã"
-            elif dt.hour < 19:
-                speak += " da tarde"
-            else:
-                speak += " da noite"
+            speak += " " + _day_period_pt(dt.hour)
     return speak
 
 

@@ -53,10 +53,9 @@ class TestPortugueseNumericDate(unittest.TestCase):
                 self.assertIsNone(extract_datetime_pt(text,
                                                       anchorDate=ANCHOR))
 
-    @unittest.expectedFailure
     def test_a_day_of_the_month(self):
-        # "no dia 3" is the next 3rd of a month. The legacy reader counts
-        # three days (11-15); chronologia reads the day of the month.
+        # "no dia 3" is the next 3rd of a month (ruling 13 of the chronologia
+        # disagreement classes); pt routes to chronologia, which reads it.
         self.assertEqual(
             extract_datetime("no dia 3 às 10h", anchorDate=ANCHOR,
                              lang="pt-PT")[0],

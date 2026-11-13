@@ -32,8 +32,9 @@ dependencies = [
     # is the alpha that refuses a holiday name after an indefinite article,
     # which "have a good friday" relies on, and reads a weekday of next or
     # last week, which the Czech, Croatian and Slovak routing relies on, and
-    # names the Basque and Persian holidays extract_holiday_date reads.
-    "chronologia>=0.31.12a1",
+    # names the Basque and Persian holidays extract_holiday_date reads, and
+    # reads the Portuguese date forms the Portuguese routing relies on.
+    "chronologia>=0.31.31a1",
 ]
 dynamic = ["version"]
 

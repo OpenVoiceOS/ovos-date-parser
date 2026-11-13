@@ -2,33 +2,45 @@
 
 Phrases are built from a marker, a unit, an optional weekday and an optional
 period tail. Every expected date comes from the calendar rules below, which
-are independent of the parser:
+are independent of the parser. The numbered rulings are those of the
+chronologia disagreement classes, which ``extract_datetime`` follows for a
+locale it routes to chronologia:
 
 * next <weekday> is the first such weekday after the anchor day, last or
   past <weekday> the most recent one before it, this <weekday> the first on
-  or after it;
-* next, last and "que vem" on a week, month or year move one unit;
+  or after it (ruling 12);
+* next, last and "que vem" on a week, month or year name the calendar unit
+  one step on or back, and the week starts on the locale's first day of the
+  week: Monday in pt-PT and Sunday in pt-BR, as the CLDR week data gives
+  them (class 2b);
 * a count with daqui a, dentro de or em moves forward, and with há or faz
-  backward, the day of month clamped to the month length;
+  backward, from the anchor's own wall clock, the day of month clamped to
+  the month length (class 1);
 * a weekday after a count of weeks is that weekday of the Monday-first week
   the count lands in; after days, months or years it is the first one on or
   after the date reached;
+* a weekday after amanhã, depois de amanhã, ontem or anteontem names that
+  day when the two agree, and no day when they do not (ruling 15);
 * the first, second or third day or weekday of a period is counted from its
-  start, and the last one back from its end; said of "o mês" or "deste mês"
-  it moves to the next month when the day has already passed;
-* a week of a period starts on a Monday and counts only when that Monday
-  is inside the period: the first week starts on the first Monday on or
+  start, and the last one back from its end; said of "o mês" it moves to
+  the next month when the day or week has already ended, and said of "deste
+  mês" it stays in the anchor's month (ruling 13);
+* a week of a month starts on a Monday and counts only when that Monday
+  is inside the month: the first week starts on the first Monday on or
   after the first day, and the last week on the last Monday;
+* a week of a year is an ISO 8601 week: the first is the week with 4
+  January in it, and the last the week with 28 December in it (ruling 14);
 * a weekday read before a count lands where it would after the count;
 * counts joined by "e" add up, forward after daqui a, dentro de or em and
-  backward after há or faz;
+  backward after há or faz, from the anchor's wall clock (class 1);
 * a weekday "da semana que vem", "da próxima semana" or "da semana
-  passada" is that weekday of the Monday-started week one week on or back;
+  passada" is that weekday of the calendar week one week on or back
+  (class 2b);
 * "o dia N" of a month is that day of the month, and moves to the next month
   when it has passed, like the other days of "o mês".
 """
 import unittest
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from dateutil.relativedelta import relativedelta
@@ -133,6 +145,31 @@ def midnight(d):
     return datetime(d.year, d.month, d.day)
 
 
+def wall_clock(d):
+    return d.replace(tzinfo=None)
+
+
+def week_start(a, lang):
+    """The first day of the anchor's week: Sunday in pt-BR, Monday in pt-PT."""
+    first = 6 if lang == "pt-BR" else 0
+    return midnight(a) - timedelta(days=(a.weekday() - first) % 7)
+
+
+def count_from(a, delta):
+    """A counted offset keeps the anchor's wall clock (class 1)."""
+    return wall_clock(a) + relativedelta(**delta)
+
+
+def iso_week(year, n):
+    """The Monday of ISO 8601 week n, or of the last week when n is -1."""
+    if n == -1:
+        dec28 = date(year, 12, 28)
+        monday = dec28 - timedelta(days=dec28.weekday())
+    else:
+        monday = date.fromisocalendar(year, n, 1)
+    return datetime(monday.year, monday.month, monday.day)
+
+
 def shift(a, unit, n):
     kw = {"dia": "days", "semana": "weeks", "mês": "months", "ano": "years"}
     return midnight(a) + relativedelta(**{kw[unit]: n})
@@ -172,8 +209,17 @@ def period(a, k):
     return begin, begin + relativedelta(day=31)
 
 
-def cases(a):
-    """Yield (text, expected datetime or None) for one anchor."""
+def calendar_unit(a, unit, step, lang):
+    """The start of the calendar week, month or year step units on (2b)."""
+    if unit == "semana":
+        return week_start(a, lang) + timedelta(days=7 * step)
+    if unit == "mês":
+        return midnight(a).replace(day=1) + relativedelta(months=step)
+    return datetime(a.year + step, 1, 1)
+
+
+def cases(a, lang):
+    """Yield (text, expected datetime or None) for one anchor and locale."""
     out = []
     # a week, month or year, next and last
     for unit in ("semana", "mês", "ano"):
@@ -181,7 +227,8 @@ def cases(a):
         art, nxt, lst = ("a", "próxima", "última") if g == "f" else \
             ("o", "próximo", "último")
         pas = "passada" if g == "f" else "passado"
-        nextd, lastd = shift(a, unit, 1), shift(a, unit, -1)
+        nextd = calendar_unit(a, unit, 1, lang)
+        lastd = calendar_unit(a, unit, -1, lang)
         for t in (f"{nxt} {sing}", f"{art} {nxt} {sing}",
                   f"n{art} {nxt} {sing}", f"{art} {sing} que vem",
                   f"{art} {sing} seguinte"):
@@ -194,11 +241,13 @@ def cases(a):
         for n in (1, 2, 3):
             word = SPELLED[n][g == "f"]
             noun = sing if n == 1 else plur
+            kw = {"dia": "days", "semana": "weeks", "mês": "months",
+                  "ano": "years"}[unit]
             for form in (f"{n} {noun}", f"{word} {noun}"):
                 for marker in ("daqui a", "dentro de", "em"):
-                    out.append((f"{marker} {form}", shift(a, unit, n)))
+                    out.append((f"{marker} {form}", count_from(a, {kw: n})))
                 for marker in ("há", "faz"):
-                    out.append((f"{marker} {form}", shift(a, unit, -n)))
+                    out.append((f"{marker} {form}", count_from(a, {kw: -n})))
     # weekdays: next, last, this, in both orders
     for d, (name, g) in enumerate(WEEKDAYS):
         nxt, lst, this, pas = (("próxima", "última", "esta", "passada")
@@ -228,7 +277,8 @@ def cases(a):
         for word, off in (("amanhã", 1), ("depois de amanhã", 2),
                           ("ontem", -1), ("anteontem", -2)):
             day = midnight(a) + timedelta(days=off)
-            out.append((f"{word} {name}", on_or_after(day, d)))
+            out.append((f"{word} {name}",
+                        day if day.weekday() == d else None))
     # a weekday after a count
     for d in (0, 4, 6):
         name = WEEKDAYS[d][0]
@@ -261,21 +311,21 @@ def cases(a):
         spaced = name.replace("-", " ")
         for k, tail in ((1, "da semana que vem"), (1, "da próxima semana"),
                         (-1, "da semana passada")):
-            monday = midnight(a) + timedelta(days=7 * k - a.weekday())
+            start = calendar_unit(a, "semana", k, lang)
+            day = start + timedelta(days=(d - start.weekday()) % 7)
             for lead in ("", art + " "):
-                out.append((f"{lead}{name} {tail}", monday + timedelta(d)))
+                out.append((f"{lead}{name} {tail}", day))
             if spaced != name:
-                out.append((f"{art} {spaced} {tail}", monday + timedelta(d)))
+                out.append((f"{art} {spaced} {tail}", day))
     # two counts joined by "e"
     for words, delta in (("uma semana e dois dias", dict(days=9)),
                          ("duas semanas e um dia", dict(days=15)),
                          ("um mês e três dias", dict(months=1, days=3)),
                          ("um ano e um mês", dict(years=1, months=1))):
-        out.append((f"daqui a {words}", midnight(a) + relativedelta(**delta)))
-        out.append((f"dentro de {words}",
-                    midnight(a) + relativedelta(**delta)))
+        out.append((f"daqui a {words}", count_from(a, delta)))
+        out.append((f"dentro de {words}", count_from(a, delta)))
         negative = {k: -v for k, v in delta.items()}
-        out.append((f"há {words}", midnight(a) + relativedelta(**negative)))
+        out.append((f"há {words}", count_from(a, negative)))
     # the first, nth and last day or weekday of a period
     tails = [("do mês", midnight(a).replace(day=1), month_end(a)),
              ("deste mês", midnight(a).replace(day=1), month_end(a)),
@@ -296,12 +346,21 @@ def cases(a):
         tails.append((f"de {name} de {a.year + 1}", begin,
                       begin + relativedelta(day=31)))
     for tail, begin, end in tails:
-        rolls = tail in ("do mês", "deste mês")
+        rolls = tail == "do mês"
+        of_year = tail in ("do ano", "deste ano", f"de {a.year}",
+                           f"de {a.year + 1}")
 
         def pick(kind, n, d=None):
             day = nth(kind, n, begin, d)
-            if rolls and day < midnight(a):
+            length = timedelta(days=7 if kind == "semana" else 1)
+            if rolls and day + length <= midnight(a):
                 day = nth(kind, n, begin + relativedelta(months=1), d)
+            return day
+
+        def last_weekday(d):
+            day = last_on_or_before(end, d)
+            if rolls and day < midnight(a):
+                day = last_on_or_before(month_end(a, 1), d)
             return day
 
         out.append(("o último dia " + tail, end))
@@ -310,17 +369,22 @@ def cases(a):
             for n in (5, 20):
                 for lead in ("o dia", "dia"):
                     out.append((f"{lead} {n} {tail}", pick("number", n)))
-        out.append(("a última semana " + tail, end - timedelta(end.weekday())))
+        if of_year:
+            out.append(("a última semana " + tail, iso_week(end.year, -1)))
+        else:
+            out.append(("a última semana " + tail,
+                        end - timedelta(end.weekday())))
         out.append(("o primeiro dia " + tail, pick("dia", 1)))
         for word, n in (("primeira", 1), ("segunda", 2), ("terceira", 3)):
-            out.append((f"a {word} semana {tail}", pick("semana", n)))
+            out.append((f"a {word} semana {tail}",
+                        iso_week(end.year, n) if of_year
+                        else pick("semana", n)))
         for d in (1, 4, 6):
             name, g = WEEKDAYS[d]
             lst, fst = ("última", "primeira") if g == "f" else \
                 ("último", "primeiro")
             art = "a" if g == "f" else "o"
-            out.append((f"{art} {lst} {name} {tail}",
-                        last_on_or_before(end, d)))
+            out.append((f"{art} {lst} {name} {tail}", last_weekday(d)))
             out.append((f"{art} {fst} {name} {tail}", pick("weekday", 1, d)))
             if g == "f":
                 for word, n in (("segunda", 2), ("terceira", 3)):
@@ -333,12 +397,15 @@ class TestPtRelativeGrid(unittest.TestCase):
     def test_grid(self):
         total = 0
         for key, anchor in ANCHORS.items():
-            for text, expected in cases(anchor):
-                for lang in LANGS:
+            for lang in LANGS:
+                for text, expected in cases(anchor, lang):
                     total += 1
                     with self.subTest(anchor=key, text=text, lang=lang):
                         res = extract_datetime(text, anchorDate=anchor,
                                                lang=lang)
+                        if expected is None:
+                            self.assertIsNone(res)
+                            continue
                         self.assertIsNotNone(res)
                         self.assertEqual(res[0].replace(tzinfo=None), expected)
                         self.assertEqual(res[1], "")
@@ -378,13 +445,16 @@ class TestPtRelativeGrid(unittest.TestCase):
                              ("o dia 31 de novembro", saturday),
                              ("dia 31 de novembro", saturday),
                              ("31 de abril", saturday),
-                             ("o dia 30 de fevereiro", saturday),
-                             ("29 de fevereiro", saturday)):
+                             ("o dia 30 de fevereiro", saturday)):
             for lang in LANGS:
                 with self.subTest(text=text, lang=lang):
                     self.assertIsNone(extract_datetime(
                         text, anchorDate=anchor, lang=lang))
+        # "29 de fevereiro" said in October 2026 is the next 29 February,
+        # in 2028: class 3 takes the next occurrence after the anchor, and
+        # ruling 13 skips a year that lacks the day as it skips a month.
         for text, anchor, expected in (
+                ("29 de fevereiro", saturday, datetime(2028, 2, 29)),
                 ("o dia 31 do próximo mês", dec31, datetime(2027, 1, 31)),
                 ("o dia 30 do mês que vem", saturday, datetime(2026, 11, 30)),
                 ("29 de fevereiro", datetime(2028, 1, 31, 12, 0, tzinfo=TZ),
@@ -396,10 +466,12 @@ class TestPtRelativeGrid(unittest.TestCase):
                     self.assertEqual(res[0].replace(tzinfo=None), expected)
 
     def test_a_bare_weekday_is_still_a_weekday(self):
+        # a part of the day answers the middle of its band, and the CLDR
+        # morning1 of pt runs from 06:00 to 12:00, so "de manhã" is 09:00
         for text, expected in (("segunda", datetime(2026, 10, 19)),
                                ("na segunda", datetime(2026, 10, 19)),
                                ("na terça", datetime(2026, 10, 20)),
-                               ("quarta de manhã", datetime(2026, 10, 21, 8)),
+                               ("quarta de manhã", datetime(2026, 10, 21, 9)),
                                ("sexta às 10", datetime(2026, 10, 23, 10))):
             for lang in LANGS:
                 with self.subTest(text=text, lang=lang):

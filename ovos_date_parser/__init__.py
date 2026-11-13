@@ -524,7 +524,7 @@ def _extract_date_zh_unspaced(text: str, settings: dict,
 #:   ("dvadtsyatoho"), where chronologia licenses a bare ordinal only behind a
 #:   preposition, as English does with "on the 20th". That is a library-wide
 #:   rule, not a Ukrainian omission, and changing it is not a vocabulary fix.
-CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "sk"})
+CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "pt", "sk"})
 
 #: A span this narrow names an instant rather than a stretch: "at 9am
 #: tomorrow" is a named day composed with a clock, and the clock is what the
@@ -709,7 +709,9 @@ def extract_datetime(
     layer answers instead. A time of day, an ordinal or any other word beside
     the holiday name does not stop this, because it does not move the date.
     A date the engine read from a calendar word the phrase does not cover is
-    a different date, and stays the engine's.
+    a different date, and stays the engine's. A locale routed to chronologia
+    keeps chronologia's answer, which reads the holiday name itself together
+    with a time of day beside it.
 
     No text (None or "") is no date, on every locale.
     """
@@ -717,8 +719,11 @@ def extract_datetime(
         return None
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
-    if found is not None and not holiday_overrides_engine(
-            text, lang, found[0], found[1], anchorDate=anchorDate):
+    routed = lang.split("-")[0] in CHRONOLOGIA_LOCALES
+    # a routed answer is chronologia's, which already read any holiday name
+    # with the time of day beside it ("no Natal à noite")
+    if found is not None and (routed or not holiday_overrides_engine(
+            text, lang, found[0], found[1], anchorDate=anchorDate)):
         return found
     holiday = _holiday_answer(text, lang, anchorDate)
     if holiday is None:

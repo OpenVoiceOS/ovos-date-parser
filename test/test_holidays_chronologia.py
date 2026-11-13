@@ -367,7 +367,10 @@ def test_the_holiday_layer_keeps_the_time_of_day(lang, utterance, expected,
                          HOLIDAYS_WITH_A_CLOCK_TIME)
 def test_extract_datetime_keeps_the_time_of_a_holiday(
         lang, utterance, expected, remainder):
-    assert extract_datetime(utterance, lang, REF) == (expected, remainder)
+    # a routed locale answers through chronologia as a list, the holiday
+    # layer as a tuple; the values are what is asserted
+    assert tuple(extract_datetime(utterance, lang, REF)) == (expected,
+                                                             remainder)
 
 
 #: Holidays whose name is no calendar word, so the engine reads only the clock

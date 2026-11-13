@@ -138,7 +138,7 @@ def test_no_text_is_no_date(lang):
     assert extract_datetime("", lang, anchorDate=ANCHOR) is None
 
 
-@pytest.mark.parametrize("lang", ["en", "pt"])
+@pytest.mark.parametrize("lang", ["en", "es"])
 def test_no_text_is_no_date_on_an_unrouted_locale(lang):
     """The contract does not depend on routing."""
     assert lang not in CHRONOLOGIA_LOCALES
@@ -232,7 +232,7 @@ def test_the_readings_that_must_not_move(text, lang, expected):
     assert got[1] == ""
 
 
-@pytest.mark.parametrize("lang", ["en", "de", "es", "pt", "fr", "pl", "bg"])
+@pytest.mark.parametrize("lang", ["en", "de", "es", "fr", "pl", "bg"])
 def test_an_unrouted_locale_keeps_its_own_extractor(lang):
     """Routing is per locale, so the rest are untouched."""
     assert lang not in CHRONOLOGIA_LOCALES
@@ -269,3 +269,73 @@ def test_an_aware_anchor_keeps_its_zone(text, lang, expected):
     got = extract_datetime(text, lang, anchorDate=AWARE_ANCHOR)[0]
     assert got == expected
     assert got.utcoffset() == timedelta(hours=2)
+
+
+# Portuguese. Tuesday 27 June 2017 at 13:04 is the anchor. The pt-PT week
+# starts on Monday 26 June and the pt-BR week on Sunday 25 June, as the CLDR
+# week data gives them. The numbered rulings are those of the chronologia
+# disagreement classes.
+PT_ROWS = [
+    # ruling 12: "this <weekday>" is the next one; Monday 26 June has passed
+    ("esta sexta-feira", datetime(2017, 6, 30), None),
+    ("esta segunda-feira", datetime(2017, 7, 3), None),
+    # class 2b with its article: the calendar week or month one step on
+    ("a próxima semana", datetime(2017, 7, 3), datetime(2017, 7, 2)),
+    ("o próximo mês", datetime(2017, 7, 1), None),
+    ("a última semana", datetime(2017, 6, 19), datetime(2017, 6, 18)),
+    # ruling 6: a weekday said on that weekday is today
+    ("terça-feira", datetime(2017, 6, 27), None),
+    ("na terça-feira", datetime(2017, 6, 27), None),
+    # ruling 15: amanhã is Wednesday 28 June, and the weekday agrees
+    ("amanhã, quarta-feira", datetime(2017, 6, 28), None),
+    # ruling 13: "dia N" is the next such day of a month
+    ("no dia 3", datetime(2017, 7, 3), None),
+    ("dia 30", datetime(2017, 6, 30), None),
+    ("no dia 3 às 10h", datetime(2017, 7, 3, 10, 0), None),
+    # ruling 13: "deste mês" and "desta semana" do not roll
+    ("o dia 5 deste mês", datetime(2017, 6, 5), None),
+    ("a sexta-feira desta semana", datetime(2017, 6, 30), None),
+    # ruling 14: ISO week 01 of 2026 holds 1 January, a Thursday, so it
+    # opens on Monday 29 December 2025; the last week of 2017 holds
+    # Thursday 28 December and opens on Monday 25 December
+    ("a primeira semana de 2026", datetime(2025, 12, 29), None),
+    ("a última semana de 2017", datetime(2017, 12, 25), None),
+    # ruling 13: "of the month" rolls once the day has passed; the first
+    # Tuesday of June is the 6th, so it is that of July, the 4th
+    ("o dia 5 do mês", datetime(2017, 7, 5), None),
+    ("a primeira terça-feira do mês", datetime(2017, 7, 4), None),
+    # the clock: 10:30 has passed at 13:04, so it is tomorrow's (class 3),
+    # and "da noite" puts the hour in the evening
+    ("às 10 e meia", datetime(2017, 6, 28, 10, 30), None),
+    ("às 10 e meia da noite", datetime(2017, 6, 27, 22, 30), None),
+    ("amanhã às 10 e meia", datetime(2017, 6, 28, 10, 30), None),
+    # a holiday with a part of the day: the CLDR noite of pt runs from
+    # 19:00 to midnight and the tarde from 12:00 to 19:00, so their middles
+    # are 21:30 and 15:30; Easter 2017 (16 April) has passed, and Easter
+    # 2018 is 1 April (dateutil.easter)
+    ("no Natal à noite", datetime(2017, 12, 25, 21, 30), None),
+    ("na Páscoa à tarde", datetime(2018, 4, 1, 15, 30), None),
+    # class 1: a counted offset keeps the anchor's clock
+    ("daqui a 10 minutos", datetime(2017, 6, 27, 13, 14), None),
+    ("há 3 dias", datetime(2017, 6, 24, 13, 4), None),
+]
+
+
+@pytest.mark.parametrize("lang", ["pt-PT", "pt-BR"])
+@pytest.mark.parametrize("text,expected,brazil", PT_ROWS)
+def test_portuguese_routes_to_chronologia(text, expected, brazil, lang):
+    want = brazil if lang == "pt-BR" and brazil else expected
+    assert extract_datetime(text, lang, anchorDate=ANCHOR) == [want, ""]
+
+
+@pytest.mark.parametrize("lang", ["pt-PT", "pt-BR"])
+@pytest.mark.parametrize("text", [
+    "o gato é preto",
+    # ruling 3: a bare length is not a date
+    "10 minutos",
+    "daqui a banana minutos",
+    # ruling 15: amanhã is Wednesday, so "sexta-feira" names another day
+    "amanhã sexta-feira",
+])
+def test_portuguese_text_with_no_date_is_none(text, lang):
+    assert extract_datetime(text, lang, anchorDate=ANCHOR) is None

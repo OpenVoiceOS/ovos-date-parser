@@ -2,7 +2,9 @@
 
 Markers: prefix "há" and suffix "atrás" (Priberam, papers/linguistics/pt/priberam_ha.html and papers/linguistics/pt/priberam_atras.html). These phrases must resolve BACKWARD from the anchor.
 Expected datetimes are hand-derived from the fixed anchor, never pinned from
-engine output. See the three-way differential harness (ours vs dateparser vs
+engine output. A counted offset keeps the anchor's 13:04 (class 1 of the
+chronologia disagreement classes: a counted offset is arithmetic on the
+anchor). See the three-way differential harness (ours vs dateparser vs
 dateutil).
 """
 import unittest
@@ -22,22 +24,22 @@ def _dt(text):
 
 class TestPastMarkerOffsets(unittest.TestCase):
     def test_past_0(self):
-        self.assertEqual(_dt('há 2 semanas'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('há 2 semanas'), datetime(2017, 6, 13, 13, 4))
 
     def test_past_1(self):
-        self.assertEqual(_dt('2 semanas atrás'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('2 semanas atrás'), datetime(2017, 6, 13, 13, 4))
 
     def test_past_2(self):
-        self.assertEqual(_dt('há 3 dias'), datetime(2017, 6, 24))
+        self.assertEqual(_dt('há 3 dias'), datetime(2017, 6, 24, 13, 4))
 
     def test_past_3(self):
-        self.assertEqual(_dt('há 2 meses'), datetime(2017, 4, 27))
+        self.assertEqual(_dt('há 2 meses'), datetime(2017, 4, 27, 13, 4))
 
     def test_past_4(self):
-        self.assertEqual(_dt('há 4 anos'), datetime(2013, 6, 27))
+        self.assertEqual(_dt('há 4 anos'), datetime(2013, 6, 27, 13, 4))
 
     def test_sentence_context(self):
-        self.assertEqual(_dt('o evento foi há 2 semanas'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('o evento foi há 2 semanas'), datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         # future offset minus past offset == 2x the offset

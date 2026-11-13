@@ -1,8 +1,36 @@
 # Changelog
 
+## [0.36.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.0a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.54a1...0.36.0a1)
+
+**Merged pull requests:**
+
+- feat\(pt\): spoken form of a date, time and year from its fields [\#636](https://github.com/OpenVoiceOS/ovos-date-parser/pull/636) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.35.54a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.54a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.53a1...0.35.54a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): read "dia 25/12/2023" as a date instead of raising [\#633](https://github.com/OpenVoiceOS/ovos-date-parser/pull/633) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.53a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.53a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.52a1...0.35.53a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): "da noite" starts at 19:00 in 12-hour speech [\#632](https://github.com/OpenVoiceOS/ovos-date-parser/pull/632) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.35.52a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.52a1) (2026-11-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.50a1...0.35.52a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.51a1...0.35.52a1)
+
+## [0.35.51a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.51a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.50a1...0.35.51a1)
 
 **Merged pull requests:**
 
@@ -332,10 +360,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.4a1...0.35.5a1)
 
-**Merged pull requests:**
-
-- fix: roll en 24-hour clock times to the next occurrence; keep da weekday beside a date out of the offset; use the public DAY\_PARTS [\#526](https://github.com/OpenVoiceOS/ovos-date-parser/pull/526) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.4a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.3a1...0.35.4a1)
@@ -344,10 +368,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.2a1...0.35.3a1)
 
-**Merged pull requests:**
-
-- fix: require chronologia 0.31.7a1 for the Basque and Persian holiday names [\#528](https://github.com/OpenVoiceOS/ovos-date-parser/pull/528) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.2a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.1a1...0.35.2a1)
@@ -355,10 +375,6 @@
 ## [0.35.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.1a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.0a1...0.35.1a1)
-
-**Merged pull requests:**
-
-- fix: give a holiday answer the time zone of the anchor [\#527](https://github.com/OpenVoiceOS/ovos-date-parser/pull/527) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.0a1) (2026-10-23)
 

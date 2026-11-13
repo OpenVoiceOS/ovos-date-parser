@@ -1,0 +1,21 @@
+name: Coverage Report
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    uses: OpenVoiceOS/gh-automations/.github/workflows/coverage.yml@dev
+    secrets: inherit
+    with:
+      pre_install_pip: "pytest-timeout"
+      # The whole directory, for the same reason as build_tests.yml.
+      # The six paths it named collected 808 of the 2797 tests the
+      # tree holds, so the reported figure was coverage of under a
+      # third of the suite. The number moves because it becomes the
+      # true one for the tree.
+      test_path: "test"
+      coverage_source: "ovos_date_parser"

@@ -701,7 +701,7 @@ def extract_datetime_el(text, anchorDate=None, default_time=None):
             used += 1
             hrAbs = -1
             minAbs = -1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""

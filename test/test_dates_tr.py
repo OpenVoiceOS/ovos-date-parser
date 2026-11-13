@@ -56,7 +56,7 @@ class TestDurationTr(unittest.TestCase):
         self.assertEqual(nice_duration(3720, "tr"), "bir saat iki dakika")
         self.assertEqual(nice_duration(1, "tr"), "bir saniye")
         self.assertEqual(nice_duration(90061, "tr"),
-                         "bir gün  bir saat bir dakika bir saniye")
+                         "bir gün bir saat bir dakika bir saniye")
 
     def test_extract_units(self):
         self.assertEqual(

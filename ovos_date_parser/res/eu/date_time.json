@@ -13,7 +13,7 @@
     "bc": "k.a."
   },
     "date_format": {
-    "date_full": "{weekday}, {formatted_year}ko {month}ren {day}",
+    "date_full": "{weekday}, {formatted_year} {month}ren {day}",
     "date_full_no_year": "{weekday}, {month}ren {day}",
     "date_full_no_year_month": "{weekday}, {day}",
     "today": "gaur",
@@ -21,7 +21,7 @@
     "yesterday": "atzo"
   },
     "date_time_format": {
-    "date_time": "{formatted_date} {formatted_time}tan"
+    "date_time": "{formatted_date} {formatted_time}"
   },
     "weekday": {
     "0": "astelehena",
@@ -60,7 +60,7 @@
     "25": "hogeita bost",
     "26": "hogeita sei",
     "27": "hogeita zazpi",
-    "28": "hogeita zorti",
+    "28": "hogeita zortzi",
     "29": "hogeita bederatzi",
     "30": "hogeita hamar",
     "31": "hogeita hamaika"
@@ -74,7 +74,7 @@
     "6": "ekaina",
     "7": "uztaila",
     "8": "abuztua",
-    "9": "iraula",
+    "9": "iraila",
     "10": "urria",
     "11": "azaroa",
     "12": "abendua"

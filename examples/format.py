@@ -21,3 +21,21 @@ print(nice_duration(timedelta(days=2, hours=3), "en"))
 
 # relative time
 print(nice_relative_time(dt + timedelta(hours=2), relative_to=dt, lang="en"))
+
+# span-native formatting: a DateSpan's width is its precision, so nice_span
+# labels it at the right granularity -- and for English it round-trips back
+# through extract_timespan.
+from ovos_date_parser import nice_span, extract_timespan
+
+for text in ["July 21st, 2026", "July 2026", "2026", "the 1980s",
+             "the 19th century", "300 BC"]:
+    span, _ = extract_timespan(text, "en")
+    label = nice_span(span, "en")
+    print(f"{text!r:22} -> {span.start} .. {span.end} -> {label!r}")
+    assert label == text  # round-trips
+
+# the datetime formatters accept an AstroDate point directly
+from ovos_date_parser.astrodate import AstroDate
+
+when = AstroDate(2026, 7, 21, 15, 30)
+print(nice_date(when, "en"), "at", nice_time(when, "en"))

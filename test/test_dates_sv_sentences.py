@@ -149,22 +149,37 @@ class TestImpossibleAndEmpty(unittest.TestCase):
 
 
 class TestDurationEdgeCases(unittest.TestCase):
-    """extract_duration must signal 'no duration' with None, never crash."""
+    """extract_duration must signal 'no duration' with a None value.
+
+    Like every other language it returns a ``(duration, remainder)`` pair, so
+    "no duration" is a None value with the text left over, never a crash and
+    never a bare None a caller cannot unpack.
+    """
 
     def test_empty_string(self):
-        self.assertIsNone(_odp.extract_duration("", lang="sv"))
+        duration, remainder = _odp.extract_duration("", lang="sv")
+        self.assertIsNone(duration)
+        self.assertEqual(remainder, "")
 
     def test_whitespace_only(self):
-        self.assertIsNone(_odp.extract_duration("   ", lang="sv"))
+        duration, remainder = _odp.extract_duration("   ", lang="sv")
+        self.assertIsNone(duration)
+        self.assertEqual(remainder, "   ")
 
     def test_tabs_and_newlines(self):
-        self.assertIsNone(_odp.extract_duration("\t\n  ", lang="sv"))
+        duration, remainder = _odp.extract_duration("\t\n  ", lang="sv")
+        self.assertIsNone(duration)
+        self.assertEqual(remainder, "\t\n  ")
 
     def test_gibberish(self):
-        self.assertIsNone(_odp.extract_duration("blahonga foo bar", lang="sv"))
+        duration, remainder = _odp.extract_duration("blahonga foo bar", lang="sv")
+        self.assertIsNone(duration)
+        self.assertEqual(remainder, "blahonga foo bar")
 
     def test_words_without_numbers(self):
-        self.assertIsNone(_odp.extract_duration("minuter och sekunder", lang="sv"))
+        duration, remainder = _odp.extract_duration("minuter och sekunder", lang="sv")
+        self.assertIsNone(duration)
+        self.assertEqual(remainder, "minuter och sekunder")
 
     def test_normal_duration_still_parses(self):
         td, remainder = _odp.extract_duration("5 minuter", lang="sv")

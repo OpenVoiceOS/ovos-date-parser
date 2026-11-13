@@ -88,9 +88,9 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                0, 2, 3, tzinfo=default_timezone())
         self.assertEqual(nice_time(dt, lang="pt"),
-                         "meia noite e dois")
+                         "meia-noite e dois")
         self.assertEqual(nice_time(dt, lang="pt", use_ampm=True),
-                         "meia noite e dois")
+                         "meia-noite e dois")
         self.assertEqual(nice_time(dt, lang="pt", use_24hour=True),
                          "zero e dois")
         self.assertEqual(nice_time(dt, lang="pt", speech=False),
@@ -111,9 +111,9 @@ class TestNiceDateFormat(unittest.TestCase):
         dt = datetime.datetime(2017, 1, 31,
                                12, 15, 9, tzinfo=default_timezone())
         self.assertEqual(nice_time(dt, lang="pt"),
-                         "meio dia e um quarto")
+                         "meio-dia e um quarto")
         self.assertEqual(nice_time(dt, lang="pt", use_ampm=True),
-                         "meio dia e um quarto")
+                         "meio-dia e um quarto")
         self.assertEqual(nice_time(dt, lang="pt", speech=False),
                          "12:15")
         self.assertEqual(nice_time(dt, lang="pt", speech=False,
@@ -139,7 +139,7 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="pt"),
                          "oito menos vinte")
         self.assertEqual(nice_time(dt, lang="pt", use_ampm=True),
-                         "oito menos vinte da tarde")
+                         "oito menos vinte da noite")
         self.assertEqual(nice_time(dt, lang="pt", speech=False),
                          "7:40")
         self.assertEqual(nice_time(dt, lang="pt", speech=False,

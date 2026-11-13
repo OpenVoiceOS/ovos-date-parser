@@ -1,14 +1,68 @@
+"""Date and time tools for Portuguese, European (pt-PT) and Brazilian (pt-BR).
+
+Sources for the rules of the spoken date and time in this module:
+
+The first day of the month. Ciberdúvidas, answer 32700 ("Numerais em
+datas"), citing Cunha & Cintra, "Nova Gramática do Português
+Contemporâneo", p. 374: "nas referências aos dias do mês usam-se os
+cardinais, salvo na designação do primeiro dia, em que é de regra o uso do
+numeral ordinal". Its examples: "Chegaremos às seis horas do dia primeiro de
+maio", "São duas horas da tarde [...]". So day 1 is "primeiro", every other day a
+cardinal, and a whole hour takes the noun: "às seis horas".
+
+The clock with unit words. Ciberdúvidas, answer 14586 ("Minuto"): "20 h 30 m
+24 s [...] vinte horas, trinta minutos e vinte e quatro segundos".
+Ciberdúvidas, answer 14648 ("A grafia das horas"): "a representação
+correcta de dezassete horas e trinta minutos, com algarismos, é: 17h30 min".
+The spoken form here has no comma: "vinte horas trinta minutos e vinte e
+quatro segundos".
+
+Zero hours. Dicio, "Zero grau ou zero graus" (Flávia Neves): "No Brasil, o
+zero é encarado como singular: zero grau; zero real; zero hora. Em Portugal,
+o zero é encarado como plural: zero graus; zero reais; zero horas."
+
+Day periods in 12-hour speech. Unicode CLDR 49, supplemental dayPeriods.xml,
+rules for "pt" (pt_PT has no rules of its own and inherits them): night1
+from 00:00 before 06:00, morning1 from 06:00 before 12:00, afternoon1 from
+12:00 before 19:00, evening1 from 19:00 before 24:00, and midnight at 00:00
+and noon at 12:00. CLDR 49 pt.xml, format names: "da madrugada", "da manhã",
+"da tarde", "da noite", "meia-noite", "meio-dia". The rules divide
+the time of day, so the period is the one of the moment itself, also when the
+phrase names the next hour ("sete menos um quarto da tarde" at 18:45). This
+module follows CLDR in pt-PT and pt-BR: "da noite" starts at 19:00. Senado
+Federal, "Manual de Comunicação", entry "Hora", starts the night earlier, "A
+noite, das 18h às 24h (ou à meia-noite)", and accepts both forms for the 18h
+hour: "tanto fica correto usar «às seis da tarde» quanto «às seis da noite»".
+Priberam gives no clock hour: "tarde" is the "Espaço do dia compreendido entre
+o meio-dia e o anoitecer", and "madrugada" (sense 3) the "Período de tempo
+entre a meia-noite e o amanhecer".
+
+Minutes before the hour. Ciberdúvidas, answer 38623: "Depois da meia hora,
+no registo corrente em Portugal, existem duas maneiras de indicar os minutos
+que faltam para a hora", "são três menos um quarto" and "é um quarto para as
+três". Priberam, "quarto", sense 3: "falta um quarto para as nove"; "para",
+sense 5: "faltam cinco para a uma". Both forms are standard; this module
+says "dez menos um quarto". For pt-BR, only teaching sites say that
+"quinze para as dez" is the usual Brazilian form; no dictionary or grammar
+was found, so pt-BR keeps the same form.
+"""
 import re
 from datetime import datetime, timedelta
+from typing import Optional
 
 from dateutil.relativedelta import relativedelta
-from ovos_number_parser.numbers_pt import pronounce_number_pt, numbers_to_digits_pt
+from ovos_number_parser.numbers_pt import (
+    PortugueseVariant, pronounce_number_pt, numbers_to_digits_pt
+)
 from ovos_number_parser.util import GrammaticalGender
 from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_date_parser.common import restore_typed_words
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
+# Lowercase, as the Acordo Ortográfico de 1990, Base XIX 1.º b), writes the
+# names of days and months.
 WEEKDAYS_PT = {
     0: "segunda-feira",
     1: "terça-feira",
@@ -34,7 +88,18 @@ MONTHS_PT = {
 }
 
 
-def nice_year_pt(dt, bc=False):
+def portuguese_variant(lang: str) -> PortugueseVariant:
+    """The spelling of the numbers for a Portuguese BCP-47 tag.
+
+    Priberam, "dezesseis": "Grafia no Brasil: dezesseis. Grafia em Portugal:
+    dezasseis." Brazil (BR) takes the Brazilian forms; every other region,
+    and a tag with no region, takes the European ones.
+    """
+    regions = lang.lower().replace("_", "-").split("-")[1:]
+    return PortugueseVariant.BR if "br" in regions else PortugueseVariant.PT
+
+
+def nice_year_pt(dt, bc=False, variant=PortugueseVariant.PT):
     """
         Format a datetime to a pronounceable year
 
@@ -44,37 +109,142 @@ def nice_year_pt(dt, bc=False):
             dt (datetime): date to format (assumes already in local timezone)
             bc (bool) pust B.C. after the year (python does not support dates
                 B.C. in datetime)
+            variant (PortugueseVariant): the spelling of the numbers
         Returns:
             (str): The formatted year string
     """
-    year = pronounce_number_pt(dt.year, gender=GrammaticalGender.MASCULINE)
+    year = spoken_year_pt(dt.year, variant=variant)
     if bc:
         return f"{year} a.C."
     return year
 
 
+def spoken_year_pt(year: int, variant=PortugueseVariant.PT) -> str:
+    """A year read as a masculine cardinal: "dois mil e vinte e quatro"."""
+    return pronounce_number_pt(year, variant=variant,
+                               gender=GrammaticalGender.MASCULINE)
+
+
+def spoken_day_pt(day: int, variant=PortugueseVariant.PT) -> str:
+    """The day of the month: an ordinal for the first day, else a cardinal."""
+    if day == 1:
+        return "primeiro"
+    return pronounce_number_pt(day, variant=variant,
+                               gender=GrammaticalGender.MASCULINE)
+
+
+def spoken_date_pt(day: Optional[int], month: Optional[int],
+                   year: Optional[int], weekday: Optional[int] = None,
+                   variant=PortugueseVariant.PT) -> str:
+    """The fields of a date that are given, joined by "de", with no comma:
+    "primeiro de maio de dois mil e vinte e quatro", "março de dois mil"."""
+    words = []
+    if day is not None:
+        words.append(spoken_day_pt(day, variant))
+    if month is not None:
+        words.append(MONTHS_PT[month])
+    if year is not None:
+        words.append(spoken_year_pt(year, variant))
+    date = " de ".join(words)
+    if weekday is not None:
+        date = f"{WEEKDAYS_PT[weekday]} {date}"
+    return date
+
+
+def _hours_pt(hour: int, variant) -> str:
+    """A count of hours with the noun: "uma hora", "vinte e uma horas";
+    zero takes the singular in pt-BR and the plural in pt-PT."""
+    count = pronounce_number_pt(hour, variant=variant,
+                                gender=GrammaticalGender.FEMININE)
+    if hour == 1 or (hour == 0 and variant == PortugueseVariant.BR):
+        return f"{count} hora"
+    return f"{count} horas"
+
+
+def _count_pt(value: int, noun: str, variant) -> str:
+    """A masculine count with its noun: "um minuto", "trinta segundos"."""
+    count = pronounce_number_pt(value, variant=variant,
+                                gender=GrammaticalGender.MASCULINE)
+    return f"{count} {noun}" if value == 1 else f"{count} {noun}s"
+
+
+def spoken_time_pt(hour: int, minute: int, second: Optional[int] = None,
+                   clock: str = "24h", style: str = "digits",
+                   period: bool = False,
+                   variant=PortugueseVariant.PT) -> Optional[str]:
+    """A clock time in one style, or None for a style with no reading.
+
+    digits: "catorze e trinta", and "vinte e uma horas" on the hour.
+    units: "catorze horas e trinta minutos", with the seconds if given.
+    phrase: the 12-hour conversational reading of nice_time_pt, "duas e
+    meia da tarde".
+    """
+    if style == "phrase":
+        if clock != "12h" or second is not None:
+            return None
+        return nice_time_pt(datetime(2000, 1, 1, hour, minute),
+                            use_24hour=False, use_ampm=period,
+                            variant=variant)
+    shown = hour if clock == "24h" else hour % 12 or 12
+    if style == "units":
+        parts = [_hours_pt(shown, variant)]
+        if minute:
+            parts.append(_count_pt(minute, "minuto", variant))
+        if second is not None:
+            parts.append(_count_pt(second, "segundo", variant))
+        speak = " e ".join(parts) if len(parts) < 3 \
+            else f"{parts[0]} {parts[1]} e {parts[2]}"
+    else:
+        if second is not None:
+            return None
+        if minute:
+            speak = pronounce_number_pt(
+                shown, variant=variant, gender=GrammaticalGender.FEMININE
+            ) + " e " + pronounce_number_pt(
+                minute, variant=variant, gender=GrammaticalGender.MASCULINE)
+        else:
+            speak = _hours_pt(shown, variant)
+    if clock == "12h" and period:
+        if minute == 0 and second is None and hour in (0, 12):
+            # CLDR pt: midnight at 00:00, noon at 12:00
+            return "meia-noite" if hour == 0 else "meio-dia"
+        speak += " " + _day_period_pt(hour)
+    return speak
+
+
+def _day_period_pt(hour: int) -> str:
+    """The CLDR day period of an hour (see the module docstring)."""
+    if hour < 6:
+        return "da madrugada"
+    if hour < 12:
+        return "da manhã"
+    if hour < 19:
+        return "da tarde"
+    return "da noite"
+
+
 def nice_weekday_pt(dt):
-    weekday = WEEKDAYS_PT[dt.weekday()]
-    return weekday.capitalize()
+    return WEEKDAYS_PT[dt.weekday()]
 
 
 def nice_month_pt(dt):
-    month = MONTHS_PT[dt.month]
-    return month.capitalize()
+    return MONTHS_PT[dt.month]
 
 
 def nice_day_pt(dt, date_format='DMY', include_month=True):
     if include_month:
         month = nice_month_pt(dt)
+        # Unicode CLDR pt, availableFormats MMMMd: "d 'de' MMMM", with the
+        # day unpadded
         if date_format == 'MDY':
-            return "{} {}".format(month, dt.strftime("%d"))
+            return f"{month} {dt.day}"
         else:
-            return "{} {}".format(dt.strftime("%d"), month)
+            return f"{dt.day} de {month}"
     return dt.strftime("%d")
 
 
 def nice_date_time_pt(dt, now=None, use_24hour=False,
-                      use_ampm=False):
+                      use_ampm=False, variant=PortugueseVariant.PT):
     """
         Format a datetime to a pronounceable date and time
 
@@ -89,14 +259,25 @@ def nice_date_time_pt(dt, now=None, use_24hour=False,
                 is returned.
             use_24hour (bool): output in 24-hour/military or 12-hour format
             use_ampm (bool): include the am/pm for 12-hour format
+            variant (PortugueseVariant): the spelling of the numbers
         Returns:
             (str): The formatted date time string
     """
     now = now or now_local()
-    return f"{nice_date_pt(dt, now)} ás {nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm)}"
+    time = nice_time_pt(dt, use_24hour=use_24hour, use_ampm=use_ampm,
+                        variant=variant)
+    # a + the article of the hour: à uma, às duas, à meia-noite, ao meio-dia
+    if time.startswith("meio-dia"):
+        at = "ao"
+    elif time.startswith(("uma", "meia-noite")):
+        at = "à"
+    else:
+        at = "às"
+    return f"{nice_date_pt(dt, now, variant=variant)} {at} {time}"
 
 
-def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
+def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True,
+                 variant=PortugueseVariant.PT):
     """
     Format a datetime to a pronounceable date
 
@@ -109,11 +290,12 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
             same year as td, no month is returned if now is in the same month
             as td. If now and td is the same day, 'today' is returned.
         include_weekday (bool, optional): Whether to include the weekday name in the output. Defaults to True.
+        variant (PortugueseVariant): the spelling of the numbers
 
     Returns:
         (str): The formatted date string
     """
-    day = pronounce_number_pt(dt.day, gender=GrammaticalGender.MASCULINE)
+    day = spoken_day_pt(dt.day, variant)
     if now is not None:
         nice = day
         if dt.date() == now.date():
@@ -123,19 +305,19 @@ def nice_date_pt(dt: datetime, now: datetime = None, include_weekday=True):
         if dt.date() == now.date() - timedelta(days=1):
             return "ontem"
         if dt.month != now.month or dt.year != now.year:
-            nice = nice + " de " + nice_month_pt(dt)
+            nice = nice + " de " + MONTHS_PT[dt.month]
         if dt.year != now.year:
-            nice = nice + ", " + nice_year_pt(dt)
+            nice = nice + " de " + nice_year_pt(dt, variant=variant)
     else:
-        nice = f"{day} de {nice_month_pt(dt)}, {nice_year_pt(dt)}"
+        nice = f"{day} de {MONTHS_PT[dt.month]} de {nice_year_pt(dt, variant=variant)}"
 
     if include_weekday:
-        weekday = nice_weekday_pt(dt)
-        nice = f"{weekday}, {nice}"
+        nice = f"{WEEKDAYS_PT[dt.weekday()]}, {nice}"
     return nice
 
 
-def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
+def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False,
+                 variant=PortugueseVariant.PT):
     """
     Format a time to a comfortable human format
      For example, generate 'cinco treinta' for speech or '5:30' for
@@ -145,6 +327,7 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
         speech (bool): format for speech (default/True) or display (False)=Fal
         use_24hour (bool): output in 24-hour/military or 12-hour format
         use_ampm (bool): include the am/pm for 12-hour format
+        variant (PortugueseVariant): the spelling of the numbers
     Returns:
         (str): The formatted time string
     """
@@ -168,11 +351,14 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
     speak = ""
     if use_24hour:
         # simply speak the number
-        speak += pronounce_number_pt(dt.hour, gender=GrammaticalGender.FEMININE)
+        speak += pronounce_number_pt(dt.hour, variant=variant,
+                                     gender=GrammaticalGender.FEMININE)
 
         # equivalent to "quarter past ten"
         if dt.minute > 0:
-            speak += " e " + pronounce_number_pt(dt.minute, gender=GrammaticalGender.MASCULINE)
+            speak += " e " + pronounce_number_pt(
+                dt.minute, variant=variant,
+                gender=GrammaticalGender.MASCULINE)
 
     else:
         # speak number and add daytime identifier
@@ -195,15 +381,18 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
         else:
             minute = dt.minute
             hour = dt.hour
+        hour %= 24
 
         if hour == 0:
-            speak += "meia noite"
+            speak += "meia-noite"
         elif hour == 12:
-            speak += "meio dia"
+            speak += "meio-dia"
         elif hour < 13:
-            speak = pronounce_number_pt(hour, gender=GrammaticalGender.FEMININE)
+            speak = pronounce_number_pt(hour, variant=variant,
+                                        gender=GrammaticalGender.FEMININE)
         else:
-            speak = pronounce_number_pt(hour - 12, gender=GrammaticalGender.FEMININE)
+            speak = pronounce_number_pt(hour - 12, variant=variant,
+                                        gender=GrammaticalGender.FEMININE)
 
         if minute != 0:
             if minute == 15:
@@ -214,25 +403,48 @@ def nice_time_pt(dt, speech=True, use_24hour=False, use_ampm=False):
                 speak += " menos um quarto"
             else:
                 if minute > 0:
-                    speak += " e " + pronounce_number_pt(minute, gender=GrammaticalGender.MASCULINE)
+                    speak += " e " + pronounce_number_pt(
+                        minute, variant=variant,
+                        gender=GrammaticalGender.MASCULINE)
                 else:
-                    speak += " " + pronounce_number_pt(minute, gender=GrammaticalGender.MASCULINE)
+                    speak += " " + pronounce_number_pt(
+                        minute, variant=variant,
+                        gender=GrammaticalGender.MASCULINE)
 
         # exact time
         if minute == 0 and not use_ampm:
             # 3:00
             speak += " em ponto"
 
-        if use_ampm:
-            if hour > 0 and hour < 6:
-                speak += " da madrugada"
-            elif hour >= 6 and hour < 12:
-                speak += " da manhã"
-            elif hour >= 13 and hour < 21:
-                speak += " da tarde"
-            elif hour != 0 and hour != 12:
-                speak += " da noite"
+        if use_ampm and hour not in (0, 12):
+            # the period of the moment itself, also when the phrase names
+            # the next hour: 18:45 is "sete menos um quarto da tarde"
+            speak += " " + _day_period_pt(dt.hour)
     return speak
+
+
+DETERMINERS = ["a", "o", "as", "os", "uma", "um", "na", "no", "da", "do",
+               "pela", "pelo", "sua", "seu", "minha", "meu", "esta", "este",
+               "essa", "esse", "cada"]
+ORDINAL_NOUNS = ["opcao", "parte", "casa", "posicao", "semana", "edicao",
+                 "fila", "linha", "pagina", "etapa", "fase", "hipotese",
+                 "geracao", "via", "mao", "vida", "classe", "camada",
+                 "divisao", "liga", "temporada", "serie", "guerra", "lingua",
+                 "opiniao", "chance", "tentativa", "prova", "ronda", "volta",
+                 "pessoa", "porta", "rua", "rodada", "entrada", "saida",
+                 "mesa", "cadeira", "categoria", "escolha", "sessao", "aula",
+                 "dose", "pergunta", "onda", "sinfonia", "metade", "filha",
+                 "filho", "maior", "menor", "cidade", "mulher", "esposa",
+                 "irma", "irmao", "prestacao", "prateleira", "gaveta",
+                 "coluna", "seccao", "secao", "fatia", "jornada", "acao",
+                 "versao", "campanha", "cena", "faixa", "musica", "visita",
+                 "carta", "viagem", "jogada", "tarefa", "questao", "resposta",
+                 "mensagem"]
+
+_ACCENTED = {"a": "[aáàâã]", "e": "[eéèê]", "i": "[ií]", "o": "[oóòôõ]",
+             "u": "[uú]", "c": "[cç]"}
+ORDINAL_NOUN_PATTERN = "|".join(
+    "".join(_ACCENTED.get(c, c) for c in noun) for noun in ORDINAL_NOUNS)
 
 
 def extract_datetime_pt(text, anchorDate=None, default_time=None):
@@ -240,13 +452,46 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         # cleans the input string of unneeded punctuation and capitalization
         # among other things
         symbols = [".", ",", ";", "?", "!", "º", "ª"]
+        # "daqui a uma semana", "há três dias": spelled count after an offset
+        # marker; "quinze dias" is two weeks
+        unit = r"(dias?|semanas?|m[eê]s|meses|anos?)"
+
+        def count(m):
+            # "faz dois dias que ..." and "já faz dois dias" count back; with
+            # a subject or a date word before it ("o bebé faz um ano",
+            # "amanhã faz um ano") "faz" is the verb "fazer" and has no offset
+            if m.group(1) == "faz" and (
+                    re.split(r"[,.;:!?]", m.string[:m.start()])[-1].strip()
+                    not in ("", "já") or not re.match(
+                        r"\s*(?:$|[,.;:!?]|que\b|atr[aá]s\b)",
+                        m.string[m.end():])):
+                return m.group(0)
+            # a second count joined by "e" goes with the first
+            n, u = m.group(2), m.group(3)
+            if n == "quinze" and u.startswith("dia"):
+                n, u = "2", "semanas"
+            else:
+                n = numbers_to_digits_pt(n)
+            text = "%s %s %s" % ("ha" if m.group(1) == "faz" else m.group(1),
+                                 n, u)
+            if m.group(4):
+                text += " e %s %s" % (numbers_to_digits_pt(m.group(5)),
+                                      m.group(6))
+            return text
+
+        s = re.sub(r"\b(daqui a|dentro de|em|h[aá]|faz) (\w+) " + unit +
+                   r"(?: (e) (\w+) " + unit + r")?\b", count, s.lower())
         noise_words = ["o", "os", "a", "as", "do", "da", "dos", "das", "de",
                        "ao", "aos"]
 
         for word in symbols:
             s = s.replace(word, "")
+        # an article before "a segunda opção" tells an ordinal from a weekday
+        keep = (r"(?!(?:segunda|ter[cç]a|quarta|quinta|sexta)\s+"
+                r"(?:vez|" + ORDINAL_NOUN_PATTERN + r"|segunda|ter[cç]a|"
+                r"quarta|quinta|sexta|s[aá]bado|domingo)\b)")
         for word in noise_words:
-            s = s.replace(" " + word + " ", " ")
+            s = re.sub(" " + word + " " + keep, " ", s)
         s = s.lower().replace(
             "á",
             "a").replace(
@@ -264,12 +509,15 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
             "e").replace(
             "ó",
             "o").replace(
+            "ú",
+            "u").replace(
             "ò",
             "o").replace(
             "-",
             " ").replace(
             "_",
             "")
+        s = " ".join(s.split())
         # handle synonims and equivalents, "tomorrow early = tomorrow morning
         synonims = {"manha": ["manhazinha", "cedo", "cedinho"],
                     "tarde": ["tardinha", "tarde"],
@@ -311,6 +559,11 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
     today = dateNow.strftime("%w")
     currentYear = dateNow.strftime("%Y")
     fromFlag = False
+    weekdaySet = False
+    weeksCounted = False
+    weekdayInfo = None
+    countPast = False
+
     datestr = ""
     hasYear = False
     timeQualifier = ""
@@ -326,18 +579,159 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
               'dezembro']
     monthsShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago',
                    'set', 'out', 'nov', 'dez']
+    # Unicode CLDR 49 short dates put the day first: pt_PT "dd/MM/yy",
+    # pt "dd/MM/y"
+    numeric_date = re.compile(
+        r"(\d{1,2})/(0?[1-9]|1[0-2])(?:/(\d{4}|\d{2}))?")
     nexts = ["proximo", "proxima"]
     suffix_nexts = ["seguinte", "subsequente", "seguir"]
     lasts = ["ultimo", "ultima"]
+    ordinals = {"primeiro": 1, "primeira": 1, "segundo": 2, "segunda": 2,
+                "terceiro": 3, "terceira": 3, "quarto": 4, "quarta": 4,
+                "quinto": 5, "quinta": 5}
     suffix_lasts = ["passada", "passado", "anterior", "antes"]
     nxts = ["depois", "seguir", "seguida", "seguinte", "proxima", "proximo"]
     prevs = ["antes", "ante", "previa", "previamente", "anterior"]
-    froms = ["partir", "em", "para", "na", "no", "daqui", "seguir",
+    froms = ["partir", "em", "para", "na", "no", "daqui", "dentro", "seguir",
              "depois", "por", "proxima", "proximo", "da", "do", "de"]
     thises = ["este", "esta", "deste", "desta", "neste", "nesta", "nesse",
               "nessa"]
     froms += thises
+    def counted_from_today():
+        return weekdaySet or (dayOffset is False and not monthOffset
+                              and not yearOffset)
+
+    def rebase_weekday():
+        # a count that follows its weekday moves the weekday with it
+        nonlocal dayOffset, weekdaySet, weekdayInfo
+        d, mode, gap = weekdayInfo
+        base = int(dayOffset) - gap
+        dayOffset = base
+        weekdaySet = False
+        dayOffset = weekday_offset(d, mode)
+        weekdaySet = True
+        weekdayInfo = (d, mode, dayOffset - base)
+
+    def weekday_offset(d, mode=None):
+        # days from the anchor to weekday d (Monday is 0), counted from the
+        # date that the relative words before it already give; mode "next"
+        # and "last" exclude that date
+        if counted_from_today():
+            tmp = (d + 1) - int(today)
+            if tmp < 0 or (mode == "next" and tmp == 0):
+                tmp += 7
+            if mode == "last":
+                tmp -= 7 if tmp < 7 else 14
+            return tmp
+        base = int(dayOffset)
+        shifted = dateNow + relativedelta(years=yearOffset,
+                                          months=monthOffset, days=base)
+        if weeksCounted:
+            return base + d - shifted.weekday()
+        gap = (d - shifted.weekday()) % 7
+        if mode == "next" and gap == 0:
+            gap = 7
+        elif mode == "last":
+            gap -= 7
+        return base + gap
+
+    def period_bounds(i):
+        # first and last day of the period named by the words from i on, and
+        # the index after them: "do mês", "do mês que vem", "do próximo ano",
+        # "de novembro", "de novembro de 2027", "de 2027"
+        w = words[i:i + 3] + ["", "", ""]
+        now = dateNow.date()
+        step = 0
+        if w[0] in nexts + thises and w[1] in ("mes", "ano"):
+            unit, step, stop = w[1], int(w[0] in nexts), i + 2
+        elif w[0] in ("mes", "ano"):
+            unit, stop = w[0], i + 1
+            if w[1:3] == ["que", "vem"]:
+                step, stop = 1, i + 3
+            elif w[1] == "seguinte":
+                step, stop = 1, i + 2
+            elif w[1] in ("passado", "anterior"):
+                step, stop = -1, i + 2
+        elif w[0] in months:
+            month = months.index(w[0]) + 1
+            hasYear = w[1].isdigit() and len(w[1]) == 4
+            year = int(w[1]) if hasYear else now.year + (month < now.month)
+            begin = now.replace(year=year, month=month, day=1)
+            return begin, begin + relativedelta(day=31), i + 1 + hasYear
+        elif w[0].isdigit() and len(w[0]) == 4:
+            begin = now.replace(year=int(w[0]), month=1, day=1)
+            return begin, begin.replace(month=12, day=31), i + 1
+        else:
+            return None
+        if unit == "mes":
+            begin = now + relativedelta(months=step, day=1)
+            return begin, begin + relativedelta(day=31), stop
+        begin = now + relativedelta(years=step, month=1, day=1)
+        return begin, begin.replace(month=12, day=31), stop
+
+    def is_ordinal(i):
+        # "a segunda opção", "na segunda vez": the weekday name at i - 1 is an
+        # ordinal when a determiner comes before it and a noun after it, or
+        # when "vez" follows; anything else is the weekday
+        if words[i - 1] not in days[:5]:
+            return False
+        nxt = words[i] if i < len(words) else ""
+        if nxt == "vez":
+            return True
+        if i < 2 or words[i - 2] not in DETERMINERS:
+            return False
+        if nxt == "semana" and week_shift(i) is not None:
+            return False
+        if nxt in days:
+            return period_bounds(i + 1 + (words[i + 1:i + 2] == ["feira"])
+                                 ) is not None
+        return nxt in ORDINAL_NOUNS
+
+    def week_shift(j):
+        # "da semana que vem", "da próxima semana", "da semana passada" from
+        # word j on: the weeks to move and the words used, or None
+        w = words[j:j + 3] + ["", ""]
+        if w[0] in nexts + lasts and w[1] == "semana":
+            return (1 if w[0] in nexts else -1), 2
+        if w[0] == "semana":
+            if w[1:3] == ["que", "vem"]:
+                return 1, 3
+            if w[1] in suffix_nexts:
+                return 1, 2
+            if w[1] in suffix_lasts:
+                return -1, 2
+        return None
+
+    def weekday_of_shifted_week(d, weeks):
+        return 7 * weeks + d - (dateNow + timedelta(days=7 * weeks)).weekday()
+
+    def next_month_if_past(pick, begin, end, stop):
+        # said of "o mês" after the day has passed, the day is next month's
+        day = pick(begin, end)
+        if (day < dateNow.date() and words[stop - 1] == "mes" and
+                (begin.year, begin.month) == (dateNow.year, dateNow.month)):
+            begin += relativedelta(months=1)
+            day = pick(begin, begin + relativedelta(day=31))
+        return day
+
+    def period_day(kind, n, begin, end):
+        # the nth day, weekday (days index kind) or Monday-started week of the
+        # period, counted from its end when n is None
+        if kind == "dia":
+            return end if n is None else begin + timedelta(days=n - 1)
+        if kind == "semana":
+            if n is None:
+                return end - timedelta(days=end.weekday())
+            return begin + timedelta(days=-begin.weekday() % 7 + 7 * (n - 1))
+        if n is None:
+            return end - timedelta(days=(end.weekday() - kind) % 7)
+        return begin + timedelta(days=(kind - begin.weekday()) % 7 +
+                                 7 * (n - 1))
+
     lists = nxts + prevs + froms + time_indicators
+    articles = ["o", "a", "os", "as"]
+    markers = (nexts + lasts + suffix_nexts + suffix_lasts + ["vem"] +
+               list(ordinals))
     for idx, word in enumerate(words):
         if word == "":
             continue
@@ -346,6 +740,13 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         wordNext = words[idx + 1] if idx + 1 < len(words) else ""
         wordNextNext = words[idx + 2] if idx + 2 < len(words) else ""
         wordNextNextNext = words[idx + 3] if idx + 3 < len(words) else ""
+        # "daqui a uma semana e dois dias": the second count goes the same way
+        past = (wordPrevPrev == "ha" or wordNext == "atras" or
+                (wordPrevPrev == "e" and idx > 2 and words[idx - 3] == "" and
+                 countPast))
+
+        pastSpan = 3 if wordPrevPrev == "ha" or wordNext == "atras" \
+            else 2
 
         start = idx
         used = 0
@@ -385,39 +786,101 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         elif word == "antes" and wordNext == "ontem" and not fromFlag:
             dayOffset -= 2
             used = 2
+        # the 5th of next month: "o dia 5 do mês que vem"
+        elif (word == "dia" and wordNext.isdigit() and
+              0 < int(wordNext) < 32 and
+              (wordNextNext == "mes" or (wordNextNext in nexts + thises and
+                                         wordNextNextNext == "mes")) and
+              (bounds := period_bounds(idx + 2))):
+            begin, end, stop = bounds
+            number = int(wordNext)
+            current = (words[stop - 1] == "mes" and (begin.year, begin.month)
+                       == (dateNow.year, dateNow.month))
+            if number > end.day and not current:
+                # the named month lacks that day
+                return None
+            day = begin + timedelta(days=min(number, end.day) - 1)
+            if current and (number > end.day or day < dateNow.date()):
+                # next month with such a day: the 30th skips February
+                begin += relativedelta(months=1)
+                while number > (begin + relativedelta(day=31)).day:
+                    begin += relativedelta(months=1)
+                day = begin + timedelta(days=number - 1)
+            dayOffset = (day - dateNow.date()).days
+            if wordPrev in articles:
+                start -= 1
+            used = stop - start
+        # first, second or last day, weekday or week of a period
+        elif ((word in days or word in ("dia", "semana")) and
+              (wordPrev in lasts or wordPrev in ordinals) and
+              (bounds := period_bounds(
+                  idx + 1 + (word in days and wordNext == "feira")))):
+            begin, end, stop = bounds
+            kind = days.index(word) if word in days else word
+            n = ordinals.get(wordPrev)
+            day = (next_month_if_past(
+                lambda b, e: period_day(kind, n, b, e), begin, end, stop)
+                if n else period_day(kind, n, begin, end))
+            dayOffset = (day - dateNow.date()).days
+            weekdaySet = word in days
+            start -= 1
+            # the end of the loop takes one back when a month follows
+            used = stop - start + (wordNext in months)
         # parse 5 days, 10 weeks, last week, next week, week after
         elif word == "dia":
             if wordNext == "depois" or wordNext == "antes":
                 used += 1
-                if wordPrev and wordPrev[0].isdigit():
+                if wordPrev.isdigit():
                     dayOffset += int(wordPrev)
                     start -= 1
                     used += 1
-            elif (wordPrev and wordPrev[0].isdigit() and
+            elif (wordPrev.isdigit() and
                   wordNext not in months and
                   wordNext not in monthsShort):
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
-                if wordPrevPrev == "ha" or wordNext == "atras":
+                if past:
                     dayOffset -= int(wordPrev)
                     start -= 2 if wordPrevPrev == "ha" else 1
-                    used += 3
+                    used += pastSpan
                 else:
                     dayOffset += int(wordPrev)
                     start -= 1
                     used += 2
-            elif wordNext and wordNext[0].isdigit() and wordNextNext not in \
+            elif numeric_date.fullmatch(wordNext):
+                # "dia 25/12/2023": day, month and an optional year
+                day, month, year = numeric_date.fullmatch(wordNext).groups()
+                datestr = f"{months[int(month) - 1]} {day}"
+                if year and len(year) == 2:
+                    # a two-digit year falls in the 100 years from 80 before
+                    # the anchor to 19 after it, the window chronologia uses
+                    # (Java SimpleDateFormat: "within 80 years before and 20
+                    # years after")
+                    full = dateNow.year // 100 * 100 + int(year)
+                    if full > dateNow.year + 19:
+                        full -= 100
+                    elif full < dateNow.year - 80:
+                        full += 100
+                    year = str(full)
+                if year:
+                    datestr += " " + year
+                hasYear = bool(year)
+                # "dia" and the date; a preposition before "dia" is taken
+                # with the other words of `lists` below
+                used = 2
+            elif wordNext.isdigit() and wordNextNext not in \
                     months and wordNextNext not in monthsShort:
                 dayOffset += int(wordNext)
                 start -= 1
                 used += 2
 
         elif word == "semana" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
+                weeksCounted = True
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
-                if wordPrevPrev == "ha" or wordNext == "atras":
+                if past:
                     dayOffset -= int(wordPrev) * 7
                     start -= 2 if wordPrevPrev == "ha" else 1
-                    used = 3
+                    used = pastSpan
                 else:
                     dayOffset += int(wordPrev) * 7
                     start -= 1
@@ -432,111 +895,117 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                     dayOffset = -7
                     start -= 1
                     used = 2
+            if wordNext == "que" and wordNextNext == "vem":
+                dayOffset = 7
+                used = 3
             for w in suffix_nexts:
                 if wordNext == w:
                     dayOffset = 7
-                    start -= 1
                     used = 2
             for w in suffix_lasts:
                 if wordNext == w:
                     dayOffset = -7
-                    start -= 1
                     used = 2
         # parse 10 months, next month, last month
         elif word == "mes" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
-                if wordPrevPrev == "ha" or wordNext == "atras":
+                if past:
                     monthOffset = -int(wordPrev)
                     start -= 2 if wordPrevPrev == "ha" else 1
-                    used = 3
+                    used = pastSpan
                 else:
                     monthOffset = int(wordPrev)
                     start -= 1
                     used = 2
             for w in nexts:
                 if wordPrev == w:
-                    monthOffset = 7
+                    monthOffset = 1
                     start -= 1
                     used = 2
             for w in lasts:
                 if wordPrev == w:
-                    monthOffset = -7
+                    monthOffset = -1
                     start -= 1
                     used = 2
+            if wordNext == "que" and wordNextNext == "vem":
+                monthOffset = 1
+                used = 3
             for w in suffix_nexts:
                 if wordNext == w:
-                    monthOffset = 7
-                    start -= 1
+                    monthOffset = 1
                     used = 2
             for w in suffix_lasts:
                 if wordNext == w:
-                    monthOffset = -7
-                    start -= 1
+                    monthOffset = -1
                     used = 2
         # parse 5 years, next year, last year
         elif word == "ano" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev.isdigit():
                 # "há N / N ... atrás" = N periods elapsed in the past (Priberam)
-                if wordPrevPrev == "ha" or wordNext == "atras":
+                if past:
                     yearOffset = -int(wordPrev)
                     start -= 2 if wordPrevPrev == "ha" else 1
-                    used = 3
+                    used = pastSpan
                 else:
                     yearOffset = int(wordPrev)
                     start -= 1
                     used = 2
             for w in nexts:
                 if wordPrev == w:
-                    yearOffset = 7
+                    yearOffset = 1
                     start -= 1
                     used = 2
             for w in lasts:
                 if wordPrev == w:
-                    yearOffset = -7
+                    yearOffset = -1
                     start -= 1
                     used = 2
+            if wordNext == "que" and wordNextNext == "vem":
+                yearOffset = 1
+                used = 3
             for w in suffix_nexts:
                 if wordNext == w:
-                    yearOffset = 7
-                    start -= 1
+                    yearOffset = 1
                     used = 2
             for w in suffix_lasts:
                 if wordNext == w:
-                    yearOffset = -7
-                    start -= 1
+                    yearOffset = -1
                     used = 2
         # parse Monday, Tuesday, etc., and next Monday,
         # last Tuesday, etc.
-        elif word in days and not fromFlag:
+        elif word in days and not fromFlag and not is_ordinal(idx + 1):
 
             d = days.index(word)
-            dayOffset = (d + 1) - int(today)
+            tail, tail2 = (wordNextNext, wordNextNextNext) \
+                if wordNext == "feira" else (wordNext, wordNextNext)
+            mode = None
             used = 1
-            if dayOffset < 0:
-                dayOffset += 7
-            for w in nexts:
-                if wordPrev == w:
-                    dayOffset += 7
-                    used += 1
-                    start -= 1
-            for w in lasts:
-                if wordPrev == w:
-                    dayOffset -= 7
-                    used += 1
-                    start -= 1
-            for w in suffix_nexts:
-                if wordNext == w:
-                    dayOffset += 7
-                    used += 1
-                    start -= 1
-            for w in suffix_lasts:
-                if wordNext == w:
-                    dayOffset -= 7
-                    used += 1
-                    start -= 1
+            if wordPrev in lasts:
+                mode = "last"
+                used += 1
+                start -= 1
             if wordNext == "feira":
                 used += 1
+            if tail in suffix_lasts:
+                mode = "last"
+                used += 1
+            elif tail in suffix_nexts:
+                mode = "next"
+                used += 1
+            elif tail == "que" and tail2 == "vem":
+                mode = "next"
+                used += 2
+            shift = week_shift(idx + 1 + (wordNext == "feira"))
+            if shift:
+                dayOffset = weekday_of_shifted_week(d, shift[0])
+                used += shift[1]
+            else:
+                before = 0 if counted_from_today() else int(dayOffset)
+                dayOffset = weekday_offset(d, mode)
+                if not weekdaySet:
+                    weekdayInfo = (d, mode, dayOffset - before)
+            weekdaySet = True
         # parse 15 of July, June 20th, Feb 18, 19 of February
         elif word in months or word in monthsShort:
             try:
@@ -607,7 +1076,8 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         validFollowups.append("ante")
 
         # TODO debug word "depois" that one is failing for some reason
-        if word in froms and wordNext in validFollowups:
+        if word in froms and wordNext in validFollowups and not (
+                wordNext in days and is_ordinal(idx + 2)):
 
             if not (wordNext == "amanha" and wordNext == "ontem") and not (
                     word == "depois" or word == "antes" or word == "em"):
@@ -626,23 +1096,29 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 dayOffset -= 3
             elif wordNext in days:
                 d = days.index(wordNext)
-                tmpOffset = (d + 1) - int(today)
-                used = 2
-                if wordNextNext == "feira":
+                used = 2 + (wordNextNext == "feira")
+                tail = words[idx + used:idx + used + 2] + ["", ""]
+                mode = "next" if word in nexts else None
+                shift = week_shift(idx + used)
+                if shift:
+                    dayOffset = weekday_of_shifted_week(d, shift[0])
+                    used += shift[1]
+                    mode = "week"
+                elif tail[0] in nxts + suffix_nexts:
+                    mode = "next"
                     used += 1
-                if tmpOffset < 0:
-                    tmpOffset += 7
-                if wordNextNext:
-                    if wordNextNext in nxts:
-                        tmpOffset += 7
-                        used += 1
-                    elif wordNextNext in prevs:
-                        tmpOffset -= 7
-                        used += 1
-                dayOffset += tmpOffset
-            elif wordNextNext and wordNextNext in days:
+                elif tail[0] in prevs + suffix_lasts:
+                    mode = "last"
+                    used += 1
+                elif tail[:2] == ["que", "vem"]:
+                    mode = "next"
+                    used += 2
+                if mode != "week":
+                    dayOffset = weekday_offset(d, mode)
+            elif (wordNextNext and wordNextNext in days and
+                  not is_ordinal(idx + 3)):
                 d = days.index(wordNextNext)
-                tmpOffset = (d + 1) - int(today)
+                tmpOffset = weekday_offset(d) - int(dayOffset)
                 used = 3
                 if wordNextNextNext:
                     if wordNextNextNext in nxts:
@@ -662,10 +1138,22 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 1
 
+            consumed = words[start:start + used]
             for i in range(0, used):
                 words[i + start] = ""
+            if any(w.isdigit() for w in consumed) and word in (
+                    "dia", "semana", "mes", "ano"):
+                countPast = past
+                if weekdayInfo:
+                    rebase_weekday()
+                if (start >= 2 and words[start - 1] == "e" and
+                        words[start - 2] == ""):
+                    words[start - 1] = ""
 
             if start - 1 >= 0 and words[start - 1] in lists:
+                words[start - 1] = ""
+            elif (start - 1 >= 0 and words[start - 1] in articles and
+                  any(w in markers for w in consumed)):
                 words[start - 1] = ""
             found = True
             daySpecified = True
@@ -703,6 +1191,8 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         elif word == "tarde":
             if not hrAbs:
                 hrAbs = 15
+            elif 0 < hrAbs < 12:
+                hrAbs += 12
             used += 1
         elif word == "meio" and wordNext == "tarde":
             if not hrAbs:
@@ -727,6 +1217,8 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
         elif word == "noite":
             if not hrAbs:
                 hrAbs = 22
+            elif hrAbs == 12:
+                hrAbs = 0
             used += 1
         # parse half an hour, quarter hour
         elif word == "hora" and \
@@ -750,7 +1242,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
             hrAbs = -1
             minAbs = -1
         # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -944,7 +1436,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                                     remainder = "pm"
                                 used += 1
 
-                    elif wordNext[0].isdigit():
+                    elif wordNext and wordNext[0].isdigit():
                         strHH = strNum
                         strMM = wordNext
                         military = True
@@ -1018,35 +1510,23 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
             if hasYear:
                 temp = datetime.strptime(datestr, "%B %d %Y")
             else:
-                temp = datetime.strptime(datestr, "%B %d")
-        except ValueError:
-            # impossible dates ("31 de abril") should not crash the parser
-            temp = None
-        if temp is None:
-            datestr = ""
-        else:
+                # a leap year, so that 29 February is read
+                temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
             if extractedDate.tzinfo:
                 temp = temp.replace(tzinfo=extractedDate.tzinfo)
 
             if not hasYear:
                 temp = temp.replace(year=extractedDate.year)
-                if extractedDate < temp:
-                    extractedDate = extractedDate.replace(year=int(currentYear),
-                                                          month=int(
-                                                              temp.strftime(
-                                                                  "%m")),
-                                                          day=int(temp.strftime(
-                                                              "%d")))
-                else:
-                    extractedDate = extractedDate.replace(
-                        year=int(currentYear) + 1,
-                        month=int(temp.strftime("%m")),
-                        day=int(temp.strftime("%d")))
+                year = (int(currentYear) if extractedDate < temp
+                        else int(currentYear) + 1)
             else:
-                extractedDate = extractedDate.replace(
-                    year=int(temp.strftime("%Y")),
-                    month=int(temp.strftime("%m")),
-                    day=int(temp.strftime("%d")))
+                year = int(temp.strftime("%Y"))
+            extractedDate = extractedDate.replace(
+                year=year, month=int(temp.strftime("%m")),
+                day=int(temp.strftime("%d")))
+        except ValueError:
+            # a day that the named month lacks ("31 de abril") is no date
+            return None
 
     if timeStr != "":
         temp = datetime(timeStr)
@@ -1054,10 +1534,9 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                                               minute=temp.strftime("%M"),
                                               second=temp.strftime("%S"))
 
-    if yearOffset != 0:
-        extractedDate = extractedDate + relativedelta(years=yearOffset)
-    if monthOffset != 0:
-        extractedDate = extractedDate + relativedelta(months=monthOffset)
+    if yearOffset != 0 or monthOffset != 0:
+        extractedDate = extractedDate + relativedelta(years=yearOffset,
+                                                      months=monthOffset)
     if dayOffset != 0:
         extractedDate = extractedDate + relativedelta(days=dayOffset)
     if (hrAbs or 0) != -1 and (minAbs or 0) != -1:
@@ -1078,7 +1557,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
 
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
-    return [extractedDate, resultStr]
+    return [extractedDate, restore_typed_words(resultStr, text)]
 
 
 def extract_duration_pt(text, resolution=DurationResolution.TIMEDELTA,

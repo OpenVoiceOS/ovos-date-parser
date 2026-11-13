@@ -74,14 +74,101 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         wordList = s.split()
         for idx, word in enumerate(wordList):
             ordinals = ["ste", "de"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     # "second" is the only case we should not do this
                     if ordinal in word and "second" not in word:
                         word = word.replace(ordinal, "")
             wordList[idx] = word
 
-        return wordList
+        # "half 9" is 8:30, "kwart over 8" is 8:15, "kwart voor 9" is 8:45,
+        # "om 10 over 3" is 3:10 and "om 5 voor 12" is 11:55
+        def clock_hour(w):
+            number = extract_number_nl(w) if w else False
+            if number and float(number).is_integer() and \
+                    1 <= int(number) <= 12:
+                return int(number)
+            return None
+
+        def clock_minutes(w):
+            number = extract_number_nl(w) if w else False
+            if number and float(number).is_integer() and \
+                    1 <= int(number) <= 29:
+                return int(number)
+            return None
+
+        clock = []
+        idx = 0
+        while idx < len(wordList):
+            word = wordList[idx]
+            word_1 = wordList[idx + 1] if idx + 1 < len(wordList) else ""
+            word_2 = wordList[idx + 2] if idx + 2 < len(wordList) else ""
+            word_3 = wordList[idx + 3] if idx + 3 < len(wordList) else ""
+            hour = clock_hour(word_1)
+            if word == "half" and hour:
+                clock.append("%d:30" % ((hour - 2) % 12 + 1))
+                idx += 2
+                continue
+            hour = clock_hour(word_2)
+            if word == "kwart" and word_1 in ("over", "voor") and hour:
+                clock.append("%d:15" % hour if word_1 == "over"
+                             else "%d:45" % ((hour - 2) % 12 + 1))
+                idx += 3
+                continue
+            minutes = clock_minutes(word)
+            if (minutes or word == "kwart") and word_1 in ("over", "voor") \
+                    and word_2 == "half" and clock_hour(word_3):
+                # "tien over half drie" is 2:40, "vijf voor half drie" 2:25,
+                # "kwart over half drie" is 2:45
+                half = (clock_hour(word_3) - 2) % 12 + 1
+                clock.append("%d:%02d" % (half, 30 + (minutes or 15)
+                                          if word_1 == "over"
+                                          else 30 - (minutes or 15)))
+                idx += 4
+                continue
+            if minutes and word_1 in ("over", "voor") and hour and idx and \
+                    wordList[idx - 1] == "om" and word_3 not in (
+                        "uur", "uren", "minuten", "dagen", "weken"):
+                clock.append("%d:%02d" % (hour, minutes) if word_1 == "over"
+                             else "%d:%02d" % ((hour - 2) % 12 + 1,
+                                               60 - minutes))
+                idx += 3
+                continue
+            clock.append(word)
+            idx += 1
+        wordList = clock
+
+        # a spelled number before a unit of time: "om tien uur",
+        # "drie uur geleden", "over twee dagen"
+        units = ("uur", "uren", "minuut", "minuten", "seconde", "seconden",
+                 "dag", "dagen", "week", "weken", "maand", "maanden", "jaar",
+                 "jaren")
+        for idx, word in enumerate(wordList[:-1]):
+            unit = wordList[idx + 1]
+            before = wordList[idx - 1] if idx else ""
+            after = wordList[idx + 2] if idx + 2 < len(wordList) else ""
+            if word.isalpha() and unit in units and (
+                    (before == "om" and unit == "uur") or
+                    before in ("over", "binnen") or after == "geleden"):
+                number = extract_number_nl(word)
+                if number and float(number).is_integer():
+                    wordList[idx] = str(int(number))
+
+        # "om 3 of 4 uur": the alternatives share one clock time
+        alternatives = []
+        idx = 0
+        while idx < len(wordList):
+            span = wordList[idx:idx + 5]
+            if len(span) == 5 and span[0] == "om" and span[2] == "of" and \
+                    span[4] == "uur" and span[1].isdigit() and \
+                    span[3].isdigit() and int(span[1]) < int(span[3]):
+                alternatives += ["om", span[3], "uur"]
+                idx += 5
+                continue
+            alternatives.append(wordList[idx])
+            idx += 1
+
+        return alternatives
 
     def date_found():
         return found or \
@@ -127,9 +214,31 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                     'sep', 'okt', 'nov', 'dec']
     year_multiples = ["decennium", "eeuw", "millennium"]
     day_multiples = ["dagen", "weken", "maanden", "jaren"]
+    relative_days = {"eergisteren": -2, "gisteren": -1, "vandaag": 0,
+                     "morgen": 1, "overmorgen": 2}
     time_units = ["uur", "uren", "minuut", "minuten", "seconde", "seconden"]
+    particles = ["op", "dan", "weer", "aan", "af", "terug", "thuis", "langs",
+                 "mee", "want", "maar", "dus", "omdat", "terwijl"]
+    time_words = ["uur", "uren", "'s", "ochtend", "middag", "avond", "nacht",
+                  "vanochtend", "vanmiddag", "vanavond", "vannacht", "vandaag",
+                  "morgen", "overmorgen", "gisteren"] + days
 
     words = clean_string(text)
+
+    def part_of_day(w):
+        # am or pm for a part-of-day word that names its own day
+        if w == "vanmorgen":
+            return "am"
+        for part_word, part in (("ochtend", "am"), ("middag", "pm"),
+                                ("avond", "pm")):
+            if w.endswith(part_word) and (
+                    w == part_word or w in day_parts or
+                    w.startswith(("eergister", "gister", "overmorgen",
+                                  "morgen", "van"))):
+                return part
+        return ""
+
+    parts_of_day = [part_of_day(w) for w in words]
 
     for idx, word in enumerate(words):
         if word == "":
@@ -191,12 +300,26 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         elif word == "morgen" and not fromFlag:
             dayOffset = 1
             used += 1
+        elif word == "gisteren" and not fromFlag:
+            dayOffset = -1
+            used += 1
+        elif word == "eergisteren" and not fromFlag:
+            dayOffset = -2
+            used += 1
         elif word == "overmorgen" and not fromFlag:
             dayOffset = 2
             used += 1
+        # parse the day after/before today, tomorrow, yesterday
+        elif word == "dag" and wordNext in ("na", "voor") and \
+                wordNextNext in relative_days and not fromFlag and \
+                wordPrev != "elke" and \
+                not (wordPrev and wordPrev[0].isdigit()):
+            dayOffset = relative_days[wordNextNext] + \
+                (1 if wordNext == "na" else -1)
+            used += 3
             # parse 5 days, 10 weeks, last week, next week
         elif word == "dag" or word == "dagen":
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     dayOffset -= int(wordPrev)
@@ -206,7 +329,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 2
         elif word == "week" or word == "weken" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     dayOffset -= int(wordPrev) * 7
@@ -225,7 +348,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif (word == "maand" or word == "maanden") and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     monthOffset = -int(wordPrev)
@@ -244,7 +367,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 years, next year, last year
         elif (word == "jaar" or word == "jaren") and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ... geleden" = N periods in the past (Van Dale)
                 if wordNext == "geleden":
                     yearOffset = -int(wordPrev)
@@ -292,9 +415,9 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             used += 1
             datestr = months[m]
             if wordPrev and \
-                    (wordPrev[0].isdigit() or (wordPrev == "van" and
-                                               wordPrevPrev[0].isdigit())):
-                if wordPrev == "van" and wordPrevPrev[0].isdigit():
+                    (wordPrev and wordPrev[0].isdigit() or (wordPrev == "van" and
+                                               wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == "van" and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -389,16 +512,27 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         wordNextNext = words[idx + 2] if idx + 2 < len(words) else ""
         # parse nacht ochtend, middag, avond
         used = 0
-        if word.startswith("gister"):
+        if daySpecified:
+            pass
+        elif word.startswith("eergister"):
+            dayOffset = -2
+        elif word.startswith("gister"):
             dayOffset = -1
+        elif word.startswith("overmorgen"):
+            dayOffset = 2
         elif word.startswith("morgen"):
             dayOffset = 1
+        if word == "vanmorgen" or word in day_parts or (
+                word.endswith(("nacht", "ochtend", "middag", "avond")) and
+                word.startswith(("eergister", "gister", "overmorgen", "morgen",
+                                 "van"))):
+            daySpecified = True
 
         if word.endswith("nacht"):
             if hrAbs is None:
                 hrAbs = 0
             used += 1
-        elif word.endswith("ochtend"):
+        elif word.endswith("ochtend") or word == "vanmorgen":
             if hrAbs is None:
                 hrAbs = 8
             used += 1
@@ -422,7 +556,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             elif wordNextNext == "seconden":
                 secOffset = 2
         # parse half an hour, quarter hour
-        elif word == "uur" and \
+        elif word == "uur" and not wordPrev.lstrip("-")[:1].isdigit() and \
                 (wordPrev in markers or wordPrevPrev in markers):
             if wordPrev == "half":
                 minOffset = 30
@@ -458,7 +592,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -601,7 +735,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                          ("ochtends", "middags", "avonds", "nachts")) or
                         _after_uur in timeQualifiersList)
                     if (
-                            not pod_follows and
+                            not pod_follows and wordPrev != "om" and
                             (wordNext == "uren" or wordNext == "uur" or
                              remainder == "uren" or remainder == "uur") and
                             word[0] != '0' and
@@ -610,27 +744,36 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                                     int(strNum) > 2400
                             )):
                         # ignores military time
-                        # "in 3 hours"
+                        # "in 3 hours"; "3 hours ago" (Van Dale)
                         hrOffset = int(strNum)
                         used = 2
+                        if wordNextNext == "geleden":
+                            hrOffset = -hrOffset
+                            used = 3
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
 
                     elif wordNext == "minuten" or wordNext == "minuut" or \
                             remainder == "minuten" or remainder == "minuut":
-                        # "in 10 minutes"
+                        # "in 10 minutes"; "10 minutes ago"
                         minOffset = int(strNum)
                         used = 2
+                        if wordNextNext == "geleden":
+                            minOffset = -minOffset
+                            used = 3
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
                     elif wordNext == "seconden" or wordNext == "seconde" \
                             or remainder == "seconden" or \
                             remainder == "seconde":
-                        # in 5 seconds
+                        # in 5 seconds; 5 seconds ago
                         secOffset = int(strNum)
                         used = 2
+                        if wordNextNext == "geleden":
+                            secOffset = -secOffset
+                            used = 3
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
@@ -651,6 +794,12 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                             used += 1
                     elif (
                             wordNext == "" or wordNext == "uur" or
+                            (wordPrev == "om" and (
+                                wordNext in particles + time_words or
+                                wordNext in ("en", "of") and
+                                not (wordNextNext and (
+                                    wordNextNext[0].isdigit() or
+                                    extract_number_nl(wordNextNext))))) or
                             (
                                     wordNext == "in" and
                                     (
@@ -664,6 +813,8 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                         strMM = "00"
                         if wordNext == "uur":
                             used += 1
+                            if remainder == "uur":
+                                remainder = ""
 
                         # part of day expressed genitively after the hour:
                         # "3 uur 's middags" -> pm, "8 uur 's avonds" -> pm
@@ -710,18 +861,31 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
                         isTime = False
             HH = int(strHH) if strHH else 0
             MM = int(strMM) if strMM else 0
+            # the part of day next to "om N" decides am or pm for a bare hour
+            before = idx - 2 if wordPrev == "om" else idx - 1
+            after = idx + 2 if wordNext == "uur" else idx + 1
+            named_part = (parts_of_day[before] if before >= 0 else "") or (
+                parts_of_day[after] if after < len(words) else "")
+            if named_part and not military and HH < 12 and \
+                    remainder not in ["am", "pm"]:
+                remainder = named_part
             HH = HH + 12 if remainder == "pm" and HH < 12 else HH
             HH = HH - 12 if remainder == "am" and HH >= 12 else HH
 
-            if (not military and
+            if (isTime and not military and
                     remainder not in ['am', 'pm', 'uren', 'minuten',
                                       "seconde", "seconden",
                                       "uur", "minuut"] and
-                    ((not daySpecified) or dayOffset < 1)):
+                    ((not daySpecified) or dayOffset == 0)):
                 # ambiguous time, detect whether they mean this evening or
                 # the next morning based on whether it has already passed
-                if anchorDate.hour < HH or (anchorDate.hour == HH and
-                                            anchorDate.minute < MM):
+                if HH >= 12 or HH == 0:
+                    # a 24-hour value is not ambiguous
+                    if not daySpecified and \
+                            (anchorDate.hour, anchorDate.minute) > (HH, MM):
+                        dayOffset += 1
+                elif anchorDate.hour < HH or (anchorDate.hour == HH and
+                                              anchorDate.minute < MM):
                     pass  # No modification needed
                 elif anchorDate.hour < HH + 12:
                     HH += 12
@@ -859,7 +1023,7 @@ def extract_datetime_nl(text, anchorDate=None, default_time=None):
         # range; report nothing rather than crashing
         return None
     for idx, word in enumerate(words):
-        if words[idx] == "en" and \
+        if word == "en" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

@@ -51,6 +51,49 @@ _TIME_UNITS_CONVERSION = {
 }
 
 
+#: The hundreds as ÚJČ declines "sto": "dvě stě", then "tři sta", then
+#: "pět set" (Internetová jazyková příručka, heslo "sto").
+_HUNDREDS_CS = {1: "sto", 2: "dvě stě", 3: "tři sta", 4: "čtyři sta",
+                5: "pět set", 6: "šest set", 7: "sedm set", 8: "osm set",
+                9: "devět set"}
+#: The masculine count before "tisíc", a masculine noun (ÚJČ, heslo "tisíc").
+_THOUSANDS_CS = {1: "tisíc", 2: "dva tisíce", 3: "tři tisíce",
+                 4: "čtyři tisíce", 5: "pět tisíc", 6: "šest tisíc",
+                 7: "sedm tisíc", 8: "osm tisíc", 9: "devět tisíc"}
+
+
+def nice_year_cs(dt, bc=False):
+    """Format a year as Czech reads it: a cardinal number.
+
+    CLDR 49 RBNF cs reads a year with ``%spellout-numbering``: 1988 is
+    "tisíc devět set osmdesát osm" and 2018 is "dva tisíce osmnáct".
+    The tens and units below a hundred keep the counting form of
+    pronounce_number_cs ("dvacet jedna"), the form ÚJČ writes for a number
+    in words (Internetová jazyková příručka, id=791). An astronomical year
+    below 1 is read by pronounce_number_cs as it stands.
+
+    Args:
+        dt (datetime): date whose year to format
+        bc (bool): append "př. n. l." after the year
+    Returns:
+        (str): the year in words
+    """
+    if dt.year < 1:
+        year = pronounce_number_cs(dt.year)
+        return f"{year} př. n. l." if bc else year
+    thousands, rest = divmod(dt.year, 1000)
+    hundreds, below = divmod(rest, 100)
+    words = []
+    if thousands:
+        words.append(_THOUSANDS_CS[thousands])
+    if hundreds:
+        words.append(_HUNDREDS_CS[hundreds])
+    if below:
+        words.append(pronounce_number_cs(below))
+    year = " ".join(words)
+    return f"{year} př. n. l." if bc else year
+
+
 def nice_time_cs(dt, speech=True, use_24hour=True, use_ampm=False):
     """
     Format a time to a comfortable human format
@@ -393,7 +436,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                     start -= 1
 
         elif word == "týden" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -412,7 +455,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif word == "měsíc" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -431,7 +474,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 years, next year, last year
         elif word == "rok" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -474,9 +517,9 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
             used += 1
             # Convert czech months to english
             datestr = _MONTHS_CONVERSION.get(m)
-            if wordPrev and (wordPrev[0].isdigit() or
-                             (wordPrev == " " and wordPrevPrev[0].isdigit())):
-                if wordPrev == " " and wordPrevPrev[0].isdigit():
+            if wordPrev and (wordPrev and wordPrev[0].isdigit() or
+                             (wordPrev == " " and wordPrevPrev and wordPrevPrev[0].isdigit())):
+                if wordPrev == " " and wordPrevPrev and wordPrevPrev[0].isdigit():
                     datestr += " " + words[idx - 2]
                     used += 1
                     start -= 1
@@ -660,7 +703,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -1045,7 +1088,7 @@ def extract_datetime_cs(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "a" and \
+        if word == "a" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

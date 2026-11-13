@@ -345,7 +345,7 @@ def extract_datetime_sk(text, anchorDate=None, default_time=None):
                 used = 2
         # parse "budúci mesiac", "cez 3 mesiace"
         elif word == "mesiac" and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -363,7 +363,7 @@ def extract_datetime_sk(text, anchorDate=None, default_time=None):
                 used = 2
         # parse "budúci rok", "cez 2 roky"
         elif word == "rok" and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -521,7 +521,7 @@ def extract_datetime_sk(text, anchorDate=None, default_time=None):
             minAbs = -1
             start -= 1
             used = 3
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             strHH = ""
             strMM = ""
             if ':' in word:

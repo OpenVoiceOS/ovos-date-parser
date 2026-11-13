@@ -50,6 +50,8 @@ def _check_date(day: Optional[int], month: Optional[int],
         if not 1 <= day <= last:
             raise ValueError(f"day {day} does not exist in month {month}")
     if weekday is not None:
+        if day is None:
+            raise ValueError("a weekday needs a day")
         if not 0 <= weekday <= 6:
             raise ValueError(f"weekday {weekday} is outside 0 to 6")
         if None not in (day, month, year) \
@@ -75,8 +77,10 @@ def spoken_date(lang: str, *, day: Optional[int] = None,
     """
     _check_date(day, month, year, weekday)
     if _language(lang) == "pt":
-        if case is not None or declension is not None:
-            raise UnsupportedForm(lang, "date", f"case={case} declension={declension}")
+        if case is not None:
+            raise UnsupportedForm(lang, "date", f"case {case!r}")
+        if declension is not None:
+            raise UnsupportedForm(lang, "date", f"declension {declension!r}")
         return spoken_date_pt(day, month, year, weekday,
                               variant=portuguese_variant(lang))
     raise UnsupportedForm(lang, "date", "this language")
@@ -99,18 +103,24 @@ def spoken_time(lang: str, hour: int, minute: int = 0,
     """
     if not 0 <= hour <= 23 or not 0 <= minute <= 59 \
             or (second is not None and not 0 <= second <= 59):
-        raise ValueError(f"{hour}:{minute}:{second} is not a clock time")
-    if clock not in ("24h", "12h") or style not in ("digits", "units", "phrase"):
-        raise ValueError(f"unknown clock {clock!r} or style {style!r}")
+        shown = f"{hour}:{minute:02}" + ("" if second is None else f":{second:02}")
+        raise ValueError(f"{shown} is not a clock time")
+    if clock not in ("24h", "12h"):
+        raise ValueError(f"unknown clock {clock!r}")
+    if style not in ("digits", "units", "phrase"):
+        raise ValueError(f"unknown style {style!r}")
+    if period and clock != "12h":
+        raise ValueError("a day period needs the 12h clock")
     if _language(lang) == "pt":
         if case is not None:
-            raise UnsupportedForm(lang, "time", f"case={case}")
+            raise UnsupportedForm(lang, "time", f"case {case!r}")
         reading = spoken_time_pt(hour, minute, second, clock=clock,
                                  style=style, period=period,
                                  variant=portuguese_variant(lang))
         if reading is None:
-            raise UnsupportedForm(lang, "time", f"{style} style, {clock} clock"
-                                  + (", seconds" if second is not None else ""))
+            detail = f"the {style} style on the {clock} clock"
+            raise UnsupportedForm(lang, "time", detail if second is None
+                                  else detail + " with seconds")
         return reading
     raise UnsupportedForm(lang, "time", "this language")
 
@@ -121,8 +131,11 @@ def spoken_year(lang: str, year: int, *, ordinal: bool = False,
     """The spoken form of a year (1 to 9999), as a cardinal or an ordinal."""
     _check_year(year)
     if _language(lang) == "pt":
-        if ordinal or case is not None or declension is not None:
-            raise UnsupportedForm(lang, "year",
-                                  f"ordinal={ordinal} case={case} declension={declension}")
+        if ordinal:
+            raise UnsupportedForm(lang, "year", "an ordinal year")
+        if case is not None:
+            raise UnsupportedForm(lang, "year", f"case {case!r}")
+        if declension is not None:
+            raise UnsupportedForm(lang, "year", f"declension {declension!r}")
         return spoken_year_pt(year, variant=portuguese_variant(lang))
     raise UnsupportedForm(lang, "year", "this language")

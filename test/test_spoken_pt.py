@@ -57,7 +57,9 @@ class TestSpokenDatePt(unittest.TestCase):
     def test_impossible_dates(self):
         for fields in [dict(day=31, month=2), dict(day=29, month=2, year=2023),
                        dict(day=32), dict(month=13), dict(day=12, year=2024),
-                       dict(day=12, month=3, year=2024, weekday=0), {}]:
+                       dict(day=12, month=3, year=2024, weekday=0),
+                       dict(month=3, year=2024, weekday=4),
+                       dict(day=12, weekday=7), dict(day=12, weekday=-1), {}]:
             with self.subTest(fields=fields):
                 with self.assertRaises(ValueError):
                     spoken_date("pt-PT", **fields)
@@ -67,6 +69,14 @@ class TestSpokenDatePt(unittest.TestCase):
             spoken_date("pt-PT", day=1, month=5, case="genitive")
         with self.assertRaises(UnsupportedForm):
             spoken_date("pt-PT", day=1, month=5, declension="weak")
+
+    def test_region_spellings(self):
+        for lang in ("pt-BR", "pt-br", "pt_BR", "PT_br"):
+            with self.subTest(lang=lang):
+                self.assertEqual(spoken_date(lang, day=16), "dezesseis")
+        for lang in ("pt", "pt-PT", "pt-AO"):
+            with self.subTest(lang=lang):
+                self.assertEqual(spoken_date(lang, day=16), "dezasseis")
 
     def test_other_languages_refuse(self):
         with self.assertRaises(UnsupportedForm) as raised:
@@ -98,6 +108,11 @@ class TestSpokenTimePt(unittest.TestCase):
             ("pt-PT", (14, 0), dict(clock="12h", period=True),
              "duas horas da tarde"),
             ("pt-PT", (0, 30), dict(clock="12h"), "doze e trinta"),
+            ("pt-PT", (0, 30), dict(clock="12h", period=True),
+             "doze e trinta da madrugada"),
+            ("pt-PT", (0, 0), dict(clock="12h", period=True), "meia-noite"),
+            ("pt-PT", (12, 0), dict(clock="12h", period=True), "meio-dia"),
+            ("pt-PT", (12, 0), dict(clock="12h"), "doze horas"),
             ("pt-PT", (14, 30), dict(style="phrase", clock="12h", period=True),
              "duas e meia da tarde"),
             ("pt-PT", (18, 45), dict(style="phrase", clock="12h", period=True),
@@ -121,7 +136,8 @@ class TestSpokenTimePt(unittest.TestCase):
         for clock, options in [((24, 0), {}), ((12, 60), {}),
                                ((12, 0, 60), dict(style="units")),
                                ((12, 0), dict(style="spoken")),
-                               ((12, 0), dict(clock="13h"))]:
+                               ((12, 0), dict(clock="13h")),
+                               ((14, 0), dict(period=True))]:
             with self.subTest(clock=clock, options=options):
                 with self.assertRaises(ValueError):
                     spoken_time("pt-PT", *clock, **options)
@@ -140,9 +156,12 @@ class TestSpokenYearPt(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     spoken_year("pt-PT", year)
 
-    def test_no_ordinal_year(self):
-        with self.assertRaises(UnsupportedForm):
-            spoken_year("pt-PT", 2024, ordinal=True)
+    def test_no_ordinal_case_or_declension(self):
+        for options in (dict(ordinal=True), dict(case="genitive"),
+                        dict(declension="weak")):
+            with self.subTest(options=options):
+                with self.assertRaises(UnsupportedForm):
+                    spoken_year("pt-PT", 2024, **options)
 
 
 if __name__ == "__main__":

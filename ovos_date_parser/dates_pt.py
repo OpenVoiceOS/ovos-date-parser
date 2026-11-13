@@ -7,12 +7,13 @@ datas"), citing Cunha & Cintra, "Nova Gramática do Português
 Contemporâneo", p. 374: "nas referências aos dias do mês usam-se os
 cardinais, salvo na designação do primeiro dia, em que é de regra o uso do
 numeral ordinal". Its examples: "Chegaremos às seis horas do dia primeiro de
-maio", "São duas horas da tarde". So day 1 is "primeiro", every other day a
+maio", "São duas horas da tarde [...]". So day 1 is "primeiro", every other day a
 cardinal, and a whole hour takes the noun: "às seis horas".
 
 The clock with unit words. Ciberdúvidas, answer 14586 ("Minuto"): "20 h 30 m
 24 s [...] vinte horas, trinta minutos e vinte e quatro segundos".
-Ciberdúvidas, answer 14648 ("A grafia das horas"): "17 horas e 30 minutos".
+Ciberdúvidas, answer 14648 ("A grafia das horas"): "a representação
+correcta de dezassete horas e trinta minutos, com algarismos, é: 17h30 min".
 The spoken form here has no comma: "vinte horas trinta minutos e vinte e
 quatro segundos".
 
@@ -23,8 +24,9 @@ o zero é encarado como plural: zero graus; zero reais; zero horas."
 Day periods in 12-hour speech. Unicode CLDR 49, supplemental dayPeriods.xml,
 rules for "pt" (pt_PT has no rules of its own and inherits them): night1
 from 00:00 before 06:00, morning1 from 06:00 before 12:00, afternoon1 from
-12:00 before 19:00, evening1 from 19:00 before 24:00. CLDR 49 pt.xml, format
-names: "da madrugada", "da manhã", "da tarde", "da noite". The rules divide
+12:00 before 19:00, evening1 from 19:00 before 24:00, and midnight at 00:00
+and noon at 12:00. CLDR 49 pt.xml, format names: "da madrugada", "da manhã",
+"da tarde", "da noite", "meia-noite", "meio-dia". The rules divide
 the time of day, so the period is the one of the moment itself, also when the
 phrase names the next hour ("sete menos um quarto da tarde" at 18:45). This
 module follows CLDR in pt-PT and pt-BR: "da noite" starts at 19:00. Senado
@@ -203,6 +205,9 @@ def spoken_time_pt(hour: int, minute: int, second: Optional[int] = None,
         else:
             speak = _hours_pt(shown, variant)
     if clock == "12h" and period:
+        if minute == 0 and second is None and hour in (0, 12):
+            # CLDR pt: midnight at 00:00, noon at 12:00
+            return "meia-noite" if hour == 0 else "meio-dia"
         speak += " " + _day_period_pt(hour)
     return speak
 

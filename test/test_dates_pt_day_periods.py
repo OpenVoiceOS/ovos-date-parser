@@ -4,9 +4,8 @@ Unicode CLDR 49, supplemental dayPeriods.xml, rules for "pt" (pt_PT has
 no rules of its own and inherits them): morning1 "da manhã" from 06:00
 before 12:00, afternoon1 "da tarde" from 12:00 before 19:00, evening1
 "da noite" from 19:00 before 24:00, night1 "da madrugada" from 00:00
-before 06:00. The Brazilian Senado style manual, "Hora", agrees from
-19:00: "A noite, das 18h às 24h", and it accepts "seis da tarde" for the
-hour from 18h. The period qualifies the hour the phrase names.
+before 06:00. The rules divide the time of day, so the period is the one of
+the moment itself, also when the phrase names the next hour.
 """
 import unittest
 from datetime import datetime
@@ -41,14 +40,36 @@ class TestPortugueseDayPeriods(unittest.TestCase):
                     self.assertEqual(
                         nice_time(dt, lang=lang, use_ampm=True), expected)
 
-    def test_named_hour_sets_the_period(self):
-        # 18:45 names seven o'clock, which is "da noite"
+    #: a time that names the next hour, and its speech
+    NEXT_HOUR = [(0, 35, "uma menos vinte e cinco da madrugada"),
+                 (5, 45, "seis menos um quarto da madrugada"),
+                 (11, 45, "meio-dia menos um quarto"),
+                 (12, 35, "uma menos vinte e cinco da tarde"),
+                 (18, 35, "sete menos vinte e cinco da tarde"),
+                 (18, 45, "sete menos um quarto da tarde"),
+                 (18, 55, "sete menos cinco da tarde"),
+                 (23, 45, "meia-noite menos um quarto")]
+
+    def test_the_moment_sets_the_period(self):
         for lang in ("pt-PT", "pt-BR"):
-            with self.subTest(lang=lang):
-                self.assertEqual(
-                    nice_time(datetime(2024, 3, 5, 18, 45), lang=lang,
-                              use_ampm=True),
-                    "sete menos um quarto da noite")
+            for hour, minute, expected in self.NEXT_HOUR:
+                dt = datetime(2024, 3, 5, hour, minute)
+                with self.subTest(lang=lang, time=f"{hour:02}:{minute:02}"):
+                    self.assertEqual(
+                        nice_time(dt, lang=lang, use_ampm=True), expected)
+
+    def test_no_period_switch_within_an_hour(self):
+        # every minute of a clock hour shares one period
+        for lang in ("pt-PT", "pt-BR"):
+            for hour in range(24):
+                periods = {nice_time(datetime(2024, 3, 5, hour, minute),
+                                     lang=lang, use_ampm=True).split(" da ")[-1]
+                           for minute in range(60)
+                           if " da " in nice_time(
+                               datetime(2024, 3, 5, hour, minute),
+                               lang=lang, use_ampm=True)}
+                with self.subTest(lang=lang, hour=hour):
+                    self.assertLessEqual(len(periods), 1, periods)
 
     def test_date_time_uses_the_same_period(self):
         dt = datetime(2024, 3, 5, 20, 0)

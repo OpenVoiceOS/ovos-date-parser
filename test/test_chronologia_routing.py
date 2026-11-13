@@ -169,6 +169,32 @@ def test_tonight_is_the_night_of_its_own_day(route_en, text, expected):
     assert got == [expected, ""]
 
 
+@pytest.mark.parametrize("hour,minute,expected", [
+    # before the middle (22:30) of the cut band the middle answers; after it
+    # the anchor itself does, so the answer is never a time already gone
+    (21, 30, datetime(2017, 6, 27, 22, 30)),
+    (22, 31, datetime(2017, 6, 27, 22, 31)),
+    (23, 30, datetime(2017, 6, 27, 23, 30)),
+    (23, 59, datetime(2017, 6, 27, 23, 59)),
+])
+def test_tonight_said_late_in_the_night_is_now(route_en, hour, minute,
+                                               expected):
+    anchor = ANCHOR.replace(hour=hour, minute=minute)
+    got = extract_datetime("tonight", "en", anchorDate=anchor)
+    assert got == [expected.replace(tzinfo=anchor.tzinfo), ""]
+
+
+def test_a_croatian_night_said_late_is_now():
+    """CLDR hr night1 is 21:00-04:00; cut at midnight its middle is 22:30,
+    which has passed at 23:30."""
+    assert "hr" in CHRONOLOGIA_LOCALES
+    early = extract_datetime("noću", "hr", anchorDate=ANCHOR)
+    assert early[0] == datetime(2017, 6, 27, 22, 30, tzinfo=ANCHOR.tzinfo)
+    late = ANCHOR.replace(hour=23, minute=30)
+    got = extract_datetime("noću", "hr", anchorDate=late)
+    assert got[0] == late
+
+
 def test_an_hour_inside_the_night_band_keeps_its_own_reading(route_en):
     """3 o'clock at night has passed at 13:04, so it is 03:00 tomorrow; the
     cut at midnight does not move an hour that was said."""

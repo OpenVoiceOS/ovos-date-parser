@@ -27,7 +27,7 @@ dependencies = [
     "ovos-number-parser>=0.24.7a1,<1.0.0",
     "dateparser",
     "ovos-config>=0.0.12",
-    # now_local, DAYS_IN_1_YEAR and LOG; the 0.0.x alphas have no ovos_utils.time
+    # now_local, DAYS_IN_1_YEAR and LOG; releases before 0.0.33a6 have no ovos_utils.time
     "ovos-utils>=0.1.0",
     "ovos-spec-tools>=1.5.0a1",
     # reckoning core library (AstroDate, calendars, eras, cycles). The floor

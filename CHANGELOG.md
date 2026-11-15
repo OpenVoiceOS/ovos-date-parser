@@ -346,7 +346,6 @@
 
 - fix: load ovos-config and the phrase tables on first use, not at import [\#543](https://github.com/OpenVoiceOS/ovos-date-parser/pull/543) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(pt\): write month and weekday names in lowercase in nice\_date [\#541](https://github.com/OpenVoiceOS/ovos-date-parser/pull/541) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(de\): write years as one word in nice\_year and nice\_date [\#539](https://github.com/OpenVoiceOS/ovos-date-parser/pull/539) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.9a1) (2026-11-06)
 

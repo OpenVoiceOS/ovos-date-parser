@@ -190,7 +190,9 @@ English only. The span grammars for other languages are in the `chronologia`
 reckoning core.
 
 Dialects resolve by prefix. `"pt-BR"`, `"pt-PT"`, and `"pt"` all reach the
-Portuguese implementation. A language with no implementation raises
+Portuguese implementation. The region still selects the number spelling: the
+`nice_*` formatters say `dezesseis` for a tag with the region `BR`, and
+`dezasseis` for every other Portuguese tag. A language with no implementation raises
 `NotImplementedError`, except `extract_datetime`, which tries the `dateparser`
 fallback first, and the `nice_*` formatters, which fall back to a generic word
 table and need a locale resource file for the language.

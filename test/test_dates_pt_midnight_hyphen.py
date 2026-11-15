@@ -17,7 +17,7 @@ from datetime import datetime
 from ovos_date_parser import nice_date_time, nice_day, nice_time
 
 NOW = datetime(2020, 1, 1)
-DATE = "terça-feira, doze de março, dois mil e vinte e quatro"
+DATE = "terça-feira, doze de março de dois mil e vinte e quatro"
 
 
 class TestPortugueseMidnightAndNoon(unittest.TestCase):

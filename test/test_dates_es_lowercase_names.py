@@ -17,14 +17,14 @@ class TestSpanishLowercaseNames(unittest.TestCase):
 
     def test_nice_date(self):
         self.assertEqual(nice_date(TUESDAY, "es-ES", include_weekday=False),
-                         "doce de marzo, dos mil veinticuatro")
+                         "doce de marzo de dos mil veinticuatro")
 
     def test_nice_date_with_weekday(self):
         self.assertEqual(nice_date(TUESDAY, "es-ES"),
-                         "martes, doce de marzo, dos mil veinticuatro")
+                         "martes, doce de marzo de dos mil veinticuatro")
 
     def test_nice_date_time(self):
-        date_part = "martes, doce de marzo, dos mil veinticuatro "
+        date_part = "martes, doce de marzo de dos mil veinticuatro "
         spoken = nice_date_time(TUESDAY, "es-ES", now=datetime(2020, 1, 1))
         self.assertEqual(spoken[:len(date_part)], date_part)
 

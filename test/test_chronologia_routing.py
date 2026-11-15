@@ -13,8 +13,10 @@ from zoneinfo import ZoneInfo
 import pytest
 from ovos_utils.time import now_local
 
-from ovos_date_parser import (CHRONOLOGIA_LOCALES, extract_datetime,
-                              extract_duration)
+from chronologia import DAY_PARTS
+
+from ovos_date_parser import (CHRONOLOGIA_LOCALES, _daypart_bands,
+                              extract_datetime)
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)
 
@@ -131,35 +133,125 @@ def test_default_time_does_not_overwrite_an_offset(text, lang):
     ("2 sata 30 minuta", "hr"),
     ("2 hodiny 30 minút", "sk"),
 ])
-def test_a_spoken_length_counts_forward_from_now(text, lang):
-    """"two and a half hours" is when a skill should fire, not a time of day.
+def test_a_bare_length_is_not_a_date(text, lang):
+    """"two and a half hours" names a length, not a point in time.
 
-    chronologia declines these, and is right to: its contract is spans, and a
-    length names no span. This signature's contract is the instant a skill
-    schedules, and "remind me in two and a half hours" is an ordinary thing
-    to say, so the length counts forward from the anchor.
-
-    The expected value is derived from the duration reader rather than
-    written down: it returns two and a half hours for the phrase, and the
-    anchor plus that is 15:34. Nothing here asks the function under test what
-    the answer should be.
+    Routing ruling 3: a bare duration is not a date. A counted offset with a
+    direction word ("za 2 hodiny") names one, and is asserted above.
     """
-    expected = ANCHOR + extract_duration(text, lang)[0]
-    assert expected == datetime(2017, 6, 27, 15, 34)
-    got = extract_datetime(text, lang, anchorDate=ANCHOR)
-    assert got is not None, text
-    assert got[0] == expected
-    assert got[1] == ""
+    assert extract_datetime(text, lang, anchorDate=ANCHOR) is None
 
 
-@pytest.mark.parametrize("text,lang", [
-    ("2 hodiny 30 minut", "cs"),
-    ("2 sata 30 minuta", "hr"),
-    ("2 hodiny 30 minút", "sk"),
+@pytest.mark.parametrize("lang", sorted(CHRONOLOGIA_LOCALES))
+def test_no_text_is_no_date(lang):
+    assert extract_datetime(None, lang, anchorDate=ANCHOR) is None
+    assert extract_datetime("", lang, anchorDate=ANCHOR) is None
+
+
+@pytest.mark.parametrize("lang", ["en", "pt"])
+def test_no_text_is_no_date_on_an_unrouted_locale(lang):
+    """The contract does not depend on routing."""
+    assert lang not in CHRONOLOGIA_LOCALES
+    assert extract_datetime(None, lang, anchorDate=ANCHOR) is None
+    assert extract_datetime("", lang, anchorDate=ANCHOR) is None
+
+
+@pytest.fixture
+def route_en(monkeypatch):
+    """Route en through chronologia, which reads its parts of the day with
+    the default bands (night 21:00 to 06:00)."""
+    import ovos_date_parser
+    monkeypatch.setattr(ovos_date_parser, "CHRONOLOGIA_LOCALES",
+                        CHRONOLOGIA_LOCALES | {"en"})
+
+
+@pytest.mark.parametrize("text,expected", [
+    # the night band 21:00-06:00 cut at midnight is 21:00-24:00, whose
+    # middle is 22:30 on the day the band opens
+    ("tonight", datetime(2017, 6, 27, 22, 30)),
+    ("tomorrow night", datetime(2017, 6, 28, 22, 30)),
 ])
-def test_a_default_time_does_not_move_a_spoken_length(text, lang):
-    """The length fixed a moment, so there is nothing for a default to fill."""
-    assert when(text, lang, default_time=time(8, 0)) == datetime(2017, 6, 27, 15, 34)
+def test_tonight_is_the_night_of_its_own_day(route_en, text, expected):
+    """Wiktionary "tonight": "During the night following the current day;
+    during the evening of today." The CLDR day periods for English start
+    night1 at 21:00 and morning1 at 00:00, so the night ends at midnight."""
+    got = extract_datetime(text, "en", anchorDate=ANCHOR)
+    assert got == [expected, ""]
+
+
+@pytest.mark.parametrize("hour,minute,expected", [
+    # before the middle (22:30) of the cut band the middle answers; after it
+    # the anchor itself does, so the answer is never a time already gone
+    (21, 30, datetime(2017, 6, 27, 22, 30)),
+    (22, 31, datetime(2017, 6, 27, 22, 31)),
+    (23, 30, datetime(2017, 6, 27, 23, 30)),
+    (23, 59, datetime(2017, 6, 27, 23, 59)),
+])
+def test_tonight_said_late_in_the_night_is_now(route_en, hour, minute,
+                                               expected):
+    anchor = ANCHOR.replace(hour=hour, minute=minute)
+    got = extract_datetime("tonight", "en", anchorDate=anchor)
+    assert got == [expected.replace(tzinfo=anchor.tzinfo), ""]
+
+
+def test_a_croatian_night_said_late_is_now():
+    """CLDR hr night1 is 21:00-04:00; cut at midnight its middle is 22:30,
+    which has passed at 23:30."""
+    assert "hr" in CHRONOLOGIA_LOCALES
+    early = extract_datetime("noću", "hr", anchorDate=ANCHOR)
+    assert early[0] == datetime(2017, 6, 27, 22, 30, tzinfo=ANCHOR.tzinfo)
+    late = ANCHOR.replace(hour=23, minute=30)
+    got = extract_datetime("noću", "hr", anchorDate=late)
+    assert got[0] == late
+
+
+@pytest.mark.parametrize("text,lang,hour,minute,expected", [
+    # CLDR cs evening1 18:00-22:00, middle 20:00
+    ("dnes večer", "cs", 19, 0, datetime(2017, 6, 27, 20, 0)),
+    ("dnes večer", "cs", 21, 0, datetime(2017, 6, 27, 21, 0)),
+    # CLDR sk afternoon1 12:00-18:00, middle 15:00
+    ("popoludní", "sk", 13, 4, datetime(2017, 6, 27, 15, 0)),
+    ("popoludní", "sk", 16, 0, datetime(2017, 6, 27, 16, 0)),
+])
+def test_any_part_of_the_day_said_after_its_middle_is_now(text, lang, hour,
+                                                           minute, expected):
+    """Before the middle of the band the middle answers; after it the anchor
+    does, so the answer is never before the anchor."""
+    anchor = ANCHOR.replace(hour=hour, minute=minute)
+    got = extract_datetime(text, lang, anchorDate=anchor)
+    assert got[0] == expected.replace(tzinfo=anchor.tzinfo)
+
+
+@pytest.mark.parametrize("text,lang,hour,minute,expected", [
+    # tomorrow's evening (CLDR cs evening1 18:00-22:00) has not started
+    ("zítra večer", "cs", 21, 0, datetime(2017, 6, 28, 20, 0)),
+    # tomorrow's night (CLDR hr night1 21:00-04:00, cut at midnight)
+    ("sutra noću", "hr", 23, 30, datetime(2017, 6, 28, 22, 30)),
+])
+def test_a_part_of_another_day_keeps_its_middle(text, lang, hour, minute,
+                                                expected):
+    """The anchor answers only a band of the anchor's own day: the same
+    clock on another day does not."""
+    anchor = ANCHOR.replace(hour=hour, minute=minute)
+    got = extract_datetime(text, lang, anchorDate=anchor)
+    assert got[0] == expected.replace(tzinfo=anchor.tzinfo)
+
+
+def test_an_hour_inside_the_night_band_keeps_its_own_reading(route_en):
+    """3 o'clock at night has passed at 13:04, so it is 03:00 tomorrow; the
+    cut at midnight does not move an hour that was said."""
+    got = extract_datetime("at 3 at night", "en", anchorDate=ANCHOR)
+    assert got[0] == datetime(2017, 6, 28, 3, 0)
+
+
+def test_a_locale_without_its_own_day_parts_takes_the_default_bands():
+    """Asturian has no CLDR day-period rows, so chronologia reads its parts
+    of the day with the default bands, and the adapter must know them as
+    parts of the day to answer the middle of one."""
+    default = {(p.start, p.end) for p in DAY_PARTS.values() if p.lang is None}
+    assert (time(6, 0), time(12, 0)) in default
+    assert _daypart_bands("ast") == default
+    assert _daypart_bands("ast-ES") == default
 
 
 @pytest.mark.parametrize("text,lang,expected", [
@@ -192,7 +284,6 @@ def test_an_unrouted_locale_keeps_its_own_extractor(lang):
     ("za 2 hodiny", "cs", timedelta(hours=2)),
     ("za 2 sata", "hr", timedelta(hours=2)),
     ("o 2 hodiny", "sk", timedelta(hours=2)),
-    ("2 hodiny 30 minut", "cs", timedelta(hours=2, minutes=30)),
 ])
 def test_with_no_anchor_the_answer_is_in_the_local_zone(text, lang, offset):
     """With no anchor the answer counts from ``now_local()``, as every other

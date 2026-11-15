@@ -581,11 +581,16 @@ def _instant(span, lang: str, default_time: Optional[time],
     21:00 and morning1 at 00:00. With the default 21:00-06:00 band, "tonight"
     at a 13:04 anchor is 22:30 that day, not 01:30 the next. An hour said
     inside the band ("at 3 at night") is an exact time and keeps its own
-    reading. A band that holds the anchor answers the anchor once its middle
-    has passed: "tonight" said at 23:30 is 23:30, never a time already gone.
-    The cut holds in every locale, because it follows from what "tonight"
-    names, not from the English clock: CLDR gives hr a night of 21:00-04:00
-    and cs and sk one of 22:00-04:00, so hr "noću" at 13:04 is 22:30. ``default_time`` supplies the time of day only where the phrase
+    reading. Any band that holds the anchor answers the anchor once its
+    middle has passed, so the middle is never a time already gone: "tonight"
+    said at 23:30 is 23:30, and cs "dnes večer" said at 21:00, inside the
+    18:00-22:00 evening, is 21:00. A ``default_time`` that lands inside the
+    band still answers, even when it has passed. The cut holds in every
+    locale, because it follows from what "tonight" names, not from the
+    English clock: CLDR gives hr a night of 21:00-04:00 and cs and sk one of
+    22:00-04:00, so hr "noću" at 13:04 is 22:30.
+
+    ``default_time`` supplies the time of day only where the phrase
     left it unsaid: a day or wider that opens at midnight names a date, while
     a counted offset has already fixed a moment and keeps the anchor's clock.
     "in two hours" is 15:04 at a 13:04 anchor, and "in three days" is three

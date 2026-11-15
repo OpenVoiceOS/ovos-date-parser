@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.36.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.1a2) (2026-11-15)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.1a1...0.36.1a2)
+
+**Merged pull requests:**
+
+- test\(chronologia\): a part of another day keeps its middle [\#639](https://github.com/OpenVoiceOS/ovos-date-parser/pull/639) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.36.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.1a1) (2026-11-15)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.0a1...0.36.1a1)
@@ -351,10 +359,6 @@
 ## [0.35.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.7a1) (2026-10-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.6a1...0.35.7a1)
-
-**Merged pull requests:**
-
-- fix: honour minutes in the en bare 12-hour clock and read "12 tonight" as midnight [\#536](https://github.com/OpenVoiceOS/ovos-date-parser/pull/536) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.6a1) (2026-10-24)
 

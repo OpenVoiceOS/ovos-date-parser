@@ -1,5 +1,8 @@
 import ast
+import re
+import sys
 import unittest
+from importlib.metadata import packages_distributions
 from importlib.metadata import version as installed_version
 from importlib.resources import files
 from pathlib import Path
@@ -8,6 +11,11 @@ from ovos_date_parser.version import (VERSION_ALPHA, VERSION_BUILD, VERSION_MAJO
                            VERSION_MINOR, __version__)
 
 VERSION_FILE = Path(__file__).parent.parent / "ovos_date_parser" / "version.py"
+PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
+
+
+def _canonical(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 class TestVersionBlock(unittest.TestCase):
@@ -64,6 +72,26 @@ class TestPackagedResources(unittest.TestCase):
         missing = sorted(str(p) for p in on_disk
                          if not (packaged / str(p)).is_file())
         self.assertEqual(missing, [], "res files not packaged")
+
+
+class TestDeclaredDependencies(unittest.TestCase):
+    """A package the code imports but does not declare can resolve to any
+    version, or to one that lacks the imported module."""
+
+    def test_every_imported_distribution_is_declared(self):
+        block = PYPROJECT.read_text(encoding="utf-8").split("\ndependencies = [", 1)[1].split("\n]", 1)[0]
+        declared = {_canonical(m) for m in re.findall(r'^\s*"([A-Za-z0-9_.-]+)', block, re.M)}
+        imported = set()
+        for path in (PYPROJECT.parent / "ovos_date_parser").rglob("*.py"):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if isinstance(node, ast.Import):
+                    imported.update(alias.name.split(".")[0] for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                    imported.add(node.module.split(".")[0])
+        imported -= set(sys.stdlib_module_names) | {"ovos_date_parser"}
+        distributions = packages_distributions()
+        needed = {_canonical(dist) for name in imported for dist in distributions.get(name, [name])}
+        self.assertEqual(sorted(needed - declared), [])
 
 
 if __name__ == "__main__":

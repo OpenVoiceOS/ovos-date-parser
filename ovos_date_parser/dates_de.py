@@ -97,6 +97,27 @@ def extract_duration_de(text, resolution=DurationResolution.TIMEDELTA,
                                     resolution, replace_token)
 
 
+# A date in digits, day first: CLDR 49 de gives "dd.MM.y" (medium) and
+# "dd.MM.yy" (short). A two-digit year takes the POSIX strptime %y century:
+# "values in the range [69,99] shall refer to years 1969 to 1999 inclusive"
+# and "[00,68] shall refer to years 2000 to 2068 inclusive".
+_NUMERIC_DATE = re.compile(
+    r"^(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:\d{2}|\d{4})$")
+
+
+def _periods_back(word):
+    """How many periods back "letzte", "vorletzte" or "vorvorletzte" goes.
+
+    Duden, "vorletzte": "dem Letzten (4), Vorigen unmittelbar vorausgehend",
+    with "vorletzte Woche" and "im vorletzten Jahr"; "vorvorletzte": "dem
+    Vorletzten (b) unmittelbar vorausgehend", with "vorvorletztes Jahr".
+    """
+    for prefix, back in (("vorvorletzt", 3), ("vorletzt", 2), ("letzt", 1)):
+        if word.startswith(prefix):
+            return back
+    return 0
+
+
 def extract_datetime_de(text, anchorDate=None, default_time=None):
     def clean_string(s):
         """
@@ -152,7 +173,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                           'abend', 'abends', 'nacht', 'nachts', 'pm', 'p.m.']
     eveningQualifiers = ['nachmittag', 'nachmittags', 'abend', 'abends', 'nacht',
                          'nachts', 'pm', 'p.m.']
-    markers = ['in', 'am', 'gegen', 'bis', 'für']
+    markers = ['in', 'im', 'am', 'gegen', 'bis', 'für']
     days = ['montag', 'dienstag', 'mittwoch',
             'donnerstag', 'freitag', 'samstag', 'sonntag']
     months = ['januar', 'februar', 'märz', 'april', 'mai', 'juni',
@@ -161,7 +182,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
     monthsShort = ['jan', 'feb', 'mär', 'apr', 'mai', 'juni', 'juli', 'aug',
                    'sept', 'oct', 'nov', 'dez']
 
-    relativeDays = {'vorgestern': -2, 'gestern': -1, 'heute': 0,
+    relativeDays = {'vorvorgestern': -3, 'vorgestern': -2, 'gestern': -1, 'heute': 0,
                     'morgen': 1, 'übermorgen': 2}
 
     validFollowups = days + months + monthsShort
@@ -198,6 +219,10 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
         # "gestern": an dem Tag, der dem heutigen unmittelbar
         # vorausgegangen ist (Duden,
         # papers/linguistics/german/duden_gestern.html)
+        # "vorvorgestern": "vor drei Tagen" (Duden)
+        elif word == "vorvorgestern" and not fromFlag:
+            dayOffset = -3
+            used += 1
         elif word == "vorgestern" and not fromFlag:
             dayOffset = -2
             used += 1
@@ -256,8 +281,8 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                 dayOffset = 7
                 start -= 1
                 used = 2
-            elif wordPrev[:5] == "letzt":
-                dayOffset = -7
+            elif _periods_back(wordPrev):
+                dayOffset = -7 * _periods_back(wordPrev)
                 start -= 1
                 used = 2
                 # parse 10 months, next month, last month
@@ -277,8 +302,8 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                 monthOffset = 1
                 start -= 1
                 used = 2
-            elif wordPrev[:5] == "letzt":
-                monthOffset = -1
+            elif _periods_back(wordPrev):
+                monthOffset = -_periods_back(wordPrev)
                 start -= 1
                 used = 2
                 # parse 5 years, next year, last year
@@ -298,8 +323,8 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                 yearOffset = 1
                 start -= 1
                 used = 2
-            elif wordPrev[:5] == "letzt":
-                yearOffset = -1
+            elif _periods_back(wordPrev):
+                yearOffset = -_periods_back(wordPrev)
                 start -= 1
                 used = 2
                 # parse Monday, Tuesday, etc., and next Monday,
@@ -317,11 +342,22 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
                 dayOffset += 7
                 used += 1
                 start -= 1
-            elif wordPrev[:5] == "letzt":
-                dayOffset -= 7
+            elif _periods_back(wordPrev):
+                dayOffset -= 7 * _periods_back(wordPrev)
                 used += 1
                 start -= 1
                 # parse 15 of July, June 20th, Feb 18, 19 of February
+        elif _NUMERIC_DATE.match(word) and not fromFlag:
+            day, month, year = word.split(".")
+            try:
+                numeric = datetime.strptime(
+                    word, "%d.%m.%Y" if len(year) == 4 else "%d.%m.%y")
+            except ValueError:
+                return None  # "31.02.2023": null beats a wrong guess
+            datestr = "%s %d %d" % (months[numeric.month - 1], numeric.day,
+                                    numeric.year)
+            hasYear = True
+            used = 1
         elif word in months or word in monthsShort and not fromFlag:
             try:
                 m = months.index(word)
@@ -447,7 +483,7 @@ def extract_datetime_de(text, anchorDate=None, default_time=None):
             if not hrAbs:
                 hrAbs = 23
             used += 1
-        elif word[:6] == "stunde" and \
+        elif word in ("stunde", "stunden") and \
                 (wordPrev in markers or wordPrevPrev in markers):
             factor = is_number_de(word) or 1
             minOffset = 60 * factor

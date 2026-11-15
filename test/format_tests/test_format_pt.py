@@ -139,7 +139,7 @@ class TestNiceDateFormat(unittest.TestCase):
         self.assertEqual(nice_time(dt, lang="pt"),
                          "oito menos vinte")
         self.assertEqual(nice_time(dt, lang="pt", use_ampm=True),
-                         "oito menos vinte da tarde")
+                         "oito menos vinte da noite")
         self.assertEqual(nice_time(dt, lang="pt", speech=False),
                          "7:40")
         self.assertEqual(nice_time(dt, lang="pt", speech=False,

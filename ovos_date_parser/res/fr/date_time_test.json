@@ -21,7 +21,7 @@
     "19": {"datetime_param": "2000, 1, 31, 13, 22, 3", "bc": "None", "assertEqual": "deux-mille" },
     "20": {"datetime_param": "3120, 1, 31, 13, 22, 3", "bc": "True", "assertEqual": "trois-mille-cent-vingt avant Jésus Christ" },
     "21": {"datetime_param": "3241, 1, 31, 13, 22, 3", "bc": "True", "assertEqual": "trois-mille-deux-cent-quarante-et-un avant Jésus Christ" },
-    "22": {"datetime_param": "5200, 1, 31, 13, 22, 3", "bc": "False", "assertEqual": "cinq-mille-deux-cents" },
+    "22": {"datetime_param": "5200, 1, 31, 13, 22, 3", "bc": "False", "assertEqual": "cinq-mille-deux-cent" },
     "23": {"datetime_param": "1100, 1, 31, 13, 22, 3", "bc": "False", "assertEqual": "mille-cent" },
     "24": {"datetime_param": "2100, 1, 31, 13, 22, 3", "bc": "False", "assertEqual": "deux-mille-cent" }
   },

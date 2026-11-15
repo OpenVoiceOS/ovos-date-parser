@@ -2,7 +2,10 @@
 
 All public functions live in the top-level `ovos_date_parser` package and take
 a BCP-47 language code (`lang`). Dialects resolve by prefix (`"pt-BR"`,
-`"pt-PT"`, and `"pt"` all reach the Portuguese parser). Unsupported languages
+`"pt-PT"`, and `"pt"` all reach the Portuguese parser). For Portuguese, the region
+selects the number spelling of the `nice_*` formatters: `BR` gives the
+Brazilian forms (`dezesseis`), and every other tag gives the European forms
+(`dezasseis`). Unsupported languages
 raise `NotImplementedError`. `extract_datetime` falls back to
 [dateparser](https://dateparser.readthedocs.io) before giving up.
 

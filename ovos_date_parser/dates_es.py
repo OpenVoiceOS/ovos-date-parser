@@ -126,9 +126,9 @@ def nice_date_es(dt: datetime, now: datetime = None, include_weekday=True):
         if dt.month != now.month or dt.year != now.year:
             nice = nice + " de " + nice_month_es(dt)
         if dt.year != now.year:
-            nice = nice + ", " + nice_year_es(dt)
+            nice = nice + " de " + nice_year_es(dt)
     else:
-        nice = f"{day} de {nice_month_es(dt)}, {nice_year_es(dt)}"
+        nice = f"{day} de {nice_month_es(dt)} de {nice_year_es(dt)}"
 
     if include_weekday:
         weekday = nice_weekday_es(dt)
@@ -1188,7 +1188,8 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     resultStr = " ".join(words)
     resultStr = ' '.join(resultStr.split())
     # resultStr = pt_pruning(resultStr)
-    return [extractedDate, restore_typed_words(resultStr, text)]
+    return [extractedDate, restore_typed_words(resultStr, text,
+                                               numbers_to_digits_es)]
 
 
 def extract_duration_es(text, resolution=DurationResolution.TIMEDELTA,

@@ -296,10 +296,9 @@ class TestEdgeCasesNn(unittest.TestCase):
         dt, _ = extract_datetime("i morgon", "nn-NO", anchorDate=ANCHOR)
         self.assertEqual(dt.date(), datetime(2017, 6, 28).date())
 
-    def test_none_input_raises(self):
-        # the string-based contract rejects None (no silent coercion)
-        with self.assertRaises((AttributeError, TypeError)):
-            extract_datetime(None, "nn", anchorDate=ANCHOR)
+    def test_none_input_is_no_date(self):
+        # no text is no date, on every locale
+        self.assertIsNone(extract_datetime(None, "nn", anchorDate=ANCHOR))
 
 
 class TestCrossContaminationNn(unittest.TestCase):

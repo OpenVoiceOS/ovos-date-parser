@@ -97,10 +97,8 @@ class TestExtractDateMonthNames(unittest.TestCase):
                          (date(2027, 6, 1), ""))
 
     def test_worded_ordinal_with_year(self):
-        # "the fifth of november 1955" -> "november 1955" parses (month + bare
-        # year, day 1); the spelled ordinal is left in the remainder
         self.assertEqual(extract_date_en("the fifth of november 1955", ANCHOR),
-                         (date(1955, 11, 1), "the fifth"))
+                         (date(1955, 11, 5), ""))
 
 
 class TestExtractDateRelative(unittest.TestCase):
@@ -215,10 +213,10 @@ class TestExtractTimeClockForms(unittest.TestCase):
         self.assertEqual(extract_time_en("wake me at 8:15 pm", ANCHOR),
                          (time(20, 15), "wake me"))
 
-    def test_twelve_oclock_colon_quirk(self):
-        # QUIRK: "at 12:00" (no am/pm) rolls to hour 24, an invalid clock value,
-        # so the whole extraction bails out -> None
-        self.assertIsNone(extract_time_en("at 12:00", ANCHOR))
+    def test_twelve_oclock_colon_after_noon(self):
+        # the anchor is 13:04, so the next 12:00 is tomorrow's
+        self.assertEqual(extract_time_en("at 12:00", ANCHOR),
+                         (time(12, 0), ""))
 
 
 class TestExtractTimePastToForms(unittest.TestCase):

@@ -157,10 +157,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
             .replace(' på ', ' ').replace(' om ', ' ')
         wordList = s.split()
 
+        # an ordinal word is a day of the month only before a month name
+        # ("første marts"); anywhere else it is not a date ("første
+        # påskedag", "første gang") and must not become an hour.
         for idx, word in enumerate(wordList):
-            if is_ordinal_da(word) is not False:
-                word = str(is_ordinal_da(word))
-                wordList[idx] = word
+            following = wordList[idx + 1] if idx + 1 < len(wordList) else ""
+            if is_ordinal_da(word) is not False and \
+                    (following in months or following in monthsShort):
+                wordList[idx] = str(is_ordinal_da(word))
 
         return wordList
 
@@ -219,6 +223,14 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
     validFollowups.append("nu")
 
     words = clean_string(text)
+
+    # A weekday beside a calendar date is a question about that date ("4. juli
+    # på en søndag"), not an offset from today, so it stays in the remainder.
+    explicit_date = any(
+        (word in months or word in monthsShort) and
+        ((idx > 0 and words[idx - 1][:1].isdigit()) or
+         (idx + 1 < len(words) and words[idx + 1][:1].isdigit()))
+        for idx, word in enumerate(words))
 
     for idx, word in enumerate(words):
         if word == "":
@@ -321,7 +333,7 @@ def extract_datetime_da(text, anchorDate=None, default_time=None):
                 used = 2
                 # parse Monday, Tuesday, etc., and next Monday,
                 # last Tuesday, etc.
-        elif word in days and not fromFlag:
+        elif word in days and not fromFlag and not explicit_date:
             d = days.index(word)
             dayOffset = (d + 1) - int(today)
             used = 1

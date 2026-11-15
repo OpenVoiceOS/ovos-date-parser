@@ -96,12 +96,10 @@ class TestDateTimeSpansEN(SpanAssertions):
 
     def test_candidates_do_not_overlap(self):
         # "next month" sits inside "the third of next month", and only the
-        # widest coherent reading is reported. The English extractor drops
-        # the day of month here and answers with the first of april, so the
-        # span is the part it read - there is no second, partial span.
+        # widest coherent reading is reported, with its article-less core.
         self.assertDates("the third of next month", "en",
-                         [("of next month", dt(2026, 4, 1)),
-                          ("next month", dt(2026, 4, 1))])
+                         [("the third of next month", dt(2026, 4, 3)),
+                          ("third of next month", dt(2026, 4, 3))])
 
     def test_surface_keeps_the_words_the_extractor_read(self):
         # the surface is the lookup key for a captured slot, so a modifier or

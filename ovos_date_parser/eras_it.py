@@ -14,12 +14,25 @@ deliberately only carries "nell'anno"/"l'anno" (and their apostrophe-
 stripped "nell anno"/"l anno" variants) rather than bare "nel", since a
 bare "nel" would falsely claim ordinary phrasing like "nel 1996".
 """
+from functools import lru_cache
+
 from ovos_number_parser.numbers_it import IT
 
 from ovos_date_parser.eras_scan import (EraPatterns, extract_era_date,
                                         load_era_patterns)
 
-ERA_PATTERNS_IT: EraPatterns = load_era_patterns("it")
+
+@lru_cache(maxsize=None)
+def _era_patterns_it() -> EraPatterns:
+    return load_era_patterns("it")
+
+
+def __getattr__(name):
+    # The phrase sets load on first use, so importing the package does
+    # not compile every language's patterns.
+    if name == "ERA_PATTERNS_IT":
+        return _era_patterns_it()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def extract_era_date_it(text: str):
@@ -29,5 +42,5 @@ def extract_era_date_it(text: str):
     spelled-number normaliser to the shared scanner — see
     :func:`ovos_date_parser.eras_scan.extract_era_date` for the contract.
     """
-    return extract_era_date(text, ERA_PATTERNS_IT,
+    return extract_era_date(text, _era_patterns_it(),
                             normalize=IT.numbers_to_digits)

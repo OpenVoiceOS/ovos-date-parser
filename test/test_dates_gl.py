@@ -26,12 +26,12 @@ class TestVocabularyGL(unittest.TestCase):
         # 2026-07-13 is a Monday
         for i in range(7):
             self.assertEqual(nice_weekday_gl(datetime(2026, 7, 13 + i)),
-                             ["Luns", "Martes", "Mércores", "Xoves",
-                              "Venres", "Sábado", "Domingo"][i])
+                             ["luns", "martes", "mércores", "xoves",
+                              "venres", "sábado", "domingo"][i])
 
     def test_nice_month(self):
-        self.assertEqual(nice_month_gl(datetime(2026, 6, 1)), "Xuño")
-        self.assertEqual(nice_month_gl(datetime(2026, 12, 1)), "Decembro")
+        self.assertEqual(nice_month_gl(datetime(2026, 6, 1)), "xuño")
+        self.assertEqual(nice_month_gl(datetime(2026, 12, 1)), "decembro")
 
 
 class TestNiceTimeGL(unittest.TestCase):

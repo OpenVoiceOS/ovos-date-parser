@@ -168,7 +168,7 @@ class TestNiceDateFormat(unittest.TestCase):
         lang = "cs"
         i = 1
         while (self.test_config[lang].get('test_nice_date') and
-               self.test_config[lang]['test_nice_date'].get(str(i).encode('utf8'))):
+               self.test_config[lang]['test_nice_date'].get(str(i))):
             p = self.test_config[lang]['test_nice_date'][str(i)]
             dp = ast.literal_eval(p['datetime_param'])
             np = ast.literal_eval(p['now'])
@@ -202,7 +202,7 @@ class TestNiceDateFormat(unittest.TestCase):
         lang = "cs"
         i = 1
         while (self.test_config[lang].get('test_nice_date_time') and
-               self.test_config[lang]['test_nice_date_time'].get(str(i).encode('utf8'))):
+               self.test_config[lang]['test_nice_date_time'].get(str(i))):
             p = self.test_config[lang]['test_nice_date_time'][str(i)]
             dp = ast.literal_eval(p['datetime_param'])
             np = ast.literal_eval(p['now'])
@@ -225,7 +225,7 @@ class TestNiceDateFormat(unittest.TestCase):
         lang = "cs"
         i = 1
         while (self.test_config[lang].get('test_nice_year') and
-               self.test_config[lang]['test_nice_year'].get(str(i).encode('utf8'))):
+               self.test_config[lang]['test_nice_year'].get(str(i))):
             p = self.test_config[lang]['test_nice_year'][str(i)]
             dp = ast.literal_eval(p['datetime_param'])
             dt = datetime.datetime(

@@ -1,93 +1,507 @@
 # Changelog
 
-## [0.33.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.2a1) (2026-09-28)
+## [0.36.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.2a1) (2026-11-15)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.1a1...0.33.2a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.1a2...0.36.2a1)
 
 **Merged pull requests:**
 
-- fix\(locale\): months.voc reads line by line, and the four piped month names become groups [\#377](https://github.com/OpenVoiceOS/ovos-date-parser/pull/377) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix: read the French clock written with a space before the h [\#375](https://github.com/OpenVoiceOS/ovos-date-parser/pull/375) ([goldyfruit](https://github.com/goldyfruit))
+- fix: declare ovos-utils and floor ovos-config [\#642](https://github.com/OpenVoiceOS/ovos-date-parser/pull/642) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.36.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.1a2) (2026-11-15)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.1a1...0.36.1a2)
+
+**Merged pull requests:**
+
+- test\(chronologia\): a part of another day keeps its middle [\#639](https://github.com/OpenVoiceOS/ovos-date-parser/pull/639) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.36.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.1a1) (2026-11-15)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.0a1...0.36.1a1)
+
+**Merged pull requests:**
+
+- fix\(chronologia\): a bare length is no date; no text, no date; default day bands [\#598](https://github.com/OpenVoiceOS/ovos-date-parser/pull/598) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.36.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.0a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.54a1...0.36.0a1)
+
+**Merged pull requests:**
+
+- feat\(pt\): spoken form of a date, time and year from its fields [\#636](https://github.com/OpenVoiceOS/ovos-date-parser/pull/636) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.35.54a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.54a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.53a1...0.35.54a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): read "dia 25/12/2023" as a date instead of raising [\#633](https://github.com/OpenVoiceOS/ovos-date-parser/pull/633) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.53a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.53a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.52a1...0.35.53a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): "da noite" starts at 19:00 in 12-hour speech [\#632](https://github.com/OpenVoiceOS/ovos-date-parser/pull/632) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.52a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.52a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.51a1...0.35.52a1)
+
+## [0.35.51a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.51a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.50a1...0.35.51a1)
+
+**Merged pull requests:**
+
+- fix\(gl, ast, an\): compare whole dates in nice\_date with `now` [\#609](https://github.com/OpenVoiceOS/ovos-date-parser/pull/609) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.50a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.50a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.49a1...0.35.50a1)
+
+**Merged pull requests:**
+
+- fix\(cs\): read a year as a Czech cardinal number [\#613](https://github.com/OpenVoiceOS/ovos-date-parser/pull/613) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.49a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.49a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.48a1...0.35.49a1)
+
+**Merged pull requests:**
+
+- fix\(gl, an\): join the date and the time without a doubled article or verb [\#610](https://github.com/OpenVoiceOS/ovos-date-parser/pull/610) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: count one of a unit by its gender in nice\_duration, one space per part [\#604](https://github.com/OpenVoiceOS/ovos-date-parser/pull/604) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.48a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.48a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.47a1...0.35.48a1)
+
+## [0.35.47a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.47a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.46a1...0.35.47a1)
+
+## [0.35.46a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.46a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.45a1...0.35.46a1)
+
+## [0.35.45a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.45a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.44a2...0.35.45a1)
+
+## [0.35.44a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.44a2) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.44a1...0.35.44a2)
+
+## [0.35.44a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.44a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.43a1...0.35.44a1)
+
+**Merged pull requests:**
+
+- fix\(gl\): write weekday and month names with a lowercase initial [\#617](https://github.com/OpenVoiceOS/ovos-date-parser/pull/617) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(sv\): read a year in Swedish hundreds, written as one word [\#616](https://github.com/OpenVoiceOS/ovos-date-parser/pull/616) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(fr\): keep "cent" invariable in a year [\#606](https://github.com/OpenVoiceOS/ovos-date-parser/pull/606) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(it\): accent the compounds of "tre" in years and day names [\#605](https://github.com/OpenVoiceOS/ovos-date-parser/pull/605) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.43a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.43a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.42a1...0.35.43a1)
+
+**Merged pull requests:**
+
+- test\(ru\): look up the date fixtures by string keys [\#615](https://github.com/OpenVoiceOS/ovos-date-parser/pull/615) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.42a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.42a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.41a1...0.35.42a1)
+
+**Merged pull requests:**
+
+- fix\(nice\_span\): join month and year as the CLDR yMMMM pattern does [\#612](https://github.com/OpenVoiceOS/ovos-date-parser/pull/612) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.41a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.41a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.40a1...0.35.41a1)
+
+**Merged pull requests:**
+
+- fix\(ast\): elide "de" to "d'" before a month that starts with a vowel [\#611](https://github.com/OpenVoiceOS/ovos-date-parser/pull/611) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(cs, pl\): put the genitive month in nice\_day [\#608](https://github.com/OpenVoiceOS/ovos-date-parser/pull/608) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: read the language tag in any letter case in nice\_time, nice\_day, nice\_duration and nice\_relative\_time [\#607](https://github.com/OpenVoiceOS/ovos-date-parser/pull/607) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.40a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.40a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.39a1...0.35.40a1)
+
+## [0.35.39a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.39a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.38a1...0.35.39a1)
+
+**Merged pull requests:**
+
+- fix\(pl\): say the hour as a feminine ordinal in nice\_time [\#587](https://github.com/OpenVoiceOS/ovos-date-parser/pull/587) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(da,nb,nn\): read an ordinal word as a date only before a month [\#576](https://github.com/OpenVoiceOS/ovos-date-parser/pull/576) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.38a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.38a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.37a1...0.35.38a1)
+
+**Merged pull requests:**
+
+- fix\(de\): read vorvorgestern, vorletzte, im letzten and numeric dates [\#581](https://github.com/OpenVoiceOS/ovos-date-parser/pull/581) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.37a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.37a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.36a1...0.35.37a1)
+
+## [0.35.36a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.36a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.35a1...0.35.36a1)
+
+**Merged pull requests:**
+
+- fix\(deps\): require chronologia\>=0.31.12a1 [\#599](https://github.com/OpenVoiceOS/ovos-date-parser/pull/599) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.35a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.35a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.34a2...0.35.35a1)
+
+**Merged pull requests:**
+
+- fix\(it\): say the years 3001 to 9099 in words, and drop the overlapping rules [\#588](https://github.com/OpenVoiceOS/ovos-date-parser/pull/588) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.34a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.34a2) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.34a1...0.35.34a2)
+
+## [0.35.34a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.34a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.33a1...0.35.34a1)
+
+## [0.35.33a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.33a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.32a1...0.35.33a1)
+
+**Merged pull requests:**
+
+- fix\(es\): keep spelled numbers as typed in the remainder [\#572](https://github.com/OpenVoiceOS/ovos-date-parser/pull/572) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.32a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.32a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.31a1...0.35.32a1)
+
+## [0.35.31a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.31a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.30a1...0.35.31a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): spell numbers in the Brazilian forms for a pt-BR tag [\#571](https://github.com/OpenVoiceOS/ovos-date-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.30a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.30a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.29a1...0.35.30a1)
+
+**Merged pull requests:**
+
+- fix\(fa\): read the year as a Persian cardinal joined with "و" [\#580](https://github.com/OpenVoiceOS/ovos-date-parser/pull/580) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.29a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.29a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.28a1...0.35.29a1)
+
+**Merged pull requests:**
+
+- fix\(cs\): put the day before the genitive month and localize the era [\#579](https://github.com/OpenVoiceOS/ovos-date-parser/pull/579) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.28a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.28a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.27a1...0.35.28a1)
+
+**Merged pull requests:**
+
+- fix\(pl\): read dates, years and date-times in Polish [\#578](https://github.com/OpenVoiceOS/ovos-date-parser/pull/578) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(nl\): write year and number words as Taaladvies Regel 1 does [\#577](https://github.com/OpenVoiceOS/ovos-date-parser/pull/577) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.27a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.27a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.26a1...0.35.27a1)
+
+**Merged pull requests:**
+
+- fix\(pt,es,gl,ast\): put "de" before the year in nice\_date [\#573](https://github.com/OpenVoiceOS/ovos-date-parser/pull/573) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.26a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.26a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.25a1...0.35.26a1)
+
+## [0.35.25a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.25a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.24a1...0.35.25a1)
+
+## [0.35.24a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.24a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.23a1...0.35.24a1)
+
+**Merged pull requests:**
+
+- fix\(de\): say "eine Minute" and "ein Tag" in nice\_duration [\#582](https://github.com/OpenVoiceOS/ovos-date-parser/pull/582) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(uk\): spell 16 and the hundreds 500, 600 and 900 in Ukrainian [\#575](https://github.com/OpenVoiceOS/ovos-date-parser/pull/575) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(sl\): spell the ordinal of 15 as "petnajsti" in the date resource [\#574](https://github.com/OpenVoiceOS/ovos-date-parser/pull/574) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.22a1...0.35.23a1)
+
+**Merged pull requests:**
+
+- fix: eu part-of-day prefix follows the hour said, noon and evening bands [\#569](https://github.com/OpenVoiceOS/ovos-date-parser/pull/569) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.22a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.22a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.21a1...0.35.22a1)
+
+## [0.35.21a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.21a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.20a1...0.35.21a1)
+
+**Merged pull requests:**
+
+- fix: pt and es nice\_day day unpadded, es day label with "de" [\#565](https://github.com/OpenVoiceOS/ovos-date-parser/pull/565) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.20a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.20a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.19a1...0.35.20a1)
+
+**Merged pull requests:**
+
+- fix: eu 24-hour time reading per Araua 35, section 5 c\) [\#564](https://github.com/OpenVoiceOS/ovos-date-parser/pull/564) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: eu nice\_time KeyError from 0:31 to 0:59 and 12:31 to 12:59 [\#563](https://github.com/OpenVoiceOS/ovos-date-parser/pull/563) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.19a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.19a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.18a1...0.35.19a1)
+
+## [0.35.18a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.18a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.17a1...0.35.18a1)
+
+**Merged pull requests:**
+
+- fix: eu time inessive in nice\_date\_time, hour words per Araua 35 [\#559](https://github.com/OpenVoiceOS/ovos-date-parser/pull/559) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.17a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.17a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.16a1...0.35.17a1)
+
+**Merged pull requests:**
+
+- fix: es date time doubled article, relative day on another month [\#558](https://github.com/OpenVoiceOS/ovos-date-parser/pull/558) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: pt meia-noite and meio-dia hyphens, midnight countdown, day label [\#557](https://github.com/OpenVoiceOS/ovos-date-parser/pull/557) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.16a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.16a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.15a1...0.35.16a1)
+
+## [0.35.15a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.15a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.14a1...0.35.15a1)
+
+## [0.35.14a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.14a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.13a1...0.35.14a1)
+
+**Merged pull requests:**
+
+- fix\(es\): write month and weekday names in lowercase [\#552](https://github.com/OpenVoiceOS/ovos-date-parser/pull/552) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.13a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.12a1...0.35.13a1)
+
+**Merged pull requests:**
+
+- fix\(eu\): spell September and 28 as Euskaltzaindia does in the date resource [\#551](https://github.com/OpenVoiceOS/ovos-date-parser/pull/551) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(pt\): lowercase month and weekday labels, and write "às" before the time [\#550](https://github.com/OpenVoiceOS/ovos-date-parser/pull/550) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(eu\): spell the year in nice\_date with its -ko suffix [\#540](https://github.com/OpenVoiceOS/ovos-date-parser/pull/540) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.12a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.12a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.11a1...0.35.12a1)
+
+## [0.35.11a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.11a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.10a1...0.35.11a1)
+
+## [0.35.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.10a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.9a1...0.35.10a1)
+
+**Merged pull requests:**
+
+- fix: load ovos-config and the phrase tables on first use, not at import [\#543](https://github.com/OpenVoiceOS/ovos-date-parser/pull/543) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(pt\): write month and weekday names in lowercase in nice\_date [\#541](https://github.com/OpenVoiceOS/ovos-date-parser/pull/541) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.9a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.8a1...0.35.9a1)
+
+## [0.35.8a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.8a1) (2026-11-06)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.7a1...0.35.8a1)
+
+**Merged pull requests:**
+
+- fix: pass the full language tag to the date resource formatter [\#542](https://github.com/OpenVoiceOS/ovos-date-parser/pull/542) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.35.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.7a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.6a1...0.35.7a1)
+
+## [0.35.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.6a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.5a1...0.35.6a1)
+
+## [0.35.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.5a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.4a1...0.35.5a1)
+
+## [0.35.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.4a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.3a1...0.35.4a1)
+
+## [0.35.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.3a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.2a1...0.35.3a1)
+
+## [0.35.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.2a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.1a1...0.35.2a1)
+
+## [0.35.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.1a1) (2026-10-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.0a1...0.35.1a1)
+
+## [0.35.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.0a1) (2026-10-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.13a1...0.35.0a1)
+
+## [0.34.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.13a1) (2026-10-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.12a1...0.34.13a1)
+
+## [0.34.12a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.12a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.11a1...0.34.12a1)
+
+## [0.34.11a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.11a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.10a1...0.34.11a1)
+
+## [0.34.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.10a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.9a1...0.34.10a1)
+
+## [0.34.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.9a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.8a1...0.34.9a1)
+
+## [0.34.8a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.8a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.7a1...0.34.8a1)
+
+## [0.34.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.7a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.6a1...0.34.7a1)
+
+## [0.34.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.6a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.5a1...0.34.6a1)
+
+## [0.34.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.5a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.4a1...0.34.5a1)
+
+## [0.34.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.4a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.3a1...0.34.4a1)
+
+## [0.34.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.3a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.2a1...0.34.3a1)
+
+## [0.34.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.2a1) (2026-10-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.1a1...0.34.2a1)
+
+## [0.34.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.1a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.34.0a1...0.34.1a1)
+
+## [0.34.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.34.0a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.5a1...0.34.0a1)
+
+## [0.33.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.5a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.4a1...0.33.5a1)
+
+## [0.33.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.4a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.3a1...0.33.4a1)
+
+## [0.33.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.3a1) (2026-10-02)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.2a1...0.33.3a1)
+
+## [0.33.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.2a1) (2026-09-28)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.1a1...0.33.2a1)
 
 ## [0.33.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.1a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.33.0a1...0.33.1a1)
 
-**Merged pull requests:**
-
-- fix: read the holiday phrase's own extent, and load each language once [\#372](https://github.com/OpenVoiceOS/ovos-date-parser/pull/372) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.33.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.33.0a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.3a1...0.33.0a1)
-
-**Merged pull requests:**
-
-- feat: read a named holiday through chronologia [\#369](https://github.com/OpenVoiceOS/ovos-date-parser/pull/369) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.32.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.3a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.2a1...0.32.3a1)
 
-**Merged pull requests:**
-
-- fix\(kab\): read a duration as an offset, and stop counting a bare unit as one [\#366](https://github.com/OpenVoiceOS/ovos-date-parser/pull/366) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.32.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.2a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.1a1...0.32.2a1)
-
-**Merged pull requests:**
-
-- fix\(scoped\): group the article alternation so every article takes its space [\#365](https://github.com/OpenVoiceOS/ovos-date-parser/pull/365) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.32.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.1a1) (2026-09-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.32.0a1...0.32.1a1)
 
-**Merged pull requests:**
-
-- fix: resolve locale phrase sets per file, not per language [\#363](https://github.com/OpenVoiceOS/ovos-date-parser/pull/363) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.32.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.32.0a1) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a9...0.32.0a1)
-
-**Merged pull requests:**
-
-- feat\(kab\): five date vocabularies from sources already in the tree [\#361](https://github.com/OpenVoiceOS/ovos-date-parser/pull/361) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.31.5a9](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a9) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a8...0.31.5a9)
 
-**Merged pull requests:**
-
-- test: build the month "own" set from the extractor source alone [\#347](https://github.com/OpenVoiceOS/ovos-date-parser/pull/347) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.31.5a8](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a8) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a7...0.31.5a8)
-
-**Merged pull requests:**
-
-- translate\(kab\): update unit\_decade.voc [\#351](https://github.com/OpenVoiceOS/ovos-date-parser/pull/351) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
 
 ## [0.31.5a7](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a7) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a6...0.31.5a7)
 
-**Merged pull requests:**
-
-- translate\(kab\): update unit\_millennium.voc [\#353](https://github.com/OpenVoiceOS/ovos-date-parser/pull/353) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-
 ## [0.31.5a6](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a6) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a5...0.31.5a6)
-
-**Merged pull requests:**
-
-- translate\(kab\): update unit\_century.voc [\#352](https://github.com/OpenVoiceOS/ovos-date-parser/pull/352) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
 
 ## [0.31.5a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a5) (2026-09-23)
 
@@ -97,42 +511,21 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a3...0.31.5a4)
 
-**Merged pull requests:**
-
-- translate\(kab\): update era\_year\_ref.voc [\#350](https://github.com/OpenVoiceOS/ovos-date-parser/pull/350) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-- translate\(kab\): update era\_bc\_suffix.voc [\#349](https://github.com/OpenVoiceOS/ovos-date-parser/pull/349) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-
 ## [0.31.5a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a3) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a2...0.31.5a3)
-
-**Merged pull requests:**
-
-- translate\(kab\): update era\_unix\_prefix.voc [\#348](https://github.com/OpenVoiceOS/ovos-date-parser/pull/348) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
 
 ## [0.31.5a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a2) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.5a1...0.31.5a2)
 
-**Merged pull requests:**
-
-- chore\(ci\): drop the broken Dependabot config [\#330](https://github.com/OpenVoiceOS/ovos-date-parser/pull/330) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.31.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.5a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.4a1...0.31.5a1)
 
-**Merged pull requests:**
-
-- fix\(ar\): nice\_time reads twenty to the hour and noon as the sources give them [\#344](https://github.com/OpenVoiceOS/ovos-date-parser/pull/344) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.31.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.4a1) (2026-09-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a7...0.31.4a1)
-
-**Merged pull requests:**
-
-- fix\(fr\): restore French date vocabulary overwritten with Kabyle [\#341](https://github.com/OpenVoiceOS/ovos-date-parser/pull/341) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.31.3a7](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a7) (2026-09-19)
 
@@ -142,10 +535,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a5...0.31.3a6)
 
-**Merged pull requests:**
-
-- translate\(kab\): update months.voc [\#336](https://github.com/OpenVoiceOS/ovos-date-parser/pull/336) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-
 ## [0.31.3a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a5) (2026-09-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a4...0.31.3a5)
@@ -154,129 +543,57 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a3...0.31.3a4)
 
-**Merged pull requests:**
-
-- translate\(kab\): update season\_winter.voc [\#335](https://github.com/OpenVoiceOS/ovos-date-parser/pull/335) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-- translate\(kab\): update unit\_day.voc [\#334](https://github.com/OpenVoiceOS/ovos-date-parser/pull/334) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-- translate\(kab\): update unit\_year.voc [\#333](https://github.com/OpenVoiceOS/ovos-date-parser/pull/333) ([ovos-localize[bot]](https://github.com/apps/ovos-localize))
-
 ## [0.31.3a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a3) (2026-09-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a2...0.31.3a3)
-
-**Merged pull requests:**
-
-- Update actions/setup-python action to v7 [\#297](https://github.com/OpenVoiceOS/ovos-date-parser/pull/297) ([renovate[bot]](https://github.com/apps/renovate))
 
 ## [0.31.3a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a2) (2026-09-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.3a1...0.31.3a2)
 
-**Merged pull requests:**
-
-- Update actions/checkout action to v7 [\#296](https://github.com/OpenVoiceOS/ovos-date-parser/pull/296) ([renovate[bot]](https://github.com/apps/renovate))
-
 ## [0.31.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.3a1) (2026-09-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.2a1...0.31.3a1)
-
-**Closed issues:**
-
-- Observations for Occitan [\#300](https://github.com/OpenVoiceOS/ovos-date-parser/issues/300)
-
-**Merged pull requests:**
-
-- fix\(oc\): apply native-speaker observations from issue \#300 [\#328](https://github.com/OpenVoiceOS/ovos-date-parser/pull/328) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.31.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.2a1) (2026-09-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a3...0.31.2a1)
 
-**Merged pull requests:**
-
-- fix: the English week roundtrip formats and parses in one locale [\#325](https://github.com/OpenVoiceOS/ovos-date-parser/pull/325) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.31.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a3) (2026-09-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a2...0.31.1a3)
-
-**Merged pull requests:**
-
-- ci: run build, coverage and license checks through gh-automations at @dev [\#323](https://github.com/OpenVoiceOS/ovos-date-parser/pull/323) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.31.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a2) (2026-09-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.1a1...0.31.1a2)
 
-**Merged pull requests:**
-
-- fix\(de\): 'letztes Jahr' \(last year\) never resolved - dead duplicate elif [\#321](https://github.com/OpenVoiceOS/ovos-date-parser/pull/321) ([andlo](https://github.com/andlo))
-- fix\(da\): several extract\_datetime bugs, crashes, and add idiomatic quarter/half hours [\#320](https://github.com/OpenVoiceOS/ovos-date-parser/pull/320) ([andlo](https://github.com/andlo))
-- docs: what a relative week, month, year or weekday names [\#318](https://github.com/OpenVoiceOS/ovos-date-parser/pull/318) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.31.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.1a1) (2026-09-07)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.31.0a1...0.31.1a1)
-
-**Closed issues:**
-
-- es/pt/de share the space-separated meridiem defect; es crashes [\#312](https://github.com/OpenVoiceOS/ovos-date-parser/issues/312)
-
-**Merged pull requests:**
-
-- fix: crash and unconverted hour in es/pt space-separated meridiem \(\#312\) [\#317](https://github.com/OpenVoiceOS/ovos-date-parser/pull/317) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.31.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.31.0a1) (2026-09-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.3a1...0.31.0a1)
 
-**Merged pull requests:**
-
-- feat: extract\_datetime\_spans and extract\_duration\_spans return code-point spans [\#314](https://github.com/OpenVoiceOS/ovos-date-parser/pull/314) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.30.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.3a1) (2026-09-03)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.2a2...0.30.3a1)
-
-**Closed issues:**
-
-- Space-separated "H MM am/pm" times skip 12→24h conversion [\#310](https://github.com/OpenVoiceOS/ovos-date-parser/issues/310)
-
-**Merged pull requests:**
-
-- fix: 12h to 24h conversion for space-separated "H MM meridiem" clock forms [\#311](https://github.com/OpenVoiceOS/ovos-date-parser/pull/311) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.30.2a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.2a2) (2026-09-02)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.2a1...0.30.2a2)
 
-**Merged pull requests:**
-
-- chore: pin chronologia 0.27.7a1 and promote the BC-day round-trips [\#308](https://github.com/OpenVoiceOS/ovos-date-parser/pull/308) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.30.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.2a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.1a1...0.30.2a1)
-
-**Merged pull requests:**
-
-- fix: strip dangling conjunctions from extract\_duration remainder [\#293](https://github.com/OpenVoiceOS/ovos-date-parser/pull/293) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.30.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.1a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.30.0a1...0.30.1a1)
 
-**Merged pull requests:**
-
-- fix: restore nice\_date\_an forms pinned by the tests [\#305](https://github.com/OpenVoiceOS/ovos-date-parser/pull/305) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.30.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.30.0a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.2a1...0.30.0a1)
-
-**Merged pull requests:**
-
-- feat: declarative datetime engine with chronologia reckoning core [\#284](https://github.com/OpenVoiceOS/ovos-date-parser/pull/284) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.29.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.29.2a1) (2026-09-01)
 
@@ -286,18 +603,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.0...0.29.1a1)
 
-**Closed issues:**
-
-- Declarative datetime engine: design and 1.0.0 roadmap [\#291](https://github.com/OpenVoiceOS/ovos-date-parser/issues/291)
-
-**Merged pull requests:**
-
-- fix: remove committed diff marker from dates\_an.py [\#301](https://github.com/OpenVoiceOS/ovos-date-parser/pull/301) ([JarbasAl](https://github.com/JarbasAl))
-- docs: rewrite README in Simplified Technical English [\#299](https://github.com/OpenVoiceOS/ovos-date-parser/pull/299) ([JarbasAl](https://github.com/JarbasAl))
-- Improved kabyle data [\#295](https://github.com/OpenVoiceOS/ovos-date-parser/pull/295) ([athmanemokraoui](https://github.com/athmanemokraoui))
-- Refine duration parser regex and correct typos [\#294](https://github.com/OpenVoiceOS/ovos-date-parser/pull/294) ([Juanpabl](https://github.com/Juanpabl))
-- Change Aragonese date parser with improved synonyms and tests [\#292](https://github.com/OpenVoiceOS/ovos-date-parser/pull/292) ([Juanpabl](https://github.com/Juanpabl))
-
 ## [0.29.0](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.29.0) (2026-07-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.29.0a1...0.29.0)
@@ -306,18 +611,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.10a1...0.29.0a1)
 
-**Merged pull requests:**
-
-- feat: add extract\_datetime and extract\_duration for Aragonese and West Frisian [\#288](https://github.com/OpenVoiceOS/ovos-date-parser/pull/288) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.28.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.10a1) (2026-07-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.9a1...0.28.10a1)
-
-**Merged pull requests:**
-
-- Release 0.28.10a1 [\#289](https://github.com/OpenVoiceOS/ovos-date-parser/pull/289) ([github-actions[bot]](https://github.com/apps/github-actions))
-- fix: past-marker offsets resolved forward across languages [\#278](https://github.com/OpenVoiceOS/ovos-date-parser/pull/278) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.9a1) (2026-07-21)
 
@@ -326,17 +622,6 @@
 ## [0.28.8a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.8a1) (2026-07-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.28.7a1...0.28.8a1)
-
-**Merged pull requests:**
-
-- Release 0.28.9a1 [\#287](https://github.com/OpenVoiceOS/ovos-date-parser/pull/287) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Release 0.28.8a1 [\#286](https://github.com/OpenVoiceOS/ovos-date-parser/pull/286) ([github-actions[bot]](https://github.com/apps/github-actions))
-- fix: parse case-inflected Basque month, day and year forms [\#285](https://github.com/OpenVoiceOS/ovos-date-parser/pull/285) ([JarbasAl](https://github.com/JarbasAl))
-- fix: return list not tuple from extract\_datetime\_{tr,ar,fa,id,ms,kab} [\#282](https://github.com/OpenVoiceOS/ovos-date-parser/pull/282) ([JarbasAl](https://github.com/JarbasAl))
-- fix: parse numeric period offsets in both directions for ru, uk, pl, fi [\#281](https://github.com/OpenVoiceOS/ovos-date-parser/pull/281) ([JarbasAl](https://github.com/JarbasAl))
-- fix: match plural period-offset unit nouns in nl, sv, da, cs [\#280](https://github.com/OpenVoiceOS/ovos-date-parser/pull/280) ([JarbasAl](https://github.com/JarbasAl))
-- fix: parse month+bare year and ISO 8601 dates in English [\#279](https://github.com/OpenVoiceOS/ovos-date-parser/pull/279) ([JarbasAl](https://github.com/JarbasAl))
-- fix: French and German yesterday words were not recognised [\#275](https://github.com/OpenVoiceOS/ovos-date-parser/pull/275) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.28.7a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.28.7a1) (2026-07-20)
 

@@ -46,8 +46,8 @@ class TestNiceWeekdayPt(unittest.TestCase):
     def test_all_weekdays(self):
         """Test all weekdays are properly formatted"""
         expected_weekdays = [
-            "Segunda-feira", "Terça-feira", "Quarta-feira",
-            "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"
+            "segunda-feira", "terça-feira", "quarta-feira",
+            "quinta-feira", "sexta-feira", "sábado", "domingo"
         ]
         
         for i in range(7):
@@ -56,12 +56,10 @@ class TestNiceWeekdayPt(unittest.TestCase):
             result = nice_weekday_pt(dt)
             self.assertEqual(result, expected_weekdays[i])
     
-    def test_weekday_capitalization(self):
-        """Test that weekdays are properly capitalized"""
+    def test_weekday_lowercase(self):
+        """Acordo Ortográfico de 1990, Base XIX 1.º b): lowercase day names"""
         dt = datetime(2023, 1, 2)  # Monday
-        result = nice_weekday_pt(dt)
-        self.assertTrue(result[0].isupper())
-        self.assertTrue(result.startswith("Segunda-feira"))
+        self.assertEqual(nice_weekday_pt(dt), "segunda-feira")
 
 
 class TestNiceMonthPt(unittest.TestCase):
@@ -70,8 +68,8 @@ class TestNiceMonthPt(unittest.TestCase):
     def test_all_months(self):
         """Test all months are properly formatted"""
         expected_months = [
-            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+            "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
         ]
         
         for i in range(1, 13):
@@ -79,11 +77,9 @@ class TestNiceMonthPt(unittest.TestCase):
             result = nice_month_pt(dt)
             self.assertEqual(result, expected_months[i-1])
     
-    def test_month_capitalization(self):
-        """Test that months are properly capitalized"""
-        dt = datetime(2023, 1, 1)
-        result = nice_month_pt(dt)
-        self.assertTrue(result[0].isupper())
+    def test_month_lowercase(self):
+        """Acordo Ortográfico de 1990, Base XIX 1.º b): lowercase month names"""
+        self.assertEqual(nice_month_pt(datetime(2023, 10, 1)), "outubro")
 
 
 class TestNiceDayPt(unittest.TestCase):
@@ -93,19 +89,13 @@ class TestNiceDayPt(unittest.TestCase):
         """Test day formatting with month in DMY format"""
         dt = datetime(2023, 1, 15)
         result = nice_day_pt(dt, date_format='DMY', include_month=True)
-        self.assertIn("15", result)
-        self.assertIn("Janeiro", result)
-        # Should be "15 Janeiro" format
-        self.assertTrue(result.startswith("15"))
+        self.assertEqual(result, "15 de janeiro")
     
     def test_day_with_month_mdy(self):
         """Test day formatting with month in MDY format"""
         dt = datetime(2023, 1, 15)
         result = nice_day_pt(dt, date_format='MDY', include_month=True)
-        self.assertIn("15", result)
-        self.assertIn("Janeiro", result)
-        # Should be "Janeiro 15" format
-        self.assertTrue(result.startswith("Janeiro"))
+        self.assertEqual(result, "janeiro 15")
     
     def test_day_without_month(self):
         """Test day formatting without month"""
@@ -134,7 +124,7 @@ class TestNiceDateTimePt(unittest.TestCase):
         dt = datetime(2023, 1, 15, 14, 30)
         
         result = nice_date_time_pt(dt)
-        self.assertIn("ás", result)  # Should contain time separator
+        self.assertIn(" às ", result)
         self.assertIsInstance(result, str)
     
     def test_nice_date_time_24hour(self):
@@ -183,7 +173,7 @@ class TestNiceDatePt(unittest.TestCase):
         dt = datetime(2023, 2, 10, 14, 0)
         
         result = nice_date_pt(dt, now=now)
-        self.assertIn("Fevereiro", result)
+        self.assertIn("fevereiro", result)
     
     def test_nice_date_different_year(self):
         """Test date in different year"""
@@ -191,7 +181,7 @@ class TestNiceDatePt(unittest.TestCase):
         dt = datetime(2024, 1, 10, 14, 0)
         
         result = nice_date_pt(dt, now=now)
-        self.assertIn("Janeiro", result)
+        self.assertIn("janeiro", result)
         self.assertIn("dois mil e vinte e quatro", result)
     
     def test_nice_date_without_weekday(self):
@@ -209,7 +199,7 @@ class TestNiceDatePt(unittest.TestCase):
         dt = datetime(2023, 1, 15, 12, 0)  # Sunday
         
         result = nice_date_pt(dt, include_weekday=True)
-        self.assertIn("Domingo", result)
+        self.assertIn("domingo", result)
 
 
 class TestNiceTimePt(unittest.TestCase):
@@ -237,13 +227,13 @@ class TestNiceTimePt(unittest.TestCase):
         """Test midnight in speech format"""
         dt = datetime(2023, 1, 1, 0, 0)
         result = nice_time_pt(dt, speech=True, use_24hour=False)
-        self.assertIn("meia noite", result)
+        self.assertIn("meia-noite", result)
     
     def test_nice_time_noon_speech(self):
         """Test noon in speech format"""
         dt = datetime(2023, 1, 1, 12, 0)
         result = nice_time_pt(dt, speech=True, use_24hour=False)
-        self.assertIn("meio dia", result)
+        self.assertIn("meio-dia", result)
     
     def test_nice_time_quarter_past(self):
         """Test quarter past in speech format"""
@@ -734,7 +724,7 @@ class TestComplexDateTimeExtractionScenarios(unittest.TestCase):
         # Test leap year scenarios
         leap_year_date = datetime(2024, 2, 29, 12, 0)
         result = nice_date_pt(leap_year_date)
-        self.assertIn("Fevereiro", result)
+        self.assertIn("fevereiro", result)
         self.assertIn("vinte e nove", result)
     
     def test_duration_extraction_edge_cases(self):

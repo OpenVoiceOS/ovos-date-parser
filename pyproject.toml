@@ -26,7 +26,9 @@ dependencies = [
     "quebra_frases>=0.3.7",
     "ovos-number-parser>=0.24.7a1,<1.0.0",
     "dateparser",
-    "ovos-config",
+    "ovos-config>=0.0.12",
+    # now_local, DAYS_IN_1_YEAR and LOG; releases before 0.0.33a6 have no ovos_utils.time
+    "ovos-utils>=0.1.0",
     "ovos-spec-tools>=1.5.0a1",
     # reckoning core library (AstroDate, calendars, eras, cycles). The floor
     # is the alpha that refuses a holiday name after an indefinite article,

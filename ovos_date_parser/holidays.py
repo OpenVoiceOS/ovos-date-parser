@@ -371,17 +371,12 @@ def extract_holiday_span(text: str, lang: str,
     did not consume: "how many days until christmas" and "quantos dias faltam
     para o natal" both answer with Christmas and both keep their question.
 
-    **Two known families of wrong answers, and both are chronologia's.**
+    An offset needs a count. "how many days before christmas" and "combien
+    de jours avant noël" ask for the count, so their plural unit has none and
+    the answer is the holiday, with the question left in the remainder
+    (:func:`_offset_has_no_count`).
 
-    The French "combien de jours avant noël" asks how many days remain before
-    Christmas, so the date is Christmas, and this answers 24 December with the
-    remainder "combien": chronologia reads "avant" after an interrogative
-    quantity as an offset. The English "how many days until christmas" and the
-    French "combien de jours jusqu'a noël" are both read correctly. Telling the
-    two French shapes apart needs a table of interrogatives per language, which
-    belongs to chronologia and is not copied here.
-    ``test_holidays_chronologia.py`` carries a cell holding that answer, so the
-    day chronologia fixes it the cell says so.
+    **A known family of wrong answers, and it is chronologia's.**
 
     **A part-of-day offset is read as a time of day on the holiday, and the
     direction is dropped.** "the night before christmas" answers 21:00 on
@@ -391,8 +386,7 @@ def extract_holiday_span(text: str, lang: str,
     back with an EMPTY remainder, so a caller cannot see that the modifier was
     read at all. Eight rows are measured, in English, French and Portuguese.
 
-    This is the same defect as the French row above and is chronologia's in the
-    same way: the day offset is read correctly, so "the day after christmas"
+    The defect is chronologia's: the day offset is read correctly, so "the day after christmas"
     gives 26 December, and only the part-of-day word is misread. Task T-7350
     carries it. ``test_holidays_chronologia.py`` holds all eight answers in one
     parametrised cell, so the day chronologia fixes any of them the cell says
@@ -437,6 +431,8 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     if _words(written[first:last]) <= _words(result.remainder):
         # chronologia answered from something other than the holiday
         return None
+    if _offset_has_no_count(written, lang, anchor, extent, result.remainder):
+        return _bare_holiday_answer(text, written, lang, anchor, extent)
     clock_read = False
     cut = [(first, last)]
     clock = _clock_extent(written, lang, anchor, (first, last))
@@ -457,6 +453,64 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
             remainder = remainder[:begin] + " " + remainder[end:]
     remainder = re.sub(r"\s{2,}", " ", remainder)
     return _in_anchor_zone(start, anchor), remainder.strip(), clock_read
+
+
+def _offset_has_no_count(written: str, lang: str, anchor: datetime,
+                         holiday: Tuple[int, int], remainder: str) -> bool:
+    """Whether the offset read outside the holiday counts plural units with
+    no number.
+
+    "two days before christmas" and "the day before christmas" carry a count:
+    a number, or a singular unit that names one. "how many days before
+    christmas", "combien de jours avant noël" and "wie viele Tage vor
+    Weihnachten" ask for the count, so the plural unit has none, and the date
+    the question is about is the holiday itself. chronologia reads a plural
+    unit with no count as one unit, so the question would answer the day
+    before. A quantifier ("a few days", "quelques jours") is a count, and the
+    number of a clock time beside the holiday is not.
+    """
+    try:
+        from chronologia import explain
+        spec = _spec(lang)
+        trace = explain(written, spec, anchor)
+    except Exception:
+        return False
+    skip = [holiday]
+    clock = _clock_extent(written, lang, anchor, holiday)
+    if clock is not None:
+        skip.append(clock)
+    left = _words(remainder)
+    plural = counted = False
+    for token in trace.tokens:
+        if any(begin <= token.char_start < end for begin, end in skip):
+            continue
+        word = _fold(token.raw)
+        if left[word] > 0:
+            continue
+        if token.is_number or word in spec.quantifiers:
+            counted = True
+        elif word in spec.plural_units:
+            plural = True
+    return plural and not counted
+
+
+def _bare_holiday_answer(text: str, written: str, lang: str, anchor: datetime,
+                         holiday: Tuple[int, int]
+                         ) -> Optional[Tuple[datetime, str, bool]]:
+    """The holiday read alone, with every other word of ``text`` left over."""
+    first, last = holiday
+    try:
+        from chronologia import extract_timespan
+        result = extract_timespan(written[first:last], lang=_base_lang(lang),
+                                  anchor=anchor,
+                                  jurisdiction=_jurisdiction(lang))
+    except Exception:
+        return None
+    if result is None or result.span.start_datetime is None:
+        return None
+    remainder = re.sub(r"\s{2,}", " ", text[:first] + " " + text[last:])
+    return (_in_anchor_zone(result.span.start_datetime, anchor),
+            remainder.strip(), False)
 
 
 def _engine_read_only_a_clock(written: str, lang: str, anchor: datetime,

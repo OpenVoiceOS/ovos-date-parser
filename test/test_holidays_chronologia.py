@@ -162,6 +162,7 @@ def test_a_sentence_that_merely_names_a_holiday_costs_milliseconds():
 
 @pytest.mark.parametrize("lang,utterance,kept", [
     ("en-US", "how many days until christmas", "how many days until"),
+    ("fr-FR", "combien de jours avant noël", "combien de jours avant"),
     ("pt-PT", "quantos dias faltam para o natal", "quantos dias faltam para o"),
     ("en-US", "play some christmas music", "play some music"),
 ])
@@ -170,9 +171,7 @@ def test_the_remainder_keeps_every_word_the_parse_did_not_consume(
     """A question word the parse did not read stays in the remainder.
 
     The remainder is chronologia's, re-spelled with the caller's own
-    characters, so it holds exactly what the parse left. The French sibling
-    of the first row is not here: it is a known wrong answer and has its own
-    cell below.
+    characters, so it holds exactly what the parse left.
     """
     got = extract_datetime(utterance, lang, REF)
     assert got is not None
@@ -180,44 +179,62 @@ def test_the_remainder_keeps_every_word_the_parse_did_not_consume(
 
 
 def test_the_english_question_keeps_its_words_and_answers_christmas():
-    """The shape the French row below should have, and does not."""
+    """The question keeps its words and asks about Christmas itself."""
     english = extract_datetime("how many days until christmas", "en-US", REF)
     assert english[0] == CHRISTMAS
     assert english[1] == "how many days until"
 
 
-# --- known answers, not correct answers -------------------------------------
-
-def test_a_french_interrogative_quantity_before_a_holiday_is_read_as_an_offset():
-    """Known answer, and the defect is chronologia's: task T-6896.
-
-    "combien de jours avant noël" asks how many days remain before Christmas,
-    so the date is Christmas, 25 December. chronologia reads "avant" after an
-    interrogative quantity as an offset and answers the day before, taking
-    "de jours avant" into the match and leaving "combien" behind.
-
-    The two controls are the shapes that ARE read correctly, so the cell
-    blames the interrogative and not the language or the preposition: the
-    English "how many days until christmas" above, and the French
-    "combien de jours jusqu'a noël" here.
-
-    Parsing the holiday construction's own substring hid this row, at the
-    price of four silently wrong offset dates ("the day after christmas" and
-    its siblings). The whole text is right on those four and wrong on this
-    one. The day chronologia fixes it, this cell fails and says so.
-    """
-    got = extract_datetime("combien de jours avant noël", "fr-FR", REF)
-    assert got is not None
-    assert got[0] == datetime(2026, 12, 24, 0, 0)
-    assert got[0] != CHRISTMAS
-    assert got[1] == "combien"
-
-    control = extract_datetime("combien de jours jusqu'à noël", "fr-FR", REF)
-    assert control[0] == CHRISTMAS
+def test_the_same_question_reads_the_same_in_english_and_french():
+    """The French question asked about Christmas and was answered Christmas Eve."""
+    english = extract_datetime("how many days until christmas", "en-US", REF)
+    french = extract_datetime("combien de jours avant noël", "fr-FR", REF)
+    assert english[0] == french[0] == CHRISTMAS
 
 
-#: The C1 rows: an offset written OUTSIDE the holiday construction. Each date
-#: is counted by hand from Christmas, 25 December 2026.
+#: A question that asks for the count names the holiday itself. The plural
+#: unit has no number, so it is no offset, and the question stays in the
+#: remainder.
+QUESTIONS_THAT_ASK_FOR_THE_COUNT = [
+    ("fr-FR", "combien de jours avant noël", CHRISTMAS, "combien de jours avant"),
+    ("fr-FR", "combien de jours après noël", CHRISTMAS, "combien de jours après"),
+    ("fr-FR", "combien de semaines avant pâques", EASTER,
+     "combien de semaines avant"),
+    ("en-US", "how many days before christmas", CHRISTMAS,
+     "how many days before"),
+    ("en-US", "how many days after christmas", CHRISTMAS, "how many days after"),
+    ("en-US", "how many days before christmas at 9am", CHRISTMAS,
+     "how many days before at 9am"),
+    ("es-ES", "cuántos días antes de navidad", CHRISTMAS,
+     "cuántos días antes de"),
+    ("es-ES", "cuántos días faltan para navidad", CHRISTMAS,
+     "cuántos días faltan para"),
+    ("de-DE", "wie viele Tage vor Weihnachten", CHRISTMAS, "wie viele Tage vor"),
+    ("de-DE", "wie viele Tage bis Weihnachten", CHRISTMAS, "wie viele Tage bis"),
+    ("nl-NL", "hoeveel dagen voor kerst", CHRISTMAS, "hoeveel dagen voor"),
+    ("pt-PT", "quantos dias antes do natal", CHRISTMAS, "quantos dias antes do"),
+    ("pt-PT", "quantos dias faltam para o natal", CHRISTMAS,
+     "quantos dias faltam para o"),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected,kept",
+                         QUESTIONS_THAT_ASK_FOR_THE_COUNT)
+def test_a_question_for_the_count_is_no_offset(lang, utterance, expected,
+                                               kept):
+    assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
+
+
+@pytest.mark.parametrize("lang,utterance,expected", [
+    # 25 December 2026 - 1 day; Easter 28 March 2027 - 7 days
+    ("fr-FR", "un jour avant noël", datetime(2026, 12, 24, 0, 0)),
+    ("en-US", "a week before easter", datetime(2027, 3, 21, 0, 0)),
+])
+def test_a_singular_unit_is_a_count_of_one(lang, utterance, expected):
+    """The control for the cell above: a unit with an article is counted."""
+    assert extract_holiday_span(utterance, lang, REF) == (expected, "")
+
+
 #: The C1 rows: an offset written OUTSIDE the holiday construction. Each date
 #: is counted by hand from Christmas, 25 December 2026.
 OFFSET_UTTERANCES = [

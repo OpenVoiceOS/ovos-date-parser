@@ -17,6 +17,8 @@ from ovos_date_parser import (extract_datetime, extract_datetime_spans,
                               extract_scoped_date,
                               extract_holiday_span, holiday_surfaces,
                               load_scoped_vocabulary)
+from ovos_date_parser.holidays import (_holiday_answer, _spec,
+                                      extract_holiday_date)
 from ovos_date_parser.ranges import DateTimeResolution
 
 REF = datetime(2026, 9, 25, 12, 0, 0)
@@ -168,11 +170,8 @@ def test_a_sentence_that_merely_names_a_holiday_costs_milliseconds():
 ])
 def test_the_remainder_keeps_every_word_the_parse_did_not_consume(
         lang, utterance, kept):
-    """A question word the parse did not read stays in the remainder.
-
-    The remainder is chronologia's, re-spelled with the caller's own
-    characters, so it holds exactly what the parse left.
-    """
+    """A question word stays in the remainder: only the holiday phrase is
+    cut out of the text."""
     got = extract_datetime(utterance, lang, REF)
     assert got is not None
     assert got[1] == kept
@@ -183,6 +182,155 @@ def test_the_english_question_keeps_its_words_and_answers_christmas():
     english = extract_datetime("how many days until christmas", "en-US", REF)
     assert english[0] == CHRISTMAS
     assert english[1] == "how many days until"
+
+
+#: A preposition alone before a holiday is no offset: "until christmas" is a
+#: range that ends on the holiday and "after christmas" one that starts on it.
+#: The holiday answers, and the preposition is handed back.
+PREPOSITION_ALONE = [
+    ("en-US", "until easter", EASTER, "until"),
+    ("en-US", "before christmas", CHRISTMAS, "before"),
+    ("en-US", "after christmas", CHRISTMAS, "after"),
+    ("fr-FR", "avant noël", CHRISTMAS, "avant"),
+    ("fr-FR", "après noël", CHRISTMAS, "après"),
+    ("es-ES", "hasta navidad", CHRISTMAS, "hasta"),
+    ("es-ES", "después de navidad", CHRISTMAS, "después de"),
+    ("de-DE", "bis Weihnachten", CHRISTMAS, "bis"),
+    ("de-DE", "nach Weihnachten", CHRISTMAS, "nach"),
+    ("nl-NL", "tot kerst", CHRISTMAS, "tot"),
+    ("pt-PT", "até ao natal", CHRISTMAS, "até ao"),
+    ("it-IT", "dopo natale", CHRISTMAS, "dopo"),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected,kept", PREPOSITION_ALONE)
+def test_a_preposition_alone_is_no_offset(lang, utterance, expected, kept):
+    assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
+    assert extract_datetime(utterance, lang, REF) == (expected, kept)
+
+
+@pytest.mark.parametrize("lang,utterance,expected,kept", [
+    ("en-US", "how many days between today and christmas", CHRISTMAS,
+     "how many days between today and"),
+    ("en-US", "how many days from now until christmas", CHRISTMAS,
+     "how many days from now until"),
+    ("en-US", "remind me on sunday to buy palms for palm sunday",
+     datetime(2027, 3, 21, 0, 0), "remind me on sunday to buy palms for"),
+    ("en-US", "remind me at 5pm to buy christmas cards", CHRISTMAS,
+     "remind me at 5pm to buy cards"),
+    ("en-US", "christmas and christmas eve", CHRISTMAS, "and christmas eve"),
+    ("en-US", "remind me friday about good friday",
+     datetime(2027, 3, 26, 0, 0), "remind me friday about"),
+])
+def test_the_holiday_layer_answers_the_holiday(lang, utterance, expected,
+                                               kept):
+    """A date word elsewhere in the sentence is no offset of the holiday.
+
+    The whole-text parse answers from "today", "sunday", "5pm" or "friday"
+    here; the holiday layer answers the holiday it names (Palm Sunday 2027 is
+    21 March, Good Friday 26 March) and hands every other word back.
+    """
+    assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
+
+
+#: A question for the count with two clock times after it: chronologia splits
+#: "9am" into "9" and "am", and normalises "10h" to a token with no position.
+TWO_CLOCKS_AFTER_A_QUESTION = [
+    ("en-US", "how many days before christmas at 9am and 10am",
+     "how many days before at 9am and 10am"),
+    ("en-US", "how many days before christmas at 9am or 10am",
+     "how many days before at 9am or 10am"),
+    ("fr-FR", "combien de jours avant noël à 9h et à 10h",
+     "combien de jours avant à 9h et à 10h"),
+    ("pt-PT", "quantos dias faltam para o natal às 9h e às 10h",
+     "quantos dias faltam para o às 9h e às 10h"),
+    ("pt-PT", "quantos dias antes do natal às 9h e às 10h",
+     "quantos dias antes do às 9h e às 10h"),
+    ("es-ES", "cuántos días antes de navidad a las 9h y 10h",
+     "cuántos días antes de a las 9h y 10h"),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,kept", TWO_CLOCKS_AFTER_A_QUESTION)
+def test_two_clock_times_after_a_question_for_the_count(lang, utterance,
+                                                         kept):
+    assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
+    assert extract_holiday_date(utterance, lang, REF.date()) == (
+        CHRISTMAS.date(), kept)
+    vocab = load_scoped_vocabulary(lang.split("-")[0])
+    got = extract_scoped_date(utterance, vocab, REF.date(), lang=lang)
+    assert got is not None and got[0] == CHRISTMAS.date()
+
+
+@pytest.mark.parametrize("lang,utterance,quantifier", [
+    ("en-US", "a few days after christmas", "few"),
+    ("en-US", "several days after christmas", "several"),
+    ("fr-FR", "quelques jours après noël", "quelques"),
+    ("de-DE", "einige Tage nach Weihnachten", "einige"),
+])
+def test_a_quantifier_counts_a_plural_unit(lang, utterance, quantifier):
+    """The quantifier is the count, as a number is ("two days after").
+
+    The number of days is the value chronologia gives the quantifier.
+    """
+    days = _spec(lang).quantifiers[quantifier]
+    expected = CHRISTMAS + timedelta(days=days)
+    assert extract_holiday_span(utterance, lang, REF) == (expected, "")
+
+
+@pytest.mark.parametrize("lang,utterance,kept", [
+    ("en-US", "a couple of days after christmas", "a couple of days after"),
+    ("en-US", "half a day after christmas", "half a day after"),
+])
+def test_an_offset_chronologia_reads_wrong_is_handed_back(lang, utterance,
+                                                          kept):
+    """chronologia leaves "a couple" over and reads one day, and reads "half
+    a day after" as midnight; neither is a counted offset of the holiday, so
+    both stay in the remainder."""
+    assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
+
+
+@pytest.mark.parametrize("utterance,expected", [
+    # Easter 2027 is 28 March: Good Friday 26 March, Easter Monday 29 March
+    ("the friday before good friday", datetime(2027, 3, 19, 0, 0)),
+    ("monday after easter monday", datetime(2027, 4, 5, 0, 0)),
+    ("the monday after easter", datetime(2027, 3, 29, 0, 0)),
+])
+def test_a_weekday_counts_as_one(utterance, expected):
+    assert extract_holiday_span(utterance, "en-US", REF) == (expected, "")
+
+
+def test_a_clock_after_a_counted_offset_is_read_on_the_moved_day():
+    """25 December + 2 days, at 09:00."""
+    got = _holiday_answer("two days after christmas at 9am", "en-US", REF)
+    assert got == (datetime(2026, 12, 27, 9, 0), "", True)
+
+
+def test_words_consumed_after_the_holiday_are_no_offset_of_it():
+    """chronologia consumes "a few days after" behind Christmas as well; the
+    offset of Christmas cannot be told apart, so the holiday is read alone."""
+    got = extract_holiday_span(
+        "a day before christmas a few days after easter", "en-US", REF)
+    assert got == (CHRISTMAS, "a day before a few days after easter")
+
+
+def test_a_holiday_word_left_over_is_no_offset_of_the_holiday():
+    """chronologia reads "two days after friday" and leaves "good friday";
+    the holiday layer answers Good Friday, 26 March 2027."""
+    got = extract_holiday_span("two days after friday good friday", "en-US",
+                               REF)
+    assert got == (datetime(2027, 3, 26, 0, 0), "two days after friday")
+
+
+@pytest.mark.parametrize("lang,utterance,kept", [
+    ("fr-FR", "noël 10h", "10h"),
+    ("fr-FR", "10h noël", "10h"),
+    ("fr-FR", "noël 9h30", "9h30"),
+    ("pt-PT", "natal 10h", "10h"),
+])
+def test_a_clock_chronologia_normalised_raises_nothing(lang, utterance, kept):
+    """chronologia gives "10h" a token with no position in the text."""
+    assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
 
 
 def test_the_same_question_reads_the_same_in_english_and_french():
@@ -369,72 +517,39 @@ def test_a_tense_inside_the_holiday_phrase_still_reads(utterance, expected):
     assert extract_datetime(utterance, "en-US", REF)[0] == expected
 
 
-# --- the part-of-day offset family, T-7244 from reviewer-d's review of #381 -
+# --- the part-of-day offset family, T-7350 ---------------------------------
 
-# A part-of-day word written as the offset is read as a time of day ON the
-# holiday, and the before/after is dropped: "before" and "after" give the same
-# answer. Every row comes back with an EMPTY remainder, so a caller cannot see
-# that the modifier was read at all. That is what makes the family worth a cell
-# rather than a note: dev at least handed the offset back in the remainder.
-#
-# The defect is chronologia's, like the French interrogative above, and task
-# T-7350 carries it. The day offset is read correctly on the same anchor
-# ("the day after christmas" gives 26 December), so the part-of-day word is the
-# whole of it.
-#
-# These call extract_holiday_span rather than extract_datetime, because it is
-# that function's contract this family bounds. Through extract_datetime the
-# per-language engine answers these utterances first and the holiday layer is
-# never reached, so extract_datetime would assert the engine's answer, which is
-# a different wrong answer and not this one.
+# A part-of-day word written as the offset ("the night before christmas") has
+# no unit and no count, so it is no counted offset. chronologia reads it as a
+# time of day ON the holiday and drops the direction, so the whole-text answer
+# is not used. The holiday answers its own date and the offset words stay in
+# the remainder, where a caller can see them. What each utterance names is
+# written beside it; the day the library reads it, the cell fails.
 
 PART_OF_DAY_OFFSETS = [
-    # lang, utterance, the answer given today, what the utterance names
-    ("en-US", "the night before christmas",
-     datetime(2026, 12, 25, 21, 0), "the night of 24 December"),
-    ("en-US", "the morning after christmas",
-     datetime(2026, 12, 25, 6, 0), "the morning of 26 December"),
-    ("en-US", "the evening after christmas",
-     datetime(2026, 12, 25, 18, 0), "the evening of 26 December"),
-    ("en-US", "the night after christmas",
-     datetime(2026, 12, 25, 21, 0), "the night of 26 December"),
-    ("en-US", "the morning before christmas",
-     datetime(2026, 12, 25, 6, 0), "the morning of 24 December"),
-    ("fr-FR", "le soir avant noël",
-     datetime(2026, 12, 25, 18, 0), "le soir du 24 décembre"),
-    ("fr-FR", "le matin après noël",
-     datetime(2026, 12, 25, 4, 0), "le matin du 26 décembre"),
-    ("pt-PT", "a noite antes do natal",
-     datetime(2026, 12, 25, 19, 0), "a noite de 24 de dezembro"),
+    # lang, utterance, the words handed back, what the utterance names
+    ("en-US", "the night before christmas", "the night before",
+     "the night of 24 December"),
+    ("en-US", "the morning after christmas", "the morning after",
+     "the morning of 26 December"),
+    ("en-US", "the evening after christmas", "the evening after",
+     "the evening of 26 December"),
+    ("en-US", "the night after christmas", "the night after",
+     "the night of 26 December"),
+    ("en-US", "the morning before christmas", "the morning before",
+     "the morning of 24 December"),
+    ("fr-FR", "le soir avant noël", "le soir avant", "le soir du 24 décembre"),
+    ("fr-FR", "le matin après noël", "le matin après", "le matin du 26 décembre"),
+    ("pt-PT", "a noite antes do natal", "a noite antes do",
+     "a noite de 24 de dezembro"),
 ]
 
 
-@pytest.mark.parametrize("lang,utterance,given,asked", PART_OF_DAY_OFFSETS)
-def test_a_part_of_day_offset_is_read_as_a_time_on_the_holiday(
-        lang, utterance, given, asked):
-    """Known answer, not a correct answer: the defect is chronologia's, T-7350.
-
-    Each expected value is the answer this library gives today. What the
-    utterance actually names is written beside it. The day chronologia fixes
-    any of these the cell fails and says which.
-    """
+@pytest.mark.parametrize("lang,utterance,kept,asked", PART_OF_DAY_OFFSETS)
+def test_a_part_of_day_offset_is_handed_back_in_the_remainder(
+        lang, utterance, kept, asked):
     got = extract_holiday_span(utterance, lang, REF)
-    assert got is not None, f"{utterance!r} no longer reaches the holiday layer"
-    assert got[0] == given, f"{utterance!r} asks for {asked}"
-    assert got[1] == "", (
-        f"{utterance!r} left {got[1]!r} over; an empty remainder is what makes "
-        "this family invisible to a caller, and the cell holds that too")
-
-
-def test_the_direction_makes_no_difference_to_a_part_of_day_offset():
-    """The sharpest statement of the defect: before and after agree.
-
-    A cell per row could pass while the two directions still collapsed onto
-    one answer, so the collapse is asserted on its own.
-    """
-    before = extract_holiday_span("the night before christmas", "en-US", REF)
-    after = extract_holiday_span("the night after christmas", "en-US", REF)
-    assert before[0] == after[0] == datetime(2026, 12, 25, 21, 0)
+    assert got == (CHRISTMAS, kept), f"{utterance!r} asks for {asked}"
 
 
 def test_a_day_offset_is_still_read_correctly():
@@ -445,14 +560,13 @@ def test_a_day_offset_is_still_read_correctly():
     assert got[0] == datetime(2026, 12, 26, 0, 0)
 
 
-def test_a_whole_text_answer_that_is_not_the_holiday_is_declined():
-    """The whole text is parsed, so chronologia may answer from another date
-    word and leave the holiday in its remainder. "remind me friday about good
-    friday" reads as Friday 2 October with "good friday" left over. That date
-    is not the holiday's, so the layer must not hand it back as one."""
+def test_another_date_word_does_not_replace_the_holiday():
+    """A parse of the whole text reads "remind me friday about good friday"
+    as Friday 2 October with "good friday" left over. That date is not the
+    holiday's, so the layer answers Good Friday, 26 March 2027."""
     got = extract_holiday_span("remind me friday about good friday", "en-US",
                                REF)
-    assert got is None or got[0] == datetime(2027, 3, 26, 0, 0)
+    assert got == (datetime(2027, 3, 26, 0, 0), "remind me friday about")
 
 
 # --- finding 5 of the #369 review: a holiday named after a weekday ----------
@@ -603,7 +717,7 @@ HOLIDAYS_THE_ENGINE_READS_ONLY_A_CLOCK_BESIDE = [
     ("en-US", "christmas at 9 am", datetime(2026, 12, 25, 9, 0), ""),
     ("en-US", "christmas 9am", datetime(2026, 12, 25, 9, 0), ""),
     ("en-US", "christmas eve at noon", datetime(2026, 12, 24, 12, 0), ""),
-    ("de-DE", "weihnachten um 18:30", datetime(2026, 12, 25, 18, 30), ""),
+    ("de-DE", "weihnachten um 18:30", datetime(2026, 12, 25, 18, 30), "um"),
     ("de-DE", "ostern um 9 uhr", datetime(2027, 3, 28, 9, 0), ""),
     ("fr-FR", "pâques à 9 heures", datetime(2027, 3, 28, 9, 0), ""),
     ("es-ES", "navidad a las 9", datetime(2026, 12, 25, 9, 0), ""),

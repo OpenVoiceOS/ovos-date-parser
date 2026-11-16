@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.37.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.37.1a1) (2026-11-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.37.0a1...0.37.1a1)
+
+**Merged pull requests:**
+
+- fix: punctuation after a time no longer hides it [\#647](https://github.com/OpenVoiceOS/ovos-date-parser/pull/647) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.37.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.37.0a1) (2026-11-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.4a1...0.37.0a1)

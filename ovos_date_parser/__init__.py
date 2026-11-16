@@ -13,6 +13,7 @@ import dateparser # fallback parser
 from dateparser.conf import settings as dateparser_settings
 from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
+from ovos_number_parser import extract_number
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
@@ -806,6 +807,32 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
     return found, text[:match.start()] + text[match.end():]
 
 
+_EDGE_PUNCTUATION = re.compile(
+    r"([(\[{\"\u201c\u00ab]*)(.*?)([.,;:!?)\]}\"\u201d\u00bb]*)", re.S)
+
+
+def _separate_punctuation(text: str) -> str:
+    """Put a space between each word and the punctuation written against it.
+
+    The per-language engines split on whitespace, so "8," and "(monday"
+    reach them as one word that matches no clock or weekday. Punctuation
+    inside a word ("8.30", "8:30", "25/12", "o'clock") stays where it is. A
+    closing dot stays too, unless it ends the text or follows a word longer
+    than four letters: it may belong to "a.m.", "dez." or "3. Dezember".
+    """
+    def spaced(match: re.Match) -> str:
+        lead, core, trail = _EDGE_PUNCTUATION.fullmatch(match.group()).groups()
+        if not core:
+            return match.group()
+        sentence_end = match.end() == len(text) or (
+            core.isalpha() and len(core) > 4)
+        if trail.startswith(".") and ("." in core or not sentence_end):
+            core, trail = core + ".", trail[1:]
+        return " ".join(part for part in (lead, core, trail) if part)
+
+    return re.sub(r"\S+", spaced, text)
+
+
 def _extract_datetime_engine(
         text: str,
         lang: str,
@@ -816,10 +843,188 @@ def _extract_datetime_engine(
 
     Split out of :func:`extract_datetime` so the holiday layer has a place to
     stand behind every language at once, instead of a branch in each.
+
+    A text with punctuation written against a word is read twice, as written
+    and with the punctuation separated ("a las 8, por favor" as "a las 8 ,
+    por favor"). The separated reading replaces a reading as written only
+    where that one finds nothing, or finds the same date without a time of
+    day and the separated reading leaves no more words over. It must also
+    agree with the reading of the words before the first mark. Elsewhere the
+    text as written stands, because some engines use a glued comma and others
+    take the words after a lone one as a new phrase.
     """
     if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
         return _extract_datetime_chronologia(text, lang, anchorDate,
                                              default_time)
+    spaced = _separate_punctuation(text)
+    if spaced == text:
+        return _extract_datetime_legacy(text, lang, anchorDate, default_time)
+    if anchorDate is None:
+        anchorDate = (datetime.now() if lang.split("-")[0] in _NAIVE_NOW
+                      else now_local())
+    found = _extract_datetime_legacy(text, lang, anchorDate, default_time)
+    separated = _extract_datetime_legacy(spaced, lang, anchorDate,
+                                         default_time)
+    if separated is None:
+        return found
+    words = [word for word in separated[1].split() if _is_word(word)]
+    if found is not None and not (
+            _adds_clock(found[0], separated[0])
+            and len(words) <= len(found[1].split())):
+        return found
+    if separated[0].time() != time(0) and not _holds_clock(
+            spaced, lang, separated[1]):
+        return found
+    # The engines read a lone "," as a word that ends a phrase, which the
+    # words before the first mark confirm or deny.
+    clause = _first_clause(spaced)
+    if clause != spaced:
+        lead = _extract_datetime_legacy(clause, lang, anchorDate,
+                                        default_time)
+        if lead is not None and lead[0] != separated[0]:
+            return found
+    return [separated[0], " ".join(words)]
+
+
+# Engines whose own default "now" is a naive datetime.
+_NAIVE_NOW = frozenset({"eu", "id", "ms", "tr", "kab"})
+
+# The hour that a singular preposition takes: "a la una", "à uma", "á unha".
+_ONE = ("una", "uma", "unha", "un", "1")
+
+# Words that put a clock time after them, by language, from each engine's own
+# vocabulary: the words of the preposition, and the numbers it may precede
+# when the engine allows only some.
+_CLOCK_PREPOSITIONS = {
+    "en": [(("at",), None)],  # dates_en.py:168 markers, :615
+    "es": [(("a", "las"), None),  # dates_es.py:84
+           (("a", "la"), _ONE)],  # dates_es.py:97 "a la una, a las dos"
+    "gl": [(("ás",), None),  # dates_gl.py:98, :286 "ás catro"
+           (("á",), _ONE)],  # dates_gl.py:98, :286 "á unha"
+    "ca": [(("a", "les"), None)],  # dates_ca.py:655
+    "ast": [(("a", "les"), None),  # dates_ast.py:79, :284
+            (("a", "la"), _ONE)],  # dates_ast.py:284 "a la una"
+    "an": [(("a", "las"), None)],  # dates_an.py:229
+    "oc": [(("a", "las"), None)],  # dates_oc.py:85, :87
+    "pt": [(("às",), None),  # dates_pt.py:270-275 "às duas"
+           (("à",), _ONE)],  # dates_pt.py:270-275 "à uma"
+    "fr": [(("à",), None)],  # dates_fr.py:14, :170
+    "de": [(("um",), None)],  # dates_de.py:134
+    "it": [(("alle",), None),  # dates_it.py:149-153
+           (("alla",), _ONE),  # dates_it.py:149-153
+           (("all'",), _ONE),  # contraction of "alla" before "una"
+           (("a",), None)],  # dates_it.py:150
+    "nl": [(("om",), None)],  # dates_nl.py:85, :130
+    "fy": [(("om",), None)],  # dates_fy.py:135, :137
+    "da": [(("klokken",), None)],  # dates_da.py:209
+    "nb": [(("klokka",), None), (("klokken",), None)],  # dates_nb.py:175
+    "nn": [(("klokka",), None), (("klokken",), None)],  # dates_nn.py:59, :177
+    "ru": [(("в",), None), (("во",), None)],  # dates_ru.py:391, :821
+    "uk": [(("о",), None), (("у",), None), (("в",), None)],  # dates_uk.py:308
+    "pl": [(("o",), None), (("w",), None)],  # dates_pl.py:579
+    "ro": [(("la", "ora"), None)],  # dates_ro.py:107, :110
+    "bg": [(("в",), None), (("във",), None)],  # dates_bg.py:170
+    "sl": [(("ob",), None)],  # dates_sl.py:175, :188
+    "el": [(("στις",), None)],  # dates_el.py:109, :176
+    "et": [(("kell",), None)],  # dates_et.py:6, :7
+    "id": [(("pukul",), None)],  # dates_id.py:16, :17
+    "ms": [(("pukul",), None)],  # dates_ms.py:16
+    "tr": [(("saat",), None)],  # dates_tr.py:16, :23
+    "az": [(("saat",), None)],  # dates_az.py:191
+}
+
+# A clock written as one token: hours and minutes. A bare "8h" is also a
+# duration, so it counts only after a clock preposition.
+_CLOCK_FORMAT = re.compile(r"\d{1,2}h\d{2}|\d{1,2}:\d{2}")
+
+
+def _consumed(words: List[str], leftover: str) -> set:
+    """Positions of ``words`` that a reading took out of its leftover text."""
+    kept = set()
+    last = -1
+    for token in leftover.split():
+        token = _bare(token)
+        for index in range(last + 1, len(words)):
+            if _bare(words[index]) == token:
+                kept.add(index)
+                last = index
+                break
+    return set(range(len(words))) - kept
+
+
+def _bare(token: str) -> str:
+    return "".join(char for char in token.lower() if char.isalnum())
+
+
+def _holds_clock(spaced: str, lang: str, leftover: str) -> bool:
+    """True when the reading took up a clock phrase of the text.
+
+    A clock phrase is a number, digit or word, right after a clock
+    preposition of the language ("a las 8", "ás oito"), or a token written
+    as hours and minutes ("8h30", "8:30"). A lone number is not one, nor are
+    labels such as "4B" and "2.3": es, gl and ca read a number that ends a
+    phrase as an hour, and a lone comma ends the phrase.
+    """
+    words = [word for word in spaced.split() if _is_word(word)]
+    taken = _consumed(words, leftover)
+    code = lang.split("-")[0]
+    parts = []  # (word, word position); "l'una" is "l'" and "una"
+    for position, word in enumerate(words):
+        word = word.lower()
+        cut = word.find("'") + 1
+        for part in ([word[:cut], word[cut:]] if 0 < cut < len(word)
+                     else [word]):
+            parts.append((part, position))
+    for position in taken:
+        if _CLOCK_FORMAT.fullmatch(words[position].lower()):
+            return True
+    for start in range(len(parts)):
+        for preposition, only in _CLOCK_PREPOSITIONS.get(code, ()):
+            end = start + len(preposition)
+            if end >= len(parts) or tuple(
+                    part for part, _ in parts[start:end]) != preposition:
+                continue
+            number, position = parts[end]
+            if only is not None and number not in only:
+                continue
+            if position in taken and (number[0].isdigit()
+                                      or _is_number_word(number, code)):
+                return True
+    return False
+
+
+def _is_number_word(word: str, code: str) -> bool:
+    return extract_number(word, lang=code) is not False
+
+
+def _adds_clock(written: datetime, separated: datetime) -> bool:
+    """True when ``separated`` is ``written`` with a time of day added."""
+    return (written.time() == time(0) and separated.time() != time(0)
+            and written.date() == separated.date())
+
+
+def _is_word(token: str) -> bool:
+    return any(char.isalnum() for char in token)
+
+
+def _first_clause(spaced: str) -> str:
+    """The words before the first punctuation mark that follows a word."""
+    clause: List[str] = []
+    for token in spaced.split():
+        if _is_word(token):
+            clause.append(token)
+        elif clause:
+            break
+    return " ".join(clause)
+
+
+def _extract_datetime_legacy(
+        text: str,
+        lang: str,
+        anchorDate: Optional[datetime],
+        default_time: Optional[time],
+) -> Optional[Tuple[datetime, str]]:
+    """The per-language extractors, and the dateparser fallback behind them."""
     if lang.startswith("an"):
         return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ar"):

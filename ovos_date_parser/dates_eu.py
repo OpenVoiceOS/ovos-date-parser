@@ -1060,8 +1060,9 @@ def extract_datetime_eu(input_str, anchorDate=None, default_time=None):
                 temp = datetime.strptime(datestr + " 2000", "%B %d %Y")
             temp = temp.replace(tzinfo=None)
             if not hasYear:
-                if extractedDate.replace(year=extractedDate.year) < \
-                        temp.replace(year=extractedDate.year):
+                if extractedDate < temp.replace(
+                        year=extractedDate.year,
+                        tzinfo=extractedDate.tzinfo):
                     chosen_year = int(currentYear)
                 else:
                     chosen_year = int(currentYear) + 1

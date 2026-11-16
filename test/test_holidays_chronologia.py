@@ -165,7 +165,7 @@ def test_a_sentence_that_merely_names_a_holiday_costs_milliseconds():
 @pytest.mark.parametrize("lang,utterance,kept", [
     ("en-US", "how many days until christmas", "how many days until"),
     ("fr-FR", "combien de jours avant noël", "combien de jours avant"),
-    ("pt-PT", "quantos dias faltam para o natal", "quantos dias faltam para o"),
+    ("pt-PT", "quantos dias faltam para o natal", "quantos dias faltam para"),
     ("en-US", "play some christmas music", "play some music"),
 ])
 def test_the_remainder_keeps_every_word_the_parse_did_not_consume(
@@ -243,7 +243,7 @@ TWO_CLOCKS_AFTER_A_QUESTION = [
     ("fr-FR", "combien de jours avant noël à 9h et à 10h",
      "combien de jours avant à 9h et à 10h"),
     ("pt-PT", "quantos dias faltam para o natal às 9h e às 10h",
-     "quantos dias faltam para o às 9h e às 10h"),
+     "quantos dias faltam para às 9h e às 10h"),
     ("pt-PT", "quantos dias antes do natal às 9h e às 10h",
      "quantos dias antes do às 9h e às 10h"),
     ("es-ES", "cuántos días antes de navidad a las 9h y 10h",
@@ -360,7 +360,7 @@ QUESTIONS_THAT_ASK_FOR_THE_COUNT = [
     ("nl-NL", "hoeveel dagen voor kerst", CHRISTMAS, "hoeveel dagen voor"),
     ("pt-PT", "quantos dias antes do natal", CHRISTMAS, "quantos dias antes do"),
     ("pt-PT", "quantos dias faltam para o natal", CHRISTMAS,
-     "quantos dias faltam para o"),
+     "quantos dias faltam para"),
 ]
 
 

@@ -9,6 +9,7 @@ from ovos_date_parser.common import restore_typed_words
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
+from ovos_date_parser._bare_hour import stands_alone
 
 # Lowercase, as the Ortografía de la lengua española (RAE and ASALE, 2010)
 # writes the names of days and months. The locator p. 502 comes from a
@@ -294,6 +295,9 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
         # turn spelled-out numbers ("tres", "quince") into digits so the
         # numeric time/date parser below can consume them
         s = numbers_to_digits_es(s)
+        # the hour after "a las" is a clock time wherever it sits in the text
+        clock_hours.update(re.findall(r"\ba las (\d{1,2})\b(?![:.h])", s))
+        clock_hours.update(re.findall(r"\ba la (1)\b", s))
         for word in symbols:
             s = s.replace(word, "")
         for word in noise_words:
@@ -364,6 +368,7 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
     hasYear = False
     timeQualifier = ""
 
+    clock_hours = set()
     words = clean_string(text).split(" ")
     morningForm = [w[-1:] if w[-1:] in (_MORNING, _THIS_MORNING) else ""
                    for w in words]
@@ -1043,7 +1048,12 @@ def extract_datetime_es(text, anchorDate=None, default_time=None):
                             used += 1
 
                     elif wordNext == "" or (
-                            wordNext == "en" and wordNextNext == "punto"):
+                            wordNext == "en" and wordNextNext == "punto") or (
+                            (wordPrev == "la" or strNum == "1") and
+                            strNum in clock_hours and
+                            stands_alone(word, strNum, wordNext, wordNextNext,
+                                         timeQualifiersList, "hora",
+                                         ("y", "menos"))):
                         strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punto":

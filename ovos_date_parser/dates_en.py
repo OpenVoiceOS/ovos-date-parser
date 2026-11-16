@@ -9,6 +9,7 @@ from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
+from ovos_date_parser._bare_hour import stands_alone
 
 
 def nice_time_en(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -988,7 +989,18 @@ def _scan_time_en(words, anchorDate, date_state):
                                     wordNextNext == "hour" or
                                     remainder == "hours" or remainder == "hour"):
                                 used += 1
+                    elif (wordPrev == "at" and wordNext == "and" and
+                          wordNextNext == "half"):
+                        # "at 8 and a half"
+                        strHH = strNum
+                        strMM = "30"
+                        used += 2
                     elif (wordNext == ""
+                          or (wordPrev == "at" and
+                              stands_alone(word, strNum, wordNext,
+                                           wordNextNext, (), "hour",
+                                           ("and", "at")) and
+                              not extract_number_en(wordNext))
                           or wordNext == "o'clock"
                           or (wordNext == "in" and (wordNextNext == "the" or wordNextNext == timeQualifier))
                           or wordNext == 'tonight'

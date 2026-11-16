@@ -60,6 +60,7 @@ from ovos_date_parser.common import restore_typed_words
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
+from ovos_date_parser._bare_hour import stands_alone
 
 # Lowercase, as the Acordo Ortográfico de 1990, Base XIX 1.º b), writes the
 # names of days and months.
@@ -481,6 +482,11 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
 
         s = re.sub(r"\b(daqui a|dentro de|em|h[aá]|faz) (\w+) " + unit +
                    r"(?: (e) (\w+) " + unit + r")?\b", count, s.lower())
+        # the hour after "às" is a clock time wherever it sits in the text
+        s = re.sub(r"\b(?:às|à) [a-zê]+\b",
+                   lambda m: numbers_to_digits_pt(m.group()), s)
+        clock_hours.update(re.findall(r"\bàs (\d{1,2})\b(?![:.h])", s))
+        clock_hours.update(re.findall(r"\bà (1)\b", s))
         noise_words = ["o", "os", "a", "as", "do", "da", "dos", "das", "de",
                        "ao", "aos"]
 
@@ -568,6 +574,7 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
     hasYear = False
     timeQualifier = ""
 
+    clock_hours = set()
     words = clean_string(text).split(" ")
     timeQualifiersList = ['manha', 'tarde', 'noite']
     time_indicators = ["em", "as", "nas", "pelas", "volta", "depois", "estas",
@@ -1417,8 +1424,19 @@ def extract_datetime_pt(text, anchorDate=None, default_time=None):
                         if wordNext == "hora":
                             used += 1
 
+                    elif (wordNext == "e" and wordNextNext == "meia" and
+                          strNum in clock_hours):
+                        # "às oito e meia"
+                        strHH = strNum
+                        strMM = 30
+                        used += 2
                     elif wordNext == "" or (
-                            wordNext == "em" and wordNextNext == "ponto"):
+                            wordNext == "em" and wordNextNext == "ponto") or (
+                            (wordPrev == "as" or strNum == "1") and
+                            strNum in clock_hours and
+                            stands_alone(word, strNum, wordNext, wordNextNext,
+                                         timeQualifiersList, "hora",
+                                         ("e", "menos"))):
                         strHH = strNum
                         strMM = 00
                         if wordNext == "em" and wordNextNext == "ponto":

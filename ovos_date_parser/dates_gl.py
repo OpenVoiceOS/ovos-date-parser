@@ -9,6 +9,7 @@ from ovos_date_parser.common import restore_typed_words
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
+from ovos_date_parser._bare_hour import stands_alone
 
 WEEKDAYS_GL = {
     0: "luns",
@@ -268,6 +269,11 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
             s = s.replace(word, "")
 
         s = s.lower()
+        # the hour after "ás" is a clock time wherever it sits in the text
+        for word in re.findall(r"\bás (\d{1,2}|[a-zú]+)\b(?![:.h])", s):
+            clock_hours.add(word.replace("ú", "u"))
+        if re.search(r"\bá (?:unha|1)\b", s):
+            clock_hours.add("unha")
         # "esta mañá" is this morning; "está mañá" is not
         s = re.sub(r"\bn?esta (?:mañá|maña)\b", "maña" + _THIS_MORNING, s)
         s = s.replace("á", "a").replace("é", "e").replace(
@@ -287,6 +293,8 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
         spoken_hours = {"unha": "1", "duas": "2", "tres": "3", "catro": "4",
                         "cinco": "5", "seis": "6", "sete": "7", "oito": "8",
                         "nove": "9", "dez": "10", "once": "11", "doce": "12"}
+        clock_hours.update(spoken_hours[word] for word in list(clock_hours)
+                           if word in spoken_hours)
         for k, v in spoken_hours.items():
             s = re.sub(r"\b(a|as) " + k + r"\b", r"\1 " + v, s)
 
@@ -355,6 +363,7 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
     hasYear = False
     timeQualifier = ""
 
+    clock_hours = set()
     words = clean_string(text).split(" ")
     morningForm = [w[-1:] if w[-1:] in (_MORNING, _THIS_MORNING) else ""
                    for w in words]
@@ -930,7 +939,12 @@ def extract_datetime_gl(text, anchorDate=None, default_time=None):
                         if wordNext == "hora":
                             used += 1
                     elif wordNext == "" or (
-                            wordNext == "en" and wordNextNext == "punto"):
+                            wordNext == "en" and wordNextNext == "punto") or (
+                            (wordPrev == "as" or strNum == "1") and
+                            strNum in clock_hours and
+                            stands_alone(word, strNum, wordNext, wordNextNext,
+                                         timeQualifiersList, "hora",
+                                         ("e", "menos"))):
                         strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punto":

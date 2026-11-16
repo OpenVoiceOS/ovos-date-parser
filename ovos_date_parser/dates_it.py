@@ -342,6 +342,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
         # hour; the marker words themselves leave the sentence
         word_list = []
         clock_marked = []
+        at_marked = []
         day_marked = []
         after_day = []
         day_words = ('oggi', 'domani', 'dopodomani', 'ieri', 'lunedi',
@@ -353,6 +354,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
                 word_list.append(x)
                 clock_marked.append(previous in ('alle', 'alla', 'le', 'ora',
                                                  'delle', 'dalle'))
+                at_marked.append(previous in ('alle', 'alla'))
                 after_day.append(previous in day_words)
                 day_marked.append(previous in ('il', 'lo'))
             previous = x
@@ -369,7 +371,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
 
         kept = [i for i, x in enumerate(word_list) if x]
         return ([word_list[i] for i in kept], [clock_marked[i] for i in kept],
-                [day_marked[i] for i in kept], [after_day[i] for i in kept])
+                [day_marked[i] for i in kept], [after_day[i] for i in kept],
+                [at_marked[i] for i in kept])
 
     def date_found():
         return found or \
@@ -408,7 +411,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
     noise_words_2 = ['tra', 'di', 'per', 'fra', 'un ', 'uno', 'lo', 'del',
                      'l', 'in_punto', ' ', 'nella', 'dell']
 
-    words, clock_marked, day_marked, after_day = clean_string(text)
+    words, clock_marked, day_marked, after_day, at_marked = clean_string(
+        text)
 
     for idx, word in enumerate(words):
         if word == '':
@@ -691,7 +695,7 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
     _keep_words = {'un', 'uno', 'una', "un'", 'mezzo', 'mezza', 'mezzora',
                    'quarto', 'quarti', 'paio', 'secondo', 'minuto', 'ora'}
     # a number word followed by a plain word is a count ("tre pani"), not an
-    # hour
+    # hour, unless "alle" or "alla" stands before it ("alle otto per favore")
     _clock_followers = time_qualifiers_list | set(time_multiples) | {
         'quarto', 'mezzo', 'mezza', 'mezzogiorno', 'mezzanotte', 'meno',
         'pm', 'am', 'in_punto', 'notte', 'uno', 'un', 'una',
@@ -701,7 +705,8 @@ def extract_datetime_it(text, anchorDate=None, default_time=None):
             continue
         _next = next((x for x in words[_i + 1:] if x), '')
         if _next and not (_next[0].isdigit() or _next in _clock_followers
-                          or extract_number_it(_next)):
+                          or extract_number_it(_next)
+                          or (at_marked[_i] and _next.isalpha())):
             continue
         _n = extract_number_it(_w)
         if _n is not False and _n is not None and float(_n) == int(_n) \

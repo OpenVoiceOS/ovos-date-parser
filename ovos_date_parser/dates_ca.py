@@ -8,6 +8,7 @@ from ovos_utils.time import now_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
+from ovos_date_parser._bare_hour import stands_alone
 
 
 class TimeVariantCA(IntEnum):
@@ -571,6 +572,10 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
         for word in symbols:
             s = s.replace(word, "")
 
+        # the hour after "a les" is a clock time wherever it sits in the text
+        s = re.sub(r"\ba les [a-zà-ú]+\b",
+                   lambda m: numbers_to_digits_ca(m.group()), s)
+        clock_hours.update(re.findall(r"\ba les (\d{1,2})\b(?![:.h])", s))
         for word in hyphens:
             s = s.replace(word, " ")
 
@@ -650,6 +655,7 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
     hasYear = False
     timeQualifier = ""
 
+    clock_hours = set()
     words = clean_string(text).split(" ")
     timeQualifiersList = ['matí', 'tarda', 'nit']
     time_indicators = ["em", "a", "a les", "cap a", "vora", "després", "estas",
@@ -1243,8 +1249,18 @@ def extract_datetime_ca(text, anchorDate=None, default_time=None):
                         if wordNext == "hora":
                             used += 1
 
+                    elif (wordNext == "i" and wordNextNext in ("quart", "mitja")
+                          and wordPrev == "a" and strNum in clock_hours):
+                        # "a les vuit i mitja", "a les vuit i quart"
+                        strHH = strNum
+                        strMM = 15 if wordNextNext == "quart" else 30
+                        used += 2
                     elif wordNext == "" or (
-                            wordNext == "en" and wordNextNext == "punt"):
+                            wordNext == "en" and wordNextNext == "punt") or (
+                            wordPrev == "a" and strNum in clock_hours and
+                            stands_alone(word, strNum, wordNext, wordNextNext,
+                                         timeQualifiersList, "hora",
+                                         ("i", "menys"))):
                         strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "punt":

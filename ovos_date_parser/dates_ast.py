@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_ast import AST
 from ovos_utils.time import now_local
 from ovos_date_parser.common import restore_typed_words
+from ovos_date_parser._bare_hour import stands_alone
 
 WEEKDAYS_AST = {
     0: "llunes",
@@ -287,6 +288,9 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
                         "nueve": "9", "diez": "10", "once": "11", "doce": "12"}
         for k, v in spoken_hours.items():
             s = re.sub(r"\b(la|les) " + k + r"\b", r"\1 " + v, s)
+        # the hour after "a les" is a clock time wherever it sits in the text
+        clock_hours.update(re.findall(r"\ba les (\d{1,2})\b(?![:.h])", s))
+        clock_hours.update(re.findall(r"\ba la (1)\b", s))
 
         noise_words = ["ente", "la", "les", "lo", "el", "del", "al",
                        "de", "pa", "por", "un", "una", "cualquier",
@@ -354,6 +358,7 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
     hasYear = False
     timeQualifier = ""
 
+    clock_hours = set()
     words = clean_string(text).split(" ")
     morningForm = [w[-1:] if w[-1:] in (_MORNING, _THIS_MORNING) else ""
                    for w in words]
@@ -917,7 +922,11 @@ def extract_datetime_ast(text, anchorDate=None, default_time=None):
                         if wordNext == "hora":
                             used += 1
                     elif wordNext == "" or (
-                            wordNext == "en" and wordNextNext == "puntu"):
+                            wordNext == "en" and wordNextNext == "puntu") or (
+                            wordPrev == "a" and strNum in clock_hours and
+                            stands_alone(word, strNum, wordNext, wordNextNext,
+                                         timeQualifiersList, "hora",
+                                         ("y", "menos"))):
                         strHH = strNum
                         strMM = 00
                         if wordNext == "en" and wordNextNext == "puntu":

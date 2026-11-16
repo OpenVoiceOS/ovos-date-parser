@@ -1,12 +1,20 @@
 # Changelog
 
-## [0.36.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.3a1) (2026-11-15)
+## [0.37.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.37.0a1) (2026-11-16)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.2a2...0.36.3a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.4a1...0.37.0a1)
 
 **Merged pull requests:**
 
-- Update dependency python-dateutil to v4 [\#544](https://github.com/OpenVoiceOS/ovos-date-parser/pull/544) ([renovate[bot]](https://github.com/apps/renovate))
+- feat\(it\): spoken\_date, spoken\_time and spoken\_year for Italian [\#648](https://github.com/OpenVoiceOS/ovos-date-parser/pull/648) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.36.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.4a1) (2026-11-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.3a1...0.36.4a1)
+
+## [0.36.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.3a1) (2026-11-15)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.2a2...0.36.3a1)
 
 ## [0.36.2a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.2a2) (2026-11-15)
 
@@ -352,10 +360,6 @@
 ## [0.35.10a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.10a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.9a1...0.35.10a1)
-
-**Merged pull requests:**
-
-- fix: load ovos-config and the phrase tables on first use, not at import [\#543](https://github.com/OpenVoiceOS/ovos-date-parser/pull/543) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.9a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.9a1) (2026-11-06)
 

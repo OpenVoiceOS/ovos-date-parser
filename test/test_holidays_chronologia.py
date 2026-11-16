@@ -842,6 +842,20 @@ DAYS_ACROSS_A_CLOCK_CHANGE = [
     (AUTUMN_REF, "Europe/Berlin", "en-GB",
      "half of two weeks before remembrance day at 9am",
      "2027-11-04T09:00:00+01:00"),
+    # the 12 hours after the whole day cross the change: Holy Saturday is
+    # 27 March, one day later is 28 March 00:00+01:00, and 12 hours of
+    # elapsed time from there is 11:00 UTC
+    (REF, "Europe/Berlin", "en-GB", "a day and a half after holy saturday",
+     "2027-03-28T13:00:00+02:00"),
+    # a wall-clock reading the clocks go back over is the earlier instant:
+    # Havana goes from -04:00 to -05:00 at 01:00 on 7 November 2027, so
+    # 00:00 happens twice; Madrid goes from +02:00 to +01:00 at 03:00 on
+    # 31 October 2027, so 02:30 happens twice
+    (AUTUMN_REF, "America/Havana", "en-US",
+     "half of two weeks after halloween", "2027-11-07T00:00:00-04:00"),
+    (AUTUMN_REF, "Europe/Madrid", "es-ES",
+     "un cuarto de cuatro días antes de todos los santos a las 2:30",
+     "2027-10-31T02:30:00+02:00"),
     # controls: hours, and half a day, are elapsed time
     (REF, "Europe/Lisbon", "en-GB", "36 hours after easter",
      "2027-03-29T13:00:00+01:00"),
@@ -892,6 +906,54 @@ def test_whole_days_count_from_the_holidays_wall_clock(lang, utterance,
     anchor = REF.replace(tzinfo=ZoneInfo("Asia/Beirut"))
     got = extract_holiday_span(utterance, lang, anchor)
     assert got[0].isoformat() == expected and got[1] == ""
+
+
+# chronologia moves the clock by whole days only: "a day and a half before
+# christmas at 9am" reads as two days before. Each value is the holiday at
+# the clock less the offset, counted by hand: 25 December 09:00 less 36
+# hours is 23 December 21:00, less 12 hours is 24 December 21:00, less half
+# a week (84 hours) is 21 December 21:00, and less ten and a half days is
+# 14 December 21:00.
+FRACTIONAL_DAYS_WITH_A_CLOCK = [
+    ("en-US", "a day and a half before christmas at 9am",
+     datetime(2026, 12, 23, 21, 0)),
+    ("en-US", "a day and a half after christmas at 9am",
+     datetime(2026, 12, 26, 21, 0)),
+    ("en-US", "half a day before christmas at 9am",
+     datetime(2026, 12, 24, 21, 0)),
+    ("en-US", "half a week before christmas at 9am",
+     datetime(2026, 12, 21, 21, 0)),
+    ("en-US", "a week and a half before christmas at 9am",
+     datetime(2026, 12, 14, 21, 0)),
+    ("en-US", "a day and a half before christmas at 11pm",
+     datetime(2026, 12, 24, 11, 0)),
+    ("de-DE", "eineinhalb Tage vor Weihnachten um 9 Uhr",
+     datetime(2026, 12, 23, 21, 0)),
+    ("nl-NL", "anderhalve dag voor kerst om 9 uur",
+     datetime(2026, 12, 23, 21, 0)),
+    ("es-ES", "medio día antes de navidad a las 9",
+     datetime(2026, 12, 24, 21, 0)),
+    # controls: a whole number of days, and hours, keep chronologia's answer
+    ("en-US", "two days before christmas at 9am",
+     datetime(2026, 12, 23, 9, 0)),
+    ("en-US", "36 hours before christmas at 9am",
+     datetime(2026, 12, 23, 21, 0)),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected",
+                         FRACTIONAL_DAYS_WITH_A_CLOCK)
+def test_a_fraction_of_a_day_with_a_clock_is_counted_from_the_clock(
+        lang, utterance, expected):
+    assert extract_holiday_span(utterance, lang, REF) == (expected, "")
+
+
+def test_extract_datetime_counts_a_fraction_of_a_day_from_the_clock():
+    """Easter Monday 2027 is 29 March; 09:00 less 36 hours is 27 March
+    21:00."""
+    got = extract_datetime("a day and a half before easter monday at 9am",
+                           "en-US", REF)
+    assert got == (datetime(2027, 3, 27, 21, 0), "")
 
 
 def test_whole_days_with_a_naive_anchor():

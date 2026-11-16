@@ -13,6 +13,7 @@ import dateparser # fallback parser
 from dateparser.conf import settings as dateparser_settings
 from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
+from ovos_number_parser import extract_number
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
@@ -858,7 +859,9 @@ def _extract_datetime_engine(
     spaced = _separate_punctuation(text)
     if spaced == text:
         return _extract_datetime_legacy(text, lang, anchorDate, default_time)
-    anchorDate = anchorDate or now_local()
+    if anchorDate is None:
+        anchorDate = (datetime.now() if lang.split("-")[0] in _NAIVE_NOW
+                      else now_local())
     found = _extract_datetime_legacy(text, lang, anchorDate, default_time)
     separated = _extract_datetime_legacy(spaced, lang, anchorDate,
                                          default_time)
@@ -869,8 +872,8 @@ def _extract_datetime_engine(
             _adds_clock(found[0], separated[0])
             and len(words) <= len(found[1].split())):
         return found
-    if separated[0].time() != time(0) and not _clock_is_marked(
-            spaced, found, separated):
+    if separated[0].time() != time(0) and not _holds_clock(
+            spaced, lang, separated[1]):
         return found
     # The engines read a lone "," as a word that ends a phrase, which the
     # words before the first mark confirm or deny.
@@ -881,6 +884,46 @@ def _extract_datetime_engine(
         if lead is not None and lead[0] != separated[0]:
             return found
     return [separated[0], " ".join(words)]
+
+
+# Engines whose own default "now" is a naive datetime.
+_NAIVE_NOW = frozenset({"eu", "id", "ms", "tr", "kab"})
+
+# Words that put a clock time after them, by language, from each engine's own
+# vocabulary. A preposition is written as the words that make it up.
+_CLOCK_PREPOSITIONS = {
+    "en": [("at",)],  # dates_en.py:168 markers, :615
+    "es": [("a", "las"), ("a", "la")],  # dates_es.py:84, :97
+    "gl": [("ás",), ("á",), ("ao",)],  # dates_gl.py:98, :286, :293
+    "ca": [("a", "les"), ("a", "la"), ("a", "l'")],  # dates_ca.py:564, :655
+    "ast": [("a", "les"), ("a", "la")],  # dates_ast.py:79, :284
+    "an": [("a", "las")],  # dates_an.py:229
+    "oc": [("a", "las")],  # dates_oc.py:85, :87
+    "pt": [("às",), ("à",)],  # dates_pt.py:9, :11, :34
+    "fr": [("à",)],  # dates_fr.py:14, :170
+    "de": [("um",)],  # dates_de.py:134
+    "it": [("alle",), ("alla",), ("all'",), ("a",)],  # dates_it.py:149-153
+    "nl": [("om",)],  # dates_nl.py:85, :130
+    "fy": [("om",)],  # dates_fy.py:135, :137
+    "da": [("klokken",)],  # dates_da.py:209
+    "nb": [("klokka",), ("klokken",)],  # dates_nb.py:175
+    "nn": [("klokka",), ("klokken",)],  # dates_nn.py:59, :177
+    "ru": [("в",), ("во",)],  # dates_ru.py:391, :821
+    "uk": [("о",), ("у",), ("в",)],  # dates_uk.py:308, :762
+    "pl": [("o",), ("w",)],  # dates_pl.py:579
+    "ro": [("la", "ora")],  # dates_ro.py:107, :110
+    "bg": [("в",), ("във",)],  # dates_bg.py:170
+    "sl": [("ob",)],  # dates_sl.py:175, :188
+    "el": [("στις",), ("στη",)],  # dates_el.py:109, :176
+    "et": [("kell",)],  # dates_et.py:6, :7
+    "id": [("pukul",)],  # dates_id.py:16, :17
+    "ms": [("pukul",)],  # dates_ms.py:16
+    "tr": [("saat",)],  # dates_tr.py:16, :23
+    "az": [("saat",)],  # dates_az.py:191
+}
+
+# A clock written as one token: an hour with "h", or hours and minutes.
+_CLOCK_FORMAT = re.compile(r"\d{1,2}h(\d{2})?|\d{1,2}:\d{2}")
 
 
 def _consumed(words: List[str], leftover: str) -> set:
@@ -901,25 +944,43 @@ def _bare(token: str) -> str:
     return "".join(char for char in token.lower() if char.isalnum())
 
 
-def _clock_is_marked(spaced: str, written, separated) -> bool:
-    """True when the time of day in ``separated`` comes from a clock phrase.
+def _holds_clock(spaced: str, lang: str, leftover: str) -> bool:
+    """True when the reading took up a clock phrase of the text.
 
-    A lone number is not one: "mañana necesito 5, gracias" holds a count, and
-    the engines read a number that ends a phrase as an hour. A clock is a
-    digit that follows a word the reading took up ("a las 8"), a number word
-    that follows one ("ás oito"), or a token that mixes digits with other
-    characters ("8h", "8:30").
+    A clock phrase is a number, digit or word, right after a clock
+    preposition of the language ("a las 8", "ás oito"), or a token written
+    as a clock ("8h", "8h30", "8:30"). A lone number is not one, nor are
+    labels such as "4B" and "2.3": es, gl and ca read a number that ends a
+    phrase as an hour, and a lone comma ends the phrase.
     """
     words = [word for word in spaced.split() if _is_word(word)]
-    taken = _consumed(words, separated[1])
-    new = taken - (_consumed(words, written[1]) if written else set())
-    if any(any(c.isdigit() for c in words[i])
-           and not words[i].isdigit() for i in new):
-        return True
-    # a lone digit decides alone; the engines rewrite number words, so with
-    # no digit any newly taken word that follows a taken one counts
-    numbers = [i for i in new if words[i].isdigit()] or sorted(new)
-    return any(i - 1 in taken for i in numbers)
+    taken = _consumed(words, leftover)
+    code = lang.split("-")[0]
+    parts = []  # (word, word position); "l'una" is "l'" and "una"
+    for position, word in enumerate(words):
+        word = word.lower()
+        cut = word.find("'") + 1
+        for part in ([word[:cut], word[cut:]] if 0 < cut < len(word)
+                     else [word]):
+            parts.append((part, position))
+    for position in taken:
+        if _CLOCK_FORMAT.fullmatch(words[position].lower()):
+            return True
+    for start in range(len(parts)):
+        for preposition in _CLOCK_PREPOSITIONS.get(code, ()):
+            end = start + len(preposition)
+            if end >= len(parts) or tuple(
+                    part for part, _ in parts[start:end]) != preposition:
+                continue
+            number, position = parts[end]
+            if position in taken and (number[0].isdigit()
+                                      or _is_number_word(number, code)):
+                return True
+    return False
+
+
+def _is_number_word(word: str, code: str) -> bool:
+    return extract_number(word, lang=code) is not False
 
 
 def _adds_clock(written: datetime, separated: datetime) -> bool:

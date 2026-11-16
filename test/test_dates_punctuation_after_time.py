@@ -6,7 +6,7 @@ reads to once the punctuation is a word of its own.
 """
 import itertools
 import unittest
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from unittest import mock
 from zoneinfo import ZoneInfo
 
@@ -154,6 +154,17 @@ class TestCountBeforeComma(unittest.TestCase):
         ("es-es", "el viernes es el número 7, gracias",
          datetime(2026, 1, 9)),
         ("es-es", "mañana compra 3, por favor", datetime(2026, 1, 6)),
+        ("es-es", "mañana mesa para cuatro, gracias", datetime(2026, 1, 6)),
+        ("es-es", "mañana mesa para 4, gracias", datetime(2026, 1, 6)),
+        ("es-es", "el sábado cena para seis, por favor",
+         datetime(2026, 1, 10)),
+        ("es-es", "mañana en la sala 4B, por favor", datetime(2026, 1, 6)),
+        ("es-es", "mañana en la planta 3ª, por favor", datetime(2026, 1, 6)),
+        ("es-es", "el martes en el aula 2.3, vale", datetime(2026, 1, 6)),
+        ("gl-es", "mañá na aula 2.3, grazas", datetime(2026, 1, 6)),
+        ("ca-es", "demà a l'aula 2.3, gràcies", datetime(2026, 1, 6)),
+        ("es-es", "mañana la versión 2.0, gracias", datetime(2026, 1, 6)),
+        ("es-es", "mañana pon el canal 4K, gracias", datetime(2026, 1, 6)),
         ("gl-es", "mañá compra 3, por favor", datetime(2026, 1, 6)),
         ("ca-es", "demà compra 3, si us plau", datetime(2026, 1, 6)),
     ]
@@ -197,6 +208,18 @@ class TestWithoutAnchor(unittest.TestCase):
             with self.subTest(lang=lang):
                 self.assertIsNone(_odp.extract_datetime(text, lang)[0].tzinfo)
 
+    def test_comma_does_not_change_the_output_type(self):
+        for lang, plain, comma in (
+                ("eu", "ekainaren 5ean", "ekainaren 5ean, mila esker"),
+                ("kab", "3 yennayer", "3 yennayer, tanemmirt"),
+                ("tr", "yarın", "yarın, lütfen"),
+                ("id", "besok", "besok, terima kasih"),
+                ("es-es", "mañana a las 8", "mañana a las 8, gracias")):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    _odp.extract_datetime(plain, lang)[0].tzinfo is None,
+                    _odp.extract_datetime(comma, lang)[0].tzinfo is None)
+
     def test_aware_anchor(self):
         aware = datetime(2026, 1, 5, 6, tzinfo=ZoneInfo("Europe/Lisbon"))
         for lang, text, month, day in self.ROWS:
@@ -209,51 +232,101 @@ class TestChoiceBetweenReadings(unittest.TestCase):
     """The engine is scripted, so each case isolates one rule."""
 
     def choose(self, written, separated, clause=None):
-        readings = {"a, b": written, "a , b": separated, "a": clause}
+        readings = {"at 8, x": written, "at 8 , x": separated,
+                    "at 8": clause}
         with mock.patch.object(_odp, "_extract_datetime_legacy",
                                lambda text, *args: readings[text]):
-            return _odp._extract_datetime_engine("a, b", "en-us", ANCHOR)
+            return _odp._extract_datetime_engine("at 8, x", "en-us", ANCHOR)
 
     def test_separated_reading_adds_the_clock_to_the_same_date(self):
-        found = self.choose([datetime(2026, 1, 6), "b"],
-                            [datetime(2026, 1, 6, 8), ""])
-        self.assertEqual(found, [datetime(2026, 1, 6, 8), ""])
+        found = self.choose([datetime(2026, 1, 6), "x"],
+                            [datetime(2026, 1, 6, 8), "x"])
+        self.assertEqual(found, [datetime(2026, 1, 6, 8), "x"])
 
     def test_separated_reading_on_another_date_is_refused(self):
-        written = [datetime(2026, 1, 6), "b"]
-        found = self.choose(written, [datetime(2026, 1, 7, 8), ""])
+        written = [datetime(2026, 1, 6), "x"]
+        found = self.choose(written, [datetime(2026, 1, 7, 8), "x"])
         self.assertEqual(found, written)
 
     def test_separated_reading_that_leaves_more_words_is_refused(self):
         # "d ttnac, n yiḍ" is read as a whole as written; apart, the part of
         # the day stays unread
-        written = [datetime(2026, 1, 6), "b"]
+        written = [datetime(2026, 1, 6), "x"]
         found = self.choose(written, [datetime(2026, 1, 6, 12), "n yiḍ"])
         self.assertEqual(found, written)
 
     def test_a_reading_that_gains_nothing_keeps_the_written_text(self):
-        written = [datetime(2026, 1, 6), "w; x"]
-        found = self.choose(written, [datetime(2026, 1, 6), "w x"])
+        written = [datetime(2026, 1, 6), "y; x"]
+        found = self.choose(written, [datetime(2026, 1, 6), "x"])
         self.assertEqual(found, written)
 
     def test_separated_reading_is_taken_where_nothing_was_read(self):
-        found = self.choose(None, [datetime(2026, 1, 6, 8), "w , x"])
-        self.assertEqual(found, [datetime(2026, 1, 6, 8), "w x"])
+        found = self.choose(None, [datetime(2026, 1, 6, 8), "x"])
+        self.assertEqual(found, [datetime(2026, 1, 6, 8), "x"])
 
     def test_clause_that_disagrees_refuses_the_separated_reading(self):
-        self.assertIsNone(self.choose(None, [datetime(2026, 1, 6), "x"],
+        self.assertIsNone(self.choose(None, [datetime(2026, 1, 6, 8), "x"],
                                       clause=[datetime(2026, 1, 7, 3), ""]))
 
 
+class TestClockPhrase(unittest.TestCase):
+    """Only a clock phrase may give the separated reading its time of day."""
+
+    def test_labels_and_counts_are_not_clocks(self):
+        for lang, text, leftover in (
+                ("es-es", "mañana mesa para cuatro , gracias",
+                 "mesa para gracias"),
+                ("es-es", "mañana en la sala 4B , por favor",
+                 "sala por favor"),
+                ("es-es", "el lunes en el aula 2.3 , vale", "aula vale"),
+                ("ca-es", "demà a l'aula 2.3 , gràcies", "gràcies")):
+            with self.subTest(text=text):
+                self.assertFalse(_odp._holds_clock(text, lang, leftover))
+
+    def test_clock_phrases(self):
+        for lang, text, leftover in (
+                ("es-es", "mañana a las 8 , gracias", "gracias"),
+                ("es-es", "mañana a la una , gracias", "gracias"),
+                ("gl-es", "mañá ás oito , grazas", "grazas"),
+                ("ca-es", "demà a l'una , gràcies", "gràcies"),
+                ("es-es", "mañana a las 8.30 , gracias", "gracias"),
+                ("es-es", "mañana quedamos 8h30 , gracias", "gracias"),
+                ("es-es", "mañana quedamos 8:30 , gracias", "gracias")):
+            with self.subTest(text=text):
+                self.assertTrue(_odp._holds_clock(text, lang, leftover))
+
+    def test_a_number_the_reading_left_over_is_not_a_clock(self):
+        self.assertFalse(_odp._holds_clock("mañana a las 8 , gracias",
+                                           "es-es", "8 gracias"))
+
+    def test_a_bare_number_after_a_clock_looking_word_is_not_a_clock(self):
+        self.assertFalse(_odp._holds_clock("mañana quedamos 8.30 , gracias",
+                                           "es-es", "gracias"))
+
+
 class TestOneNowForBothReadings(unittest.TestCase):
-    def test_relative_time_without_anchor(self):
+    def test_every_read_gets_the_same_anchor(self):
         clock = (datetime(2026, 1, 5, 6, minute) for minute in itertools.count())
+        anchors = []
+
+        def legacy(text, lang, anchor, default_time):
+            anchors.append(anchor)
+
         with mock.patch.object(_odp, "now_local", lambda: next(clock)), \
-                mock.patch("ovos_date_parser.dates_en.now_local",
-                           lambda: next(clock)):
-            found = _odp.extract_datetime("(in 5 minutes), please", "en-us")
-        self.assertEqual(found[0], datetime(2026, 1, 5, 6, 0)
-                         + timedelta(minutes=5))
+                mock.patch.object(_odp, "_extract_datetime_legacy", legacy):
+            _odp._extract_datetime_engine("(at 8 pm), please", "en-us")
+        self.assertGreater(len(anchors), 1)
+        self.assertEqual(set(anchors), {datetime(2026, 1, 5, 6, 0)})
+
+    def test_plain_text_passes_the_caller_anchor_through(self):
+        anchors = []
+
+        def legacy(text, lang, anchor, default_time):
+            anchors.append(anchor)
+
+        with mock.patch.object(_odp, "_extract_datetime_legacy", legacy):
+            _odp._extract_datetime_engine("at 8 pm", "en-us")
+        self.assertEqual(anchors, [None])
 
 
 class TestPunctuationInsideExpression(unittest.TestCase):

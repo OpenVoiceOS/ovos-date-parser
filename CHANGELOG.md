@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.37.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.37.2a1) (2026-11-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.37.1a1...0.37.2a1)
+
+**Merged pull requests:**
+
+- fix: pin the pt-PT holiday remainders chronologia now returns [\#653](https://github.com/OpenVoiceOS/ovos-date-parser/pull/653) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.37.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.37.1a1) (2026-11-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.37.0a1...0.37.1a1)

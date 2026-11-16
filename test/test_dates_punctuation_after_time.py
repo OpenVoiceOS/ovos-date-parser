@@ -160,6 +160,13 @@ class TestChoiceBetweenReadings(unittest.TestCase):
         found = self.choose(written, [datetime(2026, 1, 7, 8), "w x"])
         self.assertEqual(found, written)
 
+    def test_separated_reading_that_leaves_more_words_is_refused(self):
+        # "d ttnac, n yiḍ" is read as a whole as written; apart, the part of
+        # the day stays unread
+        written = [datetime(2026, 1, 6), ""]
+        found = self.choose(written, [datetime(2026, 1, 6, 12), "n yiḍ"])
+        self.assertEqual(found, written)
+
     def test_a_reading_that_gains_nothing_keeps_the_written_text(self):
         written = [datetime(2026, 1, 6), "w; x"]
         found = self.choose(written, [datetime(2026, 1, 6), "w x"])

@@ -847,9 +847,10 @@ def _extract_datetime_engine(
     and with the punctuation separated ("a las 8, por favor" as "a las 8 ,
     por favor"). The separated reading replaces a reading as written only
     where that one finds nothing, or finds the same date without a time of
-    day. It must also agree with the reading of the words before the first
-    mark. Elsewhere the text as written stands, because some engines use a
-    glued comma and others take the words after a lone one as a new phrase.
+    day and the separated reading leaves no more words over. It must also
+    agree with the reading of the words before the first mark. Elsewhere the
+    text as written stands, because some engines use a glued comma and others
+    take the words after a lone one as a new phrase.
     """
     if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
         return _extract_datetime_chronologia(text, lang, anchorDate,
@@ -863,7 +864,10 @@ def _extract_datetime_engine(
                                          default_time)
     if separated is None:
         return found
-    if found is not None and not _adds_clock(found[0], separated[0]):
+    words = [word for word in separated[1].split() if _is_word(word)]
+    if found is not None and not (
+            _adds_clock(found[0], separated[0])
+            and len(words) <= len(found[1].split())):
         return found
     # The engines read a lone "," as a word that ends a phrase, which the
     # words before the first mark confirm or deny.
@@ -873,7 +877,6 @@ def _extract_datetime_engine(
                                         default_time)
         if lead is not None and lead[0] != separated[0]:
             return found
-    words = [word for word in separated[1].split() if _is_word(word)]
     return [separated[0], " ".join(words)]
 
 

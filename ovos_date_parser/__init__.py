@@ -855,11 +855,11 @@ def _extract_datetime_engine(
     if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
         return _extract_datetime_chronologia(text, lang, anchorDate,
                                              default_time)
-    anchorDate = anchorDate or now_local()
-    found = _extract_datetime_legacy(text, lang, anchorDate, default_time)
     spaced = _separate_punctuation(text)
     if spaced == text:
-        return found
+        return _extract_datetime_legacy(text, lang, anchorDate, default_time)
+    anchorDate = anchorDate or now_local()
+    found = _extract_datetime_legacy(text, lang, anchorDate, default_time)
     separated = _extract_datetime_legacy(spaced, lang, anchorDate,
                                          default_time)
     if separated is None:
@@ -868,6 +868,9 @@ def _extract_datetime_engine(
     if found is not None and not (
             _adds_clock(found[0], separated[0])
             and len(words) <= len(found[1].split())):
+        return found
+    if separated[0].time() != time(0) and not _clock_is_marked(
+            spaced, found, separated):
         return found
     # The engines read a lone "," as a word that ends a phrase, which the
     # words before the first mark confirm or deny.
@@ -878,6 +881,45 @@ def _extract_datetime_engine(
         if lead is not None and lead[0] != separated[0]:
             return found
     return [separated[0], " ".join(words)]
+
+
+def _consumed(words: List[str], leftover: str) -> set:
+    """Positions of ``words`` that a reading took out of its leftover text."""
+    kept = set()
+    last = -1
+    for token in leftover.split():
+        token = _bare(token)
+        for index in range(last + 1, len(words)):
+            if _bare(words[index]) == token:
+                kept.add(index)
+                last = index
+                break
+    return set(range(len(words))) - kept
+
+
+def _bare(token: str) -> str:
+    return "".join(char for char in token.lower() if char.isalnum())
+
+
+def _clock_is_marked(spaced: str, written, separated) -> bool:
+    """True when the time of day in ``separated`` comes from a clock phrase.
+
+    A lone number is not one: "mañana necesito 5, gracias" holds a count, and
+    the engines read a number that ends a phrase as an hour. A clock is a
+    digit that follows a word the reading took up ("a las 8"), a number word
+    that follows one ("ás oito"), or a token that mixes digits with other
+    characters ("8h", "8:30").
+    """
+    words = [word for word in spaced.split() if _is_word(word)]
+    taken = _consumed(words, separated[1])
+    new = taken - (_consumed(words, written[1]) if written else set())
+    if any(any(c.isdigit() for c in words[i])
+           and not words[i].isdigit() for i in new):
+        return True
+    # a lone digit decides alone; the engines rewrite number words, so with
+    # no digit any newly taken word that follows a taken one counts
+    numbers = [i for i in new if words[i].isdigit()] or sorted(new)
+    return any(i - 1 in taken for i in numbers)
 
 
 def _adds_clock(written: datetime, separated: datetime) -> bool:

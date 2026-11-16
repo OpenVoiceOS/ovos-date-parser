@@ -8,6 +8,7 @@ import itertools
 import unittest
 from datetime import date, datetime, timedelta
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 import ovos_date_parser as _odp
 
@@ -141,6 +142,69 @@ class TestSeparatedReadingIsChosenWithCare(unittest.TestCase):
         self.assertTrue(found is None or found[0].date() != date(2026, 12, 1))
 
 
+class TestCountBeforeComma(unittest.TestCase):
+    """A count before a comma is not an hour."""
+
+    ROWS = [
+        ("es-es", "mañana necesito 5, gracias", datetime(2026, 1, 6)),
+        ("es-es", "recuérdame mañana comprar 2, gracias",
+         datetime(2026, 1, 6)),
+        ("es-es", "el martes somos 4, vale", datetime(2026, 1, 6)),
+        ("es-es", "mañana en la sala 4, por favor", datetime(2026, 1, 6)),
+        ("es-es", "el viernes es el número 7, gracias",
+         datetime(2026, 1, 9)),
+        ("es-es", "mañana compra 3, por favor", datetime(2026, 1, 6)),
+        ("gl-es", "mañá compra 3, por favor", datetime(2026, 1, 6)),
+        ("ca-es", "demà compra 3, si us plau", datetime(2026, 1, 6)),
+    ]
+
+    def test_the_count_stays_a_count(self):
+        for lang, text, moment in self.ROWS:
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(read(lang, text)[0], moment)
+
+    def test_a_clock_phrase_still_gives_the_hour(self):
+        for lang, text, moment in (
+                ("es-es", "despiértame mañana a las 8h, por favor",
+                 datetime(2026, 1, 6, 8)),
+                ("gl-es", "espértame mañá ás oito, por favor",
+                 datetime(2026, 1, 6, 8)),
+                ("ca-es", "desperta'm demà a les 9, si us plau",
+                 datetime(2026, 1, 6, 9)),
+                ("es-es", "mañana quedamos 8h, gracias",
+                 datetime(2026, 1, 6, 8))):
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(read(lang, text)[0], moment)
+
+
+class TestWithoutAnchor(unittest.TestCase):
+    """eu and kab compare the anchor with naive dates."""
+
+    ROWS = [("eu", "ekainaren 5ean", 6, 5),
+            ("eu", "11 urt", 1, 11),
+            ("eu", "ekainaren 5ean, mila esker", 6, 5),
+            ("kab", "3 yennayer", 1, 3),
+            ("kab", "3 yennayer, tanemmirt", 1, 3)]
+
+    def test_no_anchor(self):
+        for lang, text, month, day in self.ROWS:
+            with self.subTest(lang=lang, text=text):
+                found = _odp.extract_datetime(text, lang)
+                self.assertEqual((found[0].month, found[0].day), (month, day))
+
+    def test_text_without_punctuation_keeps_naive_output(self):
+        for lang, text in (("eu", "ekainaren 5ean"), ("kab", "3 yennayer")):
+            with self.subTest(lang=lang):
+                self.assertIsNone(_odp.extract_datetime(text, lang)[0].tzinfo)
+
+    def test_aware_anchor(self):
+        aware = datetime(2026, 1, 5, 6, tzinfo=ZoneInfo("Europe/Lisbon"))
+        for lang, text, month, day in self.ROWS:
+            with self.subTest(lang=lang, text=text):
+                found = _odp.extract_datetime(text, lang, anchorDate=aware)
+                self.assertEqual((found[0].month, found[0].day), (month, day))
+
+
 class TestChoiceBetweenReadings(unittest.TestCase):
     """The engine is scripted, so each case isolates one rule."""
 
@@ -151,19 +215,19 @@ class TestChoiceBetweenReadings(unittest.TestCase):
             return _odp._extract_datetime_engine("a, b", "en-us", ANCHOR)
 
     def test_separated_reading_adds_the_clock_to_the_same_date(self):
-        found = self.choose([datetime(2026, 1, 6), "w x"],
-                            [datetime(2026, 1, 6, 8), "w , x"])
-        self.assertEqual(found, [datetime(2026, 1, 6, 8), "w x"])
+        found = self.choose([datetime(2026, 1, 6), "b"],
+                            [datetime(2026, 1, 6, 8), ""])
+        self.assertEqual(found, [datetime(2026, 1, 6, 8), ""])
 
     def test_separated_reading_on_another_date_is_refused(self):
-        written = [datetime(2026, 1, 6), "w x"]
-        found = self.choose(written, [datetime(2026, 1, 7, 8), "w x"])
+        written = [datetime(2026, 1, 6), "b"]
+        found = self.choose(written, [datetime(2026, 1, 7, 8), ""])
         self.assertEqual(found, written)
 
     def test_separated_reading_that_leaves_more_words_is_refused(self):
         # "d ttnac, n yiḍ" is read as a whole as written; apart, the part of
         # the day stays unread
-        written = [datetime(2026, 1, 6), ""]
+        written = [datetime(2026, 1, 6), "b"]
         found = self.choose(written, [datetime(2026, 1, 6, 12), "n yiḍ"])
         self.assertEqual(found, written)
 

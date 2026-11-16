@@ -806,6 +806,32 @@ def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
     return found, text[:match.start()] + text[match.end():]
 
 
+_EDGE_PUNCTUATION = re.compile(
+    r"([(\[{\"\u201c\u00ab]*)(.*?)([.,;:!?)\]}\"\u201d\u00bb]*)", re.S)
+
+
+def _separate_punctuation(text: str) -> str:
+    """Put a space between each word and the punctuation written against it.
+
+    The per-language engines split on whitespace, so "8," and "(monday"
+    reach them as one word that matches no clock or weekday. Punctuation
+    inside a word ("8.30", "8:30", "25/12", "o'clock") stays where it is. A
+    closing dot stays too, unless it ends the text or follows a word longer
+    than four letters: it may belong to "a.m.", "dez." or "3. Dezember".
+    """
+    def spaced(match: re.Match) -> str:
+        lead, core, trail = _EDGE_PUNCTUATION.fullmatch(match.group()).groups()
+        if not core:
+            return match.group()
+        sentence_end = match.end() == len(text) or (
+            core.isalpha() and len(core) > 4)
+        if trail.startswith(".") and ("." in core or not sentence_end):
+            core, trail = core + ".", trail[1:]
+        return " ".join(part for part in (lead, core, trail) if part)
+
+    return re.sub(r"\S+", spaced, text)
+
+
 def _extract_datetime_engine(
         text: str,
         lang: str,
@@ -816,10 +842,60 @@ def _extract_datetime_engine(
 
     Split out of :func:`extract_datetime` so the holiday layer has a place to
     stand behind every language at once, instead of a branch in each.
+
+    A text with punctuation written against a word is read twice, as written
+    and with the punctuation separated ("a las 8, por favor" as "a las 8 ,
+    por favor"). The separated reading is kept when it leaves fewer words
+    over and agrees with the reading of the words before the first mark. A
+    tie keeps the text as written, because some engines use a glued comma.
     """
     if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
         return _extract_datetime_chronologia(text, lang, anchorDate,
                                              default_time)
+    found = _extract_datetime_legacy(text, lang, anchorDate, default_time)
+    spaced = _separate_punctuation(text)
+    if spaced == text:
+        return found
+    separated = _extract_datetime_legacy(spaced, lang, anchorDate,
+                                         default_time)
+    if separated is None:
+        return found
+    # The engines read a lone "," as a word that ends a phrase, which the
+    # words before the first mark confirm or deny.
+    clause = _first_clause(spaced)
+    if clause != spaced:
+        lead = _extract_datetime_legacy(clause, lang, anchorDate,
+                                        default_time)
+        if lead is not None and lead[0] != separated[0]:
+            return found
+    words = [word for word in separated[1].split() if _is_word(word)]
+    if found is None or len(words) < len(found[1].split()):
+        return [separated[0], " ".join(words)]
+    return found
+
+
+def _is_word(token: str) -> bool:
+    return any(char.isalnum() for char in token)
+
+
+def _first_clause(spaced: str) -> str:
+    """The words before the first punctuation mark that follows a word."""
+    clause: List[str] = []
+    for token in spaced.split():
+        if _is_word(token):
+            clause.append(token)
+        elif clause:
+            break
+    return " ".join(clause)
+
+
+def _extract_datetime_legacy(
+        text: str,
+        lang: str,
+        anchorDate: Optional[datetime],
+        default_time: Optional[time],
+) -> Optional[Tuple[datetime, str]]:
+    """The per-language extractors, and the dateparser fallback behind them."""
     if lang.startswith("an"):
         return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)
     if lang.startswith("ar"):

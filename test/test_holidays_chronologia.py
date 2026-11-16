@@ -666,6 +666,133 @@ def test_a_unit_left_over_with_no_count_does_not_stop_the_offset():
     assert got == (datetime(2026, 12, 24, 0, 0), "what day is")
 
 
+#: A quarter of an hour, where chronologia reads only "de hora antes de"
+#: and leaves the count "un cuarto" over. 25 Dec 00:00 - 15 min is
+#: 24 Dec 23:45, - 45 min is 23:15, + 15 min is 25 Dec 00:15.
+QUARTERS_OF_AN_HOUR = [
+    ("es-ES", "un cuarto de hora antes de navidad",
+     datetime(2026, 12, 24, 23, 45), ""),
+    ("es-ES", "tres cuartos de hora antes de navidad",
+     datetime(2026, 12, 24, 23, 15), ""),
+    ("fr-FR", "un quart d'heure avant noël",
+     datetime(2026, 12, 24, 23, 45), ""),
+    ("fr-FR", "trois quarts d'heure avant noël",
+     datetime(2026, 12, 24, 23, 15), ""),
+    ("pt-PT", "um quarto de hora antes do natal",
+     datetime(2026, 12, 24, 23, 45), ""),
+    ("pt-PT", "três quartos de hora antes do natal",
+     datetime(2026, 12, 24, 23, 15), ""),
+    ("pt-PT", "lembra-me um quarto de hora depois do natal",
+     datetime(2026, 12, 25, 0, 15), "lembra-me"),
+    ("ca-ES", "un quart d'hora abans de nadal",
+     datetime(2026, 12, 24, 23, 45), ""),
+    ("gl-ES", "un cuarto de hora antes do nadal",
+     datetime(2026, 12, 24, 23, 45), ""),
+]
+
+#: Rows the per-language engine answers first in `extract_datetime`.
+QUARTERS_OF_AN_HOUR_IN_THE_LAYER = [
+    ("it-IT", "un quarto d'ora prima di natale",
+     datetime(2026, 12, 24, 23, 45), ""),
+    ("it-IT", "tre quarti d'ora prima di natale",
+     datetime(2026, 12, 24, 23, 15), ""),
+    ("de-DE", "eine viertel Stunde vor Weihnachten",
+     datetime(2026, 12, 24, 23, 45), ""),
+    # chronologia counts its one hour from 09:00; the quarter is 08:45
+    ("es-ES", "recuérdame un cuarto de hora antes de navidad a las 9",
+     datetime(2026, 12, 25, 8, 45), "recuérdame"),
+    # 0.5 x 0.25 hour = 7.5 min before 25 Dec 00:00
+    ("en-US", "half a quarter of an hour before christmas",
+     datetime(2026, 12, 24, 23, 52, 30), ""),
+    # 0.5 x 2 weeks = 7 days; 0.25 x 4 days = 1 day
+    ("en-US", "half of two weeks before christmas",
+     datetime(2026, 12, 18, 0, 0), ""),
+    ("es-ES", "un cuarto de cuatro días antes de navidad",
+     datetime(2026, 12, 24, 0, 0), ""),
+    # "ein" is one, "paar" is two: 25 Dec + 2 days
+    ("de-DE", "ein paar Tage nach Weihnachten", datetime(2026, 12, 27, 0, 0),
+     ""),
+]
+
+
+def test_a_default_time_fills_a_whole_day_offset_with_a_left_over_count():
+    """Half of two weeks is 7 days, a day and no time: 18 Dec at 09:00."""
+    got = extract_datetime("half of two weeks before christmas", "en-US", REF,
+                           default_time=time(9, 0))
+    assert got == (datetime(2026, 12, 18, 9, 0), "")
+
+
+@pytest.mark.parametrize(
+    "lang,utterance,expected,kept",
+    QUARTERS_OF_AN_HOUR + QUARTERS_OF_AN_HOUR_IN_THE_LAYER)
+def test_a_count_left_over_before_the_unit_is_part_of_the_offset(
+        lang, utterance, expected, kept):
+    assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
+
+
+@pytest.mark.parametrize("lang,utterance,expected,kept", QUARTERS_OF_AN_HOUR)
+def test_extract_datetime_reads_a_quarter_of_an_hour(lang, utterance,
+                                                     expected, kept):
+    assert extract_datetime(utterance, lang, REF) == (expected, kept)
+
+
+@pytest.mark.parametrize("lang,utterance,kept", [
+    # "kvart" is a quantifier of 0.25 with no unit: a quarter of what
+    ("sv-SE", "en kvart före jul", "en kvart före"),
+    # a whole number left over is no part of the count "an hour"
+    ("en-US", "remind me 2 an hour before christmas",
+     "remind me 2 an hour before"),
+    # "en kvart" is one number of 0.25, and "kvart" is counted again
+    ("sv-SE", "en kvart timme före jul", "en kvart timme före"),
+    # chronologia reads "media hora" and leaves "un cuarto y"
+    ("es-ES", "un cuarto y media hora antes de navidad",
+     "un cuarto y media hora antes de"),
+])
+def test_a_count_with_no_unit_or_fraction_is_handed_back(lang, utterance,
+                                                         kept):
+    assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
+
+
+def test_extract_datetime_hands_back_a_count_with_no_unit():
+    got = extract_datetime("en kvart före jul", "sv-SE", REF)
+    assert got == (CHRISTMAS, "en kvart före")
+
+
+#: Easter 2027 is 28 March, the day the EU clocks go forward at 01:00 UTC.
+#: Lisbon: Easter starts 00:00 WET = 00:00 UTC; one hour later is 01:00 UTC,
+#: which Lisbon writes 02:00 WEST. Berlin: Easter starts 00:00 CET =
+#: 23:00 UTC on 27 March; one hour later is 01:00 CET, two hours later is
+#: 01:00 UTC, which Berlin writes 03:00 CEST.
+OFFSETS_ACROSS_THE_SPRING_FORWARD = [
+    ("Europe/Lisbon", "en-US", "an hour after easter",
+     "2027-03-28T02:00:00+01:00"),
+    ("Europe/Lisbon", "en-US", "two hours after easter",
+     "2027-03-28T03:00:00+01:00"),
+    ("Europe/Lisbon", "en-US", "an hour before easter",
+     "2027-03-27T23:00:00+00:00"),
+    ("Europe/Berlin", "de-DE", "eine Stunde nach Ostern",
+     "2027-03-28T01:00:00+01:00"),
+    ("Europe/Berlin", "de-DE", "zwei Stunden nach Ostern",
+     "2027-03-28T03:00:00+02:00"),
+]
+
+
+@pytest.mark.parametrize("zone,lang,utterance,expected",
+                         OFFSETS_ACROSS_THE_SPRING_FORWARD)
+def test_an_offset_is_elapsed_time_across_a_clock_change(zone, lang,
+                                                          utterance, expected):
+    anchor = REF.replace(tzinfo=ZoneInfo(zone))
+    got = extract_holiday_span(utterance, lang, anchor)
+    assert got[0].isoformat() == expected and got[1] == ""
+
+
+def test_extract_datetime_counts_elapsed_time_across_a_clock_change():
+    anchor = REF.replace(tzinfo=ZoneInfo("Europe/Lisbon"))
+    got = extract_datetime("uma hora depois da páscoa", "pt-PT", anchor)
+    assert got[0].isoformat() == "2027-03-28T02:00:00+01:00"
+    assert got[1] == ""
+
+
 def test_another_date_word_does_not_replace_the_holiday():
     """A parse of the whole text reads "remind me friday about good friday"
     as Friday 2 October with "good friday" left over. That date is not the

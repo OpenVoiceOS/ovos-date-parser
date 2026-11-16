@@ -135,7 +135,7 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
 
     def test_day_after_christmas_stays_holiday_relative(self):
         self.assertEqual(_dt("der Tag nach Weihnachten"),
-                         datetime(2026, 12, 25))
+                         datetime(2026, 12, 26))
 
     def test_after_noon(self):
         self.assertEqual(_dt("nach dem Mittag"), datetime(2026, 10, 17, 12))

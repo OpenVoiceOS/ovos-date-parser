@@ -4,8 +4,10 @@ The per-language engines split on whitespace, so "8," reached them as a word
 that is not a clock. Each row names the date and leftover text the sentence
 reads to once the punctuation is a word of its own.
 """
+import itertools
 import unittest
-from datetime import datetime
+from datetime import date, datetime, timedelta
+from unittest import mock
 
 import ovos_date_parser as _odp
 
@@ -86,6 +88,101 @@ class TestPunctuationAfterExpression(unittest.TestCase):
                 self.assertEqual(found[0], moment)
                 if leftover is not None:
                     self.assertEqual(found[1], leftover)
+
+
+class TestCommaBeforePartOfDay(unittest.TestCase):
+    """A comma before the part of the day keeps the evening hour."""
+
+    EXACT = [
+        ("es-es", "despiértame a las 9, de la noche, por favor",
+         datetime(2026, 1, 5, 21, 0)),
+        ("es-es", "recuérdame llamar a las nueve, de la noche",
+         datetime(2026, 1, 5, 21, 0)),
+        ("es-es", "mañana a las 9, de la noche", datetime(2026, 1, 6, 21, 0)),
+        ("es-es", "el martes a las 9, de la noche",
+         datetime(2026, 1, 6, 21, 0)),
+        ("es-es", "a las 9, esta noche", datetime(2026, 1, 5, 21, 0)),
+        ("es-es", "a las 9, por la noche", datetime(2026, 1, 5, 21, 0)),
+    ]
+    # the engine reads these as 21:00 and 22:00, not 22:00 and 21:00
+    EVENING = [
+        ("es-es", "pon una alarma a las 10, de la noche"),
+        ("ca-es", "a les 9, del vespre"),
+    ]
+
+    def test_exact_evening_hour(self):
+        for lang, text, moment in self.EXACT:
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(read(lang, text)[0], moment)
+
+    def test_evening_not_morning(self):
+        for lang, text in self.EVENING:
+            with self.subTest(lang=lang, text=text):
+                moment = read(lang, text)[0]
+                self.assertEqual(moment.date(), date(2026, 1, 5))
+                self.assertGreaterEqual(moment.hour, 21)
+
+
+class TestSeparatedReadingIsChosenWithCare(unittest.TestCase):
+    def test_a_lone_comma_does_not_move_the_weekday(self):
+        # gl reads "o mercores, pasado mañá" as Wednesday only while the
+        # comma stays glued; apart, the engine moves it two days on
+        self.assertEqual(read("gl-es", "o mercores, pasado mañá")[0],
+                         datetime(2026, 1, 7))
+
+    def test_a_clause_that_disagrees_keeps_the_text_as_written(self):
+        # "klokken tre" alone is 03:00; with a word after it the engine
+        # drops the time, so the separated reading is not taken
+        self.assertIsNone(read("da", "klokken tre, tak"))
+
+    def test_an_abbreviation_dot_is_not_a_sentence_end(self):
+        # "dec ." is read as December 1st and loses the "3"
+        found = read("en-us", "remind me on dec. 3 thanks")
+        self.assertTrue(found is None or found[0].date() != date(2026, 12, 1))
+
+
+class TestChoiceBetweenReadings(unittest.TestCase):
+    """The engine is scripted, so each case isolates one rule."""
+
+    def choose(self, written, separated, clause=None):
+        readings = {"a, b": written, "a , b": separated, "a": clause}
+        with mock.patch.object(_odp, "_extract_datetime_legacy",
+                               lambda text, *args: readings[text]):
+            return _odp._extract_datetime_engine("a, b", "en-us", ANCHOR)
+
+    def test_separated_reading_adds_the_clock_to_the_same_date(self):
+        found = self.choose([datetime(2026, 1, 6), "w x"],
+                            [datetime(2026, 1, 6, 8), "w , x"])
+        self.assertEqual(found, [datetime(2026, 1, 6, 8), "w x"])
+
+    def test_separated_reading_on_another_date_is_refused(self):
+        written = [datetime(2026, 1, 6), "w x"]
+        found = self.choose(written, [datetime(2026, 1, 7, 8), "w x"])
+        self.assertEqual(found, written)
+
+    def test_a_reading_that_gains_nothing_keeps_the_written_text(self):
+        written = [datetime(2026, 1, 6), "w; x"]
+        found = self.choose(written, [datetime(2026, 1, 6), "w x"])
+        self.assertEqual(found, written)
+
+    def test_separated_reading_is_taken_where_nothing_was_read(self):
+        found = self.choose(None, [datetime(2026, 1, 6, 8), "w , x"])
+        self.assertEqual(found, [datetime(2026, 1, 6, 8), "w x"])
+
+    def test_clause_that_disagrees_refuses_the_separated_reading(self):
+        self.assertIsNone(self.choose(None, [datetime(2026, 1, 6), "x"],
+                                      clause=[datetime(2026, 1, 7, 3), ""]))
+
+
+class TestOneNowForBothReadings(unittest.TestCase):
+    def test_relative_time_without_anchor(self):
+        clock = (datetime(2026, 1, 5, 6, minute) for minute in itertools.count())
+        with mock.patch.object(_odp, "now_local", lambda: next(clock)), \
+                mock.patch("ovos_date_parser.dates_en.now_local",
+                           lambda: next(clock)):
+            found = _odp.extract_datetime("(in 5 minutes), please", "en-us")
+        self.assertEqual(found[0], datetime(2026, 1, 5, 6, 0)
+                         + timedelta(minutes=5))
 
 
 class TestPunctuationInsideExpression(unittest.TestCase):

@@ -845,13 +845,16 @@ def _extract_datetime_engine(
 
     A text with punctuation written against a word is read twice, as written
     and with the punctuation separated ("a las 8, por favor" as "a las 8 ,
-    por favor"). The separated reading is kept when it leaves fewer words
-    over and agrees with the reading of the words before the first mark. A
-    tie keeps the text as written, because some engines use a glued comma.
+    por favor"). The separated reading replaces a reading as written only
+    where that one finds nothing, or finds the same date without a time of
+    day. It must also agree with the reading of the words before the first
+    mark. Elsewhere the text as written stands, because some engines use a
+    glued comma and others take the words after a lone one as a new phrase.
     """
     if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
         return _extract_datetime_chronologia(text, lang, anchorDate,
                                              default_time)
+    anchorDate = anchorDate or now_local()
     found = _extract_datetime_legacy(text, lang, anchorDate, default_time)
     spaced = _separate_punctuation(text)
     if spaced == text:
@@ -859,6 +862,8 @@ def _extract_datetime_engine(
     separated = _extract_datetime_legacy(spaced, lang, anchorDate,
                                          default_time)
     if separated is None:
+        return found
+    if found is not None and not _adds_clock(found[0], separated[0]):
         return found
     # The engines read a lone "," as a word that ends a phrase, which the
     # words before the first mark confirm or deny.
@@ -869,9 +874,13 @@ def _extract_datetime_engine(
         if lead is not None and lead[0] != separated[0]:
             return found
     words = [word for word in separated[1].split() if _is_word(word)]
-    if found is None or len(words) < len(found[1].split()):
-        return [separated[0], " ".join(words)]
-    return found
+    return [separated[0], " ".join(words)]
+
+
+def _adds_clock(written: datetime, separated: datetime) -> bool:
+    """True when ``separated`` is ``written`` with a time of day added."""
+    return (written.time() == time(0) and separated.time() != time(0)
+            and written.date() == separated.date())
 
 
 def _is_word(token: str) -> bool:

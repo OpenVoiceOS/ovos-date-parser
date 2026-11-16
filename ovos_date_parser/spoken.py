@@ -10,6 +10,9 @@ value that is out of range, or a date that does not exist, raises ValueError.
 import calendar
 from typing import Optional
 
+from ovos_date_parser.dates_it import (
+    spoken_date_it, spoken_time_it, spoken_year_it
+)
 from ovos_date_parser.dates_pt import (
     portuguese_variant, spoken_date_pt, spoken_time_pt, spoken_year_pt
 )
@@ -27,6 +30,15 @@ class UnsupportedForm(NotImplementedError):
 
 def _language(lang: str) -> str:
     return lang.lower().replace("_", "-").split("-")[0]
+
+
+def _refuse_it(lang: str, form: str, case: Optional[str] = None,
+               declension: Optional[str] = None):
+    """Italian marks no case and no declension."""
+    if case is not None:
+        raise UnsupportedForm(lang, form, f"case {case!r}")
+    if declension is not None:
+        raise UnsupportedForm(lang, form, f"declension {declension!r}")
 
 
 def _check_year(year: int):
@@ -83,6 +95,9 @@ def spoken_date(lang: str, *, day: Optional[int] = None,
             raise UnsupportedForm(lang, "date", f"declension {declension!r}")
         return spoken_date_pt(day, month, year, weekday,
                               variant=portuguese_variant(lang))
+    if _language(lang) == "it":
+        _refuse_it(lang, "date", case=case, declension=declension)
+        return spoken_date_it(day, month, year, weekday)
     raise UnsupportedForm(lang, "date", "this language")
 
 
@@ -122,6 +137,15 @@ def spoken_time(lang: str, hour: int, minute: int = 0,
             raise UnsupportedForm(lang, "time", detail if second is None
                                   else detail + " with seconds")
         return reading
+    if _language(lang) == "it":
+        _refuse_it(lang, "time", case=case)
+        reading = spoken_time_it(hour, minute, second, clock=clock,
+                                 style=style, period=period)
+        if reading is None:
+            detail = f"the {style} style on the {clock} clock"
+            raise UnsupportedForm(lang, "time", detail if second is None
+                                  else detail + " with seconds")
+        return reading
     raise UnsupportedForm(lang, "time", "this language")
 
 
@@ -138,4 +162,9 @@ def spoken_year(lang: str, year: int, *, ordinal: bool = False,
         if declension is not None:
             raise UnsupportedForm(lang, "year", f"declension {declension!r}")
         return spoken_year_pt(year, variant=portuguese_variant(lang))
+    if _language(lang) == "it":
+        if ordinal:
+            raise UnsupportedForm(lang, "year", "an ordinal year")
+        _refuse_it(lang, "year", case=case, declension=declension)
+        return spoken_year_it(year)
     raise UnsupportedForm(lang, "year", "this language")

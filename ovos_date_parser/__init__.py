@@ -889,41 +889,53 @@ def _extract_datetime_engine(
 # Engines whose own default "now" is a naive datetime.
 _NAIVE_NOW = frozenset({"eu", "id", "ms", "tr", "kab"})
 
+# The hour that a singular preposition takes: "a la una", "à uma", "á unha".
+_ONE = ("una", "uma", "unha", "un", "1")
+
 # Words that put a clock time after them, by language, from each engine's own
-# vocabulary. A preposition is written as the words that make it up.
+# vocabulary: the words of the preposition, and the numbers it may precede
+# when the engine allows only some.
 _CLOCK_PREPOSITIONS = {
-    "en": [("at",)],  # dates_en.py:168 markers, :615
-    "es": [("a", "las"), ("a", "la")],  # dates_es.py:84, :97
-    "gl": [("ás",), ("á",), ("ao",)],  # dates_gl.py:98, :286, :293
-    "ca": [("a", "les"), ("a", "la"), ("a", "l'")],  # dates_ca.py:564, :655
-    "ast": [("a", "les"), ("a", "la")],  # dates_ast.py:79, :284
-    "an": [("a", "las")],  # dates_an.py:229
-    "oc": [("a", "las")],  # dates_oc.py:85, :87
-    "pt": [("às",), ("à",)],  # dates_pt.py:9, :11, :34
-    "fr": [("à",)],  # dates_fr.py:14, :170
-    "de": [("um",)],  # dates_de.py:134
-    "it": [("alle",), ("alla",), ("all'",), ("a",)],  # dates_it.py:149-153
-    "nl": [("om",)],  # dates_nl.py:85, :130
-    "fy": [("om",)],  # dates_fy.py:135, :137
-    "da": [("klokken",)],  # dates_da.py:209
-    "nb": [("klokka",), ("klokken",)],  # dates_nb.py:175
-    "nn": [("klokka",), ("klokken",)],  # dates_nn.py:59, :177
-    "ru": [("в",), ("во",)],  # dates_ru.py:391, :821
-    "uk": [("о",), ("у",), ("в",)],  # dates_uk.py:308, :762
-    "pl": [("o",), ("w",)],  # dates_pl.py:579
-    "ro": [("la", "ora")],  # dates_ro.py:107, :110
-    "bg": [("в",), ("във",)],  # dates_bg.py:170
-    "sl": [("ob",)],  # dates_sl.py:175, :188
-    "el": [("στις",), ("στη",)],  # dates_el.py:109, :176
-    "et": [("kell",)],  # dates_et.py:6, :7
-    "id": [("pukul",)],  # dates_id.py:16, :17
-    "ms": [("pukul",)],  # dates_ms.py:16
-    "tr": [("saat",)],  # dates_tr.py:16, :23
-    "az": [("saat",)],  # dates_az.py:191
+    "en": [(("at",), None)],  # dates_en.py:168 markers, :615
+    "es": [(("a", "las"), None),  # dates_es.py:84
+           (("a", "la"), _ONE)],  # dates_es.py:97 "a la una, a las dos"
+    "gl": [(("ás",), None),  # dates_gl.py:98, :286 "ás catro"
+           (("á",), _ONE)],  # dates_gl.py:98, :286 "á unha"
+    "ca": [(("a", "les"), None)],  # dates_ca.py:655
+    "ast": [(("a", "les"), None),  # dates_ast.py:79, :284
+            (("a", "la"), _ONE)],  # dates_ast.py:284 "a la una"
+    "an": [(("a", "las"), None)],  # dates_an.py:229
+    "oc": [(("a", "las"), None)],  # dates_oc.py:85, :87
+    "pt": [(("às",), None),  # dates_pt.py:270-275 "às duas"
+           (("à",), _ONE)],  # dates_pt.py:270-275 "à uma"
+    "fr": [(("à",), None)],  # dates_fr.py:14, :170
+    "de": [(("um",), None)],  # dates_de.py:134
+    "it": [(("alle",), None),  # dates_it.py:149-153
+           (("alla",), _ONE),  # dates_it.py:149-153
+           (("all'",), _ONE),  # contraction of "alla" before "una"
+           (("a",), None)],  # dates_it.py:150
+    "nl": [(("om",), None)],  # dates_nl.py:85, :130
+    "fy": [(("om",), None)],  # dates_fy.py:135, :137
+    "da": [(("klokken",), None)],  # dates_da.py:209
+    "nb": [(("klokka",), None), (("klokken",), None)],  # dates_nb.py:175
+    "nn": [(("klokka",), None), (("klokken",), None)],  # dates_nn.py:59, :177
+    "ru": [(("в",), None), (("во",), None)],  # dates_ru.py:391, :821
+    "uk": [(("о",), None), (("у",), None), (("в",), None)],  # dates_uk.py:308
+    "pl": [(("o",), None), (("w",), None)],  # dates_pl.py:579
+    "ro": [(("la", "ora"), None)],  # dates_ro.py:107, :110
+    "bg": [(("в",), None), (("във",), None)],  # dates_bg.py:170
+    "sl": [(("ob",), None)],  # dates_sl.py:175, :188
+    "el": [(("στις",), None)],  # dates_el.py:109, :176
+    "et": [(("kell",), None)],  # dates_et.py:6, :7
+    "id": [(("pukul",), None)],  # dates_id.py:16, :17
+    "ms": [(("pukul",), None)],  # dates_ms.py:16
+    "tr": [(("saat",), None)],  # dates_tr.py:16, :23
+    "az": [(("saat",), None)],  # dates_az.py:191
 }
 
-# A clock written as one token: an hour with "h", or hours and minutes.
-_CLOCK_FORMAT = re.compile(r"\d{1,2}h(\d{2})?|\d{1,2}:\d{2}")
+# A clock written as one token: hours and minutes. A bare "8h" is also a
+# duration, so it counts only after a clock preposition.
+_CLOCK_FORMAT = re.compile(r"\d{1,2}h\d{2}|\d{1,2}:\d{2}")
 
 
 def _consumed(words: List[str], leftover: str) -> set:
@@ -949,7 +961,7 @@ def _holds_clock(spaced: str, lang: str, leftover: str) -> bool:
 
     A clock phrase is a number, digit or word, right after a clock
     preposition of the language ("a las 8", "ás oito"), or a token written
-    as a clock ("8h", "8h30", "8:30"). A lone number is not one, nor are
+    as hours and minutes ("8h30", "8:30"). A lone number is not one, nor are
     labels such as "4B" and "2.3": es, gl and ca read a number that ends a
     phrase as an hour, and a lone comma ends the phrase.
     """
@@ -967,12 +979,14 @@ def _holds_clock(spaced: str, lang: str, leftover: str) -> bool:
         if _CLOCK_FORMAT.fullmatch(words[position].lower()):
             return True
     for start in range(len(parts)):
-        for preposition in _CLOCK_PREPOSITIONS.get(code, ()):
+        for preposition, only in _CLOCK_PREPOSITIONS.get(code, ()):
             end = start + len(preposition)
             if end >= len(parts) or tuple(
                     part for part, _ in parts[start:end]) != preposition:
                 continue
             number, position = parts[end]
+            if only is not None and number not in only:
+                continue
             if position in taken and (number[0].isdigit()
                                       or _is_number_word(number, code)):
                 return True

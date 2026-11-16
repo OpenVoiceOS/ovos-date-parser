@@ -154,6 +154,13 @@ class TestCountBeforeComma(unittest.TestCase):
         ("es-es", "el viernes es el número 7, gracias",
          datetime(2026, 1, 9)),
         ("es-es", "mañana compra 3, por favor", datetime(2026, 1, 6)),
+        ("es-es", "mañana trabajo 8h, gracias", datetime(2026, 1, 6)),
+        ("es-es", "mañana jornada de 8h, gracias", datetime(2026, 1, 6)),
+        ("gl-es", "mañá traballo 8h, grazas", datetime(2026, 1, 6)),
+        ("ca-es", "demà treballo 8h, gràcies", datetime(2026, 1, 6)),
+        ("es-es", "mañana cambia a la 2, gracias", datetime(2026, 1, 6)),
+        ("es-es", "mañana pon la tele a la 5, gracias",
+         datetime(2026, 1, 6)),
         ("es-es", "mañana mesa para cuatro, gracias", datetime(2026, 1, 6)),
         ("es-es", "mañana mesa para 4, gracias", datetime(2026, 1, 6)),
         ("es-es", "el sábado cena para seis, por favor",
@@ -174,6 +181,10 @@ class TestCountBeforeComma(unittest.TestCase):
             with self.subTest(lang=lang, text=text):
                 self.assertEqual(read(lang, text)[0], moment)
 
+    def test_a_duration_with_no_date_is_not_read(self):
+        # "8h" alone is "8 hours"; dev reads nothing in this sentence
+        self.assertIsNone(read("es-es", "trabajo 8h, gracias"))
+
     def test_a_clock_phrase_still_gives_the_hour(self):
         for lang, text, moment in (
                 ("es-es", "despiértame mañana a las 8h, por favor",
@@ -182,7 +193,7 @@ class TestCountBeforeComma(unittest.TestCase):
                  datetime(2026, 1, 6, 8)),
                 ("ca-es", "desperta'm demà a les 9, si us plau",
                  datetime(2026, 1, 6, 9)),
-                ("es-es", "mañana quedamos 8h, gracias",
+                ("es-es", "mañana a las 8h, gracias",
                  datetime(2026, 1, 6, 8))):
             with self.subTest(lang=lang, text=text):
                 self.assertEqual(read(lang, text)[0], moment)
@@ -279,7 +290,12 @@ class TestClockPhrase(unittest.TestCase):
                 ("es-es", "mañana en la sala 4B , por favor",
                  "sala por favor"),
                 ("es-es", "el lunes en el aula 2.3 , vale", "aula vale"),
-                ("ca-es", "demà a l'aula 2.3 , gràcies", "gràcies")):
+                ("ca-es", "demà a l'aula 2.3 , gràcies", "gràcies"),
+                ("es-es", "mañana a las afueras , gracias", "gracias"),
+                ("es-es", "mañana trabajo 8h , gracias", "trabajo gracias"),
+                ("es-es", "mañana cambia a la 2 , gracias",
+                 "cambia gracias"),
+                ("pt-pt", "amanhã vou à 2 , obrigado", "vou obrigado")):
             with self.subTest(text=text):
                 self.assertFalse(_odp._holds_clock(text, lang, leftover))
 
@@ -288,9 +304,11 @@ class TestClockPhrase(unittest.TestCase):
                 ("es-es", "mañana a las 8 , gracias", "gracias"),
                 ("es-es", "mañana a la una , gracias", "gracias"),
                 ("gl-es", "mañá ás oito , grazas", "grazas"),
-                ("ca-es", "demà a l'una , gràcies", "gràcies"),
+                ("it-it", "domani all'una , grazie", "grazie"),
+                ("pt-pt", "amanhã à uma , obrigado", "obrigado"),
                 ("es-es", "mañana a las 8.30 , gracias", "gracias"),
                 ("es-es", "mañana quedamos 8h30 , gracias", "gracias"),
+                ("es-es", "mañana a las 8h , gracias", "gracias"),
                 ("es-es", "mañana quedamos 8:30 , gracias", "gracias")):
             with self.subTest(text=text):
                 self.assertTrue(_odp._holds_clock(text, lang, leftover))

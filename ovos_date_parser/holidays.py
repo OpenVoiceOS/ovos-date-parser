@@ -494,16 +494,11 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
     the text ("10:00" for "10h"), the holiday is read alone.
 
     chronologia moves a holiday by whole days only. An offset that is not a
-    whole number of days is counted here from ``holiday``, the wall-clock
-    reading of the holiday read alone: "an hour before new year" is 23:00
-    on 31 December, and "an hour after christmas" is 01:00 on Christmas
-    Day. With a clock time, chronologia counts the offset from the clock
-    ("an hour before christmas at 9am" is 08:00), and its answer is kept.
-    chronologia moves the clock by whole days only, so an offset in days
-    that is not a whole number of days is counted here from the holiday at
-    that clock: "a day and a half before christmas at 9am" is 21:00 on
-    23 December. A whole-day offset that does not change the date of
-    ``holiday`` is no offset.
+    whole number of days, or whose count starts before the run, is counted
+    here from the holiday and its clock, read without the offset: "an hour
+    before new year" is 23:00 on 31 December, and "at 9am an hour before
+    christmas" is 08:00 on Christmas Day. A whole-day offset that does not
+    change the date of ``holiday`` is no offset.
 
     chronologia can leave the first part of a count over: in "un cuarto de
     hora antes de navidad" it reads "de hora antes de" and leaves "un
@@ -561,6 +556,13 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
         units = {_fold(surface) for surface in spec.units}
         quantifiers = {_fold(word): value
                        for word, value in spec.quantifiers.items()}
+        counting = {token.index for token in trace.tokens
+                    if token.is_number or _fold(token.raw) in quantifiers}
+        if (run[0].index - 1 in clock_tokens & counting
+                and run[0].index not in counting):
+            # the clock took the count: chronologia reads "um 9 Uhr eine
+            # Stunde" as 09:01 and an hour with no count
+            return None
         counts = {token.index: token.value if token.is_number
                   else quantifiers[_fold(token.raw)]
                   for token in trace.tokens
@@ -592,32 +594,29 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
         scale = None
         for value in values:
             scale = value if scale is None else scale * value
-        moment = _in_anchor_zone(result.span.start_datetime, anchor)
         exact = _exact_offset(spec, run, scale)
-        if exact is not None and not clock_read:
-            moment = _moved(holiday, exact, anchor)
-            clock_read = bool((exact.days + exact.rest) % _DAY)
-        elif exact is not None and scale is not None:
-            # chronologia counted the run alone from the clock, on the wall
-            # clock, so the clock is its answer less that run
-            clock = (result.span.start_datetime
-                     - (exact.days + exact.rest) / scale)
-            moment = _moved(clock, exact, anchor)
-        elif exact is not None and exact.in_days:
-            # chronologia moves the clock by whole days only ("a day and a
-            # half before christmas at 9am" by two), so its time of day is
-            # the clock
-            clock = datetime.combine(holiday.date(),
-                                     result.span.start_datetime.time())
-            moment = _moved(clock, exact, anchor)
-        elif exact is None and moment.date() == holiday.date():
+        if exact is not None:
+            # the holiday and its clock, read with the offset blanked out,
+            # and the apostrophe of "un'ora" with it
+            tokens = prefix + run
+            offset = [(token.char_start, after.char_start
+                       if after.index == token.index + 1 else token.char_end)
+                      for token, after
+                      in zip(tokens, tokens[1:] + tokens[-1:])]
+            for begin, end in offset:
+                gap = " " * (end - begin)
+                text = text[:begin] + gap + text[end:]
+                written = written[:begin] + gap + written[end:]
+            alone = _holiday_alone(text, written, lang, anchor, extent)
+            if alone is None:
+                return None
+            wall, remainder, clock_read = alone
+            return (_moved(wall, exact, anchor), remainder,
+                    clock_read or bool((exact.days + exact.rest) % _DAY))
+        moment = _in_anchor_zone(result.span.start_datetime, anchor)
+        if moment.date() == holiday.date():
             return None
-        words = result.remainder.split()
-        if prefix:
-            begin, end = prefix[0].char_start, prefix[-1].char_end
-            words = [word for word, (at, _) in zip(words, kept)
-                     if not begin <= at < end]
-        remainder = _caller_spelling(text, written, " ".join(words))
+        remainder = _caller_spelling(text, written, result.remainder)
     except Exception:
         return None
     if remainder is None:
@@ -676,8 +675,6 @@ class _Offset(NamedTuple):
     days: timedelta
     #: the rest, added as elapsed time
     rest: timedelta
-    #: whether the unit is a day or longer
-    in_days: bool
 
 
 def _moved(wall: datetime, offset: _Offset, anchor: datetime) -> datetime:
@@ -711,8 +708,8 @@ def _exact_offset(spec, run: list, scale: Optional[float]
     moves correctly. Raises ValueError when the run holds a unit shorter
     than a day, or follows a left-over count, with a count this cannot
     read: two units, a weekday, two numbers, both directions, or a
-    left-over whole number with no fraction. The caller then reads the
-    holiday alone.
+    left-over whole number with no fraction. A fraction beside a number in
+    the run raises too. The caller then reads the holiday alone.
     """
     words = [_fold(token.raw) for token in run]
     units = {_fold(surface): unit for surface, unit in spec.units.items()}
@@ -729,6 +726,10 @@ def _exact_offset(spec, run: list, scale: Optional[float]
     after = {_fold(word) for name in ("after", "offset_after")
              for surface in spec.connectors.get(name, ())
              for word in re.findall(r"\w+", surface)} & set(words)
+    if numbers and any(not float(value).is_integer() for value in counts):
+        # a fraction chronologia did not fold into the number: "at 9am half
+        # of two weeks before christmas" is two weeks to it
+        raise ValueError("a fraction this cannot count")
     count = numbers[0] if numbers else counts[-1] if counts else 1
     if (len(lengths) != 1 or lengths[0] is None or len(numbers) > 1
             or bool(before) == bool(after)
@@ -741,10 +742,9 @@ def _exact_offset(spec, run: list, scale: Optional[float]
     offset = lengths[0] * count * (1 if scale is None else scale)
     if not offset % _DAY and scale is None:
         return None
-    in_days = lengths[0] >= _DAY
-    days = _DAY * int(offset / _DAY) if in_days else timedelta()
+    days = _DAY * int(offset / _DAY) if lengths[0] >= _DAY else timedelta()
     sign = -1 if before else 1
-    return _Offset(sign * days, sign * (offset - days), in_days)
+    return _Offset(sign * days, sign * (offset - days))
 
 
 def _engine_read_only_a_clock(written: str, lang: str, anchor: datetime,

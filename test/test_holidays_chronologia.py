@@ -956,6 +956,69 @@ def test_extract_datetime_counts_a_fraction_of_a_day_from_the_clock():
     assert got == (datetime(2027, 3, 27, 21, 0), "")
 
 
+# The offset is counted from the holiday at the clock wherever the clock
+# stands. chronologia reads "at 9am an hour before christmas" as a whole day
+# before, at 09:00. 25 December 09:00 less an hour is 08:00, less 36 hours
+# is 23 December 21:00. Easter Monday 2027 is 29 March: 06:00 less 12 hours
+# is 28 March 18:00, and in Berlin 09:00+02:00 less an hour is 08:00+02:00.
+CLOCK_BEFORE_THE_OFFSET = [
+    ("en-US", "at 9am an hour before christmas",
+     (datetime(2026, 12, 25, 8, 0), "")),
+    ("pt-PT", "às 9 uma hora antes do natal",
+     (datetime(2026, 12, 25, 8, 0), "")),
+    ("es-ES", "a las 9 una hora antes de navidad",
+     (datetime(2026, 12, 25, 8, 0), "")),
+    ("en-US", "at 9am 36 hours before christmas",
+     (datetime(2026, 12, 23, 21, 0), "")),
+    ("en-US", "remind me at 9am an hour before christmas",
+     (datetime(2026, 12, 25, 8, 0), "remind me")),
+    ("en-US", "at 9am a day and a half before christmas",
+     (datetime(2026, 12, 23, 21, 0), "")),
+    # chronologia reads "um 9 Uhr eine" as 09:01 and leaves the hour with
+    # no count, so the holiday is read alone
+    ("de-DE", "um 9 Uhr eine Stunde vor Weihnachten",
+     (datetime(2026, 12, 25, 0, 0), "um 9 Uhr eine Stunde vor")),
+    # chronologia reads "half of two weeks" after a clock as two weeks, so
+    # the holiday is read alone
+    ("en-US", "at 9am half of two weeks before christmas",
+     (datetime(2026, 12, 25, 0, 0), "at 9am half of two weeks before")),
+    # an offset that does not move the date is no offset
+    ("en-US", "0 days before christmas",
+     (datetime(2026, 12, 25, 0, 0), "0 days before")),
+    # chronologia reads "a couple" as "a 2": a whole number is no fraction
+    ("en-US", "a couple hours before christmas",
+     (datetime(2026, 12, 24, 22, 0), "")),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected", CLOCK_BEFORE_THE_OFFSET)
+def test_the_offset_counts_from_a_clock_before_it(lang, utterance, expected):
+    assert extract_holiday_span(utterance, lang, REF) == expected
+
+
+def test_extract_datetime_counts_from_a_clock_before_the_offset():
+    assert extract_datetime("at 6am 12 hours before easter monday", "en-US",
+                            REF) == (datetime(2027, 3, 28, 18, 0), "")
+    assert extract_datetime("às 9 uma hora antes do natal", "pt-PT",
+                            REF) == (datetime(2026, 12, 25, 8, 0), "")
+
+
+def test_a_default_time_does_not_replace_the_clock_of_an_offset():
+    """Easter Monday 2027 is 29 March; seven days before at 09:00 is
+    22 March 09:00."""
+    got = extract_datetime("half of two weeks before easter monday at 9am",
+                           "en-US", REF, default_time=time(18, 0))
+    assert got == (datetime(2027, 3, 22, 9, 0), "")
+
+
+def test_a_clock_before_the_offset_in_a_zone():
+    anchor = REF.replace(tzinfo=ZoneInfo("Europe/Berlin"))
+    got = extract_holiday_span("at 9am an hour before easter monday", "en-US",
+                               anchor)
+    assert got[0].isoformat() == "2027-03-29T08:00:00+02:00"
+    assert got[1] == ""
+
+
 def test_whole_days_with_a_naive_anchor():
     assert extract_holiday_span("ein paar Tage vor Ostermontag", "de-DE",
                                 REF) == (datetime(2027, 3, 27), "")

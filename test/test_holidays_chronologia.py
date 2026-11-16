@@ -793,6 +793,114 @@ def test_extract_datetime_counts_elapsed_time_across_a_clock_change():
     assert got[1] == ""
 
 
+# Whole days move the date on the wall clock, and only the part shorter than
+# a day is elapsed time. Each value is counted by hand. Easter 2027 is
+# 28 March: Lisbon goes from +00:00 to +01:00 at 01:00 that day, Berlin from
+# +01:00 to +02:00 at 02:00. On 31 October 2027 Lisbon goes back from +01:00
+# to +00:00 at 02:00, Berlin from +02:00 to +01:00 at 03:00. Halloween is
+# 31 October, All Saints 1 November, Remembrance Day 11 November and
+# St Patrick's Day 17 March. "ein paar Tage" is two days and "half of two
+# weeks" is seven days.
+AUTUMN_REF = datetime(2027, 9, 25, 12, 0, 0)
+DAYS_ACROSS_A_CLOCK_CHANGE = [
+    # spring: the Sunday has 23 hours
+    (REF, "Europe/Berlin", "de-DE", "ein paar Tage vor Ostermontag",
+     "2027-03-27T00:00:00+01:00"),
+    (REF, "Europe/Berlin", "de-DE", "ein paar Tage nach Ostern",
+     "2027-03-30T00:00:00+02:00"),
+    (REF, "Europe/Lisbon", "en-GB", "half of two weeks before easter monday",
+     "2027-03-22T00:00:00+00:00"),
+    (REF, "Europe/Lisbon", "en-GB", "half of two weeks after good friday",
+     "2027-04-02T00:00:00+01:00"),
+    # autumn: the Sunday has 25 hours
+    (AUTUMN_REF, "Europe/Berlin", "de-DE", "ein paar Tage nach Halloween",
+     "2027-11-02T00:00:00+01:00"),
+    (AUTUMN_REF, "Europe/Berlin", "de-DE", "ein paar Tage vor Allerheiligen",
+     "2027-10-30T00:00:00+02:00"),
+    (AUTUMN_REF, "Europe/Lisbon", "en-GB", "half of two weeks after halloween",
+     "2027-11-07T00:00:00+00:00"),
+    # whole days on the wall clock, then 12 hours of elapsed time
+    (REF, "Europe/Berlin", "en-GB", "a day and a half after easter",
+     "2027-03-29T12:00:00+02:00"),
+    (REF, "Europe/Berlin", "de-DE", "eineinhalb Tage nach Ostern",
+     "2027-03-29T12:00:00+02:00"),
+    (REF, "Europe/Lisbon", "en-GB", "a day and a half before easter monday",
+     "2027-03-27T12:00:00+00:00"),
+    (REF, "Europe/Lisbon", "en-GB", "two and a half days before easter monday",
+     "2027-03-26T12:00:00+00:00"),
+    (REF, "Europe/Lisbon", "en-GB", "1.5 days after easter",
+     "2027-03-29T12:00:00+01:00"),
+    (AUTUMN_REF, "Europe/Lisbon", "en-GB", "a day and a half after halloween",
+     "2027-11-01T12:00:00+00:00"),
+    (AUTUMN_REF, "Europe/Berlin", "de-DE", "eineinhalb Tage nach Halloween",
+     "2027-11-01T12:00:00+01:00"),
+    # a clock time: chronologia counts "two weeks" from the clock, and the
+    # seven days back from that cross the clock change
+    (REF, "Europe/Lisbon", "en-GB",
+     "half of two weeks after st patrick's day at 9am",
+     "2027-03-24T09:00:00+00:00"),
+    (AUTUMN_REF, "Europe/Berlin", "en-GB",
+     "half of two weeks before remembrance day at 9am",
+     "2027-11-04T09:00:00+01:00"),
+    # controls: hours, and half a day, are elapsed time
+    (REF, "Europe/Lisbon", "en-GB", "36 hours after easter",
+     "2027-03-29T13:00:00+01:00"),
+    (REF, "Europe/Berlin", "en-GB", "half a day after easter",
+     "2027-03-28T13:00:00+02:00"),
+    (AUTUMN_REF, "Europe/Lisbon", "en-GB", "two hours after halloween",
+     "2027-10-31T01:00:00+00:00"),
+    (AUTUMN_REF, "Europe/Lisbon", "en-GB", "a day and a half before halloween",
+     "2027-10-29T12:00:00+01:00"),
+]
+
+
+@pytest.mark.parametrize("ref,zone,lang,utterance,expected",
+                         DAYS_ACROSS_A_CLOCK_CHANGE)
+def test_whole_days_move_the_wall_clock_across_a_clock_change(
+        ref, zone, lang, utterance, expected):
+    anchor = ref.replace(tzinfo=ZoneInfo(zone))
+    got = extract_holiday_span(utterance, lang, anchor)
+    assert got[0].isoformat() == expected and got[1] == ""
+
+
+def test_extract_datetime_moves_whole_days_on_the_wall_clock():
+    anchor = REF.replace(tzinfo=ZoneInfo("Europe/Berlin"))
+    got = extract_datetime("ein paar Tage vor Ostermontag", "de-DE", anchor)
+    assert got[0].isoformat() == "2027-03-27T00:00:00+01:00"
+    assert got[1] == ""
+    got = extract_datetime("ein paar Tage vor Ostermontag", "de-DE", anchor,
+                           default_time=time(9, 0))
+    assert got[0].isoformat() == "2027-03-27T09:00:00+01:00"
+
+
+# Beirut goes from +02:00 to +03:00 at 00:00 on the last Sunday of March,
+# which in 2027 is Easter Day, so that day starts at 01:00. "zwei Tage nach
+# Ostern", which chronologia moves itself, is 30 March 00:00.
+DAYS_FROM_A_DAY_WITH_NO_MIDNIGHT = [
+    ("de-DE", "ein paar Tage nach Ostern", "2027-03-30T00:00:00+03:00"),
+    ("de-DE", "zwei Tage nach Ostern", "2027-03-30T00:00:00+03:00"),
+    ("en-GB", "a day and a half after easter", "2027-03-29T12:00:00+03:00"),
+    ("en-GB", "a day and a half before easter", "2027-03-26T12:00:00+02:00"),
+    ("en-GB", "an hour after easter", "2027-03-28T02:00:00+03:00"),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected",
+                         DAYS_FROM_A_DAY_WITH_NO_MIDNIGHT)
+def test_whole_days_count_from_the_holidays_wall_clock(lang, utterance,
+                                                       expected):
+    anchor = REF.replace(tzinfo=ZoneInfo("Asia/Beirut"))
+    got = extract_holiday_span(utterance, lang, anchor)
+    assert got[0].isoformat() == expected and got[1] == ""
+
+
+def test_whole_days_with_a_naive_anchor():
+    assert extract_holiday_span("ein paar Tage vor Ostermontag", "de-DE",
+                                REF) == (datetime(2027, 3, 27), "")
+    assert extract_holiday_span("a day and a half after easter", "en-GB",
+                                REF) == (datetime(2027, 3, 29, 12), "")
+
+
 def test_another_date_word_does_not_replace_the_holiday():
     """A parse of the whole text reads "remind me friday about good friday"
     as Friday 2 October with "good friday" left over. That date is not the

@@ -415,8 +415,11 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     alone = _holiday_alone(text, written, lang, anchor, extent)
     if alone is None:
         return None
-    moved = _offset_answer(text, written, lang, anchor, extent, alone[0])
-    return moved if moved is not None else alone
+    start, remainder, clock_read = alone
+    moved = _offset_answer(text, written, lang, anchor, extent, start)
+    if moved is not None:
+        return moved
+    return _in_anchor_zone(start, anchor), remainder, clock_read
 
 
 def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
@@ -424,6 +427,7 @@ def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
                    ) -> Optional[Tuple[datetime, str, bool]]:
     """The holiday read from its own characters, with a clock beside it.
 
+    The time is the wall-clock reading chronologia gives, with no zone.
     Every word outside the holiday phrase and the clock stays in the
     remainder, so an offset this does not read is handed back to the caller.
     """
@@ -465,7 +469,7 @@ def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
     for begin, end in sorted(cut, reverse=True):
         remainder = remainder[:begin] + " " + remainder[end:]
     remainder = re.sub(r"\s{2,}", " ", remainder)
-    return _in_anchor_zone(start, anchor), remainder.strip(), clock_read
+    return start, remainder.strip(), clock_read
 
 
 def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
@@ -490,12 +494,13 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
     the text ("10:00" for "10h"), the holiday is read alone.
 
     chronologia moves a holiday by whole days only. An offset that is not a
-    whole number of days is counted here from ``holiday``, the holiday read
-    alone: "an hour before new year" is 23:00 on 31 December, and "an hour
-    after christmas" is 01:00 on Christmas Day. With a clock time,
-    chronologia counts the offset from the clock ("an hour before christmas
-    at 9am" is 08:00), and its answer is kept. A whole-day offset that does
-    not change the date of ``holiday`` is no offset.
+    whole number of days is counted here from ``holiday``, the wall-clock
+    reading of the holiday read alone: "an hour before new year" is 23:00
+    on 31 December, and "an hour after christmas" is 01:00 on Christmas
+    Day. With a clock time, chronologia counts the offset from the clock
+    ("an hour before christmas at 9am" is 08:00), and its answer is kept. A
+    whole-day offset that does not change the date of ``holiday`` is no
+    offset.
 
     chronologia can leave the first part of a count over: in "un cuarto de
     hora antes de navidad" it reads "de hora antes de" and leaves "un
@@ -506,10 +511,13 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
     mean that chronologia read only part of the offset ("two days and three
     hours", "un cuarto y media hora"), and the holiday is read alone.
 
-    The offset is added as elapsed time. When the anchor has a time zone,
-    "an hour after easter" on a day the clocks go forward at 01:00 is the
-    instant one hour after the holiday starts, which the zone writes as
-    02:00.
+    Whole days and weeks move the date on the wall clock, and the rest of
+    the offset is elapsed time. When the anchor has a time zone, "ein paar
+    Tage vor Ostermontag" is 00:00 on the Saturday before, although that
+    Sunday has 23 hours. "an hour after easter" on a day the clocks go
+    forward at 01:00 is the instant one hour after the holiday starts, which
+    the zone writes as 02:00. "a day and a half after easter" is the next
+    day at 00:00 and then 12 hours.
     """
     try:
         from chronologia import explain, extract_timespan
@@ -584,11 +592,14 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
         moment = _in_anchor_zone(result.span.start_datetime, anchor)
         exact = _exact_offset(spec, run, scale)
         if exact is not None and not clock_read:
-            moment = _elapsed(holiday, exact)
-            clock_read = bool(exact % _DAY)
+            moment = _moved(holiday, *exact, anchor)
+            clock_read = bool(sum(exact, timedelta()) % _DAY)
         elif exact is not None and scale is not None:
-            # chronologia counted the run alone from the clock
-            moment = _elapsed(moment, exact - exact / scale)
+            # chronologia counted the run alone from the clock, on the wall
+            # clock, so the clock is its answer less that run
+            clock = (result.span.start_datetime
+                     - sum(exact, timedelta()) / scale)
+            moment = _moved(clock, *exact, anchor)
         elif exact is None and moment.date() == holiday.date():
             return None
         words = result.remainder.split()
@@ -649,15 +660,18 @@ def _is_counted_offset(spec, run: list) -> bool:
             or any(word in units and word not in plural for word in words))
 
 
-def _elapsed(moment: datetime, offset: timedelta) -> datetime:
-    """``moment`` moved by ``offset`` of elapsed time, in its own zone."""
+def _moved(wall: datetime, days: timedelta, rest: timedelta,
+           anchor: datetime) -> datetime:
+    """The wall-clock reading ``wall`` moved ``days`` on the wall clock and
+    then ``rest`` of elapsed time, as an instant in ``anchor``'s zone."""
+    moment = _in_anchor_zone(wall + days, anchor)
     if moment.tzinfo is None:
-        return moment + offset
-    return (moment.astimezone(timezone.utc) + offset).astimezone(moment.tzinfo)
+        return moment + rest
+    return (moment.astimezone(timezone.utc) + rest).astimezone(moment.tzinfo)
 
 
 def _exact_offset(spec, run: list, scale: Optional[float]
-                  ) -> Optional[timedelta]:
+                  ) -> Optional[Tuple[timedelta, timedelta]]:
     """The signed offset to count here rather than take from chronologia.
 
     That is an offset that is not a whole number of days, or one whose
@@ -669,12 +683,15 @@ def _exact_offset(spec, run: list, scale: Optional[float]
     1 x 0.25 x 1 hour, "ein paar Tage" is 1 x 2 days). A whole number other
     than one needs a fraction in the count: "2 an hour" is no count.
 
-    Returns None for a whole number of days, a weekday, or a unit with no
-    fixed length, which chronologia moves correctly. Raises ValueError when
-    the run holds a unit shorter than a day, or follows a left-over count,
-    with a count this cannot read: two units, a weekday, two numbers, both
-    directions, or a left-over whole number with no fraction. The caller then
-    reads the holiday alone.
+    Returns the whole days of a unit of a day or longer, and the rest of the
+    offset as elapsed time: "a day and a half" is one day and 12 hours,
+    "36 hours" is no days and 36 hours. Returns None for a whole number of
+    days, a weekday, or a unit with no fixed length, which chronologia
+    moves correctly. Raises ValueError when the run holds a unit shorter
+    than a day, or follows a left-over count, with a count this cannot
+    read: two units, a weekday, two numbers, both directions, or a
+    left-over whole number with no fraction. The caller then reads the
+    holiday alone.
     """
     words = [_fold(token.raw) for token in run]
     units = {_fold(surface): unit for surface, unit in spec.units.items()}
@@ -703,7 +720,9 @@ def _exact_offset(spec, run: list, scale: Optional[float]
     offset = lengths[0] * count * (1 if scale is None else scale)
     if not offset % _DAY and scale is None:
         return None
-    return -offset if before else offset
+    days = _DAY * int(offset / _DAY) if lengths[0] >= _DAY else timedelta()
+    sign = -1 if before else 1
+    return sign * days, sign * (offset - days)
 
 
 def _engine_read_only_a_clock(written: str, lang: str, anchor: datetime,

@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 from datetime import datetime, timedelta
 
 from ovos_config.locale import get_default_tz as default_timezone
@@ -173,11 +174,14 @@ class TestDurationOC(unittest.TestCase):
         self.assertEqual(rest, "met un temporizador de")
 
     def test_nonstandard_units(self):
-        from ovos_date_parser.duration import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
-        self.assertEqual(extract_duration("1 an"),
-                         (timedelta(days=DAYS_IN_1_YEAR), ""))
-        self.assertEqual(extract_duration("2 mes"),
-                         (timedelta(days=2 * DAYS_IN_1_MONTH), ""))
+        # counted from 2017-06-27: a year ends 365 days on, two months
+        # (27 July, 27 August) 30 + 31 = 61 days on
+        with mock.patch.object(_odp, "now_local",
+                               return_value=datetime(2017, 6, 27, 13, 4)):
+            self.assertEqual(extract_duration("1 an"),
+                             (timedelta(days=365), ""))
+            self.assertEqual(extract_duration("2 mes"),
+                             (timedelta(days=61), ""))
 
     def test_no_duration(self):
         duration, rest = extract_duration("adiu amics")

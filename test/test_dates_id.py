@@ -93,7 +93,7 @@ class TestAdversarialId(unittest.TestCase):
         self.assertEqual(extract_duration("jam", "id"), (None, "jam"))
 
     def test_number_without_unit(self):
-        self.assertEqual(extract_duration("lima", "id"), (None, "5"))
+        self.assertEqual(extract_duration("lima", "id"), (None, "lima"))
 
     def test_uses_indonesian_not_malay_units(self):
         # "detik"/"menit" are Indonesian; Malay "minit" must NOT match here

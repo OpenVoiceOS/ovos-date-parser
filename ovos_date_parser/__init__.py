@@ -52,6 +52,7 @@ from ovos_date_parser.eras import (
 # timeline, named-period and radiocarbon-calibration facilities alongside the
 # established date-parsing API.
 from chronologia import TIMELINES, PERIODS, calibrate_c14, DAY_PARTS
+from chronologia import extract_duration as _chronologia_extract_duration
 from ovos_date_parser.duration import (
     DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
 )
@@ -355,6 +356,34 @@ def nice_duration(
     return nice_duration_generic(lang, duration, speech)
 
 
+#: Locales whose ``extract_duration`` is answered by chronologia rather than
+#: by this package's own reader.
+#:
+#: A locale joins the list when chronologia reads every duration the legacy
+#: reader reads correctly. The set is separate from ``CHRONOLOGIA_LOCALES``:
+#: a locale can route its durations while its dates stay with the legacy
+#: extractor. A month or a year is a calendar length counted from now, not the
+#: mean length the legacy readers use.
+CHRONOLOGIA_DURATION_LOCALES = frozenset({
+    "an", "ast", "bg", "ca", "cs", "el", "en", "fi", "fr", "fy", "hr", "id",
+    "it", "ms", "nb", "nn", "oc", "pl", "ro", "ru", "sk", "sl", "tr", "uk",
+})
+
+
+def _extract_duration_chronologia(text: str, code: str
+                                  ) -> Tuple[Optional[timedelta], str]:
+    """Answer through chronologia, counting a month or a year from now.
+
+    "Now" is :func:`now_local`, the configured zone's wall clock, as for the
+    routed :func:`extract_datetime`. A text with no duration answers
+    ``(None, text)``, as the legacy readers do.
+    """
+    found = _chronologia_extract_duration(text, code, anchor=now_local())
+    if found is None:
+        return None, text
+    return found.duration, found.remainder
+
+
 def extract_duration(
         text: str, lang: str, *,
         resolution: DurationResolution = DurationResolution.TIMEDELTA,
@@ -379,6 +408,10 @@ def extract_duration(
         float depending on resolution) and the remaining text.
     """
     code = lang.split("-")[0].lower()
+    if (text and code in CHRONOLOGIA_DURATION_LOCALES
+            and resolution == DurationResolution.TIMEDELTA
+            and not replace_token):
+        return _extract_duration_chronologia(text, code)
     if code in DURATION_LEXICONS:
         return extract_duration_generic(text, DURATION_LEXICONS[code],
                                         resolution, replace_token)

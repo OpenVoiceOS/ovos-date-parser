@@ -90,10 +90,15 @@ when nothing is found.
 
 ```python
 >>> extract_duration("set a timer for 5 minutes", "en")
-(datetime.timedelta(seconds=300), 'set a timer for')
+(datetime.timedelta(seconds=300), 'set a timer')
 >>> extract_duration("nothing here", "en")
 (None, 'nothing here')
 ```
+
+In the locales of `ovos_date_parser.CHRONOLOGIA_DURATION_LOCALES` the answer
+comes from chronologia. A month or a year is a calendar length counted from
+now: "2 months" said on 27 June 2017 is 61 days. A call that sets
+`resolution` or `replace_token` is answered by the shared duration engine.
 
 `resolution` and `replace_token` are keyword-only and supported only for the
 languages on the shared duration engine. The languages ar, ast, fa, kab, and

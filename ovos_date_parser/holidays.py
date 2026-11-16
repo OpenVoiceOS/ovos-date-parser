@@ -46,7 +46,7 @@ import re
 import threading
 import unicodedata
 from collections import Counter
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple
 
 #: The constructions chronologia resolves a named holiday with, enumerated
@@ -57,6 +57,16 @@ from typing import Dict, FrozenSet, List, Optional, Set, Tuple
 #: construction is read without a change here.
 _HOLIDAY_CONSTRUCTIONS = frozenset({"holiday_ref", "holiday_eve",
                                     "new_year_ref"})
+
+#: The units of chronologia's ``units`` tables that have a fixed length. A
+#: month or a year has none, and chronologia moves a holiday by those.
+_UNIT_LENGTHS = {"second": timedelta(seconds=1),
+                 "minute": timedelta(minutes=1),
+                 "hour": timedelta(hours=1),
+                 "day": timedelta(days=1),
+                 "week": timedelta(weeks=1),
+                 "fortnight": timedelta(weeks=2)}
+_DAY = timedelta(days=1)
 
 #: language code -> {spoken surface: chronologia well-known key}. Cached only
 #: to avoid rebuilding chronologia's table on every utterance.
@@ -404,10 +414,8 @@ def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
     alone = _holiday_alone(text, written, lang, anchor, extent)
     if alone is None:
         return None
-    moved = _offset_answer(text, written, lang, anchor, extent)
-    if moved is not None and moved[0].date() != alone[0].date():
-        return moved
-    return alone
+    moved = _offset_answer(text, written, lang, anchor, extent, alone[0])
+    return moved if moved is not None else alone
 
 
 def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
@@ -460,7 +468,7 @@ def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
 
 
 def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
-                   extent: Tuple[int, int]
+                   extent: Tuple[int, int], holiday: datetime
                    ) -> Optional[Tuple[datetime, str, bool]]:
     """The holiday moved by a counted offset written before it, or None.
 
@@ -479,6 +487,16 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
     preposition alone ("after christmas") carry no count either. In each of
     these cases, and when a token chronologia normalised has no position in
     the text ("10:00" for "10h"), the holiday is read alone.
+
+    chronologia moves a holiday by whole days only. An offset that is not a
+    whole number of days is counted here from ``holiday``, the holiday read
+    alone: "an hour before new year" is 23:00 on 31 December, and "an hour
+    after christmas" is 01:00 on Christmas Day. With a clock time,
+    chronologia counts the offset from the clock ("an hour before christmas
+    at 9am" is 08:00), and its answer is kept. A whole-day offset that does
+    not change the date of ``holiday`` is no offset. A count and a unit left
+    over before the holiday mean that chronologia read only part of the
+    offset ("two days and three hours"), and the holiday is read alone.
     """
     try:
         from chronologia import explain, extract_timespan
@@ -516,13 +534,29 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
             run.append(token)
         if not run or not _is_counted_offset(spec, run):
             return None
+        # a count and a unit left over before the holiday: chronologia read
+        # only the last part of "two days and three hours before christmas"
+        left = [token for token in trace.tokens if token.char_start < first
+                and any(begin <= token.char_start < end
+                        for begin, end in kept)]
+        units = {_fold(surface) for surface in spec.units}
+        quantifiers = {_fold(word) for word in spec.quantifiers}
+        if (any(_fold(token.raw) in units for token in left)
+                and any(token.is_number or _fold(token.raw) in quantifiers
+                        for token in left)):
+            return None
+        moment = _in_anchor_zone(result.span.start_datetime, anchor)
+        exact = _offset_not_in_whole_days(spec, run)
+        if exact is not None and not clock_read:
+            moment, clock_read = holiday + exact, True
+        elif exact is None and moment.date() == holiday.date():
+            return None
         remainder = _caller_spelling(text, written, result.remainder)
     except Exception:
         return None
     if remainder is None:
         return None
-    return (_in_anchor_zone(result.span.start_datetime, anchor),
-            re.sub(r"\s{2,}", " ", remainder).strip(), clock_read)
+    return moment, re.sub(r"\s{2,}", " ", remainder).strip(), clock_read
 
 
 def _kept_extents(written: str, remainder: str
@@ -564,6 +598,46 @@ def _is_counted_offset(spec, run: list) -> bool:
     return (any(token.is_number for token in run)
             or any(word in quantifiers for word in words)
             or any(word in units and word not in plural for word in words))
+
+
+def _offset_not_in_whole_days(spec, run: list) -> Optional[timedelta]:
+    """The signed offset the counted run holds, when it is not whole days.
+
+    The count is the number chronologia read ("2", or 0.5 for "half an"),
+    else the quantifier nearest the unit ("an", "meia", "un"), else one for a
+    singular unit ("the hour before").
+
+    Returns None for a whole number of days, a weekday, or a unit with no
+    fixed length, which chronologia moves correctly. Raises ValueError when
+    the run holds a unit shorter than a day with a count this cannot read
+    (two units, a weekday, two numbers, both directions), so the caller
+    reads the holiday alone.
+    """
+    words = [_fold(token.raw) for token in run]
+    units = {_fold(surface): unit for surface, unit in spec.units.items()}
+    weekdays = {_fold(word) for word in spec.weekdays}
+    # a weekday is a unit with no fixed length ("the friday before")
+    lengths = [_UNIT_LENGTHS.get(units.get(word)) for word in words
+               if word in units or word in weekdays]
+    numbers = [token.value for token in run if token.is_number]
+    quantifiers = {_fold(word): value
+                   for word, value in spec.quantifiers.items()}
+    counts = [quantifiers[word] for word in words if word in quantifiers]
+    before = {_fold(word) for surface in spec.connectors.get("before", ())
+              for word in re.findall(r"\w+", surface)} & set(words)
+    after = {_fold(word) for name in ("after", "offset_after")
+             for surface in spec.connectors.get(name, ())
+             for word in re.findall(r"\w+", surface)} & set(words)
+    if (len(lengths) != 1 or lengths[0] is None or len(numbers) > 1
+            or bool(before) == bool(after)):
+        if any(length is not None and length < _DAY for length in lengths):
+            raise ValueError("an offset shorter than a day this cannot count")
+        return None
+    count = numbers[0] if numbers else counts[-1] if counts else 1
+    offset = lengths[0] * count
+    if not offset % _DAY:
+        return None
+    return -offset if before else offset
 
 
 def _engine_read_only_a_clock(written: str, lang: str, anchor: datetime,

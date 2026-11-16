@@ -280,13 +280,11 @@ def test_a_quantifier_counts_a_plural_unit(lang, utterance, quantifier):
 
 @pytest.mark.parametrize("lang,utterance,kept", [
     ("en-US", "a couple of days after christmas", "a couple of days after"),
-    ("en-US", "half a day after christmas", "half a day after"),
 ])
 def test_an_offset_chronologia_reads_wrong_is_handed_back(lang, utterance,
                                                           kept):
-    """chronologia leaves "a couple" over and reads one day, and reads "half
-    a day after" as midnight; neither is a counted offset of the holiday, so
-    both stay in the remainder."""
+    """chronologia leaves "a couple" over and reads one day. That is no
+    counted offset of the holiday, so it stays in the remainder."""
     assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
 
 
@@ -558,6 +556,114 @@ def test_a_day_offset_is_still_read_correctly():
     got = extract_holiday_span("the day after christmas", "en-US", REF)
     assert got is not None
     assert got[0] == datetime(2026, 12, 26, 0, 0)
+
+
+#: An offset that is not a whole number of days, counted from the start of
+#: the holiday (00:00). Each answer is worked by hand from New Year's Day
+#: 2027-01-01 00:00, Christmas 2026-12-25 00:00 and Easter 2027-03-28 00:00.
+OFFSETS_NOT_IN_WHOLE_DAYS = [
+    # lang, utterance, expected, remainder
+    ("en-US", "remind me an hour before new year",      # 1 Jan 00:00 - 1 h
+     datetime(2026, 12, 31, 23, 0), "remind me"),
+    ("en-US", "remind me half an hour before new year",  # 1 Jan 00:00 - 30 min
+     datetime(2026, 12, 31, 23, 30), "remind me"),
+    ("en-US", "an hour after christmas",                 # 25 Dec 00:00 + 1 h
+     datetime(2026, 12, 25, 1, 0), ""),
+    ("en-US", "an hour and a half before christmas",     # 25 Dec - 1 h 30
+     datetime(2026, 12, 24, 22, 30), ""),
+    ("en-US", "the hour before christmas",               # 25 Dec - 1 h
+     datetime(2026, 12, 24, 23, 0), ""),
+    ("en-US", "an hour before easter",                   # 28 Mar - 1 h
+     datetime(2027, 3, 27, 23, 0), ""),
+    ("pt-PT", "lembra-me uma hora antes do natal",       # 25 Dec - 1 h
+     datetime(2026, 12, 24, 23, 0), "lembra-me"),
+    ("pt-PT", "lembra-me uma hora antes do ano novo",    # 1 Jan - 1 h
+     datetime(2026, 12, 31, 23, 0), "lembra-me"),
+    ("pt-PT", "meia hora antes do ano novo",             # 1 Jan - 30 min
+     datetime(2026, 12, 31, 23, 30), ""),
+    ("pt-PT", "uma hora depois do natal",                # 25 Dec + 1 h
+     datetime(2026, 12, 25, 1, 0), ""),
+    ("pt-PT", "duas horas antes do natal",               # 25 Dec - 2 h
+     datetime(2026, 12, 24, 22, 0), ""),
+    ("it-IT", "ricordami un'ora prima di capodanno",     # 1 Jan - 1 h
+     datetime(2026, 12, 31, 23, 0), "ricordami"),
+    ("it-IT", "un'ora dopo natale",                      # 25 Dec + 1 h
+     datetime(2026, 12, 25, 1, 0), ""),
+    # "few" is 3 in chronologia's English quantifiers, "a" is 1
+    ("en-US", "a few hours before christmas",            # 25 Dec - 3 h
+     datetime(2026, 12, 24, 21, 0), ""),
+]
+
+#: Rows the per-language engine answers first in `extract_datetime`; the
+#: holiday layer reads them alone.
+OFFSETS_NOT_IN_WHOLE_DAYS_IN_THE_LAYER = [
+    ("en-US", "30 minutes before christmas",             # 25 Dec - 30 min
+     datetime(2026, 12, 24, 23, 30), ""),
+    ("en-US", "half a day after christmas",              # 25 Dec + 12 h
+     datetime(2026, 12, 25, 12, 0), ""),
+    ("en-US", "three days and a half before christmas",  # 25 Dec - 84 h
+     datetime(2026, 12, 21, 12, 0), ""),
+    ("en-US", "an hour before christmas at 9am",         # 25 Dec 09:00 - 1 h
+     datetime(2026, 12, 25, 8, 0), ""),
+    ("pt-PT", "30 minutos antes do natal",               # 25 Dec - 30 min
+     datetime(2026, 12, 24, 23, 30), ""),
+    ("it-IT", "due ore prima di natale",                 # 25 Dec - 2 h
+     datetime(2026, 12, 24, 22, 0), ""),
+]
+
+
+@pytest.mark.parametrize(
+    "lang,utterance,expected,kept",
+    OFFSETS_NOT_IN_WHOLE_DAYS + OFFSETS_NOT_IN_WHOLE_DAYS_IN_THE_LAYER)
+def test_an_offset_not_in_whole_days_is_counted_in_its_unit(
+        lang, utterance, expected, kept):
+    """chronologia moves a holiday by whole days only. The offset is counted
+    here in its own unit, from the start of the holiday."""
+    assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
+
+
+@pytest.mark.parametrize("lang,utterance,expected,kept",
+                         OFFSETS_NOT_IN_WHOLE_DAYS)
+def test_extract_datetime_counts_an_offset_not_in_whole_days(
+        lang, utterance, expected, kept):
+    assert extract_datetime(utterance, lang, REF) == (expected, kept)
+
+
+def test_a_default_time_does_not_replace_the_time_an_offset_gives():
+    """The offset sets the time of day, so a default time is not applied."""
+    got = extract_datetime("remind me an hour before new year", "en-US", REF,
+                           default_time=time(9, 0))
+    assert got == (datetime(2026, 12, 31, 23, 0), "remind me")
+
+
+def test_a_default_time_still_fills_a_whole_day_offset():
+    """A whole-day offset names a day and no time, as the holiday does."""
+    got = extract_datetime("the day before christmas", "en-US", REF,
+                           default_time=time(9, 0))
+    assert got == (datetime(2026, 12, 24, 9, 0), "")
+
+
+@pytest.mark.parametrize("lang,utterance", [
+    ("en-US", "two hours and thirty minutes before christmas"),
+    ("en-US", "two days and three hours before christmas"),
+    ("en-US", "an hour before the day before christmas"),
+    ("en-US", "the hour before the friday before christmas"),
+])
+def test_an_offset_read_only_in_part_is_handed_back(lang, utterance):
+    """chronologia reads only "thirty minutes" or "three hours" and leaves
+    the rest over, or chains two offsets and moves the hour by a whole day.
+    The holiday is read alone, and the whole offset stays in the
+    remainder."""
+    got = extract_holiday_span(utterance, lang, REF)
+    assert got == (CHRISTMAS, utterance[:-len(" christmas")])
+
+
+def test_a_unit_left_over_with_no_count_does_not_stop_the_offset():
+    """The words "what day is" leave the unit "day" over, but no count, so
+    the offset after them is read: 25 December - 1 day."""
+    got = extract_holiday_span("what day is the day before christmas",
+                               "en-US", REF)
+    assert got == (datetime(2026, 12, 24, 0, 0), "what day is")
 
 
 def test_another_date_word_does_not_replace_the_holiday():

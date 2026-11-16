@@ -43,22 +43,25 @@ A whole hour has no noun: Crusca 86, quoting Della Valle and Patota,
 le ore 9 di sera", so 21 stays "ventuno". Hour 1 is "una": Crusca,
 consulenza 236 ("Alle una o all'una?"): "l'una rimanga da preferirsi".
 
-The clock with unit words. Crusca, consulenza 2777 ("Come si abbrevia, come si
-scrive e come si legge 24 ore su 24"): "18h 30m", with "h" after the number
-like the "m" of "minuto", and "18:30:15 vale ore 18, minuti 30, secondi 15".
-The spoken form here puts the unit word after the number: "diciotto ore e
-trenta minuti". Treccani, "zero": "zero gradi", so zero takes the plural:
-"zero ore". Treccani, "ventuno": "ventuno ballerine", so the count keeps
-"ventuno" before a noun.
+No unit-word clock. The "units" style raises UnsupportedForm. Treccani,
+"ora", keeps the two senses apart: the clock reads "le otto antimeridiane o di
+mattina; le quattro pomeridiane o del pomeriggio; alle nove di sera", with no
+noun after the number, and the span of time reads "ho dormito solo sei ore;
+[...] il viaggio dura circa tre ore". "Tredici ore e trenta minuti" is the
+span. Crusca, consulenza 2777 ("Come si abbrevia, come si scrive e come si
+legge 24 ore su 24"), gives one spoken sequence of hour, minute and second,
+with the nouns first: "18:30:15 vale ore 18, minuti 30, secondi 15". No source
+attests a full reading with "e" in that order, so the module gives none.
 
 Half and quarter. Crusca, consulenza 48 ("Mezzo / mezza"), quoting Della
-Valle and Patota: "le tre e mezzo [...] oppure le tre e mezza, sottintendendo
-ora. [...] Come preferite". This module says "mezza". Treccani, "quarto":
+Valle and Patota: "Come preferite. Potete usare la forma le tre e mezzo [...]
+oppure le tre e mezza, sottintendendo ora". This module says "mezza". Treccani, "quarto":
 "manca un q. alle dieci o sono le dieci meno un q."; so the quarter before the
 hour is "meno un quarto" and the quarter after is "e un quarto".
 
 Midnight and noon. Treccani, "mezzogiorno": "è m. in punto; [...] è m. e un
-quarto"; Treccani, "mezzanotte": "è m., m. in punto; m. e mezzo". In a
+quarto"; Treccani, "mezzanotte": "è m., m. in punto; m. e mezzo"; Crusca, consulenza
+2968 ("Ci vediamo alla mezza"): "mezzanotte e mezza (0.30)". In a
 12-hour reading with the day period, 00:00 reads "mezzanotte", 12:00
 "mezzogiorno", and the hours after them keep the word: "mezzogiorno e un
 quarto", "mezzanotte e mezza". The 24-hour reading keeps the numbers.
@@ -75,9 +78,13 @@ pomeriggio" at 17:45).
 
 Names of days and months. Treccani, Vocabolario, "lunedì", "venerdì",
 "gennaio": the headwords are lowercase and the days carry the grave accent.
+The names come from res/it/date_time.json, the table nice_date reads.
 """
+import json
 import re
 from datetime import datetime, timedelta
+from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
 from dateutil.relativedelta import relativedelta
@@ -89,29 +96,16 @@ from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
 )
 
-MONTHS_IT = {
-    1: "gennaio",
-    2: "febbraio",
-    3: "marzo",
-    4: "aprile",
-    5: "maggio",
-    6: "giugno",
-    7: "luglio",
-    8: "agosto",
-    9: "settembre",
-    10: "ottobre",
-    11: "novembre",
-    12: "dicembre"
-}
-WEEKDAYS_IT = {
-    0: "lunedì",
-    1: "martedì",
-    2: "mercoledì",
-    3: "giovedì",
-    4: "venerdì",
-    5: "sabato",
-    6: "domenica"
-}
+@lru_cache(maxsize=None)
+def _date_names_it():
+    """The month and weekday names of res/it/date_time.json, the table that
+    nice_date reads: (months by number, weekdays by number, 0 = Monday)."""
+    path = Path(__file__).parent / "res" / "it" / "date_time.json"
+    config = json.loads(path.read_text(encoding="utf8"))
+    months = config.get("month_format", config["month"])
+    return (
+        {int(number): name for number, name in months.items()},
+        {int(number): name for number, name in config["weekday"].items()})
 
 
 def spoken_year_it(year: int) -> str:
@@ -128,13 +122,14 @@ def spoken_date_it(day: Optional[int], month: Optional[int],
                    year: Optional[int], weekday: Optional[int] = None) -> str:
     """The fields of a date that are given, with no "di" and no comma:
     "primo maggio duemilaventiquattro", "marzo duemilaventiquattro"."""
+    months, weekdays = _date_names_it()
     words = []
     if weekday is not None:
-        words.append(WEEKDAYS_IT[weekday])
+        words.append(weekdays[weekday])
     if day is not None:
         words.append(spoken_day_it(day))
     if month is not None:
-        words.append(MONTHS_IT[month])
+        words.append(months[month])
     if year is not None:
         words.append(spoken_year_it(year))
     return " ".join(words)
@@ -143,13 +138,6 @@ def spoken_date_it(day: Optional[int], month: Optional[int],
 def _hour_it(hour: int) -> str:
     """An hour on its own: "una" for 1, else the cardinal ("zero", "ventuno")."""
     return "una" if hour == 1 else pronounce_number_it(hour)
-
-
-def _count_it(value: int, one: str, plural: str) -> str:
-    """A count with its noun: "un minuto", "trenta minuti", "zero ore"."""
-    if value == 1:
-        return one
-    return f"{pronounce_number_it(value)} {plural}"
 
 
 def _day_period_it(hour: int) -> str:
@@ -169,9 +157,11 @@ def spoken_time_it(hour: int, minute: int, second: Optional[int] = None,
     """A clock time in one style, or None for a style with no reading.
 
     digits: "quattordici e trenta", and "ventuno" on the hour.
-    units: "quattordici ore e trenta minuti", with the seconds if given.
+    units: no reading.
     phrase: the 12-hour conversational reading, "due e mezza del pomeriggio".
     """
+    if style == "units":
+        return None
     named = period and clock == "12h" and minute == 0 and second is None \
         and hour in (0, 12)
     if named:
@@ -198,14 +188,6 @@ def spoken_time_it(hour: int, minute: int, second: Optional[int] = None,
             speak = f"{word} meno un quarto"
         else:
             speak = f"{word} e {pronounce_number_it(minute)}"
-    elif style == "units":
-        parts = [_count_it(shown, "un'ora", "ore")]
-        if minute:
-            parts.append(_count_it(minute, "un minuto", "minuti"))
-        if second is not None:
-            parts.append(_count_it(second, "un secondo", "secondi"))
-        speak = " e ".join(parts) if len(parts) < 3 \
-            else f"{parts[0]} {parts[1]} e {parts[2]}"
     else:
         if second is not None:
             return None

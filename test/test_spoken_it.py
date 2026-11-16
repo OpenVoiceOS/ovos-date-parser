@@ -12,6 +12,9 @@ pronounce_number_it; the years 1108 and 1908 need its "centootto".
 """
 import re
 import unittest
+from datetime import datetime
+
+from ovos_date_parser import nice_date
 
 from ovos_date_parser.spoken import (
     UnsupportedForm, spoken_date, spoken_time, spoken_year
@@ -63,6 +66,18 @@ class TestSpokenDateIt(unittest.TestCase):
             "L'Italia fu proclamata il diciassette marzo "
             "milleottocentosessantuno.")
 
+    def test_names_are_the_nice_date_table(self):
+        # one table: nice_date reads res/it/date_time.json too
+        for month in range(1, 13):
+            word = spoken_date("it", month=month)
+            self.assertIn(word, re.findall(r"[^\s,]+", nice_date(
+                datetime(2024, month, 1), "it", include_weekday=False)))
+        for weekday in range(7):
+            word = spoken_date("it", day=1 + weekday, month=1, year=2024,
+                               weekday=weekday).split()[0]
+            self.assertIn(word, re.findall(r"[^\s,]+", nice_date(
+                datetime(2024, 1, 1 + weekday), "it")))
+
     def test_months_and_weekdays(self):
         months = [spoken_date("it", month=m) for m in range(1, 13)]
         self.assertEqual(months, [
@@ -108,14 +123,6 @@ class TestSpokenTimeIt(unittest.TestCase):
             ((0, 30), {}, "zero e trenta"),
             ((9, 5), {}, "nove e cinque"),
             ((23, 59), {}, "ventitré e cinquantanove"),
-            ((14, 30), dict(style="units"), "quattordici ore e trenta minuti"),
-            ((1, 0), dict(style="units"), "un'ora"),
-            ((1, 1), dict(style="units"), "un'ora e un minuto"),
-            ((21, 0), dict(style="units"), "ventuno ore"),
-            ((0, 0), dict(style="units"), "zero ore"),
-            ((20, 30, 24), dict(style="units"),
-             "venti ore trenta minuti e ventiquattro secondi"),
-            ((20, 0, 1), dict(style="units"), "venti ore e un secondo"),
             ((14, 30), dict(clock="12h"), "due e trenta"),
             ((14, 0), P12, "due del pomeriggio"),
             ((0, 30), dict(clock="12h"), "dodici e trenta"),
@@ -167,6 +174,12 @@ class TestSpokenTimeIt(unittest.TestCase):
         for clock, options in [((14, 30, 5), {}),
                                ((14, 30), dict(style="phrase")),
                                ((14, 30, 5), dict(style="phrase", clock="12h")),
+                               ((14, 30), dict(style="units")),
+                               ((13, 0), dict(style="units", clock="12h",
+                                              period=True)),
+                               ((12, 0), dict(style="units", clock="12h",
+                                              period=True)),
+                               ((20, 30, 24), dict(style="units")),
                                ((14, 30), dict(case="genitive"))]:
             with self.subTest(clock=clock, options=options):
                 with self.assertRaises(UnsupportedForm):
@@ -182,11 +195,18 @@ class TestSpokenTimeIt(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     spoken_time("it", *clock, **options)
 
+    def test_units_style_is_refused(self):
+        for hour in (0, 1, 12, 13, 21):
+            with self.subTest(hour=hour):
+                with self.assertRaises(UnsupportedForm) as raised:
+                    spoken_time("it", hour, 30, style="units")
+                self.assertEqual(raised.exception.form, "time")
+
     def test_every_minute_is_words(self):
         for hour in range(24):
             for minute in range(60):
-                for style, clock in (("digits", "24h"), ("units", "24h"),
-                                     ("digits", "12h"), ("phrase", "12h")):
+                for style, clock in (("digits", "24h"), ("digits", "12h"),
+                                     ("phrase", "12h")):
                     out = spoken_time("it", hour, minute, style=style,
                                       clock=clock, period=clock == "12h")
                     self.assertRegex(out, WORDS)

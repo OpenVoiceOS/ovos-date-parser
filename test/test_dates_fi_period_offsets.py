@@ -40,8 +40,13 @@ PAST_CASES = [
     ("5 vuotta sitten", datetime(2012, 6, 27).date()),
 ]
 
-# Postposition without a preceding numeral must not fabricate an offset.
-NON_MATCHES = ["viikon kuluttua", "viikkoa sitten", "2 sitten"]
+# Postposition without a preceding numeral or unit must not fabricate an
+# offset. A partitive unit with no numeral needs a native reading.
+NON_MATCHES = [
+    "2 sitten",
+    pytest.param("viikkoa sitten", marks=pytest.mark.xfail(
+        strict=True, reason="chronologia-issue:unit-without-count")),
+]
 
 
 @pytest.mark.parametrize("phrase, expected", FUTURE_CASES)
@@ -52,6 +57,14 @@ def test_future_period_offset(phrase, expected):
 @pytest.mark.parametrize("phrase, expected", PAST_CASES)
 def test_past_period_offset(phrase, expected):
     assert _date(phrase) == expected
+
+
+def test_a_week_without_a_numeral_is_one_week():
+    # "viikon kuluttua" is "in a week" (Wiktionary, "kuluttua": "He sanoivat
+    # soittavansa viikon kuluttua" - "They said they would call us in a
+    # week"); a counted offset keeps the anchor clock (class 1)
+    res = extract_datetime("viikon kuluttua", anchorDate=ANCHOR, lang="fi")
+    assert res[0].replace(tzinfo=None) == datetime(2017, 7, 4, 13, 4)
 
 
 @pytest.mark.parametrize("phrase", NON_MATCHES)

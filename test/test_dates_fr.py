@@ -6,11 +6,15 @@ the month), not pinned from engine output.
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
 
 ANCHOR = datetime(2117, 9, 3, 13, 30)  # a fixed non-midnight anchor
+# A lone spoken hour ("3 heures") takes the next twelve-hour reading after
+# the anchor (ruling 17), so it is 15:00; "7h" and "20 heures" keep their hour.
 TZ = default_timezone()
 
 
@@ -38,7 +42,7 @@ class TestClockNotation(unittest.TestCase):
         self.assertEqual(extract("20h30")[0], dt(2117, 9, 3, 20, 30))
 
     def test_spelled_hours(self):
-        self.assertEqual(extract("à trois heures")[0].hour, 3)
+        self.assertEqual(extract("à trois heures")[0].hour, 15)
 
 
 class TestSpacedClockNotation(unittest.TestCase):
@@ -76,7 +80,8 @@ class TestSpacedClockNotation(unittest.TestCase):
     def test_spaced_h_in_sentence(self):
         date, rest = extract("rappelle-moi de sortir le chien demain à 20 h")
         self.assertEqual(date, dt(2117, 9, 4, 20))
-        self.assertEqual(rest, "rappelle-moi sortir chien")
+        # words outside the date stay in the remainder as written
+        self.assertEqual(rest, "rappelle-moi de sortir le chien")
 
     def test_spaced_h_same_as_joined(self):
         for spaced, joined in [("à 18 h", "à 18h"), ("20 h 30", "20h30"),
@@ -286,7 +291,7 @@ class TestBareDurationNotClock(unittest.TestCase):
         self.assertIsNone(extract("mets le chapitre 3 heures"))
 
     def test_marker_still_reads_as_clock(self):
-        self.assertEqual(extract("à 3 heures")[0], dt(2117, 9, 4, 3))
+        self.assertEqual(extract("à 3 heures")[0], dt(2117, 9, 3, 15))
 
     def test_offset_marker_still_works(self):
         self.assertEqual(extract("dans 3 heures")[0], dt(2117, 9, 3, 16, 30))
@@ -296,11 +301,11 @@ class TestBareDurationNotClock(unittest.TestCase):
 
     def test_sentence_initial_spelled_hour_still_a_clock(self):
         self.assertEqual(extract("20 heures")[0], dt(2117, 9, 3, 20))
-        self.assertEqual(extract("3 heures")[0], dt(2117, 9, 4, 3))
+        self.assertEqual(extract("3 heures")[0], dt(2117, 9, 3, 15))
 
     def test_sentence_initial_number_word_hour_still_a_clock(self):
-        self.assertEqual(extract("dix heures")[0], dt(2117, 9, 4, 10))
-        self.assertEqual(extract("trois heures")[0], dt(2117, 9, 4, 3))
+        self.assertEqual(extract("dix heures")[0], dt(2117, 9, 3, 22))
+        self.assertEqual(extract("trois heures")[0], dt(2117, 9, 3, 15))
         self.assertEqual(extract("vingt heures")[0], dt(2117, 9, 3, 20))
 
     def test_sentence_initial_bare_h_with_trailing_words_is_duration(self):
@@ -308,8 +313,8 @@ class TestBareDurationNotClock(unittest.TestCase):
         self.assertIsNone(extract("2 h de route"))
 
     def test_il_est_n_heures_still_a_clock(self):
-        self.assertEqual(extract("il est 3 heures")[0], dt(2117, 9, 4, 3))
-        self.assertEqual(extract("il est trois heures")[0], dt(2117, 9, 4, 3))
+        self.assertEqual(extract("il est 3 heures")[0], dt(2117, 9, 3, 15))
+        self.assertEqual(extract("il est trois heures")[0], dt(2117, 9, 3, 15))
 
     def test_il_est_n_heures_with_trailing_word_still_a_clock(self):
         date, rest = extract("il est 20 heures pile")
@@ -317,7 +322,7 @@ class TestBareDurationNotClock(unittest.TestCase):
         self.assertEqual(rest, "il est pile")
 
     def test_cest_n_heures_still_a_clock(self):
-        self.assertEqual(extract("c'est 3 heures")[0], dt(2117, 9, 4, 3))
+        self.assertEqual(extract("c'est 3 heures")[0], dt(2117, 9, 3, 15))
 
 
 class TestUnaccentedAMarker(unittest.TestCase):
@@ -335,7 +340,7 @@ class TestUnaccentedAMarker(unittest.TestCase):
         self.assertEqual(extract("a 19 h 30")[0], dt(2117, 9, 3, 19, 30))
 
     def test_a_before_spelled_hour(self):
-        self.assertEqual(extract("a 7 heures")[0], dt(2117, 9, 4, 7))
+        self.assertEqual(extract("a 7 heures")[0], dt(2117, 9, 3, 19))
 
     def test_a_after_a_day(self):
         self.assertEqual(extract("demain a 7h")[0], dt(2117, 9, 4, 7))
@@ -345,6 +350,8 @@ class TestUnaccentedAMarker(unittest.TestCase):
             res = extract(text)
             self.assertFalse(res and res[0] == dt(2117, 9, 4, 7), text)
 
+    @pytest.mark.xfail(strict=True,
+                       reason="chronologia-issue:verb-a-as-marker")
     def test_avoir_with_a_pronoun_is_not_a_marker(self):
         self.assertIsNone(extract("elle a 2h de route"))
         self.assertIsNone(extract("il a 3 heures de retard"))

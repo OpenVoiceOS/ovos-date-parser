@@ -79,18 +79,21 @@ class TestRelativeDayOffsets(unittest.TestCase):
         self.assertEqual(extract("nästa fredag")[0], dt(2117, 9, 10))
 
     def test_eight_weeks(self):
-        self.assertEqual(extract("om 8 veckor")[0], dt(2117, 10, 29))
+        # a counted offset keeps the anchor's clock (routing ruling, class 1)
+        self.assertEqual(extract("om 8 veckor")[0], dt(2117, 10, 29, 13, 30))
 
 
 class TestPartOfDay(unittest.TestCase):
     def test_tomorrow_morning(self):
-        self.assertEqual(extract("imorgon morgon")[0], dt(2117, 9, 4, 8))
+        # the middle of the sv morning band, 05:00 to 10:00 (ruling 10)
+        self.assertEqual(extract("imorgon morgon")[0], dt(2117, 9, 4, 7, 30))
 
     def test_tomorrow_noon(self):
         self.assertEqual(extract("imorgon middag")[0], dt(2117, 9, 4, 12))
 
     def test_tomorrow_evening(self):
-        self.assertEqual(extract("imorgon kväll")[0], dt(2117, 9, 4, 19))
+        # the middle of the sv evening band, 18:00 to 24:00 (ruling 10)
+        self.assertEqual(extract("imorgon kväll")[0], dt(2117, 9, 4, 21))
 
 
 class TestAbsoluteDates(unittest.TestCase):

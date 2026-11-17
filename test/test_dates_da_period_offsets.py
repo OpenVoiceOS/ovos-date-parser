@@ -32,20 +32,21 @@ def dt(y, mo, d, h=0, mi=0, s=0):
 
 
 class TestPeriodOffsetPlurals(unittest.TestCase):
+    # a counted offset keeps the anchor's clock (routing ruling, class 1)
     def test_month_singular(self):
-        self.assertEqual(extract("om 1 måned")[0], dt(2017, 7, 27))
+        self.assertEqual(extract("om 1 måned")[0], dt(2017, 7, 27, 13, 4))
 
     def test_month_plural(self):
-        self.assertEqual(extract("vi ses om 2 måneder")[0], dt(2017, 8, 27))
+        self.assertEqual(extract("vi ses om 2 måneder")[0], dt(2017, 8, 27, 13, 4))
 
     def test_week_plural_already_worked(self):
-        self.assertEqual(extract("om 2 uger")[0], dt(2017, 7, 11))
+        self.assertEqual(extract("om 2 uger")[0], dt(2017, 7, 11, 13, 4))
 
     def test_day_plural_already_worked(self):
-        self.assertEqual(extract("om 2 dage")[0], dt(2017, 6, 29))
+        self.assertEqual(extract("om 2 dage")[0], dt(2017, 6, 29, 13, 4))
 
     def test_year_invariant_plural(self):
-        self.assertEqual(extract("om 2 år")[0], dt(2019, 6, 27))
+        self.assertEqual(extract("om 2 år")[0], dt(2019, 6, 27, 13, 4))
 
     def test_adversarial_maanedlig_does_not_match(self):
         # "månedlig" (monthly, adjective) must not fire the month-offset match.

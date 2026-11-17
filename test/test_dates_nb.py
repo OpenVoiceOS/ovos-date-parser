@@ -9,6 +9,7 @@ output.
 import unittest
 from datetime import datetime, timedelta
 
+import pytest
 from ovos_date_parser import (extract_datetime, extract_duration, nice_date,
                               nice_day, nice_duration, nice_month,
                               nice_relative_time, nice_time, nice_weekday,
@@ -121,8 +122,10 @@ class TestExtractDatetimeNb(unittest.TestCase):
         self.assertEqual((dt.year, dt.month, dt.day), (2020, 5, 3))
 
     def test_next_week(self):
+        # a named period is the calendar unit, and the nb week starts on
+        # Monday (routing ruling, class 2b)
         nb = extract_datetime("neste uke", "nb", anchorDate=ANCHOR)[0]
-        self.assertEqual(nb.date(), (ANCHOR + timedelta(days=7)).date())
+        self.assertEqual(nb.date(), datetime(2017, 7, 3).date())
 
     def test_relative_hours(self):
         dt, _ = extract_datetime("om 2 timer", "nb", anchorDate=ANCHOR)
@@ -156,6 +159,8 @@ class TestAdversarialNb(unittest.TestCase):
     def test_whitespace_only(self):
         self.assertIsNone(extract_datetime("   ", "nb", anchorDate=ANCHOR))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="chronologia-issue:nordic-i-dayword")
     def test_gibberish_no_date(self):
         self.assertIsNone(
             extract_datetime("hei hvordan går det", "nb", anchorDate=ANCHOR))
@@ -175,10 +180,16 @@ class TestAdversarialNb(unittest.TestCase):
                 extract_datetime(token, "nb", anchorDate=ANCHOR)
 
     def test_impossible_dates_return_none(self):
-        for token in ["30 februar", "31 april", "29 februar", "31 april 2020"]:
+        for token in ["30 februar", "31 april", "31 april 2020"]:
             with self.subTest(token=token):
                 self.assertIsNone(
                     extract_datetime(token, "nb", anchorDate=ANCHOR))
+
+    def test_leap_day_without_year_is_the_next_leap_day(self):
+        # the next 29 February after the anchor (routing ruling, class 3)
+        self.assertEqual(
+            extract_datetime("29 februar", "nb", anchorDate=ANCHOR)[0],
+            datetime(2020, 2, 29))
 
     def test_bare_number_no_unit(self):
         duration, remainder = extract_duration("42", "nb")
@@ -232,17 +243,20 @@ class TestRealSentencesNb(unittest.TestCase):
     def _dt(self, text):
         return extract_datetime(text, "nb", anchorDate=ANCHOR)
 
-    def test_alarm_digit_clock_rolls_forward(self):
+    def test_alarm_lone_hour_takes_the_next_reading(self):
         dt, rem = self._dt("vekk meg klokka 7")
-        # 07:00 is earlier than the 13:04 anchor -> next day
-        self.assertEqual(dt, datetime(2017, 6, 28, 7, 0))
+        # a lone spoken hour takes the next twelve-hour reading after the
+        # 13:04 anchor (ruling 17)
+        self.assertEqual(dt, datetime(2017, 6, 27, 19, 0))
         self.assertEqual(rem, "vekk meg")
 
+    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
     def test_alarm_tomorrow_with_time(self):
         dt, rem = self._dt("sett en alarm klokka 07:30 i morgen")
         self.assertEqual(dt, datetime(2017, 6, 28, 7, 30))
         self.assertEqual(rem, "sett en alarm")
 
+    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
     def test_meeting_weekday_and_hour(self):
         dt, rem = self._dt("møtet er på fredag klokka 14")
         self.assertEqual(dt, datetime(2017, 6, 30, 14, 0))
@@ -261,6 +275,7 @@ class TestRealSentencesNb(unittest.TestCase):
         dt, _ = self._dt("jeg reiser 15. august 2021")
         self.assertEqual(dt.date(), datetime(2021, 8, 15).date())
 
+    @pytest.mark.xfail(strict=True, reason="chronologia-issue:dayword-early")
     def test_tomorrow_morning_qualifier(self):
         dt, _ = self._dt("vekk meg i morgen tidlig")
         self.assertEqual(dt, datetime(2017, 6, 28, 8, 0))

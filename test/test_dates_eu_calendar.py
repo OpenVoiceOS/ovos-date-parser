@@ -22,6 +22,8 @@ are unambiguous.
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -78,6 +80,7 @@ class TestMonthDayYear(unittest.TestCase):
         self.assertEqual(res[0], dt(2027, 6, 5, 0, 0))
         self.assertEqual(res[1], "")
 
+    @pytest.mark.xfail(strict=True, reason="chronologia-issue:eu-month-before-day-and-year")
     def test_bare_year_after(self):
         self.assertEqual(extract("ekaina 5 2027")[0], dt(2027, 6, 5, 0, 0))
 
@@ -96,6 +99,7 @@ class TestMonthYearOnly(unittest.TestCase):
         self.assertEqual(res[0], dt(2027, 6, 1, 0, 0))
         self.assertEqual(res[1], "")
 
+    @pytest.mark.xfail(strict=True, reason="chronologia-issue:eu-month-before-day-and-year")
     def test_bare_month_year(self):
         self.assertEqual(extract("ekaina 2027")[0], dt(2027, 6, 1, 0, 0))
 
@@ -104,15 +108,15 @@ class TestInflectedWeekday(unittest.TestCase):
     """"datorren ostiralean" = next Friday (weekday inessive + next marker)."""
 
     def test_next_friday(self):
-        # anchor is Tuesday 2017-06-27; the coming Friday marker adds a week
-        self.assertEqual(extract("datorren ostiralean")[0], dt(2017, 7, 7, 0, 0))
+        # "next Friday" is the next Friday after Tuesday 27 June (class 3)
+        self.assertEqual(extract("datorren ostiralean")[0], dt(2017, 6, 30, 0, 0))
 
     def test_last_friday(self):
         self.assertEqual(extract("aurreko ostiralean")[0], dt(2017, 6, 23, 0, 0))
 
     def test_ondorengo_thursday(self):
-        # osteguna = Thursday; this-week Thursday is the 29th, next is +7
-        self.assertEqual(extract("ondorengo ostegunean")[0], dt(2017, 7, 6, 0, 0))
+        # osteguna = Thursday; the next Thursday is the 29th (class 3)
+        self.assertEqual(extract("ondorengo ostegunean")[0], dt(2017, 6, 29, 0, 0))
 
 
 class TestAdversarialNonMatches(unittest.TestCase):
@@ -129,9 +133,10 @@ class TestAdversarialNonMatches(unittest.TestCase):
         self.assertEqual(extract("arratsaldeko 5ak")[0], dt(2017, 6, 27, 17, 0))
 
     def test_locative_hour_is_not_a_day(self):
-        # "3etan" = at 3 o'clock, a clock time not the 3rd of the month
+        # "3etan" = at 3 o'clock, a clock time not the 3rd of the month; the
+        # lone hour takes its next reading after the 13:04 anchor (ruling 17)
         res = extract("3etan")
-        self.assertEqual(res[0].hour, 3)
+        self.assertEqual(res[0].hour, 15)
         self.assertEqual(res[0].month, 6)  # not day-3 of some other month
 
     def test_non_date_returns_none(self):

@@ -336,9 +336,10 @@ PT_ROWS = [
     # Tuesday of June is the 6th, so it is that of July, the 4th
     ("o dia 5 do mês", datetime(2017, 7, 5), None),
     ("a primeira terça-feira do mês", datetime(2017, 7, 4), None),
-    # the clock: 10:30 has passed at 13:04, so it is tomorrow's (class 3),
-    # and "da noite" puts the hour in the evening
-    ("às 10 e meia", datetime(2017, 6, 28, 10, 30), None),
+    # a lone hour takes its next twelve-hour reading after 13:04 (ruling
+    # 17), "da noite" puts the hour in the evening, and a named day keeps
+    # the spoken hour
+    ("às 10 e meia", datetime(2017, 6, 27, 22, 30), None),
     ("às 10 e meia da noite", datetime(2017, 6, 27, 22, 30), None),
     ("amanhã às 10 e meia", datetime(2017, 6, 28, 10, 30), None),
     # a holiday with a part of the day: the CLDR noite of pt runs from

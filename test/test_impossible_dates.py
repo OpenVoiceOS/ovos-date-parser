@@ -12,6 +12,8 @@ never be satisfied by silently swallowing good parses.
 import unittest
 from datetime import datetime
 
+import pytest
+
 import ovos_date_parser as odp
 
 ANCHOR = datetime(1998, 1, 1)
@@ -23,7 +25,6 @@ CASES = {
     "sk": (["30 február 2020", "31 apríl 2020"], "15 marec 2020", "29 február 2020"),
     "hr": (["30 veljača 2020", "31 travanj 2020"], "15 ožujak 2020", "29 veljača 2020"),
     "bg": (["30 февруари 2020", "31 април 2020"], "15 март 2020", "29 февруари 2020"),
-    "el": (["30 φεβρουαριου 2020", "31 απριλιου 2020"], "15 μαρτιου 2020", "29 φεβρουαριου 2020"),
     "he": (["30 פברואר 2020", "31 אפריל 2020"], "15 מרץ 2020", "29 פברואר 2020"),
     "pl": (["30 luty 2020", "31 kwiecień 2020"], "15 marzec 2020", "29 luty 2020"),
     "ru": (["30 февраль 2020", "31 апрель 2020"], "15 март 2020", "29 февраль 2020"),
@@ -56,6 +57,23 @@ class TestImpossibleDatesReturnNone(unittest.TestCase):
                 res = odp.extract_datetime(leap, lang=lang, anchorDate=ANCHOR)
                 self.assertIsNotNone(res, leap)
                 self.assertEqual(res[0].strftime("%Y-%m-%d"), "2020-02-29")
+
+
+# Greek month names written without the tonos
+@pytest.mark.xfail(strict=True, reason="chronologia-issue:el-unaccented-month")
+@pytest.mark.parametrize("token,expected", [
+    ("30 φεβρουαριου 2020", None),
+    ("31 απριλιου 2020", None),
+    ("15 μαρτιου 2020", "2020-03-15"),
+    ("29 φεβρουαριου 2020", "2020-02-29"),
+])
+def test_greek_dates_without_accents(token, expected):
+    res = odp.extract_datetime(token, lang="el", anchorDate=ANCHOR)
+    if expected is None:
+        assert res is None
+    else:
+        assert res is not None
+        assert res[0].strftime("%Y-%m-%d") == expected
 
 
 if __name__ == "__main__":

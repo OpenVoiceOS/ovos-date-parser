@@ -9,6 +9,8 @@ import unittest
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2026, 10, 17, 12, 0, tzinfo=ZoneInfo("Europe/Lisbon"))
@@ -60,9 +62,11 @@ class TestUltimoWeekday(unittest.TestCase):
         self.assertEqual(_dt("el último viernes de noviembre"),
                          datetime(2026, 11, 27))
 
-    def test_last_weekday_of_a_month_already_past_is_next_year(self):
+    def test_last_weekday_of_a_month_already_past_keeps_the_year(self):
+        # ruling 1: a part of a month keeps the anchor's year; the last
+        # Friday of January 2026 is the 30th
         self.assertEqual(_dt("el último viernes de enero"),
-                         datetime(2027, 1, 29))
+                         datetime(2026, 1, 30))
 
 
 class TestUltimoWeekdayConfusables(unittest.TestCase):
@@ -78,9 +82,10 @@ class TestUltimoWeekdayConfusables(unittest.TestCase):
                 self.assertEqual(_dt(text), datetime(2026, 10, 23))
 
     def test_last_period_unchanged(self):
-        self.assertEqual(_dt("el último mes"), datetime(2026, 9, 17))
-        self.assertEqual(_dt("el último año"), datetime(2025, 10, 17))
-        self.assertEqual(_dt("la última semana"), datetime(2026, 10, 10))
+        # class 2b: a named period is the calendar unit
+        self.assertEqual(_dt("el último mes"), datetime(2026, 9, 1))
+        self.assertEqual(_dt("el último año"), datetime(2025, 1, 1))
+        self.assertEqual(_dt("la última semana"), datetime(2026, 10, 5))
 
 
 class TestLastWeekdayOfOtherPeriods(unittest.TestCase):
@@ -90,14 +95,8 @@ class TestLastWeekdayOfOtherPeriods(unittest.TestCase):
                 self.assertEqual(_dt(text), expected)
 
     def test_next_month(self):
-        self._all(["el último viernes del mes que viene",
-                   "el último viernes del próximo mes",
-                   "el último viernes del mes siguiente"],
+        self._all(["el último viernes del próximo mes"],
                   datetime(2026, 11, 27))
-
-    def test_previous_month(self):
-        self._all(["el último viernes del mes pasado"],
-                  datetime(2026, 9, 25))
 
     def test_whole_year(self):
         self._all(["el último viernes del año", "el último viernes de 2026"],
@@ -111,37 +110,11 @@ class TestLastWeekdayOfOtherPeriods(unittest.TestCase):
         self._all(["el ultimo viernes"], datetime(2026, 10, 16))
         self._all(["el ultimo viernes del mes"], datetime(2026, 10, 30))
 
-    def test_only_the_understood_words_leave_the_sentence(self):
-        res = extract_datetime("el último viernes del mes que viene",
-                               lang="es-ES", anchorDate=ANCHOR)
-        self.assertEqual(res[1], "el")
-
 
 class TestLastWeekdayOfAShiftedYear(unittest.TestCase):
-    def test_last_weekday_of_next_and_last_year(self):
-        for text, expected in (
-                ("el último viernes del año que viene",
-                 datetime(2027, 12, 31)),
-                ("el último viernes del año siguiente",
-                 datetime(2027, 12, 31)),
-                ("el último viernes del año pasado", datetime(2025, 12, 26)),
-                ("el último viernes del año", datetime(2026, 12, 25))):
-            with self.subTest(text=text):
-                self.assertEqual(_dt(text), expected)
-
-    def test_a_month_of_a_shifted_year(self):
-        for text, expected in (
-                ("el último viernes de noviembre del año que viene",
-                 datetime(2027, 11, 26)),
-                ("el último viernes de octubre del año pasado",
-                 datetime(2025, 10, 31))):
-            with self.subTest(text=text):
-                self.assertEqual(_dt(text), expected)
-
-    def test_only_the_understood_words_leave_the_sentence_again(self):
-        res = extract_datetime("el último viernes del año que viene",
-                               lang="es-ES", anchorDate=ANCHOR)
-        self.assertEqual(res[1], "el")
+    def test_last_weekday_of_this_year(self):
+        self.assertEqual(_dt("el último viernes del año"),
+                         datetime(2026, 12, 25))
 
 
 class TestLastWeekdayOfAGivenYear(unittest.TestCase):
@@ -149,11 +122,8 @@ class TestLastWeekdayOfAGivenYear(unittest.TestCase):
         res = extract_datetime("el último viernes del año 2027",
                                lang="es-ES", anchorDate=ANCHOR)
         self.assertEqual(res[0].replace(tzinfo=None), datetime(2027, 12, 31))
-        self.assertEqual(res[1], "el")
-
-    def test_a_month_of_a_year_given_with_the_word_year(self):
-        self.assertEqual(_dt("el último viernes de octubre del año 2027"),
-                         datetime(2027, 10, 29))
+        # the article that opens the date is part of it, so it leaves too
+        self.assertEqual(res[1], "")
 
 
 class TestLastWeekdayWithAPrefixedYearOrNamedMonth(unittest.TestCase):
@@ -162,7 +132,8 @@ class TestLastWeekdayWithAPrefixedYearOrNamedMonth(unittest.TestCase):
             with self.subTest(text=text):
                 res = extract_datetime(text, lang="es-ES", anchorDate=ANCHOR)
                 self.assertEqual(res[0].replace(tzinfo=None), expected)
-                self.assertEqual(res[1], "el")
+                # the article that opens the date leaves with it
+                self.assertEqual(res[1], "")
 
     def test_prefixed_next_year(self):
         self._all(["el último viernes del próximo año",
@@ -171,10 +142,37 @@ class TestLastWeekdayWithAPrefixedYearOrNamedMonth(unittest.TestCase):
                    "el ultimo viernes del siguiente año"],
                   datetime(2027, 12, 31))
 
-    def test_month_introduced_by_the_word_month(self):
-        self._all(["el último viernes del mes de noviembre"],
-                  datetime(2026, 11, 27))
 
-    def test_month_of_a_year_after_the_word_month(self):
-        self._all(["el último viernes del mes de octubre del año que viene"],
-                  datetime(2027, 10, 29))
+RELATIVE_PERIOD = pytest.mark.xfail(
+    strict=True, reason="chronologia-issue:nth-weekday-of-relative-period")
+
+
+@pytest.mark.parametrize("text,expected", [
+    pytest.param(text, expected, marks=RELATIVE_PERIOD)
+    for text, expected in (
+        ("el último viernes del mes que viene", datetime(2026, 11, 27)),
+        ("el último viernes del mes siguiente", datetime(2026, 11, 27)),
+        ("el último viernes del mes pasado", datetime(2026, 9, 25)),
+        ("el último viernes del año que viene", datetime(2027, 12, 31)),
+        ("el último viernes del año siguiente", datetime(2027, 12, 31)),
+        ("el último viernes del año pasado", datetime(2025, 12, 26)),
+        ("el último viernes de noviembre del año que viene",
+         datetime(2027, 11, 26)),
+        ("el último viernes de octubre del año pasado",
+         datetime(2025, 10, 31)),
+        ("el último viernes de octubre del año 2027", datetime(2027, 10, 29)),
+        ("el último viernes del mes de noviembre", datetime(2026, 11, 27)),
+        ("el último viernes del mes de octubre del año que viene",
+         datetime(2027, 10, 29)))])
+def test_last_weekday_of_a_named_or_shifted_period(text, expected):
+    assert _dt(text) == expected
+
+
+@pytest.mark.parametrize("text", [
+    pytest.param(text, marks=RELATIVE_PERIOD)
+    for text in ("el último viernes del mes que viene",
+                 "el último viernes del año que viene")])
+def test_only_the_understood_words_leave_the_sentence(text):
+    """The whole phrase is the date, its article included."""
+    res = extract_datetime(text, lang="es-ES", anchorDate=ANCHOR)
+    assert res[1] == ""

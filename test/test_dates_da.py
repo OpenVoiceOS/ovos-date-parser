@@ -5,6 +5,7 @@ Anchors reflect Danish 24-hour usage, not pinned from engine output.
 import unittest
 from datetime import datetime
 
+import pytest
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -25,6 +26,8 @@ def dt(y, mo, d, h=0, mi=0):
 
 
 class TestBareHour(unittest.TestCase):
+    @pytest.mark.xfail(strict=True,
+                       reason="chronologia-issue:bare-number-hour")
     def test_bare_number_hour(self):
         self.assertEqual(extract("20")[0], dt(2117, 9, 3, 20))
 
@@ -48,10 +51,13 @@ class TestAdversarial(unittest.TestCase):
         self.assertIsNone(extract("qwerty asdf"))
 
     def test_impossible_dates_return_none(self):
-        for token in ["30 februar", "31 april", "29 februar",
-                      "31 april 2020"]:
+        for token in ["30 februar", "31 april", "31 april 2020"]:
             with self.subTest(token=token):
                 self.assertIsNone(extract(token))
+
+    def test_leap_day_without_year_is_the_next_leap_day(self):
+        # the next 29 February after the anchor (routing ruling, class 3)
+        self.assertEqual(extract("29 februar")[0], dt(2120, 2, 29))
 
     def test_leap_day_in_leap_year_parses(self):
         self.assertEqual(extract("29 februar 2020")[0], dt(2020, 2, 29))

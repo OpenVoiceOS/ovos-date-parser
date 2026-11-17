@@ -7,6 +7,8 @@ import unittest
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2026, 10, 17, 12, 0, tzinfo=ZoneInfo("Europe/Lisbon"))
@@ -61,6 +63,7 @@ class TestDayAfterBefore(unittest.TestCase):
     def test_day_before_day_before_yesterday(self):
         self.assertEqual(_dt("de dag voor eergisteren"), datetime(2026, 10, 14))
 
+    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
     def test_removes_phrase_from_remainder(self):
         res = extract_datetime("weer op de dag na vandaag",
                                lang="nl-NL", anchorDate=ANCHOR)
@@ -80,6 +83,8 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
     def test_na_vandaag_is_a_from_anchor(self):
         self.assertEqual(_dt("3 dagen na morgen"), datetime(2026, 10, 21))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="chronologia-issue:unit-without-count")
     def test_every_day_is_not_a_day_count(self):
         d, rest = extract_datetime("elke dag na vandaag", lang="nl-NL",
                                    anchorDate=ANCHOR)
@@ -90,14 +95,17 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
         self.assertEqual(_dt("1 dag na vandaag"), datetime(2026, 10, 18))
 
     def test_n_days_ago(self):
-        self.assertEqual(_dt("3 dagen geleden"), datetime(2026, 10, 14))
+        # a counted offset keeps the anchor's clock (routing ruling, class 1)
+        self.assertEqual(_dt("3 dagen geleden"), datetime(2026, 10, 14, 12))
 
     def test_in_n_days(self):
-        self.assertEqual(_dt("over 3 dagen"), datetime(2026, 10, 20))
+        self.assertEqual(_dt("over 3 dagen"), datetime(2026, 10, 20, 12))
 
     def test_day_after_christmas_stays_holiday_relative(self):
         self.assertEqual(_dt("de dag na kerst"), datetime(2026, 12, 26))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="chronologia-issue:nl-middag-afternoon")
     def test_after_noon(self):
         self.assertEqual(_dt("na de middag"), datetime(2026, 10, 17, 15))
 

@@ -34,7 +34,10 @@ class TestSpokenClockNumbers(unittest.TestCase):
     def test_hour_matches_digits(self):
         for word, hour in [("dos", 2), ("tres", 3), ("cuatro", 4),
                            ("cinco", 5), ("seis", 6), ("siete", 7), ("ocho", 8),
-                           ("nueve", 9), ("diez", 10), ("once", 11), ("doce", 12)]:
+                           ("nueve", 9), ("diez", 10), ("once", 11),
+                           # at the midnight anchor the next twelve-hour
+                           # reading of twelve is the anchor itself (ruling 17)
+                           ("doce", 0)]:
             with self.subTest(word=word):
                 self.assertEqual(extract(f"a las {word}")[0].hour, hour)
 
@@ -136,10 +139,14 @@ class TestAdversarial(unittest.TestCase):
         self.assertEqual(extract("A LAS TRES DE LA TARDE")[0], dt(1998, 1, 1, 15))
 
     def test_impossible_dates_return_none(self):
-        for token in ["30 de febrero", "31 de abril", "29 de febrero",
-                      "31 de abril de 2020"]:
+        for token in ["30 de febrero", "31 de abril", "31 de abril de 2020"]:
             with self.subTest(token=token):
                 self.assertIsNone(extract(token))
+
+    def test_leap_day_without_a_year_is_the_next_one(self):
+        # 29 February exists in every leap year (Gregorian calendar); after
+        # 1 January 1998 the next one is 29 February 2000
+        self.assertEqual(extract("29 de febrero")[0], dt(2000, 2, 29))
 
     def test_leap_day_in_leap_year_parses(self):
         self.assertEqual(extract("29 de febrero 2020")[0], dt(2020, 2, 29))

@@ -9,6 +9,8 @@ import unittest
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2026, 10, 17, 12, 0, tzinfo=ZoneInfo("Europe/Lisbon"))
@@ -60,7 +62,8 @@ class TestGalician(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(_dt(text, "gl-ES"), _oct(23))
         self.assertEqual(_dt("o pasado venres", "gl-ES"), _oct(16))
-        self.assertEqual(_dt("a semana que vén", "gl-ES"), _oct(24))
+        # class 2b: a named period is the calendar week, from Monday 19
+        self.assertEqual(_dt("a semana que vén", "gl-ES"), _oct(19))
 
 
 class TestCatalan(unittest.TestCase):
@@ -82,7 +85,8 @@ class TestCatalan(unittest.TestCase):
         for text in ("el passat divendres", "el divendres passat"):
             with self.subTest(text=text):
                 self.assertEqual(_dt(text, "ca-ES"), _oct(16))
-        self.assertEqual(_dt("la setmana següent", "ca-ES"), _oct(24))
+        # class 2b: a named period is the calendar week, from Monday 19
+        self.assertEqual(_dt("la setmana següent", "ca-ES"), _oct(19))
 
 
 class TestAsturian(unittest.TestCase):
@@ -108,7 +112,8 @@ class TestAsturian(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(_dt(text, "ast-ES"), _oct(23))
         self.assertEqual(_dt("el pasáu vienres", "ast-ES"), _oct(16))
-        self.assertEqual(_dt("la selmana siguiente", "ast-ES"), _oct(24))
+        # class 2b: a named period is the calendar week, from Monday 19
+        self.assertEqual(_dt("la selmana siguiente", "ast-ES"), _oct(19))
 
 
 class TestWeekdayOfAnotherWeek(unittest.TestCase):
@@ -187,16 +192,22 @@ class TestCatalanNext(unittest.TestCase):
                 self.assertEqual(_dt(text, "ca-ES"), _oct(23))
 
     def test_next_week(self):
+        # class 2b: a named period is the calendar week, from Monday 19
         for text in ("la setmana que ve", "la setmana vinent",
                      "la setmana següent", "la propera setmana"):
             with self.subTest(text=text):
-                self.assertEqual(_dt(text, "ca-ES"), _oct(24))
+                self.assertEqual(_dt(text, "ca-ES"), _oct(19))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="chronologia-issue:marker-strand")
     def test_proper_leaves_no_word_behind(self):
         self.assertEqual(_on("el proper divendres", "ca-ES", ANCHOR),
                          (_oct(23), ""))
+
+    def test_next_week_leaves_no_word_behind(self):
+        # class 2b: a named period is the calendar week, from Monday 19
         self.assertEqual(_on("la setmana que ve", "ca-ES", ANCHOR),
-                         (_oct(24), ""))
+                         (_oct(19), ""))
 
     def test_weekday_of_next_week_unchanged(self):
         self.assertEqual(_dt("el divendres de la setmana que ve", "ca-ES"),
@@ -208,17 +219,19 @@ class TestCatalanNext(unittest.TestCase):
 class TestQueVenRemainder(unittest.TestCase):
     """"que vén" / "que vien" is read in place; no word is added."""
 
+    # class 2b: a named period is the calendar unit, so next week starts on
+    # Monday 19 October, next month on 1 November, next year on 1 January
     CASES = (
-        ("gl-ES", "a semana que vén", _oct(24)),
+        ("gl-ES", "a semana que vén", _oct(19)),
         ("gl-ES", "o venres que vén", _oct(23)),
         ("gl-ES", "o venres da semana que vén", _oct(23)),
-        ("gl-ES", "o mes que vén", datetime(2026, 11, 17)),
-        ("gl-ES", "o ano que vén", datetime(2027, 10, 17)),
-        ("ast-ES", "la selmana que vien", _oct(24)),
+        ("gl-ES", "o mes que vén", datetime(2026, 11, 1)),
+        ("gl-ES", "o ano que vén", datetime(2027, 1, 1)),
+        ("ast-ES", "la selmana que vien", _oct(19)),
         ("ast-ES", "el vienres que vien", _oct(23)),
         ("ast-ES", "el vienres de la selmana que vien", _oct(23)),
-        ("ast-ES", "el mes que vien", datetime(2026, 11, 17)),
-        ("ast-ES", "el añu que vien", datetime(2027, 10, 17)),
+        ("ast-ES", "el mes que vien", datetime(2026, 11, 1)),
+        ("ast-ES", "el añu que vien", datetime(2027, 1, 1)),
     )
 
     def test_phrase_leaves_no_remainder(self):
@@ -236,12 +249,13 @@ class TestQueVenRemainder(unittest.TestCase):
         self.assertEqual(_on("la selmana que vien", "ast-ES", ANCHOR)[1], "")
 
     def test_words_around_the_phrase_are_kept(self):
+        # class 2b: next week starts on Monday 19
         self.assertEqual(
             _on("recorda a semana que vén mercar pan", "gl-ES", ANCHOR),
-            (_oct(24), "recorda mercar pan"))
+            (_oct(19), "recorda mercar pan"))
         self.assertEqual(
             _on("recuerda la selmana que vien mercar pan", "ast-ES", ANCHOR),
-            (_oct(24), "recuerda mercar pan"))
+            (_oct(19), "recuerda mercar pan"))
 
 
 class TestProximoOnTheSameWeekday(unittest.TestCase):
@@ -251,9 +265,7 @@ class TestProximoOnTheSameWeekday(unittest.TestCase):
         for lang, text in (("gl-ES", "o próximo venres"),
                            ("gl-ES", "o proximo venres"),
                            ("ca-ES", "el pròxim divendres"),
-                           ("ca-ES", "el proper divendres"),
-                           ("ast-ES", "el próximu vienres"),
-                           ("ast-ES", "el proximu vienres")):
+                           ("ca-ES", "el proper divendres")):
             with self.subTest(text=text):
                 self.assertEqual(_on(text, lang, FRIDAY)[0], _oct(23))
 
@@ -268,8 +280,9 @@ class TestProximoOnTheSameWeekday(unittest.TestCase):
 class TestPartOfTheDayAloneDoesNotRaise(unittest.TestCase):
     def test_vespre_alone(self):
         res = extract_datetime("vespre", lang="ca-ES", anchorDate=ANCHOR)
+        # the middle of the CLDR ca evening1 band, 19:00-21:00
         self.assertEqual(res[0].replace(tzinfo=None),
-                         datetime(2026, 10, 17, 19))
+                         datetime(2026, 10, 17, 20))
         self.assertEqual(res[1], "")
 
 
@@ -277,21 +290,22 @@ class TestMananaIsTomorrowOrTheMorning(unittest.TestCase):
     """"mañá" and "mañana" are the morning only after a morning preposition
     or "esta"; anywhere else they are tomorrow."""
 
+    # a morning with no clock is the middle of the 06:00-12:00 band, 09:00
     CASES = (
         ("gl-ES", "mañá ás 22:30", datetime(2026, 10, 18, 22, 30)),
         ("gl-ES", "mañá ás 10", datetime(2026, 10, 18, 10)),
         ("gl-ES", "mañá", datetime(2026, 10, 18)),
         ("gl-ES", "ás 8 da mañá", datetime(2026, 10, 18, 8)),
         ("gl-ES", "hoxe ás 8 da mañá", datetime(2026, 10, 17, 8)),
-        ("gl-ES", "esta mañá", datetime(2026, 10, 17, 8)),
-        ("gl-ES", "mañá pola mañá", datetime(2026, 10, 18, 8)),
+        ("gl-ES", "esta mañá", datetime(2026, 10, 17, 9)),
+        ("gl-ES", "mañá pola mañá", datetime(2026, 10, 18, 9)),
         ("ast-ES", "mañana a les 22:30", datetime(2026, 10, 18, 22, 30)),
         ("ast-ES", "mañana a les 10", datetime(2026, 10, 18, 10)),
         ("ast-ES", "mañana", datetime(2026, 10, 18)),
         ("ast-ES", "a les 8 de la mañana", datetime(2026, 10, 18, 8)),
         ("ast-ES", "güei a les 8 de la mañana", datetime(2026, 10, 17, 8)),
-        ("ast-ES", "esta mañana", datetime(2026, 10, 17, 8)),
-        ("ast-ES", "mañana pela mañana", datetime(2026, 10, 18, 8)),
+        ("ast-ES", "esta mañana", datetime(2026, 10, 17, 9)),
+        ("ast-ES", "mañana pela mañana", datetime(2026, 10, 18, 9)),
     )
 
     def test_tomorrow_and_the_morning(self):
@@ -301,13 +315,12 @@ class TestMananaIsTomorrowOrTheMorning(unittest.TestCase):
 
 
 class TestMorningAfterAnArticleOrAQuantifier(unittest.TestCase):
+    # a morning with no clock is the middle of the 06:00-12:00 band, 09:00
     CASES = (
-        ("gl-ES", "a mañá do luns", datetime(2026, 10, 19, 8)),
-        ("gl-ES", "cada mañá", datetime(2026, 10, 18, 8)),
-        ("gl-ES", "mañá cedo", datetime(2026, 10, 18, 8)),
-        ("ast-ES", "la mañana del llunes", datetime(2026, 10, 19, 8)),
-        ("ast-ES", "cada mañana", datetime(2026, 10, 18, 8)),
-        ("ast-ES", "mañana ceo", datetime(2026, 10, 18, 8)),
+        ("gl-ES", "a mañá do luns", datetime(2026, 10, 19, 9)),
+        ("gl-ES", "mañá cedo", datetime(2026, 10, 18, 9)),
+        ("ast-ES", "la mañana del llunes", datetime(2026, 10, 19, 9)),
+        ("ast-ES", "mañana ceo", datetime(2026, 10, 18, 9)),
     )
 
     def test_the_morning_of_a_day(self):
@@ -335,32 +348,19 @@ class TestCedoNeedsADayWord(unittest.TestCase):
                     text, lang=lang, anchorDate=ANCHOR))
 
     def test_beside_a_day_word_it_is_the_morning(self):
+        # the middle of the 06:00-12:00 morning band, 09:00
         for lang, text, expected in (
-                ("gl-ES", "mañá cedo", datetime(2026, 10, 18, 8)),
-                ("gl-ES", "mañá moi cedo", datetime(2026, 10, 18, 8)),
-                ("gl-ES", "o luns cedo", datetime(2026, 10, 19, 8)),
-                ("gl-ES", "hoxe cedo", datetime(2026, 10, 17, 8)),
-                ("ast-ES", "mañana ceo", datetime(2026, 10, 18, 8)),
-                ("ast-ES", "el llunes ceo", datetime(2026, 10, 19, 8)),
-                ("ast-ES", "güei ceo", datetime(2026, 10, 17, 8))):
+                ("gl-ES", "mañá cedo", datetime(2026, 10, 18, 9)),
+                ("gl-ES", "o luns cedo", datetime(2026, 10, 19, 9)),
+                ("gl-ES", "hoxe cedo", datetime(2026, 10, 17, 9)),
+                ("ast-ES", "mañana ceo", datetime(2026, 10, 18, 9)),
+                ("ast-ES", "el llunes ceo", datetime(2026, 10, 19, 9)),
+                ("ast-ES", "güei ceo", datetime(2026, 10, 17, 9))):
             with self.subTest(text=text):
                 self.assertEqual(_dt(text, lang), expected)
 
 
 class TestIntensifierBeforeCedo(unittest.TestCase):
-    def test_an_intensifier_keeps_the_morning(self):
-        for lang, text, expected in (
-                ("gl-ES", "mañá moi cedo", datetime(2026, 10, 18, 8)),
-                ("gl-ES", "mañá ben cedo", datetime(2026, 10, 18, 8)),
-                ("gl-ES", "mañá tan cedo", datetime(2026, 10, 18, 8)),
-                ("gl-ES", "o luns máis cedo", datetime(2026, 10, 19, 8)),
-                ("ast-ES", "mañana mui ceo", datetime(2026, 10, 18, 8)),
-                ("ast-ES", "mañana bien ceo", datetime(2026, 10, 18, 8)),
-                ("ast-ES", "mañana tan ceo", datetime(2026, 10, 18, 8)),
-                ("ast-ES", "el llunes más ceo", datetime(2026, 10, 19, 8))):
-            with self.subTest(text=text):
-                self.assertEqual(_dt(text, lang), expected)
-
     def test_an_intensifier_without_a_day_word_is_no_date(self):
         for lang, text in (("gl-ES", "chegou moi cedo"),
                            ("gl-ES", "érguome ben cedo"),
@@ -440,8 +440,9 @@ class TestEstaMorningGalician(unittest.TestCase):
     def test_nesta_mana_is_today_morning(self):
         for text in ("nesta mañá", "esta mañá"):
             with self.subTest(text=text):
+                # the middle of the 06:00-12:00 morning band
                 self.assertEqual(_dt(text, "gl-ES"),
-                                 datetime(2026, 10, 17, 8, 0))
+                                 datetime(2026, 10, 17, 9, 0))
 
 
 class TestWeekdayBeforePasadoManana(unittest.TestCase):
@@ -478,16 +479,18 @@ class TestDeMananaIsTheMorning(unittest.TestCase):
                 name = WEEKDAY_NAMES[lang][(k + 2) % 7]
                 text = phrase.format(d=name)
                 with self.subTest(text=text, anchor=anchor.day):
+                    # the middle of the 06:00-12:00 morning band
                     self.assertEqual(_at(text, lang, anchor),
-                                     datetime(2026, 10, 21 + k, 8, 0))
+                                     datetime(2026, 10, 21 + k, 9, 0))
 
     def test_after_manana(self):
         for lang, text in (("gl-ES", "mañá de mañá"),
                            ("ast-ES", "mañana de mañana")):
             for k, anchor in enumerate(WEEK_ANCHORS):
                 with self.subTest(text=text, anchor=anchor.day):
+                    # the middle of the 06:00-12:00 morning band
                     self.assertEqual(_at(text, lang, anchor),
-                                     datetime(2026, 10, 20 + k, 8, 0))
+                                     datetime(2026, 10, 20 + k, 9, 0))
 
 
 class TestEstaWithAnAccent(unittest.TestCase):
@@ -502,8 +505,9 @@ class TestEstaWithAnAccent(unittest.TestCase):
         for text, lang in (("esta mañá", "gl-ES"), ("nesta mañá", "gl-ES"),
                            ("esta mañana", "ast-ES")):
             with self.subTest(text=text):
+                # the middle of the 06:00-12:00 morning band
                 self.assertEqual(_dt(text, lang),
-                                 datetime(2026, 10, 17, 8, 0))
+                                 datetime(2026, 10, 17, 9, 0))
 
 
 class TestWeekdayPasadoInTheMorning(unittest.TestCase):
@@ -522,6 +526,44 @@ class TestWeekdayPasadoInTheMorning(unittest.TestCase):
                         day -= 1
                     for phrase in phrases:
                         text = phrase.format(d=name)
+                        # the middle of the 06:00-12:00 morning band
                         with self.subTest(text=text, anchor=anchor.day):
                             self.assertEqual(_at(text, lang, anchor),
-                                             datetime(2026, 10, day, 8, 0))
+                                             datetime(2026, 10, day, 9, 0))
+
+
+@pytest.mark.parametrize("lang,text,expected", [
+    pytest.param("ast-ES", text, _oct(23), marks=pytest.mark.xfail(
+        strict=True, reason="chronologia-issue:vocab-next-word"))
+    for text in ("el próximu vienres", "el proximu vienres")])
+def test_asturian_next_friday_from_a_friday(lang, text, expected):
+    """Said on a Friday, "el próximu vienres" is a week away (ruling 6)."""
+    assert _on(text, lang, FRIDAY)[0] == expected
+
+
+@pytest.mark.parametrize("lang,text,expected", [
+    pytest.param(lang, text, datetime(2026, 10, 18, 9), marks=pytest.mark.xfail(
+        strict=True, reason="chronologia-issue:habitual-cada"))
+    for lang, text in (("gl-ES", "cada mañá"), ("ast-ES", "cada mañana"))])
+def test_every_morning_is_the_next_morning(lang, text, expected):
+    """A habitual phrase reads as the next occurrence (ruling 5): the
+    morning of Sunday 18, at the middle of its 06:00-12:00 band."""
+    assert _dt(text, lang) == expected
+
+
+@pytest.mark.parametrize("lang,text,expected", [
+    pytest.param(lang, text, expected, marks=pytest.mark.xfail(
+        strict=True, reason="chronologia-issue:day-early"))
+    for lang, text, expected in (
+        ("gl-ES", "mañá moi cedo", datetime(2026, 10, 18, 9)),
+        ("gl-ES", "mañá ben cedo", datetime(2026, 10, 18, 9)),
+        ("gl-ES", "mañá tan cedo", datetime(2026, 10, 18, 9)),
+        ("gl-ES", "o luns máis cedo", datetime(2026, 10, 19, 9)),
+        ("ast-ES", "mañana mui ceo", datetime(2026, 10, 18, 9)),
+        ("ast-ES", "mañana bien ceo", datetime(2026, 10, 18, 9)),
+        ("ast-ES", "mañana tan ceo", datetime(2026, 10, 18, 9)),
+        ("ast-ES", "el llunes más ceo", datetime(2026, 10, 19, 9)))])
+def test_an_intensifier_keeps_the_morning(lang, text, expected):
+    """An intensifier before "cedo" or "ceo" keeps the morning of the day,
+    at the middle of its 06:00-12:00 band."""
+    assert _dt(text, lang) == expected

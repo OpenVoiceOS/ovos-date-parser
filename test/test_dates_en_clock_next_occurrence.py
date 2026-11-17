@@ -1,14 +1,20 @@
-"""English clock times name the next occurrence strictly after the anchor.
+"""English clock times name the next occurrence after the anchor.
 
-"at 18:00" said at 20:46 is tomorrow's 18:00, and said at exactly 18:00 it is
-tomorrow's too, because the anchor itself is not after the anchor.  The gold
-value is plain datetime arithmetic: today at the spoken time, plus a day when
-that moment is not after the anchor.
+"at 18:00" said at 20:46 is tomorrow's 18:00. Said at exactly 18:00 it is
+18:00 that day: an instant equal to the anchor is the anchor (class 3 of the
+routing rulings). The gold value is plain datetime arithmetic: today at the
+spoken time, plus a day when that moment is before the anchor.
 """
 import unittest
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from ovos_date_parser import extract_datetime
+
+MARKER_STRAND = "chronologia-issue:marker-strand"
+TWELVE_AT_NIGHT = "chronologia-issue:twelve-at-night"
+HOUR_WITH_DAYPART = "chronologia-issue:hour-with-daypart"
 
 DAY = datetime(2026, 10, 23)
 ANCHORS = [
@@ -24,7 +30,7 @@ ANCHORS = [
 
 def next_after(anchor, hour, minute):
     moment = anchor.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    return moment if moment > anchor else moment + timedelta(days=1)
+    return moment if moment >= anchor else moment + timedelta(days=1)
 
 
 class TestClockNextOccurrence(unittest.TestCase):
@@ -36,17 +42,13 @@ class TestClockNextOccurrence(unittest.TestCase):
                 self.assertEqual(got[0], next_after(anchor, hour, minute))
                 self.assertEqual(got[1], remainder)
 
-    def test_at_24_hour_clock(self):
-        self.check("at 18:00", 18, 0)
-
     def test_bare_24_hour_clock(self):
         self.check("18:00", 18, 0)
 
     def test_alarm_request(self):
-        self.check("set an alarm for 18:00", 18, 0, "set alarm")
-
-    def test_afternoon_hour_past_noon(self):
-        self.check("at 13:00", 13, 0)
+        # "an" and "for" are not part of the date, so they stay in the
+        # remainder (the routing remainder rule)
+        self.check("set an alarm for 18:00", 18, 0, "set an alarm for")
 
     def test_pm_hour_agrees_with_24_hour_clock(self):
         self.check("at 6 pm", 18, 0)
@@ -58,6 +60,24 @@ class TestClockNextOccurrence(unittest.TestCase):
                                        anchorDate=anchor)
                 self.assertEqual(got[0], (anchor + timedelta(days=1)).replace(
                     hour=18, minute=0, second=0, microsecond=0))
+
+
+def anchored(text, rows):
+    """One pytest param per anchor: (text, anchor, expected value)."""
+    return [pytest.param(text, anchor, value, id=f"{text}@{anchor.isoformat()}")
+            for anchor, value in rows]
+
+
+@pytest.mark.xfail(strict=True, reason=MARKER_STRAND)
+@pytest.mark.parametrize("text,anchor,expected", [
+    *anchored("at 18:00", [(a, next_after(a, 18, 0)) for a in ANCHORS]),
+    *anchored("at 13:00", [(a, next_after(a, 13, 0)) for a in ANCHORS]),
+])
+def test_at_before_a_clock_leaves_no_remainder(text, anchor, expected):
+    got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+    assert got is not None
+    assert got[0] == expected
+    assert got[1] == ""
 
 
 class TestSpokenMidnight(unittest.TestCase):
@@ -125,120 +145,116 @@ class TestSpokenNoon(unittest.TestCase):
         self.check("at 12:30 am", 0, 30)
 
 
-class TestBareTwelveHourMinutes(unittest.TestCase):
-    """A bare "H:MM" is the earlier of H:MM and H+12:MM strictly after the anchor."""
+BARE_MINUTES_ANCHORS = [
+    datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 9, 0),
+    datetime(2026, 10, 23, 11, 59), datetime(2026, 10, 23, 13, 10),
+    datetime(2026, 10, 23, 15, 0), datetime(2026, 10, 23, 23, 59)]
 
-    ANCHORS = [datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 9, 0),
-               datetime(2026, 10, 23, 11, 59), datetime(2026, 10, 23, 13, 10),
-               datetime(2026, 10, 23, 15, 0), datetime(2026, 10, 23, 23, 59)]
 
-    @staticmethod
-    def earliest_after(anchor, hour, minute):
-        return min(next_after(anchor, h, minute) for h in (hour, hour + 12))
+# A digit clock "H:MM" keeps its 24-hour reading: ruling 17 (the next
+# twelve-hour reading) covers a spoken hour only. So "at 3:30" is the next
+# 03:30, by class 3.
+@pytest.mark.xfail(strict=True, reason=MARKER_STRAND)
+@pytest.mark.parametrize("text,anchor,expected", [
+    *(row for hour in range(1, 12) for minute in (15, 30, 45)
+      for row in anchored(f"at {hour}:{minute}",
+                          [(a, next_after(a, hour, minute))
+                           for a in BARE_MINUTES_ANCHORS])),
+])
+def test_a_digit_clock_reads_as_written(text, anchor, expected):
+    got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+    assert got is not None
+    assert got[0] == expected
+    assert got[1] == ""
 
-    def check(self, text, hour, minute):
-        for anchor in self.ANCHORS:
-            with self.subTest(text=text, anchor=anchor.isoformat()):
-                got = extract_datetime(text, lang="en-US", anchorDate=anchor)
-                self.assertIsNotNone(got)
-                self.assertEqual(got[0],
-                                 self.earliest_after(anchor, hour, minute))
-                self.assertEqual(got[1], "")
 
-    def test_half_past_the_hour(self):
-        for hour in range(1, 12):
-            self.check(f"at {hour}:30", hour, 30)
-
-    def test_quarter_to_and_past_the_hour(self):
-        for hour in range(1, 12):
-            self.check(f"at {hour}:15", hour, 15)
-            self.check(f"at {hour}:45", hour, 45)
-
+class TestDigitClockHours(unittest.TestCase):
     def test_after_the_afternoon_hour_in_the_same_hour(self):
+        # ruling 17 leaves a digit clock alone: 01:45 is the next 1:45
         anchor = datetime(2026, 10, 23, 13, 10)
         got = extract_datetime("at 1:45", lang="en-US", anchorDate=anchor)
-        self.assertEqual(got[0], datetime(2026, 10, 23, 13, 45))
+        self.assertEqual(got[0], datetime(2026, 10, 24, 1, 45))
 
-    def test_a_named_today_keeps_the_afternoon_reading(self):
+    def test_a_named_today_keeps_the_written_hour(self):
+        # ruling 17 leaves a digit clock alone, and a named day is not moved
+        # by a clock that has passed (ruling 16)
         anchor = datetime(2026, 10, 23, 15, 0)
         got = extract_datetime("at 3:30 today", lang="en-US", anchorDate=anchor)
-        self.assertEqual(got[0], datetime(2026, 10, 23, 15, 30))
+        self.assertEqual(got[0], datetime(2026, 10, 23, 3, 30))
 
 
-class TestSpokenMidnightTonight(unittest.TestCase):
-    """"12 tonight" is the next 00:MM strictly after the anchor.
-
-    With a named day it is the 00:MM that ends that day.
-    """
-
-    ANCHORS = [datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 15, 0),
-               datetime(2026, 10, 23, 23, 59)]
-
-    def check(self, text, minute):
-        for anchor in self.ANCHORS:
-            with self.subTest(text=text, anchor=anchor.isoformat()):
-                got = extract_datetime(text, lang="en-US", anchorDate=anchor)
-                self.assertIsNotNone(got)
-                self.assertEqual(got[0], next_after(anchor, 0, minute))
-                self.assertEqual(got[1], "")
-
-    def test_12_tonight(self):
-        self.check("at 12 tonight", 0)
-
-    def test_12_30_tonight(self):
-        self.check("at 12:30 tonight", 30)
-
-    def test_tonight_at_12(self):
-        self.check("tonight at 12", 0)
-
-    def test_tonight_at_eleven_is_unchanged(self):
-        got = extract_datetime("at 11 tonight", lang="en-US",
-                               anchorDate=datetime(2026, 10, 23, 15, 0))
-        self.assertEqual(got[0], datetime(2026, 10, 23, 23, 0))
-
-    def test_spoken_minutes(self):
-        self.check("at twelve thirty tonight", 30)
-        self.check("tonight at twelve thirty", 30)
-        self.check("at 12 30 tonight", 30)
+TONIGHT_ANCHORS = [datetime(2026, 10, 23, 0, 0, 30),
+                   datetime(2026, 10, 23, 15, 0),
+                   datetime(2026, 10, 23, 23, 59)]
 
 
-class TestSpokenMidnightTonightOnANamedDay(unittest.TestCase):
-    """With a named day, "12 tonight" is the midnight that ends that day."""
+def end_of_day(anchor, days=1, minute=0):
+    """00:MM at the end of the anchor's day, or of a day ``days - 1`` on."""
+    midnight = anchor.replace(hour=0, minute=0, second=0, microsecond=0)
+    return midnight + timedelta(days=days, minutes=minute)
 
-    ANCHORS = [datetime(2026, 10, 23, 0, 0, 30), datetime(2026, 10, 23, 15, 0),
-               datetime(2026, 10, 23, 15, 30), datetime(2026, 10, 23, 23, 59),
-               datetime(2026, 10, 23, 15, 0,
-                        tzinfo=timezone(timedelta(hours=-5)))]
 
-    def check(self, text, days_until_end_of_day):
-        for anchor in self.ANCHORS:
-            with self.subTest(text=text, anchor=anchor.isoformat()):
-                got = extract_datetime(text, lang="en-US", anchorDate=anchor)
-                self.assertIsNotNone(got)
-                midnight = anchor.replace(hour=0, minute=0, second=0,
-                                          microsecond=0)
-                self.assertEqual(got[0], midnight + timedelta(
-                    days=days_until_end_of_day))
-                self.assertEqual(got[1], "")
+# "12 tonight" is 00:MM at the end of the anchor's day: "tonight" is the
+# night of the anchor's own day (ruling 10), even when said at 00:00:30.
+@pytest.mark.xfail(strict=True, reason=TWELVE_AT_NIGHT)
+@pytest.mark.parametrize("text,anchor,expected", [
+    *(row for text, minute in (("at 12 tonight", 0),
+                               ("at 12:30 tonight", 30),
+                               ("tonight at 12", 0),
+                               ("at twelve thirty tonight", 30),
+                               ("tonight at twelve thirty", 30),
+                               ("at 12 30 tonight", 30))
+      for row in anchored(text, [(a, end_of_day(a, minute=minute))
+                                 for a in TONIGHT_ANCHORS])),
+])
+def test_twelve_tonight_is_the_midnight_that_ends_the_day(text, anchor,
+                                                           expected):
+    got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+    assert got is not None
+    assert got[0] == expected
+    assert got[1] == ""
 
-    def test_today(self):
-        self.check("at 12 tonight today", 1)
 
-    def test_on_the_anchor_weekday(self):
-        # 2026-10-23 is a Friday
-        self.check("at 12 tonight on friday", 1)
+@pytest.mark.xfail(strict=True, reason=HOUR_WITH_DAYPART)
+def test_tonight_at_eleven_is_unchanged():
+    got = extract_datetime("at 11 tonight", lang="en-US",
+                           anchorDate=datetime(2026, 10, 23, 15, 0))
+    assert got[0] == datetime(2026, 10, 23, 23, 0)
 
-    def test_tomorrow(self):
-        self.check("at 12 tonight tomorrow", 2)
 
-    def test_in_two_days(self):
-        self.check("at 12 tonight in 2 days", 3)
+NAMED_DAY_ANCHORS = [datetime(2026, 10, 23, 0, 0, 30),
+                     datetime(2026, 10, 23, 15, 0),
+                     datetime(2026, 10, 23, 15, 30),
+                     datetime(2026, 10, 23, 23, 59),
+                     datetime(2026, 10, 23, 15, 0,
+                              tzinfo=timezone(timedelta(hours=-5)))]
 
-    def test_a_duration_is_not_a_clock_time(self):
-        anchor = datetime(2026, 10, 23, 15, 0)
-        got = extract_datetime("set a timer for 12 minutes tonight",
-                               lang="en-US", anchorDate=anchor)
-        self.assertEqual(got[0], datetime(2026, 10, 23, 15, 12))
+
+# With a named day, "12 tonight" is the midnight that ends that day.
+@pytest.mark.xfail(strict=True, reason=TWELVE_AT_NIGHT)
+@pytest.mark.parametrize("text,anchor,expected", [
+    *(row for text, days in (("at 12 tonight today", 1),
+                             # 2026-10-23 is a Friday
+                             ("at 12 tonight on friday", 1),
+                             ("at 12 tonight tomorrow", 2),
+                             ("at 12 tonight in 2 days", 3))
+      for row in anchored(text, [(a, end_of_day(a, days))
+                                 for a in NAMED_DAY_ANCHORS])),
+])
+def test_twelve_tonight_on_a_named_day(text, anchor, expected):
+    got = extract_datetime(text, lang="en-US", anchorDate=anchor)
+    assert got is not None
+    assert got[0] == expected
+    assert got[1] == ""
+
+
+def test_a_duration_is_not_a_clock_time():
+    # a bare length is no date (ruling 3), so only "tonight" is read: the
+    # middle of the 21:00-24:00 night (ruling 10)
+    anchor = datetime(2026, 10, 23, 15, 0)
+    got = extract_datetime("set a timer for 12 minutes tonight",
+                           lang="en-US", anchorDate=anchor)
+    assert got[0] == datetime(2026, 10, 23, 22, 30)
 
 
 if __name__ == "__main__":

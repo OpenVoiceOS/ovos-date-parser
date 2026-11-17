@@ -7,6 +7,8 @@ guard against regressions in the good path.
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -29,35 +31,37 @@ def dt(y, mo, d, h=0, mi=0, s=0):
 class TestMalformedInputDoesNotCrash(unittest.TestCase):
     """Garbage or out-of-range clock tokens must return None, never raise."""
 
-    NON_TIMES = [
-        "0",
-        "99",
-        "12345",
-        "0000",
-        "at 25",
-        "25:99",
-        "12:60",
-        "24:00",
-        "february 30",
-        "999999999999 hours",
-        "1234567890 seconds",
-        "tomorrow at 99",
-    ]
-
-    def test_returns_none_without_crashing(self):
-        for text in self.NON_TIMES:
-            with self.subTest(text=text):
-                self.assertIsNone(extract(text))
-
     def test_out_of_range_colon_time_is_none(self):
-        # hour > 23 or minute > 59 are not valid clock values
+        # hour > 24 or minute > 59 are not valid clock values
         self.assertIsNone(extract("25:99"))
         self.assertIsNone(extract("12:60"))
-        self.assertIsNone(extract("24:00"))
+
+    def test_24_00_is_the_coming_midnight(self):
+        # Wikipedia, "24-hour clock": "In the ISO 8601 notation, 24:00 may
+        # also be used to refer to midnight at the end of a given date."
+        self.assertEqual(extract("24:00")[0], dt(2117, 9, 4, 0, 0))
 
     def test_bare_out_of_range_hour_is_none(self):
         self.assertIsNone(extract("99"))
         self.assertIsNone(extract("12345"))
+
+
+@pytest.mark.parametrize("text", [
+    "0",
+    "99",
+    "12345",
+    pytest.param("0000", marks=pytest.mark.xfail(
+        strict=True, reason="chronologia-issue:bare-four-digit-clock")),
+    "at 25",
+    "25:99",
+    "12:60",
+    "february 30",
+    "999999999999 hours",
+    "1234567890 seconds",
+    "tomorrow at 99",
+])
+def test_returns_none_without_crashing(text):
+    assert extract(text) is None
 
 
 class TestValidSentencesStillWork(unittest.TestCase):

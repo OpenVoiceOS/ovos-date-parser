@@ -21,20 +21,22 @@ def _dt(text):
 
 
 class TestPastMarkerOffsets(unittest.TestCase):
+    # class 1: a counted offset keeps the anchor's clock, 13:04
+
     def test_past_0(self):
-        self.assertEqual(_dt('fa 2 setmanes'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('fa 2 setmanes'), datetime(2017, 6, 13, 13, 4))
 
     def test_past_1(self):
-        self.assertEqual(_dt('fa 3 dies'), datetime(2017, 6, 24))
+        self.assertEqual(_dt('fa 3 dies'), datetime(2017, 6, 24, 13, 4))
 
     def test_past_2(self):
-        self.assertEqual(_dt('fa 2 mesos'), datetime(2017, 4, 27))
+        self.assertEqual(_dt('fa 2 mesos'), datetime(2017, 4, 27, 13, 4))
 
     def test_past_3(self):
-        self.assertEqual(_dt('fa 4 anys'), datetime(2013, 6, 27))
+        self.assertEqual(_dt('fa 4 anys'), datetime(2013, 6, 27, 13, 4))
 
     def test_sentence_context(self):
-        self.assertEqual(_dt('va passar fa 2 setmanes'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('va passar fa 2 setmanes'), datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         # future offset minus past offset == 2x the offset

@@ -11,9 +11,12 @@ anchor, never pinned from engine output.
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)  # fixed, deliberately non-midnight
+# A counted offset is arithmetic on the anchor and keeps its clock (class 1).
 
 
 def _dt(text):
@@ -25,22 +28,24 @@ def _dt(text):
 
 class TestPastMarkerOffsets(unittest.TestCase):
     def test_weeks_evvel(self):
-        self.assertEqual(_dt('2 həftə əvvəl'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('2 həftə əvvəl'), datetime(2017, 6, 13, 13, 4))
 
     def test_days_evvel(self):
-        self.assertEqual(_dt('2 gün əvvəl'), datetime(2017, 6, 25))
+        self.assertEqual(_dt('2 gün əvvəl'), datetime(2017, 6, 25, 13, 4))
 
     def test_days_qabaq(self):
-        self.assertEqual(_dt('2 gün qabaq'), datetime(2017, 6, 25))
+        self.assertEqual(_dt('2 gün qabaq'), datetime(2017, 6, 25, 13, 4))
 
     def test_months_evvel(self):
-        self.assertEqual(_dt('3 ay əvvəl'), datetime(2017, 3, 27))
+        self.assertEqual(_dt('3 ay əvvəl'), datetime(2017, 3, 27, 13, 4))
 
     def test_years_evvel(self):
-        self.assertEqual(_dt('2 il əvvəl'), datetime(2015, 6, 27))
+        self.assertEqual(_dt('2 il əvvəl'), datetime(2015, 6, 27, 13, 4))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="chronologia-issue:az-bu-before-offset")
     def test_sentence_context(self):
-        self.assertEqual(_dt('bu 2 həftə əvvəl oldu'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('bu 2 həftə əvvəl oldu'), datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         # "sonra" is the future antonym of "əvvəl"

@@ -32,7 +32,8 @@ from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
 from ovos_date_parser.scoped_en import extract_scoped_date_en
-from ovos_date_parser.holidays import (_holiday_answer, extract_holiday_date,
+from ovos_date_parser.holidays import (_as_zoneinfo, _holiday_answer,
+                                       extract_holiday_date,
                                        extract_holiday_span,
                                        holiday_overrides_engine,
                                        holiday_surfaces)
@@ -633,9 +634,11 @@ def _instant(span, lang: str, default_time: Optional[time],
     :func:`extract_timespan` is the way to reach them.
 
     chronologia answers in the anchor's wall clock and drops its zone, so the
-    instant takes the anchor's zone.
+    instant takes the anchor's zone. A pytz anchor carries the offset of its
+    own date, so the instant takes the IANA zone it names: Christmas asked
+    from a Copenhagen anchor in October is +01:00, not October's +02:00.
     """
-    zone = anchor.tzinfo
+    zone = _as_zoneinfo(anchor.tzinfo)
     start = span.start
     if span.end - start <= _EXACT:
         return _fits_datetime(start, zone)

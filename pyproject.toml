@@ -38,8 +38,9 @@ dependencies = [
     # 0.32.0a1 is the first with the ``anchor`` argument of extract_duration,
     # which counts a month or a year on the calendar, and 0.32.1a1 reads the
     # article of a holiday ("o natal") as part of it. 0.32.7a1 reads the
-    # Portuguese date forms the Portuguese routing relies on.
-    "chronologia>=0.32.7a1",
+    # Portuguese date forms the Portuguese routing relies on, and 0.32.8a1
+    # gives a lone spoken hour its next twelve-hour reading (ruling 17).
+    "chronologia>=0.32.8a1",
 ]
 dynamic = ["version"]
 

@@ -220,7 +220,7 @@ PREPOSITION_ALONE = [
     PREPOSITION_ALONE, dict.fromkeys(
         ("until easter", "before christmas", "avant noël", "hasta navidad",
          "bis Weihnachten", "tot kerst", "até ao natal"),
-        "ovos-date-parser-family:until-range-start (issue pending)")))
+        "https://github.com/OpenVoiceOS/ovos-date-parser/issues/659")))
 def test_a_preposition_alone_is_no_offset(lang, utterance, expected, kept):
     assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
     assert tuple(extract_datetime(utterance, lang, REF)) == (expected, kept)

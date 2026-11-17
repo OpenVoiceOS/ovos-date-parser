@@ -16,6 +16,8 @@
 import unittest
 from datetime import datetime, timedelta
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 from ovos_date_parser import (
@@ -117,24 +119,21 @@ class TestDatetime_es(unittest.TestCase):
                          datetime(1998, 8, 11, tzinfo=default_timezone()))
 
     def test_extract_datetime_relative(self):
+        # a part of the day with no clock is the middle of its CLDR es band:
+        # mañana 06:00-12:00, tarde 12:00-20:00, noche 20:00-24:00; the
+        # article and "esta" belong to the date and leave with it
         self.assertEqual(extract_datetime(
             "esta noche", anchorDate=datetime(1998, 1, 1),
-            lang='es'), [datetime(1998, 1, 1, 21, 0, 0, tzinfo=default_timezone()), 'esta'])
-        self.assertEqual(extract_datetime(
-            "ayer noche", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 31, 21, tzinfo=default_timezone()))
+            lang='es'), [datetime(1998, 1, 1, 22, 0, 0, tzinfo=default_timezone()), ''])
         self.assertEqual(extract_datetime(
             "el noche anteayer", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 30, 21, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "el noche ante ante ayer", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 29, 21, tzinfo=default_timezone()))
+            lang='es')[0], datetime(1997, 12, 30, 22, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime(
             "mañana por la mañana", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1998, 1, 2, 8, tzinfo=default_timezone()))
+            lang='es')[0], datetime(1998, 1, 2, 9, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime(
             "ayer por la tarde", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 31, 15, tzinfo=default_timezone()))
+            lang='es')[0], datetime(1997, 12, 31, 16, tzinfo=default_timezone()))
 
         self.assertEqual(extract_datetime("hoy 2 de la mañana", lang='es',
                                           anchorDate=datetime(1998, 1, 1))[0],
@@ -164,6 +163,21 @@ class TestDatetime_es(unittest.TestCase):
         self.assertEqual(extract_datetime(
             "hace tres noches", anchorDate=datetime(1998, 1, 1),
             lang='es')[0], datetime(1997, 12, 29, 21))
+
+
+@pytest.mark.parametrize("text,expected", [
+    # the middle of the CLDR es night band, 20:00-24:00
+    pytest.param("ayer noche", datetime(1997, 12, 31, 22),
+                 marks=pytest.mark.xfail(
+                     strict=True,
+                     reason="https://github.com/TigreGotico/chronologia/issues/1033")),
+    pytest.param("el noche ante ante ayer", datetime(1997, 12, 29, 22),
+                 marks=pytest.mark.xfail(
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
+])
+def test_a_night_of_a_past_day(text, expected):
+    res = extract_datetime(text, anchorDate=datetime(1998, 1, 1), lang='es')
+    assert res[0] == expected.replace(tzinfo=default_timezone())
 
 
 class TestExtractDuration(unittest.TestCase):

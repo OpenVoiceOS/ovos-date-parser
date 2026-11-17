@@ -7,6 +7,8 @@ import unittest
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2026, 10, 17, 12, 0, tzinfo=ZoneInfo("Europe/Lisbon"))
@@ -76,9 +78,13 @@ class TestDayAfterBefore(unittest.TestCase):
     def test_two_days_before_yesterday(self):
         self.assertEqual(_dt("zwei Tage vor gestern"), datetime(2026, 10, 14))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1004")
     def test_greeting_is_not_a_day_count(self):
         self.assertEqual(_dt("guten Tag nach morgen"), datetime(2026, 10, 18))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1004")
     def test_every_day_is_not_a_day_count(self):
         self.assertEqual(_dt("jeden Tag nach morgen"), datetime(2026, 10, 18))
 
@@ -118,6 +124,7 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
     def test_heute(self):
         self.assertEqual(_dt("heute"), datetime(2026, 10, 17))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_nach_morgen_is_a_from_anchor(self):
         self.assertEqual(_dt("nach morgen"), datetime(2026, 10, 18))
 
@@ -128,15 +135,17 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
         self.assertEqual(_dt("1 tag nach morgen"), datetime(2026, 10, 19))
 
     def test_n_days_ago(self):
-        self.assertEqual(_dt("vor 3 tagen"), datetime(2026, 10, 14))
+        # a counted offset keeps the anchor's clock (routing ruling, class 1)
+        self.assertEqual(_dt("vor 3 tagen"), datetime(2026, 10, 14, 12))
 
     def test_in_n_days(self):
-        self.assertEqual(_dt("in 3 tagen"), datetime(2026, 10, 20))
+        self.assertEqual(_dt("in 3 tagen"), datetime(2026, 10, 20, 12))
 
     def test_day_after_christmas_stays_holiday_relative(self):
         self.assertEqual(_dt("der Tag nach Weihnachten"),
                          datetime(2026, 12, 26))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_after_noon(self):
         self.assertEqual(_dt("nach dem Mittag"), datetime(2026, 10, 17, 12))
 

@@ -135,15 +135,17 @@ class TestDatetimeAst(unittest.TestCase):
             extract_datetime("15:30", anchorDate=self.ANCHOR)[0],
             datetime(1998, 1, 1, 15, 30, tzinfo=default_timezone()))
 
+    # class 2b: a named week is the calendar week; the anchor, Thursday
+    # 1 January 1998, is in the week of Monday 29 December
     def test_next_week(self):
         self.assertEqual(
             extract_datetime("la selmana que vien", anchorDate=self.ANCHOR)[0],
-            datetime(1998, 1, 8, tzinfo=default_timezone()))
+            datetime(1998, 1, 5, tzinfo=default_timezone()))
 
     def test_last_week(self):
         self.assertEqual(
             extract_datetime("la selmana pasada", anchorDate=self.ANCHOR)[0],
-            datetime(1997, 12, 25, tzinfo=default_timezone()))
+            datetime(1997, 12, 22, tzinfo=default_timezone()))
 
     def test_no_date(self):
         self.assertIsNone(extract_datetime("hola mundu",

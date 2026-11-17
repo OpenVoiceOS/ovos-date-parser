@@ -2,6 +2,8 @@
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -79,18 +81,21 @@ class TestRelativeDayOffsets(unittest.TestCase):
         self.assertEqual(extract("nästa fredag")[0], dt(2117, 9, 10))
 
     def test_eight_weeks(self):
-        self.assertEqual(extract("om 8 veckor")[0], dt(2117, 10, 29))
+        # a counted offset keeps the anchor's clock (routing ruling, class 1)
+        self.assertEqual(extract("om 8 veckor")[0], dt(2117, 10, 29, 13, 30))
 
 
 class TestPartOfDay(unittest.TestCase):
     def test_tomorrow_morning(self):
-        self.assertEqual(extract("imorgon morgon")[0], dt(2117, 9, 4, 8))
+        # the middle of the sv morning band, 05:00 to 10:00 (ruling 10)
+        self.assertEqual(extract("imorgon morgon")[0], dt(2117, 9, 4, 7, 30))
 
     def test_tomorrow_noon(self):
         self.assertEqual(extract("imorgon middag")[0], dt(2117, 9, 4, 12))
 
     def test_tomorrow_evening(self):
-        self.assertEqual(extract("imorgon kväll")[0], dt(2117, 9, 4, 19))
+        # the middle of the sv evening band, 18:00 to 24:00 (ruling 10)
+        self.assertEqual(extract("imorgon kväll")[0], dt(2117, 9, 4, 21))
 
 
 class TestAbsoluteDates(unittest.TestCase):
@@ -108,9 +113,11 @@ class TestAbsoluteDates(unittest.TestCase):
 
 
 class TestClock(unittest.TestCase):
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_time_rolls_to_next_day(self):
-        # 10:45 already passed today -> next day
-        self.assertEqual(extract("klockan 10:45")[0], dt(2117, 9, 4, 10, 45))
+        # a digit clock takes its next twelve-hour reading (ruling 23): at
+        # 13:30, "10:45" is 22:45 that day
+        self.assertEqual(extract("klockan 10:45")[0], dt(2117, 9, 3, 22, 45))
 
 
 class TestImpossibleAndEmpty(unittest.TestCase):

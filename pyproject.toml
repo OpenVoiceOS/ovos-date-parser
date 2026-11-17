@@ -39,11 +39,13 @@ dependencies = [
     # завтра", "в следующую пятницу"), which the ru and uk routing relies on.
     # 0.32.0a1 is the first with the ``anchor`` argument of extract_duration,
     # which counts a month or a year on the calendar, and 0.32.1a1 reads the
-    # article of a holiday ("o natal") as part of it. 0.32.7a1 reads ru and uk
+    # article of a holiday ("o natal") as part of it. 0.32.7a1 reads the
+    # Portuguese date forms the Portuguese routing relies on, reads ru and uk
     # "tonight" as the coming night and uk "об 11" as a clock, and 0.32.8a1
-    # gives a lone hour its next twelve-hour reading ("об 11" said at 13:04 is
-    # 23:00), which the ru and uk routing relies on.
-    "chronologia>=0.32.8a1",
+    # gives a lone spoken hour its next twelve-hour reading (ruling 17: "об
+    # 11" said at 13:04 is 23:00). 0.32.9a1 reads a bare hour before a
+    # counted noun as a count (ruling 22: nl "om 3 redenen" is no time).
+    "chronologia>=0.32.9a1",
 ]
 dynamic = ["version"]
 

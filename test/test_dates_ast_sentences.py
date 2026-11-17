@@ -68,8 +68,9 @@ class TestAbsoluteClock(unittest.TestCase):
     """Absolute spoken clock times ignore the anchor time of day."""
 
     def test_bare_hour_word(self):
-        # 3:00 is earlier than the 13:30 anchor -> next day
-        self.assertEqual(extract("a les tres")[0], dt(2117, 9, 4, 3))
+        # a lone hour takes the next twelve-hour reading after the 13:30
+        # anchor (ruling 17): three is 15:00 today
+        self.assertEqual(extract("a les tres")[0], dt(2117, 9, 3, 15))
 
     def test_one_oclock_feminine(self):
         self.assertEqual(extract("a la una")[0], dt(2117, 9, 4, 1))
@@ -91,18 +92,19 @@ class TestAbsoluteClock(unittest.TestCase):
         self.assertEqual(extract("a les 15")[0], dt(2117, 9, 3, 15))
 
     def test_half_past(self):
-        # spoken hour is in the future -> rolls to the next day
-        self.assertEqual(extract("a les 8 y media")[0], dt(2117, 9, 4, 8, 30))
+        # a lone hour takes the next twelve-hour reading after the 13:30
+        # anchor (ruling 17): half past eight is 20:30 today
+        self.assertEqual(extract("a les 8 y media")[0], dt(2117, 9, 3, 20, 30))
 
     def test_quarter_past(self):
-        self.assertEqual(extract("a les 8 y cuartu")[0], dt(2117, 9, 4, 8, 15))
+        self.assertEqual(extract("a les 8 y cuartu")[0], dt(2117, 9, 3, 20, 15))
 
     def test_quarter_to(self):
         self.assertEqual(extract("a les 8 menos cuartu")[0],
-                         dt(2117, 9, 4, 7, 45))
+                         dt(2117, 9, 3, 19, 45))
 
     def test_on_the_dot(self):
-        self.assertEqual(extract("a les 8 en puntu")[0], dt(2117, 9, 4, 8))
+        self.assertEqual(extract("a les 8 en puntu")[0], dt(2117, 9, 3, 20))
 
 
 class TestDayAndCalendar(unittest.TestCase):
@@ -118,10 +120,13 @@ class TestDayAndCalendar(unittest.TestCase):
         self.assertEqual(extract("ayeri")[0], dt(2117, 9, 2))
 
     def test_next_week(self):
-        self.assertEqual(extract("la selmana que vien")[0], dt(2117, 9, 10))
+        # class 2b: the calendar week after Friday 3 September starts on
+        # Monday 6 September
+        self.assertEqual(extract("la selmana que vien")[0], dt(2117, 9, 6))
 
     def test_in_n_days(self):
-        self.assertEqual(extract("en 3 díes")[0], dt(2117, 9, 6))
+        # class 1: a counted offset keeps the anchor's clock, 13:30
+        self.assertEqual(extract("en 3 díes")[0], dt(2117, 9, 6, 13, 30))
 
     def test_day_of_month_digits(self):
         # the day exists this year but is in the past -> next occurrence

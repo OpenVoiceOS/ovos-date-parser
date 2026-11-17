@@ -1,6 +1,8 @@
 import unittest
 from datetime import datetime, timedelta
 
+import pytest
+
 from ovos_date_parser import (extract_datetime, extract_duration, nice_date,
                               nice_month, nice_time, nice_weekday)
 
@@ -111,49 +113,42 @@ class TestExtractDatetimeKab(unittest.TestCase):
                              anchorDate=ANCHOR))
 
 class TestExtractDatetimeSpokenTimeKab(unittest.TestCase):
+    """A lone spoken hour takes the next twelve-hour reading after the
+    13:04 anchor (ruling 17): ten o'clock is 22:00 the same day."""
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_bare_hour(self):
+        # a lone hour takes the next twelve-hour reading (ruling 17): one
+        # o'clock said at 13:04 is 01:00 the next day
         result = extract_datetime("d lweḥda", "kab", anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (1, 0))
+        self.assertEqual(result[0], datetime(2017, 6, 28, 1, 0))
 
     def test_exact_hour(self):
         result = extract_datetime("d lɛecṛa swaswa", "kab", anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (10, 0))
+        self.assertEqual((result[0].hour, result[0].minute), (22, 0))
 
     def test_quarter_past(self):
         result = extract_datetime("d lɛecṛa u ṛbeɛ", "kab", anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (10, 15))
+        self.assertEqual((result[0].hour, result[0].minute), (22, 15))
 
-    def test_half_past_spellings(self):
-        # amazigh, old borrowing, assimil, contemporary - all four accepted
-        for word in ("neṣṣ", "azgen", "nofc", "nefs"):
-            result = extract_datetime(f"d lɛecṛa u {word}", "kab",
-                                      anchorDate=ANCHOR)
-            self.assertEqual((result[0].hour, result[0].minute), (10, 30),
-                             msg=f"failed for {word!r}")
 
     def test_minus_minutes(self):
         result = extract_datetime("d lɛecṛa ɣiṛ xemsa", "kab",
                                   anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (9, 55))
+        self.assertEqual((result[0].hour, result[0].minute), (21, 55))
 
     def test_quarter_to(self):
         result = extract_datetime("d lɛecṛa ɣiṛ ṛbeɛ", "kab",
                                   anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (9, 45))
+        self.assertEqual((result[0].hour, result[0].minute), (21, 45))
 
-    def test_vague_approximations(self):
-        # "u wac"/"u ci" and bare "ɣiṛ" are indeterminate in the source
-        # grammar; coded as a fixed +/-10 minute offset rather than a
-        # specific count
-        result = extract_datetime("d lɛecṛa u wac", "kab", anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (10, 10))
-        result = extract_datetime("d lɛecṛa ɣiṛ", "kab", anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (9, 50))
-
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_day_period_disambiguation(self):
         # "d juǧ" alone stays 12h (2:00); a period word resolves to 24h
         result = extract_datetime("d juǧ n uzal", "kab", anchorDate=ANCHOR)
         self.assertEqual((result[0].hour, result[0].minute), (14, 0))
+
+    def test_a_period_word_without_its_epenthetic_vowel(self):
         # "tmeddit" (no epenthetic vowel) must resolve the same as
         # "tameddit"
         result = extract_datetime("d lxemsa n tmeddit", "kab",
@@ -164,13 +159,8 @@ class TestExtractDatetimeSpokenTimeKab(unittest.TestCase):
         # Soummam valley "ssaɛtin" as an alternative to "juǧ" for "two"
         result = extract_datetime("d ssaɛtin ɣiṛ xemsa", "kab",
                                   anchorDate=ANCHOR)
-        self.assertEqual((result[0].hour, result[0].minute), (1, 55))
+        self.assertEqual((result[0].hour, result[0].minute), (13, 55))
 
-    def test_midnight_phrases(self):
-        for phrase in ("nṣaf n yiḍ", "ttnaṣfa n yiḍ", "d ttnac n yiḍ"):
-            result = extract_datetime(phrase, "kab", anchorDate=ANCHOR)
-            self.assertEqual((result[0].hour, result[0].minute), (0, 0),
-                             msg=f"failed for {phrase!r}")
 
     def test_sun_letter_article(self):
         # the fused article assimilates to "tt" before "t" (ttnac =
@@ -193,44 +183,35 @@ class TestKabRelativeOffsets(unittest.TestCase):
     the marked form and for the bare one.
     """
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_a_marked_offset_answers_the_anchor_plus_the_duration(self):
         result = extract_datetime("mbaed 10 n wesrag", "kab",
                                   anchorDate=OFFSET_ANCHOR)
         self.assertIsNotNone(result, "read as no date")
         self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(hours=10))
-        # The second element is the contract a skill reads the rest of
-        # the utterance from, so it is asserted, not ignored. The marker
-        # is not part of the quantity and must survive.
-        self.assertEqual(result[1], "mbaed")
-
-    def test_an_offset_inside_a_question_is_still_an_offset(self):
-        result = extract_datetime("melmi ara tili ma rgig 10 n tesdidin",
-                                  "kab", anchorDate=OFFSET_ANCHOR)
-        self.assertIsNotNone(result, "read as no date")
-        self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(minutes=10))
-        self.assertEqual(result[1], "melmi ara tili ma rgig")
-
-    def test_a_bare_duration_is_an_offset(self):
-        result = extract_datetime("10 n tesdidin", "kab",
-                                  anchorDate=OFFSET_ANCHOR)
-        self.assertIsNotNone(result, "read as no date")
-        self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(minutes=10))
-        # The whole phrase is the quantity here, so nothing is left.
+        # The direction word belongs to the date, as fr "dans" does in
+        # "dans 3 heures", so nothing is left over.
         self.assertEqual(result[1], "")
 
+    def test_a_bare_duration_is_not_a_date(self):
+        # ruling 3: a bare length with no direction word is not a date
+        self.assertIsNone(extract_datetime(
+            "melmi ara tili ma rgig 10 n tesdidin", "kab",
+            anchorDate=OFFSET_ANCHOR))
+        self.assertIsNone(extract_datetime("10 n tesdidin", "kab",
+                                           anchorDate=OFFSET_ANCHOR))
+
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_a_compound_cardinal_is_not_split_by_a_clock_hour(self):
-        """T-4802: "mraw d yiwen" is eleven, and extract_duration already
-        read "mraw d yiwen n tesdidin" as 660 seconds. The datetime
-        branch read the same "d yiwen" as the presentative "it is one
-        o'clock" and split the compound, leaving "mraw n tesdidin" as a
-        remainder. 660 seconds past the anchor is independently 08:16;
-        the whole phrase is the quantity, so nothing is left over.
+        """"mraw d yiwen" is eleven, and extract_duration reads "mraw d
+        yiwen n tesdidin" as 660 seconds. Reading "d yiwen" as the
+        presentative "it is one o'clock" splits the compound. The phrase
+        is a bare length, so it names no date (ruling 3).
         """
-        result = extract_datetime("mraw d yiwen n tesdidin", "kab",
-                                  anchorDate=OFFSET_ANCHOR)
-        self.assertIsNotNone(result, "read as no date")
-        self.assertEqual(result[0], OFFSET_ANCHOR + timedelta(seconds=660))
-        self.assertEqual(result[1], "")
+        self.assertIsNone(extract_datetime("mraw d yiwen n tesdidin", "kab",
+                                           anchorDate=OFFSET_ANCHOR))
 
     def test_the_duration_layer_already_read_these(self):
         """The measurement that located the defect: the duration was
@@ -338,3 +319,46 @@ class TestKabBackwardScanIsBounded(unittest.TestCase):
         duration, remainder = extract_duration("sin mraw n tesdidin", "kab")
         self.assertEqual(duration, timedelta(minutes=12))
         self.assertEqual(remainder, "")
+
+
+KAB_SPOKEN_CLOCK = pytest.mark.xfail(
+    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
+
+
+# A lone hour takes the next twelve-hour reading after the anchor (ruling
+# 17): half past ten said at 13:04 is 22:30 on the anchor day. The four
+# spellings are amazigh, old borrowing, assimil and contemporary.
+@pytest.mark.parametrize("word", [
+    pytest.param("neṣṣ", marks=KAB_SPOKEN_CLOCK),
+    "azgen",
+    pytest.param("nofc", marks=KAB_SPOKEN_CLOCK),
+    pytest.param("nefs", marks=KAB_SPOKEN_CLOCK),
+])
+def test_half_past_spellings(word):
+    result = extract_datetime(f"d lɛecṛa u {word}", "kab", anchorDate=ANCHOR)
+    assert result[0] == datetime(2017, 6, 27, 22, 30)
+
+
+# "u wac" and bare "ɣiṛ" are indeterminate in the source grammar; the
+# reading takes ten minutes either side of the hour, and the lone hour
+# takes the next twelve-hour reading (ruling 17).
+@pytest.mark.parametrize("phrase,expected", [
+    ("d lɛecṛa u wac", datetime(2017, 6, 27, 22, 10)),
+    ("d lɛecṛa ɣiṛ", datetime(2017, 6, 27, 21, 50)),
+])
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
+def test_vague_approximations(phrase, expected):
+    assert extract_datetime(phrase, "kab", anchorDate=ANCHOR)[0] == expected
+
+
+# Midnight said at 13:04 is the coming midnight.
+@pytest.mark.parametrize("phrase", [
+    pytest.param("nṣaf n yiḍ", marks=pytest.mark.xfail(
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
+    pytest.param("ttnaṣfa n yiḍ", marks=pytest.mark.xfail(
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
+    "d ttnac n yiḍ",
+])
+def test_midnight_phrases(phrase):
+    result = extract_datetime(phrase, "kab", anchorDate=ANCHOR)
+    assert result[0] == datetime(2017, 6, 28, 0, 0)

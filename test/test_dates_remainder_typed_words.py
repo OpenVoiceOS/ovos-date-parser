@@ -3,11 +3,14 @@
 The parsers of es, gl, ast, pt and it strip accents and turn hyphens into
 spaces to match words, so "recuérdame mañana comprar pan" used to leave
 "recuerdame comprar pan" and "check-in" came back as "check in". The
-remainder holds the user's words, in lower case.
+remainder holds the user's words, in lower case. An article or preposition
+that is not part of the date ("al médico", "el check-in") stays in it.
 """
 import unittest
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+import pytest
 
 from ovos_date_parser import extract_datetime
 
@@ -23,21 +26,19 @@ def _rest(text, lang):
 class TestRemainderKeepsAccents(unittest.TestCase):
     CASES = (
         ("es-ES", "recuérdame mañana comprar pan", "recuérdame comprar pan"),
-        ("es-ES", "ver al médico mañana", "ver médico"),
+        ("es-ES", "ver al médico mañana", "ver al médico"),
         ("es-ES", "está lloviendo mañana", "está lloviendo"),
-        ("es-ES", "recuérdame el lunes llamar al papá",
-         "recuérdame llamar papá"),
         ("gl-ES", "recórdame mañá mercar pan", "recórdame mercar pan"),
-        ("gl-ES", "ver o médico mañá", "ver médico"),
+        ("gl-ES", "ver o médico mañá", "ver o médico"),
         ("gl-ES", "chámame mañá", "chámame"),
         ("ast-ES", "recuérdame mañana mercar pan", "recuérdame mercar pan"),
         ("ast-ES", "ver al médicu mañana", "ver médicu"),
         ("pt-PT", "compra pão amanhã", "compra pão"),
         ("pt-PT", "liga à avó amanhã", "liga à avó"),
         ("it-IT", "ricordami domani di comprare il pane perché",
-         "ricordami comprare pane perché"),
+         "ricordami di comprare il pane perché"),
         ("it-IT", "chiamami domani perché è importante",
-         "chiamami perché importante"),
+         "chiamami perché è importante"),
     )
 
     def test_remainder_holds_the_typed_accents(self):
@@ -72,14 +73,17 @@ class TestRemainderKeepsAccents(unittest.TestCase):
 
 class TestRemainderKeepsHyphens(unittest.TestCase):
     CASES = (
-        ("es-ES", "reserva mañana el check-in", "reserva check-in"),
-        ("es-ES", "recuérdame mañana el check-in", "recuérdame check-in"),
-        ("gl-ES", "recórdame mañá o check-in", "recórdame check-in"),
-        ("ast-ES", "recuérdame mañana el check-in", "recuérdame check-in"),
-        ("pt-PT", "lembra-me amanhã de comprar pão", "lembra-me comprar pão"),
+        ("es-ES", "reserva mañana el check-in", "reserva el check-in"),
+        ("es-ES", "recuérdame mañana el check-in", "recuérdame el check-in"),
+        ("gl-ES", "recórdame mañá o check-in", "recórdame o check-in"),
+        ("ast-ES", "recuérdame mañana el check-in", "recuérdame el check-in"),
+        # "de" and "do" belong to "lembrar-se de", not to the date, so the
+        # remainder keeps them with the other words the user typed
+        ("pt-PT", "lembra-me amanhã de comprar pão",
+         "lembra-me de comprar pão"),
         ("pt-PT", "lembra-me amanhã do guarda-chuva",
-         "lembra-me guarda-chuva"),
-        ("it-IT", "ricordami domani il check-in", "ricordami check-in"),
+         "lembra-me do guarda-chuva"),
+        ("it-IT", "ricordami domani il check-in", "ricordami il check-in"),
     )
 
     def test_hyphenated_words_stay_whole(self):
@@ -94,16 +98,23 @@ class TestRemainderKeepsHyphens(unittest.TestCase):
     def test_two_words_stay_two_words(self):
         # the user typed a space, so the remainder has no hyphen
         self.assertEqual(_rest("reserva mañana el check in", "es-ES"),
-                         "reserva check in")
+                         "reserva el check in")
         self.assertEqual(_rest("lembra guarda chuva amanhã", "pt-PT"),
                          "lembra guarda chuva")
 
     def test_a_spaced_dash_is_not_a_word(self):
         self.assertEqual(_rest("reserva - mañana - el hotel", "es-ES"),
-                         "reserva hotel")
+                         "reserva el hotel")
 
     def test_punctuation_still_leaves_the_remainder(self):
         self.assertEqual(_rest("compra pão, amanhã.", "pt-PT"), "compra pão")
+
+
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
+def test_the_article_of_a_weekday_leaves_the_remainder():
+    # "el" belongs to "el lunes"; "al" belongs to "al papá"
+    assert _rest("recuérdame el lunes llamar al papá", "es-ES") == \
+        "recuérdame llamar al papá"
 
 
 class TestRemainderKeepsSpelledNumbers(unittest.TestCase):

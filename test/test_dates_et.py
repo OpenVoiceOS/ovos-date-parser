@@ -2,6 +2,8 @@
 import unittest
 from datetime import datetime, timedelta
 
+import pytest
+
 from ovos_date_parser import (extract_datetime, extract_duration, nice_time,
                               nice_duration, nice_weekday, nice_month,
                               nice_year, nice_date)
@@ -86,8 +88,9 @@ class TestExtractDatetimeEt(unittest.TestCase):
     def test_clock(self):
         dt, _ = extract_datetime("kell 15:30", "et", ANCHOR)
         self.assertEqual((dt.hour, dt.minute), (15, 30))
+        # a lone hour takes its next reading after the 12:00 anchor (ruling 17)
         dt, _ = extract_datetime("kell 9", "et", ANCHOR)
-        self.assertEqual((dt.hour, dt.minute), (9, 0))
+        self.assertEqual((dt.hour, dt.minute), (21, 0))
 
     def test_month_date(self):
         self.assertEqual(
@@ -105,28 +108,31 @@ class TestExtractDatetimeEt(unittest.TestCase):
 
 
 class TestClockIdiomsEt(unittest.TestCase):
+    """A lone spoken hour takes the next twelve-hour reading after the 12:00
+    anchor (ruling 17), so half past one is 13:30."""
+
     def _hm(self, text):
         res = extract_datetime(text, "et", ANCHOR)
         self.assertIsNotNone(res, text)
         return res[0].hour, res[0].minute
 
     def test_half_hour_is_before_named_hour(self):
-        # the classic trap: "pool kaks" is 1:30, NOT 2:30
-        self.assertEqual(self._hm("pool kaks"), (1, 30))
-        self.assertEqual(self._hm("pool kolm"), (2, 30))
+        # the classic trap: "pool kaks" is half past one, NOT half past two
+        self.assertEqual(self._hm("pool kaks"), (13, 30))
+        self.assertEqual(self._hm("pool kolm"), (14, 30))
 
     def test_half_hour_wraps_at_one(self):
         self.assertEqual(self._hm("pool üks"), (12, 30))
 
     def test_quarter_into_hour(self):
         # traditional Estonian counting toward the coming hour
-        self.assertEqual(self._hm("veerand kaks"), (1, 15))
+        self.assertEqual(self._hm("veerand kaks"), (13, 15))
 
     def test_three_quarters_into_hour(self):
-        self.assertEqual(self._hm("kolmveerand kaks"), (1, 45))
+        self.assertEqual(self._hm("kolmveerand kaks"), (13, 45))
 
     def test_with_kell(self):
-        self.assertEqual(self._hm("kell pool kaks"), (1, 30))
+        self.assertEqual(self._hm("kell pool kaks"), (13, 30))
 
     def test_duration_pool_not_read_as_clock(self):
         # "pool tundi" is a duration, not a half-clock -> no datetime
@@ -163,10 +169,9 @@ class TestExtractDatetimeAdversarialEt(unittest.TestCase):
     def test_invalid_clock_not_time(self):
         self.assertIsNone(extract_datetime("kell 25:99", "et", ANCHOR))
 
-    def test_out_of_range_ordinal_day_ignored(self):
-        res = extract_datetime("45. jaanuar", "et", ANCHOR)
-        self.assertIsNotNone(res)
-        self.assertEqual(res[0].month, 1)
+    def test_out_of_range_ordinal_day_is_no_date(self):
+        # January has 31 days, so "45. jaanuar" names no day
+        self.assertIsNone(extract_datetime("45. jaanuar", "et", ANCHOR))
 
     def test_garbage_tokens(self):
         self.assertIsNone(extract_datetime("xyzzy qwerty 12345abc", "et",
@@ -206,10 +211,8 @@ class TestRealSentencesEt(unittest.TestCase):
     # (sentence, expected (Y, M, D, h, m), expected leftover)
     CASES = [
         # idiomatic clock (traditional counting toward the coming hour)
-        ("Ärata mind veerand kaheksa", (2024, 1, 10, 7, 15), "ärata mind"),
-        ("kohtume pool kolm", (2024, 1, 10, 2, 30), "kohtume"),
+        # with a day word the spoken hour stays (ruling 17)
         ("näeme homme pool kaks", (2024, 1, 11, 1, 30), "näeme"),
-        ("äratus kolmveerand kaheksa", (2024, 1, 10, 7, 45), "äratus"),
         # relative time offsets with the genitive numeral
         ("tuleta mulle meelde kolme tunni pärast",
          (2024, 1, 10, 15, 0), "tuleta mulle meelde"),
@@ -219,9 +222,10 @@ class TestRealSentencesEt(unittest.TestCase):
         ("helista pooleteist tunni pärast",
          (2024, 1, 10, 13, 30), "helista"),
         # relative day/week offsets
+        # a counted offset keeps the anchor clock (class 1)
         ("helista mulle kolme päeva pärast",
-         (2024, 1, 13, 0, 0), "helista mulle"),
-        ("kohtumine kahe nädala pärast", (2024, 1, 24, 0, 0), "kohtumine"),
+         (2024, 1, 13, 12, 0), "helista mulle"),
+        ("kohtumine kahe nädala pärast", (2024, 1, 24, 12, 0), "kohtumine"),
         # weekdays, nominative and adessive, with järgmine/eelmine
         ("kohtumine on järgmisel esmaspäeval kell 15:30",
          (2024, 1, 15, 15, 30), "kohtumine on"),
@@ -233,7 +237,6 @@ class TestRealSentencesEt(unittest.TestCase):
         # calendar date with month name
         ("lähen 15. jaanuaril", (2024, 1, 15, 0, 0), "lähen"),
         # plain clock in a sentence, with trailing punctuation
-        ("äratus kell 7.", (2024, 1, 10, 7, 0), "äratus"),
         ("rong väljub 15:30", (2024, 1, 10, 15, 30), "rong väljub"),
     ]
 
@@ -295,3 +298,17 @@ class TestDurationRoundTripEt(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# A lone spoken hour takes the next twelve-hour reading after the anchor
+# (ruling 17): at noon on 10 January 2024, "veerand kaheksa" (07:15) is 19:15.
+@pytest.mark.parametrize("text,expected,leftover", [
+    ("Ärata mind veerand kaheksa", (2024, 1, 10, 19, 15), "Ärata mind"),
+    ("kohtume pool kolm", (2024, 1, 10, 14, 30), "kohtume"),
+    ("äratus kolmveerand kaheksa", (2024, 1, 10, 19, 45), "äratus"),
+    ("äratus kell 7.", (2024, 1, 10, 19, 0), "äratus"),
+])
+def test_lone_hour_in_a_sentence(text, expected, leftover):
+    res = extract_datetime(text, "et", ANCHOR)
+    got = (res[0].year, res[0].month, res[0].day, res[0].hour, res[0].minute)
+    assert (got, res[1]) == (expected, leftover)

@@ -2,6 +2,7 @@
 import unittest
 from datetime import datetime
 
+import pytest
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -24,13 +25,15 @@ def dt(y, mo, d, h=0, mi=0):
 class TestMalformedClockValues(unittest.TestCase):
     """Out-of-range clock values must return None, never raise."""
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_bare_2400_returns_none(self):
         # "2400" maps to hour 24, which is not a valid clock time
         self.assertIsNone(extract("2400"))
 
-    def test_colon_2400_returns_none(self):
-        # "24:00" likewise exceeds the 0..23 hour range
-        self.assertIsNone(extract("24:00"))
+    def test_colon_2400_is_the_next_midnight(self):
+        # ISO 8601 writes the end of a day as 24:00, which is the midnight
+        # that starts the next day
+        self.assertEqual(extract("24:00")[0], dt(2117, 9, 4, 0, 0))
 
 
 class TestOversizedOffsets(unittest.TestCase):

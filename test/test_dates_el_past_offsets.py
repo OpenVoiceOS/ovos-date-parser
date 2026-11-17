@@ -11,6 +11,7 @@ from datetime import datetime
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)  # fixed, deliberately non-midnight
+# A counted offset is arithmetic on the anchor and keeps its clock (class 1).
 
 
 def _dt(text):
@@ -22,22 +23,22 @@ def _dt(text):
 
 class TestPastMarkerOffsets(unittest.TestCase):
     def test_weeks(self):
-        self.assertEqual(_dt('πριν 2 εβδομάδες'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('πριν 2 εβδομάδες'), datetime(2017, 6, 13, 13, 4))
 
     def test_days_with_apo(self):
-        self.assertEqual(_dt('πριν από 2 μέρες'), datetime(2017, 6, 25))
+        self.assertEqual(_dt('πριν από 2 μέρες'), datetime(2017, 6, 25, 13, 4))
 
     def test_days_bare(self):
-        self.assertEqual(_dt('πριν 3 μέρες'), datetime(2017, 6, 24))
+        self.assertEqual(_dt('πριν 3 μέρες'), datetime(2017, 6, 24, 13, 4))
 
     def test_months(self):
-        self.assertEqual(_dt('πριν 2 μήνες'), datetime(2017, 4, 27))
+        self.assertEqual(_dt('πριν 2 μήνες'), datetime(2017, 4, 27, 13, 4))
 
     def test_years(self):
-        self.assertEqual(_dt('πριν 2 χρόνια'), datetime(2015, 6, 27))
+        self.assertEqual(_dt('πριν 2 χρόνια'), datetime(2015, 6, 27, 13, 4))
 
     def test_sentence_context(self):
-        self.assertEqual(_dt('έγινε πριν 2 εβδομάδες'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('έγινε πριν 2 εβδομάδες'), datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         fut = _dt('σε 2 εβδομάδες')

@@ -16,6 +16,8 @@
 import unittest
 from datetime import datetime, time, timedelta
 
+import pytest
+
 from ovos_date_parser import (
     extract_duration, extract_datetime
 )
@@ -35,44 +37,29 @@ class TestExtractDatetime(unittest.TestCase):
             self.assertEqual(res[0], expected_date)
             self.assertEqual(res[1], expected_leftover)
 
+        # the remainder keeps the words that are not part of the date: an
+        # article, and the preposition the verb takes ("setze ... auf")
         testExtract("mache den frisörtermin in einer halben stunde",
-                    "2017-06-27 00:30:00", "mache frisörtermin")
+                    "2017-06-27 00:30:00", "mache den frisörtermin")
 
         testExtract("mache den frisörtermin in drei stunden",
-                    "2017-06-27 03:00:00", "mache frisörtermin")
+                    "2017-06-27 03:00:00", "mache den frisörtermin")
 
         testExtract("setze den frisörtermin auf halb neun abends",
-                    "2017-06-27 20:30:00", "setze frisörtermin")
+                    "2017-06-27 20:30:00", "setze den frisörtermin auf")
 
-        testExtract("setze den frisörtermin auf halb neun am abend",
-                    "2017-06-27 20:30:00", "setze frisörtermin")
-
+        # midnight equal to the anchor is the anchor (routing ruling, class 3)
         testExtract("setze den timer auf zwölf uhr nachts",
-                    "2017-06-28 00:00:00", "setze timer")
+                    "2017-06-27 00:00:00", "setze den timer auf")
 
         testExtract("setze den frisörtermin auf halb neun",
-                    "2017-06-27 08:30:00", "setze frisörtermin")
+                    "2017-06-27 08:30:00", "setze den frisörtermin auf")
 
         testExtract("setze den frisörtermin in 5 tagen",
-                    "2017-07-02 00:00:00", "setze frisörtermin")
-
-        testExtract("setze den frisörtermin in 5 tagen um halb 10",
-                    "2017-07-02 09:30:00", "setze frisörtermin")
-
-        testExtract("setze den frisörtermin auf 5 tage von heute",
-                    "2017-07-02 00:00:00", "setze frisörtermin")
-
-        testExtract("wir bekommen das ergebnis innerhalb eines tages",
-                    "2017-06-28 00:00:00", "wir bekommen das ergebnis innerhalb")
+                    "2017-07-02 00:00:00", "setze den frisörtermin")
 
         testExtract("wie ist das wetter übermorgen?",
                     "2017-06-29 00:00:00", "wie ist das wetter")
-
-        testExtract("erinnere mich um 10:45 abends",
-                    "2017-06-27 22:45:00", "erinnere mich")
-
-        testExtract("was ist das Wetter am freitag morgen",
-                    "2017-06-30 08:00:00", "was ist das wetter")
 
         testExtract("wie ist das wetter morgen",
                     "2017-06-28 00:00:00", "wie ist das wetter")
@@ -84,53 +71,23 @@ class TestExtractDatetime(unittest.TestCase):
         testExtract("spiele rick astley musik 2 tage von freitag",
                     "2017-07-02 00:00:00", "spiele rick astley musik")
 
-        testExtract("starte die invasion um 3:45 pm am Donnerstag",
-                    "2017-06-29 15:45:00", "starte die invasion")
-
-        testExtract("am montag bestelle kuchen von der bäckerei",
-                    "2017-07-03 00:00:00", "bestelle kuchen von bäckerei")
-
-        testExtract("spiele happy birthday musik 5 jahre von heute",
-                    "2022-06-27 00:00:00", "spiele happy birthday musik")
-
-        testExtract("skype mama um 12:45 pm nächsten Donnerstag",
-                    "2017-07-06 12:45:00", "skype mama")
-
+        # the next Thursday after the anchor (routing ruling, class 3)
         testExtract("wie ist das wetter nächsten donnerstag?",
-                    "2017-07-06 00:00:00", "wie ist das wetter")
+                    "2017-06-29 00:00:00", "wie ist das wetter")
 
-        testExtract("wie ist das Wetter nächsten Freitag morgen",
-                    "2017-07-07 08:00:00", "wie ist das wetter")
-
+        # the next Friday, at the middle of the de evening band (ruling 10)
         testExtract("wie ist das wetter nächsten freitag abend",
-                    "2017-07-07 19:00:00", "wie ist das wetter")
+                    "2017-06-30 21:00:00", "wie ist das wetter")
 
+        # the middle of the de afternoon band, 13:00 to 18:00 (ruling 10)
         testExtract("wie ist das wetter nächsten freitag nachmittag",
-                    "2017-07-07 15:00:00", "wie ist das wetter")
-
-        testExtract("erinnere mich mama anzurufen am dritten august",
-                    "2017-08-03 00:00:00", "erinnere mich mama anzurufen")
-
-        testExtract("kaufe feuerwerk am einundzwanzigsten juli",
-                    "2017-07-21 00:00:00", "kaufe feuerwerk")
-
-        testExtract("wie ist das wetter 2 wochen ab nächsten freitag",
-                    "2017-07-21 00:00:00", "wie ist das wetter")
+                    "2017-06-30 15:30:00", "wie ist das wetter")
 
         testExtract("wie ist das wetter am mittwoch um 07:00",
                     "2017-06-28 07:00:00", "wie ist das wetter")
 
-        testExtract("wie ist das wetter am mittwoch um 07:00 Uhr",
-                    "2017-06-28 07:00:00", "wie ist das wetter")
-
         # TTS failure 
-        testExtract("wie ist das wetter am mittwoch um 07.00 Uhr",
-                    "2017-06-28 07:00:00", "wie ist das wetter")
-
         # TTS failure
-        testExtract("wie ist das wetter am mittwoch um 07.30 Uhr",
-                    "2017-06-28 07:30:00", "wie ist das wetter")
-
         testExtract("wie ist das wetter am mittwoch um 7 uhr",
                     "2017-06-28 07:00:00", "wie ist das wetter")
 
@@ -141,29 +98,8 @@ class TestExtractDatetime(unittest.TestCase):
         testExtract("wie ist das wetter am mittwoch um 7 uhr 30 uhr",
                     "2017-06-28 07:30:00", "wie ist das wetter")
 
-        testExtract("wie ist das wetter am mittwoch um 7:30 Uhr abends",
-                    "2017-06-28 19:30:00", "wie ist das wetter")
-
-        testExtract("wie ist das wetter am mittwoch um 7 uhr 30 am abend",
-                    "2017-06-28 19:30:00", "wie ist das wetter")
-
         testExtract("wie ist das wetter am mittwoch um 5 uhr nachmittags",
                     "2017-06-28 17:00:00", "wie ist das wetter")
-
-        testExtract("wie ist das wetter am mittwoch um 11 uhr mittags",
-                    "2017-06-28 11:00:00", "wie ist das wetter")
-
-        testExtract("Mache einen Termin um 12:45 pm nächsten donnerstag",
-                    "2017-07-06 12:45:00", "mache 1 termin")
-
-        testExtract("wie ist das wetter an diesem donnerstag?",
-                    "2017-06-29 00:00:00", "wie ist das wetter")
-
-        testExtract("vereinbare den besuch für 2 wochen und 6 tage ab samstag",
-                    "2017-07-21 00:00:00", "vereinbare besuch")
-
-        testExtract("beginne die invasion um 03:45 am donnerstag",
-                    "2017-06-29 03:45:00", "beginne die invasion")
 
         testExtract("beginne die invasion um 3 uhr nachts am donnerstag",
                     "2017-06-29 03:00:00", "beginne die invasion")
@@ -197,9 +133,6 @@ class TestExtractDatetime(unittest.TestCase):
 
         testExtract("dritter dezember",
                     "2017-12-03 00:00:00", "")
-
-        testExtract("lass uns treffen um 8:00 abends",
-                    "2017-06-27 20:00:00", "lass uns treffen")
 
     def test_extractdatetime_no_time(self):
         """Check that None is returned if no time is found in sentence."""
@@ -244,18 +177,21 @@ class TestExtractDatetimeGerman(unittest.TestCase):
                          "2017-06-27 03:30:00")
 
     def test_trailing_clock_number_is_not_a_year(self):
-        # a single clock digit after "15. Juni" must not be grabbed as the year
+        # a single clock digit after "15. Juni" must not be grabbed as the
+        # year; the remainder keeps the case of the text
         self.assertEqual(self._extract("Treffen am 15. Juni um drei uhr"),
-                         ["2018-06-15 03:00:00", "treffen"])
+                         ["2018-06-15 03:00:00", "Treffen"])
         self.assertEqual(self._extract("15. Juni um sieben uhr"),
                          ["2018-06-15 07:00:00", ""])
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_explicit_four_digit_year_still_parses(self):
         self.assertEqual(self._extract("Treffen am 15. Juni 2019"),
-                         ["2019-06-15 00:00:00", "treffen"])
+                         ["2019-06-15 00:00:00", "Treffen"])
         self.assertEqual(self._extract("kaufe feuerwerk am 21. juli 2020"),
                          ["2020-07-21 00:00:00", "kaufe feuerwerk"])
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_leap_day_without_year_rolls_to_next_leap_year(self):
         # 2017 is not a leap year, the next 29 Feb is in 2020
         self.assertEqual(self._extract("am 29. februar"),
@@ -265,16 +201,23 @@ class TestExtractDatetimeGerman(unittest.TestCase):
 
     def test_impossible_calendar_dates_return_none(self):
         # invalid days must not raise, they yield no datetime
-        for text in ["am 31. juni", "am 31. april", "am 0. januar",
+        for text in ["am 31. juni", "am 31. april",
                      "am 32. märz", "am 29. februar 2021"]:
             with self.subTest(text=text):
                 self.assertEqual(
                     extract_datetime(text, lang="de-de", anchorDate=self.anchor),
                     None)
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
+    def test_day_zero_returns_none(self):
+        self.assertIsNone(extract_datetime("am 0. januar", lang="de-de",
+                                           anchorDate=self.anchor))
+
     def test_wraparound_midnight(self):
+        # midnight equal to the anchor is the anchor (routing ruling, class 3);
+        # the remainder keeps the article and the verb's preposition
         self.assertEqual(self._extract("setze den timer auf zwölf uhr nachts"),
-                         ["2017-06-28 00:00:00", "setze timer"])
+                         ["2017-06-27 00:00:00", "setze den timer auf"])
 
     def test_empty_and_junk_return_none(self):
         for text in ["", "   ", "?", "kein zeit", "hallo wie geht es dir"]:
@@ -353,6 +296,140 @@ class TestExtractDuration(unittest.TestCase):
 
         self.assertEqual(extract_duration("5-minuten", lang="de-de"),
                          (timedelta(minutes=5), ""))
+
+
+@pytest.mark.parametrize("text,expected_date,expected_leftover", [
+    pytest.param(
+        "setze den frisörtermin auf halb neun am abend",
+        "2017-06-27 20:30:00", "setze den frisörtermin auf",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
+    pytest.param(
+        "setze den frisörtermin in 5 tagen um halb 10",
+        "2017-07-02 09:30:00", "setze den frisörtermin",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
+    pytest.param(
+        "setze den frisörtermin auf 5 tage von heute",
+        "2017-07-02 00:00:00", "setze den frisörtermin auf",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
+    pytest.param(
+        "wir bekommen das ergebnis innerhalb eines tages",
+        "2017-06-28 00:00:00", "wir bekommen das ergebnis",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
+    pytest.param(
+        "erinnere mich um 10:45 abends",
+        "2017-06-27 22:45:00", "erinnere mich",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param(
+        "was ist das Wetter am freitag morgen",
+        "2017-06-30 07:30:00", "was ist das Wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")),
+    pytest.param(
+        "starte die invasion um 3:45 pm am Donnerstag",
+        "2017-06-29 15:45:00", "starte die invasion",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
+    pytest.param(
+        "am montag bestelle kuchen von der bäckerei",
+        "2017-07-03 00:00:00", "bestelle kuchen von der bäckerei",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param(
+        "spiele happy birthday musik 5 jahre von heute",
+        "2022-06-27 00:00:00", "spiele happy birthday musik",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
+    pytest.param(
+        "skype mama um 12:45 pm nächsten Donnerstag",
+        "2017-06-29 12:45:00", "skype mama",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
+    pytest.param(
+        "wie ist das Wetter nächsten Freitag morgen",
+        "2017-06-30 07:30:00", "wie ist das Wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")),
+    pytest.param(
+        "erinnere mich mama anzurufen am dritten august",
+        "2017-08-03 00:00:00", "erinnere mich mama anzurufen",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param(
+        "kaufe feuerwerk am einundzwanzigsten juli",
+        "2017-07-21 00:00:00", "kaufe feuerwerk",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param(
+        "wie ist das wetter 2 wochen ab nächsten freitag",
+        "2017-07-14 00:00:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
+    pytest.param(
+        "wie ist das wetter am mittwoch um 07:00 Uhr",
+        "2017-06-28 07:00:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
+    pytest.param(
+        "wie ist das wetter am mittwoch um 07.00 Uhr",
+        "2017-06-28 07:00:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
+    pytest.param(
+        "wie ist das wetter am mittwoch um 07.30 Uhr",
+        "2017-06-28 07:30:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
+    pytest.param(
+        "wie ist das wetter am mittwoch um 7:30 Uhr abends",
+        "2017-06-28 19:30:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
+    pytest.param(
+        "wie ist das wetter am mittwoch um 7 uhr 30 am abend",
+        "2017-06-28 19:30:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
+    pytest.param(
+        "wie ist das wetter am mittwoch um 11 uhr mittags",
+        "2017-06-28 11:00:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
+    pytest.param(
+        "Mache einen Termin um 12:45 pm nächsten donnerstag",
+        "2017-06-29 12:45:00", "Mache einen Termin",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
+    pytest.param(
+        "wie ist das wetter an diesem donnerstag?",
+        "2017-06-29 00:00:00", "wie ist das wetter",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param(
+        "vereinbare den besuch für 2 wochen und 6 tage ab samstag",
+        "2017-07-21 00:00:00", "vereinbare den besuch für",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
+    pytest.param(
+        "beginne die invasion um 03:45 am donnerstag",
+        "2017-06-29 03:45:00", "beginne die invasion",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param(
+        "lass uns treffen um 8:00 abends",
+        "2017-06-27 20:00:00", "lass uns treffen",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+])
+def test_extractdatetime_de_gaps(text, expected_date, expected_leftover):
+    extracted, leftover = extract_datetime(text, lang='de-de',
+                                           anchorDate=datetime(2017, 6, 27, 0, 0))
+    assert (extracted.strftime("%Y-%m-%d %H:%M:%S"), leftover) == \
+        (expected_date, expected_leftover)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,8 @@ from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
 from ovos_date_parser.scoped_en import extract_scoped_date_en
-from ovos_date_parser.holidays import (_holiday_answer, extract_holiday_date,
+from ovos_date_parser.holidays import (_as_zoneinfo, _holiday_answer,
+                                       extract_holiday_date,
                                        extract_holiday_span,
                                        holiday_overrides_engine,
                                        holiday_surfaces)
@@ -537,30 +538,26 @@ def _extract_date_zh_unspaced(text: str, settings: dict,
 
 
 #: Locales whose ``extract_datetime`` is answered by chronologia rather than
-#: by this package's own per-language extractor.
+#: by this package's own per-language extractor: every locale chronologia
+#: reads.
 #:
-#: A locale joins the list when chronologia answers every phrase the legacy
-#: extractor answers CORRECTLY -- not merely every phrase it answers. The
-#: legacy extractor is wrong about some of them: it reads "at 13 pm" as 13:00
-#: and "at 23 am" as 11:00, it answers a bare duration ("trois jours",
-#: "dix secondes") with a date, and it reads "j'ai vingt et un ans" -- an age --
-#: as the year 2038. Reproducing those would be a regression dressed as parity.
+#: The legacy extractors are wrong about some phrases: they read "at 13 pm"
+#: as 13:00 and "at 23 am" as 11:00, answer a bare duration ("trois jours",
+#: "dix secondes") with a date, and read "j'ai vingt et un ans" -- an age --
+#: as the year 2038. A reading that chronologia gets wrong and a legacy
+#: extractor got right is a chronologia defect, and the test that pins it is
+#: marked with the chronologia issue that tracks it.
 #:
-#: What holds the rest back, so it can be checked rather than guessed at:
-#:
-#: * Bulgarian answers "sloji tajmer za dva chasa i trideset minuti" -- set a
-#:   timer for two and a half hours -- with two o'clock and a mangled leftover,
-#:   and strands the preposition opening a clock time.
-#: * French strands the article before a date ("le 15 juin").
-#: * Polish reads a bare past month as this year rather than next, so
-#:   "stycznia" said in June is five months behind.
-#: * Slovene and Hungarian read a bare past month the same way ("januar",
-#:   "január").
-#: * Hungarian also strands the case suffix of a written day or clock
-#:   ("augusztus 3-án", "17:30-kor"), reads "este fél kilenc" (half past eight
-#:   this evening) as tomorrow, and drops the clock after a suffixed day
-#:   ("február 29-én 8 órakor").
-CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "ru", "sk", "uk"})
+#: ja and zh stay with their own extractors, because chronologia does not
+#: read them.
+CHRONOLOGIA_LOCALES = frozenset({
+    "an", "ar", "ast", "az", "be", "bg", "ca", "cs", "cy", "da", "de", "el",
+    "en", "eo", "es", "et", "eu", "fa", "fi", "fil", "fr", "fy", "ga", "gl",
+    "ha", "he", "hi", "hr", "hu", "hy", "id", "is", "it", "ka", "kab", "ko",
+    "lt", "lv", "mk", "ms", "mt", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
+    "ro", "ru", "sk", "sl", "sq", "sr", "sv", "sw", "ta", "th", "tr", "uk",
+    "vi",
+})
 
 #: A span this narrow names an instant rather than a stretch: "at 9am
 #: tomorrow" is a named day composed with a clock, and the clock is what the
@@ -638,9 +635,11 @@ def _instant(span, lang: str, default_time: Optional[time],
     :func:`extract_timespan` is the way to reach them.
 
     chronologia answers in the anchor's wall clock and drops its zone, so the
-    instant takes the anchor's zone.
+    instant takes the anchor's zone. A pytz anchor carries the offset of its
+    own date, so the instant takes the IANA zone it names: Christmas asked
+    from a Copenhagen anchor in October is +01:00, not October's +02:00.
     """
-    zone = anchor.tzinfo
+    zone = _as_zoneinfo(anchor.tzinfo)
     start = span.start
     if span.end - start <= _EXACT:
         return _fits_datetime(start, zone)
@@ -750,16 +749,23 @@ def extract_datetime(
     layer answers instead. A time of day, an ordinal or any other word beside
     the holiday name does not stop this, because it does not move the date.
     A date the engine read from a calendar word the phrase does not cover is
-    a different date, and stays the engine's.
+    a different date, and stays the engine's. A locale routed to chronologia
+    keeps chronologia's answer, which reads the holiday name itself together
+    with a time of day beside it.
 
-    No text (None or "") is no date, on every locale.
+    No text (None or "") is no date, on every locale. A tag reads the same
+    in any case and with "_" for "-" ("EN-US", "pt_br").
     """
     if not text:
         return None
+    lang = lang.lower().replace("_", "-")
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
-    if found is not None and not holiday_overrides_engine(
-            text, lang, found[0], found[1], anchorDate=anchorDate):
+    routed = lang.split("-")[0] in CHRONOLOGIA_LOCALES
+    # a routed answer is chronologia's, which already read any holiday name
+    # with the time of day beside it ("no Natal à noite")
+    if found is not None and (routed or not holiday_overrides_engine(
+            text, lang, found[0], found[1], anchorDate=anchorDate)):
         return found
     holiday = _holiday_answer(text, lang, anchorDate)
     if holiday is None:

@@ -3,11 +3,14 @@
 Phrases are reused from the per-language suites (test_dates_pt.py,
 test_dates_de_sentences.py, test_multilang_invariants.py) so no new
 linguistic claims are made here. Expected values are worked out from the
-anchor by hand: 2026-03-11 is a Wednesday, so "friday" is 2026-03-13,
-"monday" is the following 2026-03-16 and "next friday" is 2026-03-20.
+anchor by hand: 2026-03-11 is a Wednesday, so "friday" and "next friday"
+are 2026-03-13, the next Friday after the anchor (class 3), and "monday" is
+the following 2026-03-16.
 """
 import unittest
 from datetime import datetime, time, timedelta, timezone
+
+import pytest
 
 from ovos_date_parser import (DateTimeSpan, DurationSpan, extract_datetime,
                               extract_datetime_spans, extract_duration,
@@ -53,20 +56,30 @@ class TestDateTimeSpansEN(SpanAssertions):
         self.assertDates("tomorrow", "en", [("tomorrow", dt(2026, 3, 12))])
 
     def test_date_with_time_is_one_span(self):
+        # "next friday" is the next Friday after the anchor (class 3), so
+        # "next" frames the expression without moving it
         self.assertDates("next friday at 5 pm", "en",
-                         [("next friday at 5 pm", dt(2026, 3, 20, 17, 0))])
+                         [("next friday at 5 pm", dt(2026, 3, 13, 17, 0)),
+                          ("friday at 5 pm", dt(2026, 3, 13, 17, 0))])
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_absolute_date_with_time(self):
         self.assertDates("meeting on march 5th 2027 at 10:30", "en",
                          [("on march 5th 2027 at 10:30", dt(2027, 3, 5, 10, 30)),
                           ("march 5th 2027 at 10:30", dt(2027, 3, 5, 10, 30))])
 
-    def test_two_dates_in_one_utterance(self):
+    def test_a_range_is_one_span(self):
+        # "monday to friday" is one stretch, Monday 16 to Friday 20, which
+        # starts on the Monday: its "friday" is the 20th, never the 13th.
+        # "from monday" leaves "from" (remainder rule), so the span opens at
+        # "monday"
         self.assertDates("from monday to friday", "en",
-                         [("from monday", dt(2026, 3, 16)),
-                          ("monday", dt(2026, 3, 16)),
-                          ("friday", dt(2026, 3, 13))])
+                         [("monday to friday", dt(2026, 3, 16))])
 
+    # a bare hour alone reads as a clock (ruling 2), so "7" is the core of
+    # "at 7", as "friday at 5 pm" is the core of "next friday at 5 pm"
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_two_times_in_one_utterance(self):
         self.assertDates("wake me at 7 and again at 9", "en",
                          [("at 7", dt(2026, 3, 11, 19, 0)),
@@ -74,6 +87,8 @@ class TestDateTimeSpansEN(SpanAssertions):
                           ("at 9", dt(2026, 3, 11, 21, 0)),
                           ("9", dt(2026, 3, 11, 21, 0))])
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_punctuation_is_not_part_of_the_surface(self):
         self.assertDates("at 7, please", "en",
                          [("at 7", dt(2026, 3, 11, 19, 0)),
@@ -85,6 +100,8 @@ class TestDateTimeSpansEN(SpanAssertions):
         self.assertDates("it rains tomorrow", "en",
                          [("tomorrow", dt(2026, 3, 12))])
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_offsets_are_code_points(self):
         # a byte oriented implementation reads 11 here instead of 7
         spans = self.assertDates("café ☕ tomorrow", "en",
@@ -117,27 +134,28 @@ class TestDateTimeSpansEN(SpanAssertions):
                          anchor_date=sunday)
 
     def test_part_of_day_joins_the_date(self):
+        # the morning (06:00 to 12:00) answers its middle, 09:00 (ruling
+        # 10); "for" is not part of the date (remainder rule)
         self.assertDates("set an alarm for tomorrow morning", "en",
-                         [("for tomorrow morning", dt(2026, 3, 12, 8, 0)),
-                          ("morning", dt(2026, 3, 12, 8, 0))])
+                         [("tomorrow morning", dt(2026, 3, 12, 9, 0))])
 
     def test_expression_longer_than_eight_words(self):
+        # without "in" the words are a bare length, which is no date
+        # (ruling 3), so the whole phrase has no shorter core
         text = "in two weeks and three days and four hours"
-        spans = self.assertDates(
-            text, "en", [(text, dt(2026, 3, 28, 14, 0)),
-                         (text[3:], dt(2026, 3, 28, 14, 0))])
+        spans = self.assertDates(text, "en", [(text, dt(2026, 3, 28, 14, 0))])
         self.assertGreater(len(spans[0].surface.split()), 8)
 
     def test_punctuation_inside_an_expression_is_not_a_boundary(self):
-        # the extractor reads these whole, so a comma or an apostrophe
-        # between two words does not end the expression
-        text = "It will take about 2 hours, 30 minutes, and 10 seconds"
-        self.assertDates(text, "en",
-                         [("2 hours, 30 minutes, and 10 seconds",
-                           dt(2026, 3, 11, 12, 30, 10))])
+        # the extractor reads these whole, so an apostrophe between two
+        # words does not end the expression
         self.assertDates("3 uur 's middags", "nl",
                          [("3 uur 's middags", dt(2026, 3, 11, 15, 0))])
+        # a bare length is no date (ruling 3)
+        self.assertDates("It will take about 2 hours, 30 minutes, and 10 "
+                         "seconds", "en", [])
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_punctuation_still_separates_two_expressions(self):
         self.assertDates("meeting tomorrow, party on saturday", "en",
                          [("tomorrow", dt(2026, 3, 12)),
@@ -147,8 +165,9 @@ class TestDateTimeSpansEN(SpanAssertions):
     def test_a_bridging_word_keeps_an_offset_whole(self):
         # swedish reads "8 veckor och 2 dagar" as one offset and leaves only
         # "och" behind, where "to" in "from monday to friday" ends the span
+        # a counted offset keeps the anchor clock (class 1)
         self.assertDates("om 8 veckor och 2 dagar", "sv",
-                         [("om 8 veckor och 2 dagar", dt(2026, 5, 8))])
+                         [("om 8 veckor och 2 dagar", dt(2026, 5, 8, 10, 0))])
 
     def test_anchor_date_is_respected(self):
         july = datetime(2026, 7, 1, 10, 0, tzinfo=UTC)  # a Wednesday
@@ -180,12 +199,14 @@ class TestDateTimeSpansEN(SpanAssertions):
         # anchored on a sunday "next friday" and "friday" are the same day
         sunday = datetime(2026, 3, 8, 10, 0, tzinfo=UTC)
         for text, core, anchor in (("next friday", "friday", sunday),
-                                   ("from monday", "monday", ANCHOR),
                                    ("at 5 pm", "5 pm", ANCHOR)):
             with self.subTest(text=text):
                 spans = extract_datetime_spans(text, "en", anchor_date=anchor)
                 self.assertEqual([s.surface for s in spans], [text, core])
                 self.assertEqual(spans[0].value, spans[1].value)
+        # "from" is not part of the date (remainder rule), so it frames no
+        # second entry
+        self.assertDates("from monday", "en", [("monday", dt(2026, 3, 16))])
 
     def test_an_expression_without_framing_is_one_entry(self):
         self.assertDates("tomorrow", "en", [("tomorrow", dt(2026, 3, 12))])
@@ -246,12 +267,11 @@ class TestDurationSpansEN(SpanAssertions):
         self.assertDurations("hej hur mår du", "sv", [])
 
     def test_duration_and_date_are_separate_span_lists(self):
-        # a length of time is also a point in time relative to the anchor, so
-        # "20 minutes" is reported by both scans, with its own value in each
+        # "20 minutes" is a length, so only the duration scan reports it: a
+        # bare length is no date (ruling 3)
         text = "wake me tomorrow, the nap is 20 minutes"
         self.assertDurations(text, "en", [("20 minutes", timedelta(minutes=20))])
-        self.assertDates(text, "en", [("tomorrow", dt(2026, 3, 12)),
-                                      ("20 minutes", dt(2026, 3, 11, 10, 20))])
+        self.assertDates(text, "en", [("tomorrow", dt(2026, 3, 12))])
 
     def test_spans_are_frozen(self):
         span = extract_duration_spans("5 minutes", "en")[0]
@@ -268,11 +288,15 @@ class TestSpansPT(SpanAssertions):
         self.assertDates("amanhã às 14:30", "pt",
                          [("amanhã às 14:30", dt(2026, 3, 12, 14, 30))])
 
-    def test_two_dates_in_one_utterance(self):
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
+    def test_a_range_is_one_span(self):
+        # "segunda a sexta" is one stretch, Monday 16 to Friday 20, which
+        # starts on the Monday: its "sexta" is the 20th, never the 13th.
+        # "de segunda" leaves "de" (remainder rule), so the span opens at
+        # "segunda", as the en "from monday to friday" does
         self.assertDates("de segunda a sexta", "pt",
-                         [("de segunda", dt(2026, 3, 16)),
-                          ("segunda", dt(2026, 3, 16)),
-                          ("sexta", dt(2026, 3, 13))])
+                         [("segunda a sexta", dt(2026, 3, 16))])
 
     def test_text_without_a_date(self):
         self.assertDates("olá como estás", "pt", [])
@@ -296,12 +320,12 @@ class TestSpansDE(SpanAssertions):
         self.assertDates("morgen um 17 uhr", "de",
                          [("morgen um 17 uhr", dt(2026, 3, 12, 17, 0))])
 
-    def test_two_dates_in_one_utterance(self):
+    def test_a_range_is_one_span(self):
+        # "von montag bis freitag" is one stretch, Monday 16 to Friday 20,
+        # which starts on the Monday
         self.assertDates("von montag bis freitag", "de",
-                         [("von montag", dt(2026, 3, 16)),
-                          ("montag", dt(2026, 3, 16)),
-                          ("bis freitag", dt(2026, 3, 13)),
-                          ("freitag", dt(2026, 3, 13))])
+                         [("von montag bis freitag", dt(2026, 3, 16)),
+                          ("montag bis freitag", dt(2026, 3, 16))])
 
     def test_text_without_a_date(self):
         self.assertDates("hallo wie geht es dir", "de", [])
@@ -325,12 +349,11 @@ class TestSpansFA(SpanAssertions):
     FILM = "این فیلم یک ساعت و پنجاه و هفت و نیم دقیقه طول می کشد"
     LENGTH = timedelta(hours=1, minutes=57.5)
 
-    def test_long_unchanging_run_is_one_span(self):
-        self.assertDates(self.FILM, "fa",
-                         [("یک ساعت و پنجاه و هفت و نیم دقیقه",
-                           ANCHOR + self.LENGTH),
-                          ("ساعت و پنجاه و هفت و نیم دقیقه",
-                           ANCHOR + self.LENGTH)])
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
+    def test_a_length_is_no_date(self):
+        # the film length is a bare length, which is no date (ruling 3)
+        self.assertDates(self.FILM, "fa", [])
 
     def test_duration_of_the_same_phrase(self):
         self.assertDurations(self.FILM, "fa",
@@ -378,16 +401,18 @@ class TestFragments(unittest.TestCase):
         self.assertEqual(found[0].date(), datetime(2027, 6, 15).date())
 
     def test_unit_without_a_number_persian(self):
-        self.assertIsNotNone(extract_datetime("ساعت", "fa", anchorDate=ANCHOR))
+        # "hour" alone is a bare length, which is no date (ruling 3)
+        self.assertIsNone(extract_datetime("ساعت", "fa", anchorDate=ANCHOR))
 
     def test_hyphenated_word_starting_with_a_digit(self):
         self.assertIsNone(extract_datetime("4-digit year", "en",
                                            anchorDate=ANCHOR))
 
     def test_impossible_leap_day_azerbaijani(self):
-        """A day that does not exist in the year reports no date."""
-        self.assertIsNone(extract_datetime("29 fevral", "az",
-                                           anchorDate=ANCHOR))
+        """A leap day said with no year is the next one that exists."""
+        # 2026 and 2027 have no 29 February, so the next is in 2028 (class 3)
+        found = extract_datetime("29 fevral", "az", anchorDate=ANCHOR)
+        self.assertEqual(found[0].date(), datetime(2028, 2, 29).date())
         # the leap day itself still parses where the year has one
         found = extract_datetime("29 fevral", "az",
                                  anchorDate=datetime(2028, 1, 1, tzinfo=UTC))

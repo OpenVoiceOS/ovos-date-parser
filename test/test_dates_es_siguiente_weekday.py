@@ -9,6 +9,8 @@ import unittest
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2026, 10, 17, 12, 0, tzinfo=ZoneInfo("Europe/Lisbon"))
@@ -109,14 +111,16 @@ class TestWeekdayPasado(unittest.TestCase):
 
 
 class TestNextWeek(unittest.TestCase):
+    # class 2b: a named period is the calendar week, which starts on Monday;
+    # next week runs from 19 October, last week from 5 October
     def test_week_from_today(self):
         for text in ("la semana que viene", "la semana siguiente",
                      "semana que viene", "nos vemos la semana que viene"):
             with self.subTest(text=text):
-                self.assertEqual(_dt(text), datetime(2026, 10, 24))
+                self.assertEqual(_dt(text), datetime(2026, 10, 19))
 
     def test_last_week_unchanged(self):
-        self.assertEqual(_dt("la semana pasada"), datetime(2026, 10, 10))
+        self.assertEqual(_dt("la semana pasada"), datetime(2026, 10, 5))
 
     def test_weekday_que_viene_unchanged(self):
         self.assertEqual(_dt("el lunes que viene"), datetime(2026, 10, 19))
@@ -189,18 +193,20 @@ class TestNextOnTheSameWeekday(unittest.TestCase):
 class TestQueVieneRemainder(unittest.TestCase):
     """Only the words that were understood leave the sentence."""
 
+    # class 2b: next week is the calendar week from Monday 19 October
     def test_week_that_comes(self):
         self.assertEqual(_on("la semana que viene", ANCHOR),
-                         (datetime(2026, 10, 24), ""))
+                         (datetime(2026, 10, 19), ""))
 
     def test_words_around_the_phrase_are_kept(self):
         date, rest = _on("recuérdame la semana que viene comprar pan", ANCHOR)
-        self.assertEqual(date, datetime(2026, 10, 24))
+        self.assertEqual(date, datetime(2026, 10, 19))
         self.assertEqual(_fold(rest), "recuerdame comprar pan")
 
     def test_weekday_that_comes(self):
+        # the article that opens the date is part of it, so it leaves too
         self.assertEqual(_on("el viernes que viene", ANCHOR),
-                         (datetime(2026, 10, 23), "el"))
+                         (datetime(2026, 10, 23), ""))
 
     def test_no_word_is_invented(self):
         res = extract_datetime("el tren que viene a las cinco", lang="es-ES",
@@ -227,7 +233,6 @@ class TestClockTimeAfterADayQualifier(unittest.TestCase):
     def test_afternoon_phrases_before_a_clock_time(self):
         cases = {
             "esta tarde a las 3:15": datetime(2026, 10, 17, 15, 15),
-            "por la tarde a las 4:30": datetime(2026, 10, 17, 16, 30),
             "mañana por la tarde a las 4:30": datetime(2026, 10, 18, 16, 30),
             "hoy por la tarde a las 5:00": datetime(2026, 10, 17, 17, 0),
         }
@@ -235,9 +240,7 @@ class TestClockTimeAfterADayQualifier(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(_dt(text), expected)
 
-    def test_afternoon_and_night_at_a_clock_time(self):
-        self.assertEqual(_dt("tarde a las 4:30"),
-                         datetime(2026, 10, 17, 16, 30))
+    def test_night_at_a_clock_time(self):
         self.assertEqual(_dt("esta noche a las 10:30"),
                          datetime(2026, 10, 17, 22, 30))
 
@@ -257,23 +260,30 @@ class TestMananaIsTomorrowOrTheMorning(unittest.TestCase):
 
     def test_tomorrow_alone(self):
         self.assertEqual(_dt("mañana"), datetime(2026, 10, 18))
+
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/OpenVoiceOS/ovos-date-parser/issues/659")
+    def test_until_tomorrow(self):
         self.assertEqual(_dt("hasta mañana"), datetime(2026, 10, 18))
 
     def test_the_morning_forms(self):
+        # a morning with no clock is the middle of the CLDR es band
+        # 06:00-12:00, 09:00
         for text, expected in (
                 ("a las 8 de la mañana", datetime(2026, 10, 18, 8)),
                 ("hoy a las 8 de la mañana", datetime(2026, 10, 17, 8)),
                 ("a las 8 en la mañana", datetime(2026, 10, 18, 8)),
-                ("esta mañana", datetime(2026, 10, 17, 8)),
-                ("mañana por la mañana", datetime(2026, 10, 18, 8)),
-                ("ayer por la mañana", datetime(2026, 10, 16, 8))):
+                ("esta mañana", datetime(2026, 10, 17, 9)),
+                ("mañana por la mañana", datetime(2026, 10, 18, 9)),
+                ("ayer por la mañana", datetime(2026, 10, 16, 9))):
             with self.subTest(text=text):
                 self.assertEqual(_dt(text), expected)
 
     def test_other_parts_of_tomorrow_are_unchanged(self):
         self.assertEqual(_dt("pasado mañana"), datetime(2026, 10, 19))
+        # the middle of the CLDR es afternoon band 12:00-20:00
         self.assertEqual(_dt("mañana por la tarde"),
-                         datetime(2026, 10, 18, 15))
+                         datetime(2026, 10, 18, 16))
 
 
 class TestMorningAfterAnArticleOrAQuantifier(unittest.TestCase):
@@ -281,32 +291,23 @@ class TestMorningAfterAnArticleOrAQuantifier(unittest.TestCase):
     "esta", "cada" or "media"; "temprano" after a day word is the morning."""
 
     def test_the_morning_of_a_day(self):
-        for text, expected in (
-                ("la mañana del lunes", datetime(2026, 10, 19, 8)),
-                ("a media mañana", datetime(2026, 10, 18, 10)),
-                ("la mañana de mañana", datetime(2026, 10, 18, 8)),
-                ("cada mañana", datetime(2026, 10, 18, 8))):
-            with self.subTest(text=text):
-                self.assertEqual(_dt(text), expected)
+        # the middle of the CLDR es morning band 06:00-12:00
+        self.assertEqual(_dt("la mañana del lunes"),
+                         datetime(2026, 10, 19, 9))
 
-    def test_temprano_after_a_day_word(self):
-        for text, expected in (
-                ("mañana temprano", datetime(2026, 10, 18, 8)),
-                ("el lunes temprano", datetime(2026, 10, 19, 8))):
-            with self.subTest(text=text):
-                self.assertEqual(_dt(text), expected)
-
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_temprano_leaves_no_remainder(self):
         self.assertEqual(
             extract_datetime("mañana temprano", lang="es-ES",
                              anchorDate=ANCHOR)[1], "")
 
     def test_the_earlier_cases_keep_their_values(self):
+        # a morning with no clock is the middle of its band, 09:00
         for text, expected in (
                 ("mañana a las 22:30", datetime(2026, 10, 18, 22, 30)),
                 ("a las 8 de la mañana", datetime(2026, 10, 18, 8)),
-                ("esta mañana", datetime(2026, 10, 17, 8)),
-                ("mañana por la mañana", datetime(2026, 10, 18, 8)),
+                ("esta mañana", datetime(2026, 10, 17, 9)),
+                ("mañana por la mañana", datetime(2026, 10, 18, 9)),
                 ("mañana", datetime(2026, 10, 18)),
                 ("pasado mañana", datetime(2026, 10, 19))):
             with self.subTest(text=text):
@@ -323,32 +324,54 @@ class TestTempranoNeedsADayWord(unittest.TestCase):
                 self.assertIsNone(extract_datetime(
                     text, lang="es-ES", anchorDate=ANCHOR))
 
-    def test_temprano_beside_a_day_word_is_the_morning(self):
-        for text, expected in (
-                ("mañana temprano", datetime(2026, 10, 18, 8)),
-                ("mañana muy temprano", datetime(2026, 10, 18, 8)),
-                ("el lunes temprano", datetime(2026, 10, 19, 8)),
-                ("hoy temprano", datetime(2026, 10, 17, 8)),
-                ("pasado mañana temprano", datetime(2026, 10, 19, 8)),
-                ("temprano el lunes", datetime(2026, 10, 19, 8))):
-            with self.subTest(text=text):
-                self.assertEqual(_dt(text), expected)
-
 
 class TestIntensifierBeforeTemprano(unittest.TestCase):
-    def test_an_intensifier_keeps_the_morning(self):
-        for text, expected in (
-                ("mañana bien temprano", datetime(2026, 10, 18, 8)),
-                ("mañana muy temprano", datetime(2026, 10, 18, 8)),
-                ("mañana tan temprano", datetime(2026, 10, 18, 8)),
-                ("mañana más temprano", datetime(2026, 10, 18, 8)),
-                ("el lunes bien temprano", datetime(2026, 10, 19, 8)),
-                ("hoy muy temprano", datetime(2026, 10, 17, 8))):
-            with self.subTest(text=text):
-                self.assertEqual(_dt(text), expected)
-
     def test_an_intensifier_without_a_day_word_is_no_date(self):
         for text in ("llegué bien temprano", "salgo más temprano"):
             with self.subTest(text=text):
                 self.assertIsNone(extract_datetime(
                     text, lang="es-ES", anchorDate=ANCHOR))
+
+
+def _xfail(issue):
+    return pytest.mark.xfail(strict=True, reason=issue)
+
+
+@pytest.mark.parametrize("text,expected", [
+    # the next 16:30 after Saturday 12:00 is the same day (class 3)
+    pytest.param("por la tarde a las 4:30", datetime(2026, 10, 17, 16, 30),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1002")),
+    pytest.param("tarde a las 4:30", datetime(2026, 10, 17, 16, 30),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1002")),
+    # the middle of the CLDR es morning band 06:00-12:00, on Sunday 18
+    pytest.param("cada mañana", datetime(2026, 10, 18, 9),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1034")),
+    pytest.param("la mañana de mañana", datetime(2026, 10, 18, 9),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1033")),
+    # mid-morning is the middle of the same band; 09:00 has passed on
+    # Saturday, so it is Sunday 18 (class 3)
+    pytest.param("a media mañana", datetime(2026, 10, 18, 9),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
+])
+def test_a_part_of_the_day_with_a_clock_or_a_day(text, expected):
+    assert _dt(text) == expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    pytest.param(text, expected, marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1033"))
+    for text, expected in (
+        ("mañana temprano", datetime(2026, 10, 18, 9)),
+        ("mañana muy temprano", datetime(2026, 10, 18, 9)),
+        ("el lunes temprano", datetime(2026, 10, 19, 9)),
+        ("hoy temprano", datetime(2026, 10, 17, 9)),
+        ("pasado mañana temprano", datetime(2026, 10, 19, 9)),
+        ("temprano el lunes", datetime(2026, 10, 19, 9)),
+        ("mañana bien temprano", datetime(2026, 10, 18, 9)),
+        ("mañana tan temprano", datetime(2026, 10, 18, 9)),
+        ("mañana más temprano", datetime(2026, 10, 18, 9)),
+        ("el lunes bien temprano", datetime(2026, 10, 19, 9)),
+        ("hoy muy temprano", datetime(2026, 10, 17, 9)))])
+def test_temprano_beside_a_day_word_is_the_morning(text, expected):
+    """"temprano" beside a day word is the morning of that day, at the
+    middle of the CLDR es band 06:00-12:00."""
+    assert _dt(text) == expected

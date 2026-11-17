@@ -5,9 +5,12 @@ a BCP-47 language code (`lang`). Dialects resolve by prefix (`"pt-BR"`,
 `"pt-PT"`, and `"pt"` all reach the Portuguese parser). For Portuguese, the region
 selects the number spelling of the `nice_*` formatters: `BR` gives the
 Brazilian forms (`dezesseis`), and every other tag gives the European forms
-(`dezasseis`). Unsupported languages
-raise `NotImplementedError`. `extract_datetime` falls back to
-[dateparser](https://dateparser.readthedocs.io) before giving up.
+(`dezasseis`). `extract_datetime` reads a tag in any case and with `_` in
+place of `-` (`"EN-US"`, `"pt_br"`). It answers every locale in
+`ovos_date_parser.CHRONOLOGIA_LOCALES` through
+[chronologia](https://github.com/TigreGotico/chronologia), and falls back to
+[dateparser](https://dateparser.readthedocs.io) for a language that no reader
+covers. Other unsupported languages raise `NotImplementedError`.
 
 ```python
 from ovos_date_parser import (
@@ -53,9 +56,11 @@ A named holiday is read too: "christmas", "next easter", the French "noel"
 and the Portuguese "proxima pascoa" all resolve to a date. The rule behind
 the name and the surfaces each language speaks it by are
 [chronologia](https://github.com/TigreGotico/chronologia)'s; this library
-copies no holiday table. The holiday reading runs only when the language
-engine reads no date, and only when chronologia says a holiday construction
-is what matched, so an utterance that parsed before parses the same way.
+copies no holiday table. A locale in `CHRONOLOGIA_LOCALES` keeps
+chronologia's answer, which reads the holiday name together with a time of
+day beside it. For any other locale, the holiday reading runs only when the
+language engine reads no date, and only when chronologia says a holiday
+construction is what matched.
 A transcript that lost its accents names the holiday no less than one that
 kept them: "noel" and "noël" read the same date.
 
@@ -134,12 +139,11 @@ written. Returns a list of frozen `DateTimeSpan` objects with `start`, `end`,
 ```python
 >>> extract_datetime_spans("wake me next friday at 5 pm", "en",
 ...                        anchor_date=datetime(2023, 1, 18))
-[DateTimeSpan(start=8, end=27, surface='next friday at 5 pm', value=...)]
+[DateTimeSpan(start=8, end=27, surface='next friday at 5 pm', value=...),
+ DateTimeSpan(start=13, end=27, surface='friday at 5 pm', value=...)]
 >>> extract_datetime_spans("from monday to friday", "en",
 ...                        anchor_date=datetime(2023, 1, 15))
-[DateTimeSpan(start=0, end=11, surface='from monday', value=...),
- DateTimeSpan(start=5, end=11, surface='monday', value=...),
- DateTimeSpan(start=15, end=21, surface='friday', value=...)]
+[DateTimeSpan(start=5, end=21, surface='monday to friday', value=...)]
 ```
 
 Each span covers a whole expression, so "next friday at 5 pm" is one
@@ -150,15 +154,15 @@ come back in the anchor's zone.
 A word joins an expression when the extractor consumes it, which it reports
 through the leftover text. That is what makes the surface the written phrase
 rather than only the words that move the value: "next", "this", "at" and "pm"
-belong to it, while "to" in "from monday to friday" survives in the leftover
-and ends the first span there.
+belong to it. A range such as "monday to friday" is one expression, and "from"
+before it stays in the leftover.
 
 Framing words are reported both ways. Which text a consumer holds is decided
-by the template that captured it, not by the parser: `from {date:start} to
-{date:end}` captures "monday" where the written phrase is "from monday". So
+by the template that captured it, not by the parser: `next {date}` captures
+"friday at 5 pm" where the written phrase is "next friday at 5 pm". So
 when the framing words can be dropped without changing the reading, the
 expression comes back twice: once as the written phrase and once as its core,
-"next friday" and "friday", or "at 5 pm" and "5 pm". Both entries carry the
+"next friday at 5 pm" and "friday at 5 pm". Both entries carry the
 same value. An expression with nothing to drop comes back once. A single word left behind may still bridge two
 halves that need each other, as in "in two weeks and three days". Punctuation
 between two words is no boundary on its own, so "3 uur 's middags" and "2

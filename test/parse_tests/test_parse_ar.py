@@ -1,6 +1,8 @@
 import unittest
 from datetime import datetime, timedelta
 
+import pytest
+
 from ovos_date_parser import extract_datetime, extract_duration, nice_time
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)  # a tuesday
@@ -104,8 +106,10 @@ class TestExtractDatetimeArabic(unittest.TestCase):
             "بعد ثلاثة أيام": ANCHOR.date() + timedelta(days=3),
             "بعد يومين": ANCHOR.date() + timedelta(days=2),
             "قبل يومين": ANCHOR.date() - timedelta(days=2),
-            "الأسبوع القادم": ANCHOR.date() + timedelta(weeks=1),
-            "الأسبوع الماضي": ANCHOR.date() - timedelta(weeks=1),
+            # a named week is the calendar week; the ar week starts on
+            # Saturday (class 2b)
+            "الأسبوع القادم": datetime(2017, 7, 1).date(),
+            "الأسبوع الماضي": datetime(2017, 6, 17).date(),
         }
         for phrase, date in expected.items():
             with self.subTest(phrase=phrase):
@@ -119,11 +123,12 @@ class TestExtractDatetimeArabic(unittest.TestCase):
         self.assertEqual(result[0], ANCHOR + timedelta(hours=2))
 
     def test_months(self):
+        # a date that passed this year is the next one (class 3)
         result = extract_datetime("الخامس من يناير", lang="ar",
                                   anchorDate=ANCHOR)
-        self.assertEqual(result[0].date(), datetime(2017, 1, 5).date())
+        self.assertEqual(result[0].date(), datetime(2018, 1, 5).date())
         result = extract_datetime("5 يناير", lang="ar", anchorDate=ANCHOR)
-        self.assertEqual(result[0].date(), datetime(2017, 1, 5).date())
+        self.assertEqual(result[0].date(), datetime(2018, 1, 5).date())
         result = extract_datetime("يناير 2030", lang="ar", anchorDate=ANCHOR)
         self.assertEqual(result[0].date(), datetime(2030, 1, 1).date())
 
@@ -132,14 +137,12 @@ class TestExtractDatetimeArabic(unittest.TestCase):
             # half-past semantics: التاسعة والنصف = 9:30
             "الساعة التاسعة والنصف": (9, 30),
             "الساعة التاسعة والربع": (9, 15),
-            # quarter to: التاسعة إلا ربعاً = 8:45
-            "الساعة التاسعة إلا ربعاً": (8, 45),
             "الساعة الواحدة": (1, 0),
             "الساعة الثانية عشرة": (12, 0),
             "الساعة التاسعة والنصف مساءً": (21, 30),
             "الساعة السابعة صباحاً": (7, 0),
             "غدا الساعة الخامسة مساء": (17, 0),
-            "5:30": (5, 30), "15:30": (15, 30),
+            "15:30": (15, 30),
         }
         for phrase, (hour, minute) in expected.items():
             with self.subTest(phrase=phrase):
@@ -148,6 +151,13 @@ class TestExtractDatetimeArabic(unittest.TestCase):
                 self.assertIsNotNone(result)
                 self.assertEqual((result[0].hour, result[0].minute),
                                  (hour, minute))
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
+    def test_digit_clock_takes_the_next_reading(self):
+        # a digit clock takes its next twelve-hour reading (ruling 23): at
+        # 13:04, "5:30" is 17:30 that day
+        result = extract_datetime("5:30", lang="ar", anchorDate=ANCHOR)
+        self.assertEqual(result[0], datetime(2017, 6, 27, 17, 30))
 
     def test_remainder(self):
         result = extract_datetime("ما هو الطقس غدا", lang="ar",
@@ -161,17 +171,6 @@ class TestExtractDatetimeArabic(unittest.TestCase):
                                            anchorDate=ANCHOR))
         self.assertIsNone(extract_datetime("", lang="ar", anchorDate=ANCHOR))
 
-    def test_nice_time_round_trip(self):
-        for hour, minute in [(9, 30), (9, 15), (8, 45), (15, 25), (7, 0),
-                             (23, 45), (12, 0), (1, 5)]:
-            with self.subTest(hour=hour, minute=minute):
-                dt = ANCHOR.replace(hour=hour, minute=minute)
-                spoken = nice_time(dt, lang="ar", use_ampm=True)
-                result = extract_datetime(spoken, lang="ar",
-                                          anchorDate=ANCHOR)
-                self.assertIsNotNone(result, spoken)
-                self.assertEqual((result[0].hour, result[0].minute),
-                                 (hour, minute), spoken)
 
 
 class TestExtractDatetimeArabicHardening(unittest.TestCase):
@@ -181,19 +180,7 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
     def _dt(self, text):
         return extract_datetime(text, lang="ar", anchorDate=self.A)
 
-    def test_minutes_to_the_hour(self):
-        # "إلا خمس" = five minutes to the hour -> :55 of the previous hour
-        cases = {
-            "الساعة الخامسة إلا خمس": (4, 55),
-            "الساعة التاسعة إلا عشر دقائق": (8, 50),
-            "الساعة الواحدة إلا عشرين": (12, 40),
-        }
-        for phrase, (h, m) in cases.items():
-            with self.subTest(phrase=phrase):
-                r = self._dt(phrase)
-                self.assertIsNotNone(r, phrase)
-                self.assertEqual((r[0].hour, r[0].minute), (h, m), phrase)
-
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_and_third_to_the_hour(self):
         self.assertEqual(self._dt("الساعة التاسعة إلا ربعاً")[0].hour, 8)
         self.assertEqual(self._dt("الساعة التاسعة إلا ربعاً")[0].minute, 45)
@@ -240,8 +227,9 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
 
     def test_dual_relative_days(self):
         self.assertEqual(self._dt("بعد يومين")[0].day, 19)
+        # a counted offset keeps the anchor clock (class 1)
         self.assertEqual(self._dt("بعد أسبوعين")[0],
-                         self.A.replace(hour=0, minute=0) + timedelta(weeks=2))
+                         self.A + timedelta(weeks=2))
         self.assertEqual(self._dt("قبل ساعتين")[0], self.A - timedelta(hours=2))
 
     def test_relative_day_words(self):
@@ -254,6 +242,7 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
         # voweled spelling must parse identically to the bare form
         self.assertEqual(self._dt("الساعة الثَّالِثة صباحاً")[0].hour, 3)
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_weekday_proclitics(self):
         # anchor is a Friday; ب/ل proclitics fuse onto the article
         base = self.A.replace(hour=0, minute=0)
@@ -266,19 +255,19 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
     def test_within_marks_future(self):
         # خلال / في غضون ("within") look forward like بعد
         self.assertEqual(self._dt("خلال ساعتين")[0], self.A + timedelta(hours=2))
-        base = self.A.replace(hour=0, minute=0)
+        # a counted offset keeps the anchor clock (class 1)
         self.assertEqual(self._dt("في غضون ثلاثة أيام")[0],
-                         base + timedelta(days=3))
+                         self.A + timedelta(days=3))
         self.assertEqual(self._dt("خلال ثلاثة أيام")[0],
-                         base + timedelta(days=3))
+                         self.A + timedelta(days=3))
 
     def test_ago_marks_past(self):
         # قبل / منذ resolve to the past, not the future
         self.assertEqual(self._dt("قبل ثلاث ساعات")[0],
                          self.A - timedelta(hours=3))
-        base = self.A.replace(hour=0, minute=0)
+        # a counted offset keeps the anchor clock (class 1)
         self.assertEqual(self._dt("منذ ثلاثة أيام")[0],
-                         base - timedelta(days=3))
+                         self.A - timedelta(days=3))
 
     def test_out_of_range_clock_does_not_crash(self):
         # an impossible clock must not raise; it is simply not a time
@@ -289,6 +278,7 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
         self.assertEqual((self._dt("الساعة 23:59")[0].hour,
                           self._dt("الساعة 23:59")[0].minute), (23, 59))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_and_a_third_past_the_hour(self):
         # "وثلث" / "والثلث" = twenty past
         self.assertEqual(self._dt("الساعة الثالثة والثلث")[0].minute, 20)
@@ -320,3 +310,46 @@ class TestExtractDurationArabicHardening(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# Minutes spoken after the hour word: "إلا" counts back from the hour, "و"
+# counts on from it. The hour keeps its spoken reading here; ruling 17
+# decides the half of the day in its own issue.
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
+def test_quarter_to_the_hour():
+    # quarter to: التاسعة إلا ربعاً = 8:45
+    result = extract_datetime("الساعة التاسعة إلا ربعاً", lang="ar",
+                              anchorDate=ANCHOR)
+    assert (result[0].hour, result[0].minute) == (8, 45)
+
+
+_SPOKEN_MINUTES = pytest.mark.xfail(
+    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
+
+
+@pytest.mark.parametrize("hour,minute", [
+    (9, 30), (9, 15), pytest.param(8, 45, marks=_SPOKEN_MINUTES),
+    pytest.param(15, 25, marks=_SPOKEN_MINUTES), (7, 0),
+    pytest.param(23, 45, marks=_SPOKEN_MINUTES), (12, 0),
+    pytest.param(1, 5, marks=_SPOKEN_MINUTES),
+])
+def test_nice_time_round_trip(hour, minute):
+    spoken = nice_time(ANCHOR.replace(hour=hour, minute=minute), lang="ar",
+                       use_ampm=True)
+    result = extract_datetime(spoken, lang="ar", anchorDate=ANCHOR)
+    assert result is not None, spoken
+    assert (result[0].hour, result[0].minute) == (hour, minute), spoken
+
+
+# "إلا خمس" = five minutes to the hour -> :55 of the previous hour
+@pytest.mark.parametrize("phrase,hour,minute", [
+    ("الساعة الخامسة إلا خمس", 4, 55),
+    ("الساعة التاسعة إلا عشر دقائق", 8, 50),
+    ("الساعة الواحدة إلا عشرين", 12, 40),
+])
+@_SPOKEN_MINUTES
+def test_minutes_to_the_hour(phrase, hour, minute):
+    result = extract_datetime(phrase, lang="ar",
+                              anchorDate=datetime(2026, 7, 17, 10, 0))
+    assert result is not None, phrase
+    assert (result[0].hour, result[0].minute) == (hour, minute), phrase

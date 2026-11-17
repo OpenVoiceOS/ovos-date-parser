@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.40.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.40.0a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.39.0a1...0.40.0a1)
+
+**Merged pull requests:**
+
+- feat: answer extract\_datetime from chronologia for Russian and Ukrainian [\#586](https://github.com/OpenVoiceOS/ovos-date-parser/pull/586) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.39.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.39.0a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.38.0a1...0.39.0a1)

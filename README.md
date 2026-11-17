@@ -9,8 +9,11 @@ timestamps and the way people speak and write about time.
 - **Text to duration**: turn "two hours and thirty minutes" into a `timedelta`.
 - **Datetime to speech**: render `2024-01-05 15:30` as "January fifth twenty
   twenty four at half past three".
-- **Dozens of languages**, resolved by BCP-47 code, with an automatic
-  [dateparser](https://dateparser.readthedocs.io) fallback for the rest.
+- **Dozens of languages**, resolved by BCP-47 code.
+  [chronologia](https://github.com/TigreGotico/chronologia) reads the dates
+  and times of most of them, and
+  [dateparser](https://dateparser.readthedocs.io) is the fallback for the
+  rest.
 
 The library powers date and time understanding in
 [OpenVoiceOS](https://openvoiceos.org). It is a plain Python library with no
@@ -65,7 +68,7 @@ from ovos_date_parser import extract_datetime
 
 text = "call the supplier next monday at 2pm about the delayed order"
 when, rest = extract_datetime(text, "en", anchorDate=datetime(2024, 1, 5))
-# when -> 2024-01-08 14:00, rest -> 'call supplier delayed order'
+# when -> 2024-01-08 14:00, rest -> 'call the supplier about the delayed order'
 ```
 
 `anchorDate` is the "now" that relative phrases resolve against. Pass a fixed
@@ -99,7 +102,7 @@ from ovos_date_parser import extract_datetime
 
 utterance = "remind me next tuesday at nine thirty to water the plants"
 when, action = extract_datetime(utterance, "en", anchorDate=datetime(2024, 1, 5))
-# when -> 2024-01-09 09:30, action -> 'remind me to water plants'
+# when -> 2024-01-09 09:30, action -> 'remind me to water the plants'
 ```
 
 See [`examples/asr_postproc.py`](examples/asr_postproc.py).
@@ -190,7 +193,9 @@ English only. The span grammars for other languages are in the `chronologia`
 reckoning core.
 
 Dialects resolve by prefix. `"pt-BR"`, `"pt-PT"`, and `"pt"` all reach the
-Portuguese implementation. The region still selects the number spelling: the
+Portuguese implementation. `extract_datetime` reads a tag in any case and
+with `_` in place of `-`, so `"EN-US"` and `"pt_br"` reach the same reader as
+`"en-US"` and `"pt-BR"`. The region still selects the number spelling: the
 `nice_*` formatters say `dezesseis` for a tag with the region `BR`, and
 `dezasseis` for every other Portuguese tag. A language with no implementation raises
 `NotImplementedError`, except `extract_datetime`, which tries the `dateparser`
@@ -199,9 +204,10 @@ table and need a locale resource file for the language.
 
 ## Language support
 
-Twenty-plus languages have dedicated, idiomatic implementations. Extraction
-for any other language falls back to `dateparser`. Formatting falls back to a
-generic word table.
+`extract_datetime` answers every locale in `CHRONOLOGIA_LOCALES` through
+chronologia: the languages in the table below and 34 more. ja and zh keep
+their own readers. Any other language falls back to `dateparser`. Formatting
+falls back to a generic word table.
 
 - Full: dedicated implementation
 - Partial: partial or generic support (a language-agnostic helper or an external library)
@@ -239,7 +245,8 @@ generic word table.
 | sv Swedish      | Full | Full |
 | uk Ukrainian    | Full | Full |
 
-Any language not listed uses the `dateparser` fallback for `extract_datetime`.
+A language that is neither in the table nor in `CHRONOLOGIA_LOCALES` uses the
+`dateparser` fallback for `extract_datetime`.
 This fallback is good at absolute dates and weak at conversational relative
 phrases. The languages on the shared duration engine (all of the above except
 ar, ast, fa, kab, sv) also support the `resolution` and `replace_token` options

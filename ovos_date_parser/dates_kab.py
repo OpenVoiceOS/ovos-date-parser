@@ -523,7 +523,7 @@ def extract_datetime_kab(text: str, anchorDate: Optional[datetime] = None,
                         consumed.add(j)
                         break
             year = anchor.year
-            if datetime(year, month, day or 1) < anchor.replace(
+            if datetime(year, month, day or 1, tzinfo=anchor.tzinfo) < anchor.replace(
                     hour=0, minute=0, second=0, microsecond=0):
                 year += 1
             result = result.replace(year=year, month=month, day=day or 1)

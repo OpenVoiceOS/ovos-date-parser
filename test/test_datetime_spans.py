@@ -199,8 +199,11 @@ class TestDateTimeSpansEN(SpanAssertions):
 
 class TestDurationSpansEN(SpanAssertions):
     def test_single_duration(self):
+        # "for" belongs to the length, so the whole span holds it and the
+        # core does not
         self.assertDurations("set a timer for 5 minutes", "en",
-                             [("5 minutes", timedelta(minutes=5))])
+                             [("for 5 minutes", timedelta(minutes=5)),
+                              ("5 minutes", timedelta(minutes=5))])
 
     def test_compound_duration_is_one_span(self):
         self.assertDurations("in two hours and thirty minutes", "en",
@@ -223,7 +226,8 @@ class TestDurationSpansEN(SpanAssertions):
         # leaves nothing behind
         self.assertDurations("0 seconds", "en", [("0 seconds", timedelta(0))])
         self.assertDurations("set a timer for 0 minutes", "en",
-                             [("0 minutes", timedelta(0))])
+                             [("for 0 minutes", timedelta(0)),
+                              ("0 minutes", timedelta(0))])
         self.assertDurations("0 minuten", "de", [("0 minuten", timedelta(0))])
 
     def test_a_unit_without_a_number_is_no_duration(self):

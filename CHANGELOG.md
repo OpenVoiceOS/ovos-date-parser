@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.0a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.40.0a1...0.41.0a1)
+
+**Merged pull requests:**
+
+- feat: route every chronologia locale to chronologia [\#638](https://github.com/OpenVoiceOS/ovos-date-parser/pull/638) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.40.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.40.0a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.39.0a1...0.40.0a1)
@@ -362,7 +370,6 @@
 **Merged pull requests:**
 
 - fix: es date time doubled article, relative day on another month [\#558](https://github.com/OpenVoiceOS/ovos-date-parser/pull/558) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix: pt meia-noite and meio-dia hyphens, midnight countdown, day label [\#557](https://github.com/OpenVoiceOS/ovos-date-parser/pull/557) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.16a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.16a1) (2026-11-06)
 

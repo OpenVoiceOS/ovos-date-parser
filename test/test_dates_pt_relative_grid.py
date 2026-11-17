@@ -285,11 +285,13 @@ def cases(a, lang):
         for n in (1, 2):
             word = SPELLED[n][1]
             for sign, markers in ((1, ("daqui a", "dentro de")), (-1, ("há",))):
-                landed = midnight(a) + timedelta(days=7 * n * sign)
-                monday = landed - timedelta(days=landed.weekday())
+                # ruling 19: that weekday in the calendar week the count
+                # reaches, which starts on Sunday in pt-BR (class 2b)
+                start = calendar_unit(a, "semana", n * sign, lang)
+                day = start + timedelta(days=(d - start.weekday()) % 7)
                 for marker in markers:
                     out.append((f"{marker} {word} semana{'s' if n > 1 else ''}"
-                                f" {name}", monday + timedelta(days=d)))
+                                f" {name}", day))
         for unit in ("mês", "ano"):
             reached = shift(a, unit, 1)
             out.append((f"daqui a um {unit} {name}", on_or_after(reached, d)))
@@ -297,10 +299,10 @@ def cases(a, lang):
     for d in (0, 4, 6):
         name = WEEKDAYS[d][0]
         for n in (1, 2):
-            landed = midnight(a) + timedelta(days=7 * n)
-            monday = landed - timedelta(days=landed.weekday())
+            start = calendar_unit(a, "semana", n, lang)
+            day = start + timedelta(days=(d - start.weekday()) % 7)
             out.append((f"{name} daqui a {SPELLED[n][1]} semana"
-                        f"{'s' if n > 1 else ''}", monday + timedelta(days=d)))
+                        f"{'s' if n > 1 else ''}", day))
         for unit in ("mês", "ano"):
             reached = shift(a, unit, 1)
             out.append((f"{name} daqui a um {unit}",

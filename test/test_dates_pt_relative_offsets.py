@@ -10,7 +10,7 @@ year name the calendar unit, and the week starts on the locale's first day,
 Monday in pt-PT and Sunday in pt-BR (CLDR week data).
 """
 import unittest
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from ovos_date_parser import extract_datetime
@@ -118,7 +118,9 @@ class TestPtRelativeOffsets(unittest.TestCase):
                           datetime(2025, 10, 17, 12))
         self.assertParses("há três dias", datetime(2026, 10, 14, 12))
         self.assertParses("em duas semanas", datetime(2026, 10, 31, 12))
-        self.assertParses("daqui a quinze dias", datetime(2026, 10, 31))
+        # ruling 18: "quinze dias" is fifteen days (Priberam s.v.
+        # "quinzena", 1), and a counted offset keeps the anchor clock
+        self.assertParses("daqui a quinze dias", datetime(2026, 11, 1, 12))
         for text in ("tenho vinte anos", "ele tem trinta anos",
                      "a casa tem cem anos", "mil anos",
                      "o meu filho tem cinco anos",
@@ -237,12 +239,13 @@ class TestPtRelativeOffsets(unittest.TestCase):
     def test_ja_faz_counts_back(self):
         self.assertParses("já faz dois dias", datetime(2026, 10, 15, 12))
 
-    def test_birthday_after_a_month_keeps_the_anchor_day(self):
+    def test_birthday_in_a_named_month_is_that_month(self):
+        # ruling 1: March has ended by 17 October, so "março" is March 2027
         for lang in LANGS:
             with self.subTest(lang=lang):
                 res = extract_datetime("em março faz três anos",
                                        anchorDate=SATURDAY, lang=lang)
-                self.assertEqual(res[0].date(), SATURDAY.date())
+                self.assertEqual(res[0].date(), date(2027, 3, 1))
 
     def test_birthday_in_a_month_is_not_in_the_past(self):
         for lang in LANGS:

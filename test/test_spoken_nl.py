@@ -45,7 +45,7 @@ class TestSpokenYearNl(unittest.TestCase):
             (1993, "negentienhonderddrieënnegentig"),
             (1998, "negentienhonderdachtennegentig"),
             (1999, "negentienhonderdnegenennegentig"),
-            (2000, "tweeduizend"), (2001, "tweeduizend één"),
+            (2000, "tweeduizend"), (2001, "tweeduizend een"),
             (2006, "tweeduizend zes"), (2012, "tweeduizend twaalf"),
             (2020, "tweeduizend twintig"),
             (2022, "tweeduizend tweeëntwintig"),
@@ -189,6 +189,8 @@ class TestSpokenTimeNl(unittest.TestCase):
             ((0, 30), P12, "twaalf uur dertig 's nachts"),
             ((5, 59), P12, "vijf uur negenenvijftig 's nachts"),
             ((6, 0), P12, "zes uur 's ochtends"),
+            ((11, 30), P12, "elf uur dertig 's ochtends"),
+            ((11, 59), P12, "elf uur negenenvijftig 's ochtends"),
             ((17, 59), P12, "vijf uur negenenvijftig 's middags"),
             ((18, 0), P12, "zes uur 's avonds"),
             ((8, 7), PHRASE, "zeven over acht"),
@@ -315,18 +317,24 @@ def below_1000(n):
     return words
 
 
+def after_duizend(n):
+    """The 1 inside a number takes no accent (Taaladvies, "Klemtoonteken")."""
+    return "een" if n == 1 else below_1000(n)
+
+
 def year_oracle(year):
     if year < 1000:
         return below_1000(year) if year > 99 else number_below_100(year)
     if year < 1100:
-        return "duizend" + (" " + number_below_100(year - 1000)
+        return "duizend" + (" " + after_duizend(year - 1000)
                             if year > 1000 else "")
     if year < 2000:
         return number_below_100(year // 100) + "honderd" + (
             "" if year % 100 == 0 else "een" if year % 100 == 1
             else number_below_100(year % 100))
     thousands = number_below_100(year // 1000) + "duizend"
-    return thousands + (" " + below_1000(year % 1000) if year % 1000 else "")
+    return thousands + (" " + after_duizend(year % 1000)
+                        if year % 1000 else "")
 
 
 def phrase_oracle(hour, minute):

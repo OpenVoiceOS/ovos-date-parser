@@ -16,20 +16,26 @@ drieënnegentig", and "Na het woord duizend komt er een spatie", with the
 year "tweeduizend (en) vijf". Onze Taal, "Hoe
 spreek je het jaartal 2026 uit?" (https://onzetaal.nl/taalloket/
 hoe-spreek-je-jaartal-uit): "Het gebruikelijkst is om 2026 uit te spreken als
-'tweeduizend zesentwintig'" and "tweeduizend één". The reading is the full
+'tweeduizend zesentwintig'" and "tweeduizend één". The 1 inside a year takes no accent, as in
+ovos-number-parser: Taaladvies.net, "Klemtoonteken (algemeen)"
+(https://taaladvies.net/klemtoonteken-algemeen/) asks for an accent only where
+a misreading threatens, and Taaladvies writes "tweeduizend (en) een". The
+reading is the full
 form, "negentienhonderdveertig", not the shortened "negentien-veertig". A year
 below 1100 and from 2000 on reads as a cardinal of the number writer of
 ovos-number-parser, with the space after "duizend": "duizend zesenzestig",
 "tweeduizend drieëntwintig".
 
 Date. Onze Taal, "Datumnotatie" (https://onzetaal.nl/taalloket/datumnotatie):
-the date is written "1 mei 2025", "9 november 1989", "25 december 2023", which
-"sluit aan bij de manier waarop je de datum meestal uitspreekt"; Taaladvies.net,
-"Datumnotatie" (https://taaladvies.net/datumnotatie/): "De dag wordt als cijfer
-genoteerd, de naam van de maand wordt met kleine letters voluit geschreven".
-So the day is a cardinal ("vijfentwintig december tweeduizend drieëntwintig")
-with the order day, month, year and no word between them. The names come from
-res/nl/date_time.json, the table that nice_date reads: day 1 is "één".
+the date is written "1 mei 2025", "9 november 1989", "25 december 2023", with
+the month name in full, which "sluit aan bij de manier waarop je de datum
+meestal uitspreekt"; Taaladvies.net, "Datumnotatie"
+(https://taaladvies.net/datumnotatie/): "de naam van de maand wordt met kleine
+letters voluit geschreven". So the order is day, month, year, with no word
+between them ("vijfentwintig december tweeduizend drieëntwintig"). The day
+words are those of res/nl/date_time.json, the table that nice_date reads,
+which spells every day as a cardinal and day 1 as "één". No fetched source
+states how a date is spoken; the cardinal day follows that table.
 
 Clock. Taaladvies.net, "Kloktijden: acht uur zeventien / zeventien over acht /
 dertien voor halfnegen"
@@ -50,10 +56,17 @@ halfnegen" (8.40), "elf voor negen" (8.49), "acht voor negen" (8.52). These
 readings count the hour from 1 to 12, so the "phrase" style needs the 12-hour
 clock. "Halfnegen" is one word, as in "halfacht" of the Woordenlijst
 Nederlandse Taal (Dutch Wiktionary, "halfacht": "staat in de Woordenlijst
-Nederlandse Taal"). The
-words "kwart over" (:15) and "kwart voor" (:45) are the readings that
-nice_time_nl of this package already gives for the quarter points; no
-quoted source names them.
+Nederlandse Taal"). Taaladvies.net, "Half zes / halfzes"
+(https://taaladvies.net/half-zes-of-halfzes/): "Beide spellingen zijn
+correct", so "half acht" is as valid; this module writes the one-word form.
+"Kwart over" (:15): Taaladvies.net, "Na / over (tien - drie)"
+(https://taaladvies.net/tien-na-of-over-drie/): "Het voorzetsel over wordt in
+de standaardtaal gebruikt om een precieze kloktijd aan te geven: tien over
+drie, kwart over vier, twee minuten over halfzes"; the page says "over" is
+standard in the whole language area, so nl-BE shares the reading. "Kwart
+voor" (:45): no fetched source writes it. It follows from the division
+above ("alles tussen 8.45 uur en 9 uur met voor negen") and from nice_time_nl
+of this package, which gives it for the quarter point.
 No unit-word clock and no seconds: no source gives a reading with the nouns
 "minuten" and "seconden" for a clock time, so those styles raise
 UnsupportedForm.
@@ -62,9 +75,10 @@ Day periods in 12-hour speech. Unicode CLDR 49, supplemental dayPeriods.xml,
 the rules for "nl": midnight at 00:00, night1 from 00:00 before 06:00,
 morning1 from 06:00 before 12:00, afternoon1 from 12:00 before 18:00,
 evening1 from 18:00 before 24:00. The format names in nl.xml, as Babel 2.18
-resolves them: "middernacht", "'s nachts", "'s ochtends", "'s middags",
-"'s avonds". Noon has no name in nl.xml, so 12:00 reads "twaalf uur 's
-middags".
+resolves them: "middernacht", "’s nachts", "’s ochtends", "’s middags",
+"’s avonds" (CLDR writes the apostrophe as U+2019; this module writes the
+ASCII apostrophe, like nice_part_of_day_nl). Noon has no name in nl.xml, so
+12:00 reads "twaalf uur 's middags".
 """
 import json
 import re
@@ -104,7 +118,9 @@ def spoken_year_nl(year: int) -> str:
         return pronounce_number_nl(year)
     thousands, rest = year - year % 1000, year % 1000
     head = pronounce_number_nl(thousands)
-    return f"{head} {pronounce_number_nl(rest)}" if rest else head
+    if not rest:
+        return head
+    return f"{head} {'een' if rest == 1 else pronounce_number_nl(rest)}"
 
 
 def spoken_date_nl(day: Optional[int], month: Optional[int],

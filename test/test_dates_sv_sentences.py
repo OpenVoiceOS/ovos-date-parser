@@ -2,6 +2,8 @@
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -111,9 +113,11 @@ class TestAbsoluteDates(unittest.TestCase):
 
 
 class TestClock(unittest.TestCase):
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_time_rolls_to_next_day(self):
-        # 10:45 already passed today -> next day
-        self.assertEqual(extract("klockan 10:45")[0], dt(2117, 9, 4, 10, 45))
+        # a digit clock takes its next twelve-hour reading (ruling 23): at
+        # 13:30, "10:45" is 22:45 that day
+        self.assertEqual(extract("klockan 10:45")[0], dt(2117, 9, 3, 22, 45))
 
 
 class TestImpossibleAndEmpty(unittest.TestCase):

@@ -1,6 +1,8 @@
 import unittest
 from datetime import datetime, time
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 
@@ -82,10 +84,10 @@ class TestExtractDateTimeSL(unittest.TestCase):
         self.extract("jutri ob pol devetih zvečer",
                      datetime(2023, 6, 7, 20, 30))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_leftover_text(self):
-        # "za" is the "for" of the reminder, not part of the date
         self.extract("nastavi opomnik za jutri", datetime(2023, 6, 7, 0, 0),
-                     "nastavi opomnik za")
+                     "nastavi opomnik")
 
     def test_no_date_returns_none(self):
         self.assertIsNone(
@@ -102,8 +104,11 @@ class TestExtractDateTimeSL(unittest.TestCase):
         # 29 February does not exist in 2023 or 2024 is the next leap year;
         # the reference must not raise and must land on a real 29 February
         self.extract("29. februarja", datetime(2024, 2, 29, 0, 0))
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
+    def test_leap_day_leftover_text(self):
         self.extract("nastavi opomnik za 29. februarja",
-                     datetime(2024, 2, 29, 0, 0), "nastavi opomnik za")
+                     datetime(2024, 2, 29, 0, 0), "nastavi opomnik")
 
     def test_night_keeps_small_hours_in_am(self):
         # "ponoči" (in the night): 1 at night is 01:00, not 13:00

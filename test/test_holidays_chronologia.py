@@ -1251,21 +1251,33 @@ def test_a_clock_that_is_not_the_holidays_keeps_the_engines_day(
     assert got[0] == expected
 
 
-@pytest.mark.parametrize("utterance", _known_defects([
-    ("play christmas music on friday",),
-    ("play christmas music on friday at 9am",),
-    ("remind me on friday at 9am about christmas",),
-    ("christmas tomorrow at 9am",),
-], {"play christmas music on friday": "https://github.com/TigreGotico/chronologia/issues/1035",
-    "play christmas music on friday at 9am": "https://github.com/TigreGotico/chronologia/issues/1035",
-    "christmas tomorrow at 9am": "https://github.com/TigreGotico/chronologia/issues/1035"}))
-def test_a_date_word_beside_the_clock_keeps_the_engines_date(utterance):
+#: REF is Friday 25 September 2026 12:00. "friday" said on a Friday is that
+#: day (ruling 6), and a named day keeps the spoken hour (ruling 17), so
+#: "friday at 9am" is 25 September 09:00 and "tomorrow at 9am" is the 26th.
+DATE_WORD_BESIDE_THE_CLOCK = [
+    ("play christmas music on friday", datetime(2026, 9, 25, 0, 0)),
+    ("play christmas music on friday at 9am", datetime(2026, 9, 25, 9, 0)),
+    ("remind me on friday at 9am about christmas", datetime(2026, 9, 25, 9, 0)),
+    ("remind me at 9am on friday about christmas", datetime(2026, 9, 25, 9, 0)),
+    ("christmas tomorrow at 9am", datetime(2026, 9, 26, 9, 0)),
+]
+
+
+@pytest.mark.parametrize("utterance,expected", _known_defects(
+    DATE_WORD_BESIDE_THE_CLOCK, dict.fromkeys(
+        ("play christmas music on friday",
+         "play christmas music on friday at 9am",
+         "remind me on friday at 9am about christmas",
+         "remind me at 9am on friday about christmas",
+         "christmas tomorrow at 9am"),
+        "https://github.com/TigreGotico/chronologia/issues/1035")))
+def test_a_date_word_beside_the_clock_keeps_the_engines_date(utterance,
+                                                             expected):
     """The engine read a date word as well as the clock, so the holiday does
-    not replace its answer."""
+    not replace its answer, and the answer keeps both the day and the clock."""
     got = extract_datetime(utterance, "en-US", REF)
     assert got is not None
-    assert got[0].date() != date(2026, 12, 25)
-    assert got[0].date() <= date(2026, 10, 2)
+    assert got[0] == expected
 
 
 @pytest.mark.parametrize("utterance", [

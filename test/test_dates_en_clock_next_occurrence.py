@@ -15,6 +15,7 @@ from ovos_date_parser import extract_datetime
 MARKER_STRAND = "https://github.com/TigreGotico/chronologia/issues/996"
 TWELVE_AT_NIGHT = "https://github.com/TigreGotico/chronologia/issues/1002"
 HOUR_WITH_DAYPART = "https://github.com/TigreGotico/chronologia/issues/1002"
+DIGIT_CLOCK = "https://github.com/TigreGotico/chronologia/issues/1043"
 
 DAY = datetime(2026, 10, 23)
 ANCHORS = [
@@ -151,17 +152,34 @@ BARE_MINUTES_ANCHORS = [
     datetime(2026, 10, 23, 15, 0), datetime(2026, 10, 23, 23, 59)]
 
 
-# A digit clock "H:MM" keeps its 24-hour reading: ruling 17 (the next
-# twelve-hour reading) covers a spoken hour only. So "at 3:30" is the next
-# 03:30, by class 3.
-@pytest.mark.xfail(strict=True, reason=MARKER_STRAND)
-@pytest.mark.parametrize("text,anchor,expected", [
-    *(row for hour in range(1, 12) for minute in (15, 30, 45)
-      for row in anchored(f"at {hour}:{minute}",
-                          [(a, next_after(a, hour, minute))
-                           for a in BARE_MINUTES_ANCHORS])),
-])
-def test_a_digit_clock_reads_as_written(text, anchor, expected):
+def earliest_after(anchor, hour, minute):
+    """The earlier of H:MM and H+12:MM at or after the anchor."""
+    return min(next_after(anchor, h, minute) for h in (hour, hour + 12))
+
+
+def _digit_clock_rows():
+    """Each row fails on the clock (ruling 23) where its two readings differ,
+    and on the "at" left in the remainder everywhere."""
+    for hour in range(1, 12):
+        for minute in (15, 30, 45):
+            for anchor in BARE_MINUTES_ANCHORS:
+                expected = earliest_after(anchor, hour, minute)
+                reason = (MARKER_STRAND
+                          if expected == next_after(anchor, hour, minute)
+                          else DIGIT_CLOCK)
+                text = f"at {hour}:{minute}"
+                yield pytest.param(
+                    text, anchor, expected,
+                    id=f"{text}@{anchor.isoformat()}",
+                    marks=pytest.mark.xfail(strict=True, reason=reason))
+
+
+# A digit clock "H:MM" with no am/pm word or part of the day takes the
+# earlier of its two twelve-hour readings after the anchor (ruling 23), as a
+# spoken hour does (ruling 17). So "at 3:30" said at 13:10 is 15:30.
+@pytest.mark.parametrize("text,anchor,expected", list(_digit_clock_rows()))
+def test_a_digit_clock_takes_the_next_twelve_hour_reading(text, anchor,
+                                                           expected):
     got = extract_datetime(text, lang="en-US", anchorDate=anchor)
     assert got is not None
     assert got[0] == expected
@@ -169,18 +187,20 @@ def test_a_digit_clock_reads_as_written(text, anchor, expected):
 
 
 class TestDigitClockHours(unittest.TestCase):
+    @pytest.mark.xfail(strict=True, reason=DIGIT_CLOCK)
     def test_after_the_afternoon_hour_in_the_same_hour(self):
-        # ruling 17 leaves a digit clock alone: 01:45 is the next 1:45
+        # ruling 23: 13:45 is the next reading of "1:45" after 13:10
         anchor = datetime(2026, 10, 23, 13, 10)
         got = extract_datetime("at 1:45", lang="en-US", anchorDate=anchor)
-        self.assertEqual(got[0], datetime(2026, 10, 24, 1, 45))
+        self.assertEqual(got[0], datetime(2026, 10, 23, 13, 45))
 
-    def test_a_named_today_keeps_the_written_hour(self):
-        # ruling 17 leaves a digit clock alone, and a named day is not moved
-        # by a clock that has passed (ruling 16)
+    @pytest.mark.xfail(strict=True, reason=DIGIT_CLOCK)
+    def test_a_named_today_keeps_the_afternoon_reading(self):
+        # ruling 23: "today" names no part of the day, so "3:30" said at
+        # 15:00 is 15:30
         anchor = datetime(2026, 10, 23, 15, 0)
         got = extract_datetime("at 3:30 today", lang="en-US", anchorDate=anchor)
-        self.assertEqual(got[0], datetime(2026, 10, 23, 3, 30))
+        self.assertEqual(got[0], datetime(2026, 10, 23, 15, 30))
 
 
 TONIGHT_ANCHORS = [datetime(2026, 10, 23, 0, 0, 30),

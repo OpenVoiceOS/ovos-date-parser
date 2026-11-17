@@ -227,11 +227,25 @@ class TestRoundTripNb(unittest.TestCase):
             self.assertEqual(got, timedelta(hours=n), f"{n} timer")
 
     def test_clock_sweep(self):
-        for hh in range(0, 24):
+        # 10:mm and 11:mm have no leading zero, so ruling 23 gives them their
+        # next twelve-hour reading (test_clock_without_a_leading_zero)
+        for hh in (*range(0, 10), *range(12, 24)):
             for mm in (0, 15, 30, 45):
                 txt = f"klokka {hh:02d}:{mm:02d}"
                 dt, _ = extract_datetime(txt, "nb", anchorDate=ANCHOR)
                 self.assertEqual((dt.hour, dt.minute), (hh, mm), txt)
+
+
+# A digit clock with an hour from 1 to 12 and no leading zero takes the
+# next of its two twelve-hour readings after the anchor (ruling 23): at
+# 13:04, "klokka 10:30" is 22:30 that day.
+@pytest.mark.xfail(strict=True,
+                   reason="https://github.com/TigreGotico/chronologia/issues/1043")
+@pytest.mark.parametrize("hh,mm", [(hh, mm) for hh in (10, 11)
+                                   for mm in (0, 15, 30, 45)])
+def test_clock_without_a_leading_zero(hh, mm):
+    dt, _ = extract_datetime(f"klokka {hh}:{mm:02d}", "nb", anchorDate=ANCHOR)
+    assert dt == datetime(2017, 6, 27, hh + 12, mm)
 
 
 class TestRealSentencesNb(unittest.TestCase):

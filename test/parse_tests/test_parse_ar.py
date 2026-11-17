@@ -142,7 +142,7 @@ class TestExtractDatetimeArabic(unittest.TestCase):
             "الساعة التاسعة والنصف مساءً": (21, 30),
             "الساعة السابعة صباحاً": (7, 0),
             "غدا الساعة الخامسة مساء": (17, 0),
-            "5:30": (5, 30), "15:30": (15, 30),
+            "15:30": (15, 30),
         }
         for phrase, (hour, minute) in expected.items():
             with self.subTest(phrase=phrase):
@@ -151,6 +151,13 @@ class TestExtractDatetimeArabic(unittest.TestCase):
                 self.assertIsNotNone(result)
                 self.assertEqual((result[0].hour, result[0].minute),
                                  (hour, minute))
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
+    def test_digit_clock_takes_the_next_reading(self):
+        # a digit clock takes its next twelve-hour reading (ruling 23): at
+        # 13:04, "5:30" is 17:30 that day
+        result = extract_datetime("5:30", lang="ar", anchorDate=ANCHOR)
+        self.assertEqual(result[0], datetime(2017, 6, 27, 17, 30))
 
     def test_remainder(self):
         result = extract_datetime("ما هو الطقس غدا", lang="ar",

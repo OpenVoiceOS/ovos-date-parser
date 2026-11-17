@@ -213,10 +213,10 @@ class TestNamedPartDecidesAmPm(unittest.TestCase):
     def test_bare_nine_after_the_hour_is_next_morning(self):
         self.assertEqual(_dt("om 9 uur", LATE), datetime(2026, 10, 18, 9))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_bare_nine_colon_keeps_rule(self):
-        # a digit clock keeps its hour (ruling 17) and is the next such
-        # instant (routing ruling, class 3)
-        self.assertEqual(_dt("om 9:00"), datetime(2026, 10, 18, 9))
+        # a digit clock takes its next twelve-hour reading (ruling 23)
+        self.assertEqual(_dt("om 9:00"), datetime(2026, 10, 17, 21))
 
     def test_twenty_one_hundred(self):
         self.assertEqual(_dt("om 21 uur"), datetime(2026, 10, 17, 21))
@@ -282,12 +282,16 @@ class TestTwentyFourHourValues(unittest.TestCase):
                          datetime(2026, 10, 17, 14))
 
     def test_twelve_hour_values_keep_their_rule(self):
-        # a digit clock keeps its hour (ruling 17); an instant equal to the
-        # anchor is the anchor (routing ruling, class 3), and so is the
-        # reading of a lone hour equal to it
+        # an instant equal to the anchor is the anchor (routing ruling,
+        # class 3), for a digit clock (ruling 23) and a lone hour (ruling 17)
         self.assertEqual(_dt("om 9:00", _at(9)), datetime(2026, 10, 17, 9))
-        self.assertEqual(_dt("om 9:00", _at(21)), datetime(2026, 10, 18, 9))
         self.assertEqual(_dt("om 9 uur", _at(9)), datetime(2026, 10, 17, 9))
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
+    def test_a_digit_clock_equal_to_the_anchor_is_the_anchor(self):
+        # "9:00" said at 21:00 reads 21:00, the anchor itself (ruling 23,
+        # class 3)
+        self.assertEqual(_dt("om 9:00", _at(21)), datetime(2026, 10, 17, 21))
 
 
 class TestPartOfDayStaysInItsClause(unittest.TestCase):
@@ -806,10 +810,10 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
     def test_eight_at_noon_is_this_evening(self):
         self.assertEqual(_dt("om 8 uur"), datetime(2026, 10, 17, 20))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_eight_with_colon(self):
-        # a digit clock keeps its hour (ruling 17) and is the next such
-        # instant (routing ruling, class 3)
-        self.assertEqual(_dt("om 8:00"), datetime(2026, 10, 18, 8))
+        # a digit clock takes its next twelve-hour reading (ruling 23)
+        self.assertEqual(_dt("om 8:00"), datetime(2026, 10, 17, 20))
 
     def test_eight_in_the_evening(self):
         self.assertEqual(_dt("om 8 uur 's avonds"), datetime(2026, 10, 17, 20))

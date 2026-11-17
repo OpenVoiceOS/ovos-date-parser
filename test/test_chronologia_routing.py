@@ -31,7 +31,8 @@ def test_a_routed_locale_reads_an_iso_clock(lang):
     assert when("23:30", lang) == datetime(2017, 6, 27, 23, 30)
 
 
-@pytest.mark.parametrize("text,lang", [("u 23:30", "hr"), ("o 23:30", "sk")])
+@pytest.mark.parametrize("text,lang", [("u 23:30", "hr"), ("o 23:30", "sk"),
+                                       ("в 23:30", "ru"), ("о 23:30", "uk")])
 def test_the_at_preposition_is_consumed(text, lang):
     """The marker belongs to the reading, not to the leftover text."""
     got = extract_datetime(text, lang, anchorDate=ANCHOR)
@@ -45,6 +46,38 @@ def test_midnight_rolls_forward(lang):
     assert when("00:00", lang) == datetime(2017, 6, 28, 0, 0)
 
 
+@pytest.mark.parametrize("text,lang", [("в полдень", "ru"), ("опівдні", "uk")])
+def test_noon_has_gone_so_it_names_tomorrow(text, lang):
+    assert when(text, lang) == datetime(2017, 6, 28, 12, 0)
+
+
+@pytest.mark.parametrize("text,lang,expected", [
+    # the ru and uk night band is 00:00-04:00 (CLDR night1), middle 02:00;
+    # the night of a day starts on its evening, so its small hours fall on
+    # the next date
+    ("сегодня ночью", "ru", datetime(2017, 6, 28, 2, 0)),
+    ("завтра ночью", "ru", datetime(2017, 6, 29, 2, 0)),
+    ("сьогодні вночі", "uk", datetime(2017, 6, 28, 2, 0)),
+    ("завтра вночі", "uk", datetime(2017, 6, 29, 2, 0)),
+])
+def test_the_night_is_the_coming_night(text, lang, expected):
+    """ru "ночь": "Часть суток от захода до восхода солнца, от вечера до
+    утра" (gramota.ru, s.v. ночь, 1); uk "ніч": "Частина доби від заходу до
+    сходу сонця, з вечора до ранку" (СУМ-11, s.v. ніч)."""
+    assert extract_datetime(text, lang, anchorDate=ANCHOR) == [expected, ""]
+
+
+def test_the_ukrainian_ob_is_consumed():
+    got = extract_datetime("об 11 вечора", "uk", anchorDate=ANCHOR)
+    assert got == [datetime(2017, 6, 27, 23, 0), ""]
+
+
+def test_a_lone_hour_takes_its_next_twelve_hour_reading():
+    """An hour from 1 to 12 with no part of the day takes whichever of its
+    two readings comes next: 11 said at 13:04 is 23:00 today."""
+    assert when("об 11", "uk") == datetime(2017, 6, 27, 23, 0)
+
+
 COUNTED_DAY_OFFSETS = [
     # 27 June + 3 days, and 27 June - 3 days, at the anchor's 13:04
     ("za 3 dny", "cs", datetime(2017, 6, 30, 13, 4)),
@@ -53,6 +86,10 @@ COUNTED_DAY_OFFSETS = [
     ("prije 3 dana", "hr", datetime(2017, 6, 24, 13, 4)),
     ("o 3 dni", "sk", datetime(2017, 6, 30, 13, 4)),
     ("pred 3 dňami", "sk", datetime(2017, 6, 24, 13, 4)),
+    ("через 3 дня", "ru", datetime(2017, 6, 30, 13, 4)),
+    ("3 дня назад", "ru", datetime(2017, 6, 24, 13, 4)),
+    ("через 3 дні", "uk", datetime(2017, 6, 30, 13, 4)),
+    ("3 дні тому", "uk", datetime(2017, 6, 24, 13, 4)),
     # 27 June + 14 days is 11 July
     ("za 2 týdny", "cs", datetime(2017, 7, 11, 13, 4)),
     ("za 2 tjedna", "hr", datetime(2017, 7, 11, 13, 4)),

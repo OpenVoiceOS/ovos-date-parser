@@ -539,7 +539,7 @@ def _extract_date_zh_unspaced(text: str, settings: dict,
 
 #: Locales whose ``extract_datetime`` is answered by chronologia rather than
 #: by this package's own per-language extractor: every locale chronologia
-#: reads, except ru and uk, which route with their own test rows.
+#: reads.
 #:
 #: The legacy extractors are wrong about some phrases: they read "at 13 pm"
 #: as 13:00 and "at 23 am" as 11:00, answer a bare duration ("trois jours",
@@ -555,7 +555,8 @@ CHRONOLOGIA_LOCALES = frozenset({
     "en", "eo", "es", "et", "eu", "fa", "fi", "fil", "fr", "fy", "ga", "gl",
     "ha", "he", "hi", "hr", "hu", "hy", "id", "is", "it", "ka", "kab", "ko",
     "lt", "lv", "mk", "ms", "mt", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
-    "ro", "sk", "sl", "sq", "sr", "sv", "sw", "ta", "th", "tr", "vi",
+    "ro", "ru", "sk", "sl", "sq", "sr", "sv", "sw", "ta", "th", "tr", "uk",
+    "vi",
 })
 
 #: A span this narrow names an instant rather than a stretch: "at 9am

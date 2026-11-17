@@ -195,6 +195,38 @@ def test_a_croatian_night_said_late_is_now():
     assert got[0] == late
 
 
+@pytest.mark.parametrize("text,lang,hour,minute,expected", [
+    # CLDR cs evening1 18:00-22:00, middle 20:00
+    ("dnes večer", "cs", 19, 0, datetime(2017, 6, 27, 20, 0)),
+    ("dnes večer", "cs", 21, 0, datetime(2017, 6, 27, 21, 0)),
+    # CLDR sk afternoon1 12:00-18:00, middle 15:00
+    ("popoludní", "sk", 13, 4, datetime(2017, 6, 27, 15, 0)),
+    ("popoludní", "sk", 16, 0, datetime(2017, 6, 27, 16, 0)),
+])
+def test_any_part_of_the_day_said_after_its_middle_is_now(text, lang, hour,
+                                                           minute, expected):
+    """Before the middle of the band the middle answers; after it the anchor
+    does, so the answer is never before the anchor."""
+    anchor = ANCHOR.replace(hour=hour, minute=minute)
+    got = extract_datetime(text, lang, anchorDate=anchor)
+    assert got[0] == expected.replace(tzinfo=anchor.tzinfo)
+
+
+@pytest.mark.parametrize("text,lang,hour,minute,expected", [
+    # tomorrow's evening (CLDR cs evening1 18:00-22:00) has not started
+    ("zítra večer", "cs", 21, 0, datetime(2017, 6, 28, 20, 0)),
+    # tomorrow's night (CLDR hr night1 21:00-04:00, cut at midnight)
+    ("sutra noću", "hr", 23, 30, datetime(2017, 6, 28, 22, 30)),
+])
+def test_a_part_of_another_day_keeps_its_middle(text, lang, hour, minute,
+                                                expected):
+    """The anchor answers only a band of the anchor's own day: the same
+    clock on another day does not."""
+    anchor = ANCHOR.replace(hour=hour, minute=minute)
+    got = extract_datetime(text, lang, anchorDate=anchor)
+    assert got[0] == expected.replace(tzinfo=anchor.tzinfo)
+
+
 def test_an_hour_inside_the_night_band_keeps_its_own_reading(route_en):
     """3 o'clock at night has passed at 13:04, so it is 03:00 tomorrow; the
     cut at midnight does not move an hour that was said."""

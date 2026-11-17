@@ -91,7 +91,7 @@ class TestAdversarialMs(unittest.TestCase):
         self.assertEqual(extract_duration("jam", "ms"), (None, "jam"))
 
     def test_number_without_unit(self):
-        self.assertEqual(extract_duration("lima", "ms"), (None, "5"))
+        self.assertEqual(extract_duration("lima", "ms"), (None, "lima"))
 
     def test_uses_malay_not_indonesian_minute(self):
         # Indonesian "menit" must NOT match Malay (which uses "minit")

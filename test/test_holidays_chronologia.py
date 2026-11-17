@@ -1252,13 +1252,14 @@ def test_a_clock_that_is_not_the_holidays_keeps_the_engines_day(
 
 
 #: REF is Friday 25 September 2026 12:00. "friday" said on a Friday is that
-#: day (ruling 6), and a named day keeps the spoken hour (ruling 17), so
-#: "friday at 9am" is 25 September 09:00 and "tomorrow at 9am" is the 26th.
+#: day (ruling 6). A bare weekday with a clock that has passed is the next
+#: one (ruling 16), so "friday at 9am" is 2 October 09:00. A named day keeps
+#: the spoken hour (ruling 17), so "tomorrow at 9am" is the 26th at 09:00.
 DATE_WORD_BESIDE_THE_CLOCK = [
     ("play christmas music on friday", datetime(2026, 9, 25, 0, 0)),
-    ("play christmas music on friday at 9am", datetime(2026, 9, 25, 9, 0)),
-    ("remind me on friday at 9am about christmas", datetime(2026, 9, 25, 9, 0)),
-    ("remind me at 9am on friday about christmas", datetime(2026, 9, 25, 9, 0)),
+    ("play christmas music on friday at 9am", datetime(2026, 10, 2, 9, 0)),
+    ("remind me on friday at 9am about christmas", datetime(2026, 10, 2, 9, 0)),
+    ("remind me at 9am on friday about christmas", datetime(2026, 10, 2, 9, 0)),
     ("christmas tomorrow at 9am", datetime(2026, 9, 26, 9, 0)),
 ]
 

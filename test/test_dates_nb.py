@@ -236,7 +236,7 @@ class TestRoundTripNb(unittest.TestCase):
                 self.assertEqual((dt.hour, dt.minute), (hh, mm), txt)
 
 
-# A digit clock with an hour from 1 to 12 and no leading zero takes the
+# A digit clock with an hour from 1 to 11 and no leading zero takes the
 # next of its two twelve-hour readings after the anchor (ruling 23): at
 # 13:04, "klokka 10:30" is 22:30 that day.
 @pytest.mark.xfail(strict=True,

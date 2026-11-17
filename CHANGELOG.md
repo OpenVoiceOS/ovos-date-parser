@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.38.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.38.0a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.37.2a1...0.38.0a1)
+
+**Merged pull requests:**
+
+- feat\(nl\): spoken\_date, spoken\_year and spoken\_time for Dutch [\#654](https://github.com/OpenVoiceOS/ovos-date-parser/pull/654) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.37.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.37.2a1) (2026-11-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.37.1a1...0.37.2a1)
@@ -359,11 +367,6 @@
 ## [0.35.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.13a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.12a1...0.35.13a1)
-
-**Merged pull requests:**
-
-- fix\(eu\): spell September and 28 as Euskaltzaindia does in the date resource [\#551](https://github.com/OpenVoiceOS/ovos-date-parser/pull/551) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(pt\): lowercase month and weekday labels, and write "às" before the time [\#550](https://github.com/OpenVoiceOS/ovos-date-parser/pull/550) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.12a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.12a1) (2026-11-06)
 

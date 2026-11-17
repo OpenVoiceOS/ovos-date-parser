@@ -103,7 +103,7 @@ class TestAdversarialTr(unittest.TestCase):
         self.assertEqual(extract_duration("saat", "tr"), (None, "saat"))
 
     def test_number_without_unit(self):
-        self.assertEqual(extract_duration("beş", "tr"), (None, "5"))
+        self.assertEqual(extract_duration("beş", "tr"), (None, "beş"))
 
     def test_weekday_not_month(self):
         # "ay" is month; without a preceding numeral nothing matches

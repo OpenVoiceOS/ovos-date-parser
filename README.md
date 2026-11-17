@@ -245,6 +245,11 @@ phrases. The languages on the shared duration engine (all of the above except
 ar, ast, fa, kab, sv) also support the `resolution` and `replace_token` options
 of `extract_duration`. See [docs/api.md](docs/api.md).
 
+In the locales of `CHRONOLOGIA_DURATION_LOCALES`, `extract_duration` is answered
+by chronologia. A month or a year is a calendar length counted from now, so
+"2 months" said on 27 June is 61 days. A call with `resolution` or
+`replace_token` goes to the shared duration engine.
+
 **Formatting**
 
 | Language | `nice_date` family | `nice_time` | `nice_duration` | `nice_relative_time` |

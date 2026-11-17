@@ -43,8 +43,9 @@ dependencies = [
     # Portuguese date forms the Portuguese routing relies on, reads ru and uk
     # "tonight" as the coming night and uk "об 11" as a clock, and 0.32.8a1
     # gives a lone spoken hour its next twelve-hour reading (ruling 17: "об
-    # 11" said at 13:04 is 23:00).
-    "chronologia>=0.32.8a1",
+    # 11" said at 13:04 is 23:00). 0.32.9a1 reads a bare hour before a
+    # counted noun as a count (ruling 22: nl "om 3 redenen" is no time).
+    "chronologia>=0.32.9a1",
 ]
 dynamic = ["version"]
 

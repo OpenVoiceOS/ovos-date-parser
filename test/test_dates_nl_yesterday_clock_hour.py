@@ -349,23 +349,18 @@ class TestPartOfDayStaysInItsClause(unittest.TestCase):
 
 
 class TestOmIsNotAlwaysATime(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_reasons(self):
         self.assertIsNone(_res("om 3 redenen"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_rooms(self):
         self.assertIsNone(_res("om 2 kamers te huren"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_euro(self):
         self.assertIsNone(_res("om 5 euro"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people(self):
         self.assertIsNone(_res("om 10 man"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_persons(self):
         self.assertIsNone(_res("om 4 personen"))
 
@@ -657,19 +652,16 @@ class TestClausesAroundAnHour(unittest.TestCase):
         self.assertEqual(_res("morgen om 10, want vanavond kan ik niet")[1],
                          "want vanavond kan ik niet")
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people_after_the_hour_are_still_no_time(self):
         res = _res("morgen om 3 mensen")
         self.assertEqual(res[0].replace(tzinfo=None), datetime(2026, 10, 18))
 
 
 class TestOmWithANamedDay(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people_are_not_a_time(self):
         res = _res("het gaat morgen om 3 mensen")
         self.assertEqual(res[0].replace(tzinfo=None), datetime(2026, 10, 18))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people_without_a_day_are_not_a_time(self):
         self.assertIsNone(_res("het gaat om 3 mensen"))
 

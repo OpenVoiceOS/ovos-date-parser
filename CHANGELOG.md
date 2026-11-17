@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.39.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.39.0a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.38.0a1...0.39.0a1)
+
+**Merged pull requests:**
+
+- feat: answer extract\_duration from chronologia for 24 locales [\#652](https://github.com/OpenVoiceOS/ovos-date-parser/pull/652) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.38.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.38.0a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.37.2a1...0.38.0a1)
@@ -359,10 +367,6 @@
 ## [0.35.14a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.14a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.13a1...0.35.14a1)
-
-**Merged pull requests:**
-
-- fix\(es\): write month and weekday names in lowercase [\#552](https://github.com/OpenVoiceOS/ovos-date-parser/pull/552) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.13a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.13a1) (2026-11-06)
 

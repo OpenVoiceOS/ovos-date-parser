@@ -138,7 +138,7 @@ def test_no_text_is_no_date(lang):
     assert extract_datetime("", lang, anchorDate=ANCHOR) is None
 
 
-@pytest.mark.parametrize("lang", ["en", "es"])
+@pytest.mark.parametrize("lang", ["ja", "zh"])
 def test_no_text_is_no_date_on_an_unrouted_locale(lang):
     """The contract does not depend on routing."""
     assert lang not in CHRONOLOGIA_LOCALES
@@ -264,7 +264,7 @@ def test_the_readings_that_must_not_move(text, lang, expected):
     assert got[1] == ""
 
 
-@pytest.mark.parametrize("lang", ["en", "de", "es", "fr", "pl", "bg"])
+@pytest.mark.parametrize("lang", ["ja", "zh"])
 def test_an_unrouted_locale_keeps_its_own_extractor(lang):
     """Routing is per locale, so the rest are untouched."""
     assert lang not in CHRONOLOGIA_LOCALES

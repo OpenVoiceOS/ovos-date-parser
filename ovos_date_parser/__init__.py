@@ -537,28 +537,25 @@ def _extract_date_zh_unspaced(text: str, settings: dict,
 
 
 #: Locales whose ``extract_datetime`` is answered by chronologia rather than
-#: by this package's own per-language extractor.
+#: by this package's own per-language extractor: every locale chronologia
+#: reads, except ru and uk, which route with their own test rows.
 #:
-#: A locale joins the list when chronologia answers every phrase the legacy
-#: extractor answers CORRECTLY -- not merely every phrase it answers. The
-#: legacy extractor is wrong about some of them: it reads "at 13 pm" as 13:00
-#: and "at 23 am" as 11:00, it answers a bare duration ("trois jours",
-#: "dix secondes") with a date, and it reads "j'ai vingt et un ans" -- an age --
-#: as the year 2038. Reproducing those would be a regression dressed as parity.
+#: The legacy extractors are wrong about some phrases: they read "at 13 pm"
+#: as 13:00 and "at 23 am" as 11:00, answer a bare duration ("trois jours",
+#: "dix secondes") with a date, and read "j'ai vingt et un ans" -- an age --
+#: as the year 2038. A reading that chronologia gets wrong and a legacy
+#: extractor got right is a chronologia defect, and the test that pins it is
+#: marked with the chronologia issue that tracks it.
 #:
-#: What holds the rest back, so it can be checked rather than guessed at:
-#:
-#: * Bulgarian answers "sloji tajmer za dva chasa i trideset minuti" -- set a
-#:   timer for two and a half hours -- with two o'clock and a mangled leftover,
-#:   and strands the preposition opening a clock time.
-#: * French strands the article before a date ("le 15 juin").
-#: * Polish reads a bare past month as this year rather than next, so
-#:   "stycznia" said in June is five months behind.
-#: * Ukrainian marks a day of the month with a bare genitive ordinal
-#:   ("dvadtsyatoho"), where chronologia licenses a bare ordinal only behind a
-#:   preposition, as English does with "on the 20th". That is a library-wide
-#:   rule, not a Ukrainian omission, and changing it is not a vocabulary fix.
-CHRONOLOGIA_LOCALES = frozenset({"cs", "hr", "pt", "sk"})
+#: ja and zh stay with their own extractors, because chronologia does not
+#: read them.
+CHRONOLOGIA_LOCALES = frozenset({
+    "an", "ar", "ast", "az", "be", "bg", "ca", "cs", "cy", "da", "de", "el",
+    "en", "eo", "es", "et", "eu", "fa", "fi", "fil", "fr", "fy", "ga", "gl",
+    "ha", "he", "hi", "hr", "hu", "hy", "id", "is", "it", "ka", "kab", "ko",
+    "lt", "lv", "mk", "ms", "mt", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
+    "ro", "sk", "sl", "sq", "sr", "sv", "sw", "ta", "th", "tr", "vi",
+})
 
 #: A span this narrow names an instant rather than a stretch: "at 9am
 #: tomorrow" is a named day composed with a clock, and the clock is what the

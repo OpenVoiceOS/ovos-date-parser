@@ -34,11 +34,16 @@ dependencies = [
     # is the alpha that refuses a holiday name after an indefinite article,
     # which "have a good friday" relies on, and reads a weekday of next or
     # last week, which the Czech, Croatian and Slovak routing relies on, and
-    # names the Basque and Persian holidays extract_holiday_date reads.
+    # names the Basque and Persian holidays extract_holiday_date reads, and
+    # consumes the Russian and Ukrainian preposition before a named day ("на
+    # завтра", "в следующую пятницу"), which the ru and uk routing relies on.
     # 0.32.0a1 is the first with the ``anchor`` argument of extract_duration,
     # which counts a month or a year on the calendar, and 0.32.1a1 reads the
-    # article of a holiday ("o natal") as part of it.
-    "chronologia>=0.32.1a1",
+    # article of a holiday ("o natal") as part of it. 0.32.7a1 reads ru and uk
+    # "tonight" as the coming night and uk "об 11" as a clock, and 0.32.8a1
+    # gives a lone hour its next twelve-hour reading ("об 11" said at 13:04 is
+    # 23:00), which the ru and uk routing relies on.
+    "chronologia>=0.32.8a1",
 ]
 dynamic = ["version"]
 

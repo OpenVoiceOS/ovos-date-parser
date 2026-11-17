@@ -563,23 +563,23 @@ class TestQuarterAroundHalf(unittest.TestCase):
 
 
 class TestNumbersJoinedByOrAnd(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_eight_or_nine_people(self):
         self.assertIsNone(_res("het gaat om 8 of 9 mensen"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_eight_and_nine_children(self):
         self.assertIsNone(_res("om 8 en 9 kinderen"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_spelled_numbers_joined_by_or(self):
         self.assertIsNone(_res("om acht of negen mensen"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_eight_and_spelled_nine(self):
         self.assertIsNone(_res("om 8 en negen"))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_eight_or_nine_with_a_day_gives_the_date_only(self):
         res = _res("morgen om 8 of 9 mensen")
         self.assertEqual(res[0].replace(tzinfo=None), datetime(2026, 10, 18))

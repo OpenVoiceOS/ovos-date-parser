@@ -72,8 +72,6 @@ def test_the_ukrainian_ob_is_consumed():
     assert got == [datetime(2017, 6, 27, 23, 0), ""]
 
 
-@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/"
-                                       "chronologia/issues/986")
 def test_a_lone_hour_takes_its_next_twelve_hour_reading():
     """An hour from 1 to 12 with no part of the day takes whichever of its
     two readings comes next: 11 said at 13:04 is 23:00 today."""

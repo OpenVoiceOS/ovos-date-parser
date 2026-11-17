@@ -753,10 +753,12 @@ def extract_datetime(
     keeps chronologia's answer, which reads the holiday name itself together
     with a time of day beside it.
 
-    No text (None or "") is no date, on every locale.
+    No text (None or "") is no date, on every locale. A tag reads the same
+    in any case and with "_" for "-" ("EN-US", "pt_br").
     """
     if not text:
         return None
+    lang = lang.lower().replace("_", "-")
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
     routed = lang.split("-")[0] in CHRONOLOGIA_LOCALES

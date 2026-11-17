@@ -30,33 +30,33 @@ def _read(text):
     return extract_datetime(text, lang="de-DE", anchorDate=ANCHOR)
 
 
-def _xfail(family):
-    return pytest.mark.xfail(strict=True, reason="chronologia-issue:" + family)
+def _xfail(issue):
+    return pytest.mark.xfail(strict=True, reason=issue)
 
 
 @pytest.mark.parametrize("text,day", [
     pytest.param("vorvorgestern", datetime(2026, 9, 20),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("vorletzte Woche", datetime(2026, 9, 7),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("vorvorletzte Woche", datetime(2026, 8, 31),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("im letzten Monat", datetime(2026, 8, 1),
-                 marks=_xfail("marker-strand")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/996")),
     pytest.param("im vorletzten Monat", datetime(2026, 7, 1),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("im vorvorletzten Monat", datetime(2026, 6, 1),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("im letzten Jahr", datetime(2025, 1, 1),
-                 marks=_xfail("marker-strand")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/996")),
     pytest.param("im vorletzten Jahr", datetime(2024, 1, 1),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("im vorvorletzten Jahr", datetime(2023, 1, 1),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("vorletzten Montag", datetime(2026, 9, 14),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("vorvorletzten Dienstag", datetime(2026, 9, 8),
-                 marks=_xfail("de-vorletzt")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
 ])
 def test_the_date_and_an_empty_remainder(text, day):
     assert tuple(_read(text)) == (day, "")
@@ -82,7 +82,7 @@ class TestPastWords(unittest.TestCase):
         # "Stundenplan" (timetable) names no time
         self.assertIsNone(_read("schau im Stundenplan nach"))
 
-    @_xfail("marker-strand")
+    @_xfail("https://github.com/TigreGotico/chronologia/issues/996")
     def test_im_stundentakt_keeps_the_date_and_the_noun(self):
         # "im Stundentakt" (every hour) is no offset; "ab morgen" is the date.
         # The remainder keeps the case of the text.
@@ -102,7 +102,7 @@ class TestNumericDates(unittest.TestCase):
         self.assertEqual(tuple(_read("Termin am 23.09.2023 um 10 Uhr")),
                          (datetime(2023, 9, 23, 10, 0), "Termin"))
 
-    @_xfail("two-digit-year-pivot")
+    @_xfail("https://github.com/TigreGotico/chronologia/issues/1035")
     def test_two_digit_year_century(self):
         self.assertEqual(_read("1.1.68")[0], datetime(2068, 1, 1))
         self.assertEqual(_read("1.1.69")[0], datetime(1969, 1, 1))
@@ -113,7 +113,7 @@ class TestNumericDates(unittest.TestCase):
         self.assertEqual(tuple(_read("Installiere Version 40.2.10 morgen")),
                          (datetime(2026, 9, 24), "Installiere Version 40.2.10"))
 
-    @_xfail("version-number-date")
+    @_xfail("https://github.com/TigreGotico/chronologia/issues/1035")
     def test_a_version_number_with_no_month_15_is_not_a_date(self):
         self.assertEqual(tuple(_read("Installiere Version 1.15.20 morgen")),
                          (datetime(2026, 9, 24), "Installiere Version 1.15.20"))
@@ -121,6 +121,6 @@ class TestNumericDates(unittest.TestCase):
     def test_an_impossible_date_is_none(self):
         self.assertIsNone(_read("31.02.2023"))
 
-    @_xfail("dotted-clock")
+    @_xfail("https://github.com/TigreGotico/chronologia/issues/1032")
     def test_a_clock_with_a_dot_stays_a_clock(self):
         self.assertEqual(_read("um 10.30 Uhr")[0], datetime(2026, 9, 24, 10, 30))

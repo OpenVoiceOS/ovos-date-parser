@@ -43,7 +43,7 @@ class TestPastMarkerOffsets(unittest.TestCase):
         self.assertEqual(_dt('2 il əvvəl'), datetime(2015, 6, 27, 13, 4))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:az-bu-before-offset")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_sentence_context(self):
         self.assertEqual(_dt('bu 2 həftə əvvəl oldu'), datetime(2017, 6, 13, 13, 4))
 

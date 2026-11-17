@@ -24,30 +24,30 @@ def read(lang, text):
 
 def _rows(rows, defects):
     """The rows as pytest params; a row whose text is in ``defects`` is a
-    known chronologia defect of the named family."""
+    known chronologia defect, tracked by the issue it maps to."""
     return [pytest.param(*row, marks=pytest.mark.xfail(
-        strict=True, reason=f"chronologia-issue:{defects[row[1]]}"))
+        strict=True, reason=defects[row[1]]))
         if row[1] in defects else row for row in rows]
 
 
 # The preposition before a date or a clock belongs to it, so it is not
 # left over.
 _AFTER_DEFECTS = {
-    "remind me on friday; thanks": "marker-strand",
-    "remind me on december 25th! ok": "marker-strand",
-    "erinnere mich am montag, danke": "marker-strand",
-    "ricordamelo (il 25 dicembre) grazie": "marker-strand",
+    "remind me on friday; thanks": "https://github.com/TigreGotico/chronologia/issues/996",
+    "remind me on december 25th! ok": "https://github.com/TigreGotico/chronologia/issues/996",
+    "erinnere mich am montag, danke": "https://github.com/TigreGotico/chronologia/issues/996",
+    "ricordamelo (il 25 dicembre) grazie": "https://github.com/TigreGotico/chronologia/issues/996",
 }
 _INSIDE_DEFECTS = {
-    "remind me at 8:30 p.m. thanks": "marker-strand",
-    "erinnere mich am 3.5.2025 danke": "marker-strand",
-    "erinnere mich am 3. Dezember danke": "marker-strand",
-    "lembra-me no dia 3 dez. obrigado": "abbrev-month-dot",
-    "erinnere mich um 8.30 uhr danke": "dotted-clock",
+    "remind me at 8:30 p.m. thanks": "https://github.com/TigreGotico/chronologia/issues/996",
+    "erinnere mich am 3.5.2025 danke": "https://github.com/TigreGotico/chronologia/issues/996",
+    "erinnere mich am 3. Dezember danke": "https://github.com/TigreGotico/chronologia/issues/996",
+    "lembra-me no dia 3 dez. obrigado": "https://github.com/TigreGotico/chronologia/issues/992",
+    "erinnere mich um 8.30 uhr danke": "https://github.com/TigreGotico/chronologia/issues/1032",
 }
 _EXACT_DEFECTS = {
-    "a las 9, esta noche": "comma-before-day-part",
-    "a las 9, por la noche": "comma-before-day-part",
+    "a las 9, esta noche": "https://github.com/TigreGotico/chronologia/issues/1001",
+    "a las 9, por la noche": "https://github.com/TigreGotico/chronologia/issues/1001",
 }
 
 

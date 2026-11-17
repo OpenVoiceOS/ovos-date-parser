@@ -73,12 +73,12 @@ class TestMalformedInputReturnsNone(unittest.TestCase):
     """Impossible input must report nothing, never raise."""
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:bare-number-year")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_hour_24_clock(self):
         self.assertIsNone(extract("2400"))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:hour-24-end-of-day")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_hour_24_colon(self):
         # 24:00 is the end of the day, the same instant as 00:00 of the next
         # day (ISO 8601, "24:00" as the end of a calendar day)

@@ -222,30 +222,30 @@ ANCHOR = datetime(2017, 6, 27, 13, 4, tzinfo=default_timezone())
 @pytest.mark.parametrize("text,expected,remainder", [
     pytest.param("الان ساعت اینه", "2017-06-27 13:04:00", "ساعت اینه",
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:fa-now-word")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("پس فردا", "2017-06-29 00:00:00", "",
                  marks=pytest.mark.xfail(
                      strict=True,
-                     reason="chronologia-issue:fa-day-after-tomorrow")),
+                     reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("آب و هوا پس فردا چطوره؟", "2017-06-29 00:00:00",
                  "آب و هوا چطوره",
                  marks=pytest.mark.xfail(
                      strict=True,
-                     reason="chronologia-issue:fa-day-after-tomorrow")),
+                     reason="https://github.com/TigreGotico/chronologia/issues/992")),
     # the middle of the 12:00-19:00 afternoon band
     pytest.param("هوای امروز بعد از ظهر چطوره؟", "2017-06-27 15:30:00",
                  "هوای چطوره",
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:fa-afternoon")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("امروز بعد از ظهر", "2017-06-27 15:30:00", "",
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:fa-afternoon")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("فردا بعد از ظهر", "2017-06-28 15:30:00", "",
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:fa-afternoon")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("ساعت ۱۴:۳۰", "2017-06-27 14:30:00", "",
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:marker-strand")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
 ])
 def test_extractdatetime_open_fa(text, expected, remainder):
     found = extract_datetime(text, ANCHOR)
@@ -258,7 +258,7 @@ def test_extractdatetime_open_fa(text, expected, remainder):
 # ("می کشد", "it takes"; "می خوام", "I want"), not a month name.
 @pytest.mark.parametrize("text", ["این فیلم طول می کشد", "می خوام برم"])
 @pytest.mark.xfail(strict=True,
-                   reason="chronologia-issue:fa-verb-prefix-as-month")
+                   reason="https://github.com/TigreGotico/chronologia/issues/989")
 def test_the_verb_prefix_mi_is_no_month(text):
     assert extract_datetime(text, ANCHOR) is None
 

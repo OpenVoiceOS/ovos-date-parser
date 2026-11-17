@@ -151,67 +151,67 @@ class TestNormalize(unittest.TestCase):
     pytest.param('quin dia va ser abans ahir',
                  "2017-06-25 00:00:00", 'quin dia va ser',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-day-word")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("quin dia va ser abans d'abans d'ahir",
                  "2017-06-24 00:00:00", 'quin dia va ser',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-day-word")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("fer el sopar d'aquí 5 dies",
                  "2017-07-02 00:00:00", 'fer el sopar',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-offset-marker")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param('truca a la mare les 10:45 pm',
                  "2017-06-27 22:45:00", 'truca a la mare',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-meridiem")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param('Toca satanic black metal 2 dies per a aquest divendres',
                  "2017-07-02 00:00:00", 'Toca satanic black metal',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:offset-from-weekday")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
     pytest.param("Toca super black metal 2 dies a partir d'aquest divendres",
                  "2017-07-02 00:00:00", 'Toca super black metal',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:offset-from-weekday")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
     pytest.param('Começa la invasió a les 3:45 pm de dijous',
                  "2017-06-29 15:45:00", 'Começa la invasió',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-meridiem")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param('Truca per Skype a la mare pròxim dijous a les 12:45 pm',
                  "2017-06-29 12:45:00", 'Truca per Skype a la mare',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-meridiem")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param('quin temps fa aquest divendres a mitja nit?',
                  "2017-06-30 00:00:00", 'quin temps fa',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-daypart")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param('quin temps fa aquest divendres al final de tarda?',
                  "2017-06-30 19:00:00", 'quin temps fa',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:late-part-of-day")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")),
     pytest.param("recorda de trucar a la mare el dia 3 d'agost",
                  "2017-08-03 00:00:00", 'recorda de trucar a la mare',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:marker-strand")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
     pytest.param('gasta diners el dia 13 de maig',
                  "2018-05-13 00:00:00", 'gasta diners',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:marker-strand")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
     pytest.param('quin temps farà a les 0700 hores',
                  "2017-06-27 07:00:00", 'quin temps farà',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:four-digit-clock")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
     pytest.param('quin temps farà demà a les 7 en punt',
                  "2017-06-28 07:00:00", 'quin temps farà',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-oclock")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param("concerta cita d'aquí a 2 setmanes i 6 dies després de dissabte",
                  "2017-07-21 00:00:00", 'concerta cita',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:offset-from-weekday")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
     pytest.param('comença la festa a les 8 en punt de la nit de dijous',
                  "2017-06-29 20:00:00", 'comença la festa',
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-oclock")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
 ])
 def test_extractdatetime_ca_open(text, expected_date, expected_leftover):
     anchor = datetime(2017, 6, 27, 0, 0, tzinfo=default_timezone())

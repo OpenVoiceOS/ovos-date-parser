@@ -144,7 +144,7 @@ class TestLastWeekdayWithAPrefixedYearOrNamedMonth(unittest.TestCase):
 
 
 RELATIVE_PERIOD = pytest.mark.xfail(
-    strict=True, reason="chronologia-issue:nth-weekday-of-relative-period")
+    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
 
 
 @pytest.mark.parametrize("text,expected", [

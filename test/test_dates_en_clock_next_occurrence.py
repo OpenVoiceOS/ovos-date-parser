@@ -12,9 +12,9 @@ import pytest
 
 from ovos_date_parser import extract_datetime
 
-MARKER_STRAND = "chronologia-issue:marker-strand"
-TWELVE_AT_NIGHT = "chronologia-issue:twelve-at-night"
-HOUR_WITH_DAYPART = "chronologia-issue:hour-with-daypart"
+MARKER_STRAND = "https://github.com/TigreGotico/chronologia/issues/996"
+TWELVE_AT_NIGHT = "https://github.com/TigreGotico/chronologia/issues/1002"
+HOUR_WITH_DAYPART = "https://github.com/TigreGotico/chronologia/issues/1002"
 
 DAY = datetime(2026, 10, 23)
 ANCHORS = [

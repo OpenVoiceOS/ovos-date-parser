@@ -25,7 +25,7 @@ def dt(y, mo, d, h=0, mi=0):
 class TestMalformedClockValues(unittest.TestCase):
     """Out-of-range clock values must return None, never raise."""
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:bare-number-year")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_bare_2400_returns_none(self):
         # "2400" maps to hour 24, which is not a valid clock time
         self.assertIsNone(extract("2400"))

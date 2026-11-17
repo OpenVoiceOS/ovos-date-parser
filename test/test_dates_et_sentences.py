@@ -50,7 +50,7 @@ class TestRelativeSecondOffset(unittest.TestCase):
         self.assertEqual(res[0], dt(2117, 9, 3, 13, 30, 5))
         self.assertEqual(res[1], "koosolek")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:unit-without-count")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1004")
     def test_bare_second_unit_without_number(self):
         # mirrors minutes/hours: a bare unit with no numeral is not an offset
         self.assertIsNone(extract("sekundi pärast"))

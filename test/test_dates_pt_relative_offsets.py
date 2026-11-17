@@ -279,7 +279,7 @@ class TestPtRelativeOffsets(unittest.TestCase):
 
 @pytest.mark.parametrize("lang", LANGS)
 @pytest.mark.xfail(strict=True,
-                   reason="chronologia-issue:weekday-then-week-that-comes")
+                   reason="https://github.com/TigreGotico/chronologia/issues/1034")
 def test_weekday_then_week_that_comes(lang):
     """Monday of the week after 17 October is 19 October in both weeks."""
     res = extract_datetime("na segunda semana que vem", anchorDate=SATURDAY,

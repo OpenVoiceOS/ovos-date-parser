@@ -109,13 +109,13 @@ class TestAbsoluteClockTimes(unittest.TestCase):
         # the middle of the de evening band, 18:00 to 24:00 (ruling 10)
         self.assertEqual(extract("heute abend")[0], dt(2117, 9, 3, 21))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:tonight-band")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/997")
     def test_part_of_day_night(self):
         # the night after the anchor's day (rulings 10 and 10b); the de night
         # band is 00:00 to 05:00, so its middle is 02:30 the next day
         self.assertEqual(extract("heute nacht")[0], dt(2117, 9, 4, 2, 30))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:dayword-early")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_morning_tomorrow_with_clock(self):
         self.assertEqual(extract("morgen früh um 6 uhr")[0], dt(2117, 9, 4, 6))
 
@@ -149,7 +149,7 @@ class TestRelativeDays(unittest.TestCase):
         self.assertLess(res.replace(tzinfo=None), ANCHOR)
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:offset-then-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_days_offset_with_clock(self):
         self.assertEqual(extract("in 3 tagen um 15 uhr")[0], dt(2117, 9, 6, 15))
 
@@ -169,7 +169,7 @@ class TestImpossibleAndUnparseable(unittest.TestCase):
     def test_thirtieth_of_february(self):
         self.assertIsNone(extract("am 30. februar"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:impossible-day")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_zeroth_of_january(self):
         self.assertIsNone(extract("am 0. januar"))
 
@@ -211,7 +211,7 @@ class TestYesterdayWords(unittest.TestCase):
                          dt(2117, 9, 2, 17, 0))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:de-morgen-morning")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_morgen_still_tomorrow_and_morning(self):
         # "morgen" is tomorrow and "am morgen" is in the morning; the morning
         # has passed at the 13:30 anchor, so "am morgen" is the next morning,

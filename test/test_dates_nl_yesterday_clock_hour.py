@@ -54,7 +54,7 @@ class TestJoinedDayParts(unittest.TestCase):
         self.assertEqual(_dt("gisteravond"), datetime(2026, 10, 16, 21))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-middag-afternoon")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_yesterday_afternoon(self):
         self.assertEqual(_dt("gistermiddag"), datetime(2026, 10, 16, 15))
 
@@ -63,13 +63,13 @@ class TestJoinedDayParts(unittest.TestCase):
         self.assertEqual(_dt("gisterochtend"), datetime(2026, 10, 16, 9))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-dayword-daypart-compound")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_day_before_yesterday_evening(self):
         # the middle of the nl evening band, 18:00 to 24:00 (ruling 10)
         self.assertEqual(_dt("eergisteravond"), datetime(2026, 10, 15, 21))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-dayword-daypart-compound")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_day_before_yesterday_afternoon(self):
         self.assertEqual(_dt("eergistermiddag"), datetime(2026, 10, 15, 15))
 
@@ -116,7 +116,7 @@ class TestThisDayPart(unittest.TestCase):
         self.assertEqual(_dt("vanmorgen", EVENING), datetime(2026, 10, 17, 9))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-dayword-daypart-compound")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_this_afternoon_from_evening(self):
         self.assertEqual(_dt("vanmiddag", EVENING), datetime(2026, 10, 17, 15))
 
@@ -126,11 +126,11 @@ class TestThisDayPart(unittest.TestCase):
         self.assertEqual(_dt("vanavond", EVENING), datetime(2026, 10, 17, 21))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-dayword-daypart-compound")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_this_afternoon(self):
         self.assertEqual(_dt("vanmiddag"), datetime(2026, 10, 17, 15))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:tonight-band")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/997")
     def test_tonight_is_the_night_after_today(self):
         # the night of the anchor's own day (rulings 10 and 10b), at the
         # middle of the nl night band, 00:00 to 06:00
@@ -151,7 +151,7 @@ class TestNamedPartDecidesAmPm(unittest.TestCase):
         self.assertEqual(_dt("vanochtend om 9"), datetime(2026, 10, 17, 9))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:clock-daypart-compose")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1002")
     def test_this_morning_part_after_hour(self):
         self.assertEqual(_dt("om 9 uur vanochtend"), datetime(2026, 10, 17, 9))
 
@@ -202,7 +202,7 @@ class TestNamedPartDecidesAmPm(unittest.TestCase):
         self.assertEqual(_dt("morgenavond om 9 uur"), datetime(2026, 10, 18, 21))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-dayword-daypart-compound")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_this_afternoon_hour(self):
         self.assertEqual(_dt("vanmiddag om 3 uur", LATE),
                          datetime(2026, 10, 17, 15))
@@ -292,7 +292,7 @@ class TestTwentyFourHourValues(unittest.TestCase):
 
 class TestPartOfDayStaysInItsClause(unittest.TestCase):
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:clause-mention-choice")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_morning_in_earlier_clause_does_not_make_the_hour_am(self):
         self.assertEqual(
             _dt("ik ben vanochtend gaan lopen, zet een wekker om 8", _at(15)),
@@ -303,14 +303,14 @@ class TestPartOfDayStaysInItsClause(unittest.TestCase):
                          datetime(2026, 10, 18, 10))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-dayword-daypart-compound")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_day_in_front_of_the_hour_decides_the_date(self):
         self.assertEqual(
             _dt("ik was gisteravond moe, herinner me morgen om 7 aan de afspraak"),
             datetime(2026, 10, 18, 7))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-dayword-daypart-compound")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_day_in_front_of_the_hour_decides_the_date_end_of_text(self):
         self.assertEqual(_dt("ik heb gisteravond gegeten, kom morgen om 9"),
                          datetime(2026, 10, 18, 9))
@@ -335,7 +335,7 @@ class TestPartOfDayStaysInItsClause(unittest.TestCase):
                          datetime(2026, 10, 17, 15))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:clock-daypart-compose")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1002")
     def test_part_of_day_after_the_hour(self):
         self.assertEqual(_dt("zet een wekker om 8 uur vanochtend"),
                          datetime(2026, 10, 17, 8))
@@ -345,27 +345,27 @@ class TestPartOfDayStaysInItsClause(unittest.TestCase):
 
 
 class TestOmIsNotAlwaysATime(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_reasons(self):
         self.assertIsNone(_res("om 3 redenen"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_rooms(self):
         self.assertIsNone(_res("om 2 kamers te huren"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_euro(self):
         self.assertIsNone(_res("om 5 euro"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people(self):
         self.assertIsNone(_res("om 10 man"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_persons(self):
         self.assertIsNone(_res("om 4 personen"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:every-n-units")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_every_three_days_keeps_its_value(self):
         self.assertEqual(_dt("om de 3 dagen"), datetime(2026, 10, 20))
 
@@ -411,42 +411,42 @@ class TestSpokenClockForms(unittest.TestCase):
     def test_ten_minutes_ahead_is_a_duration(self):
         self.assertEqual(_dt("over 10 minuten"), datetime(2026, 10, 17, 12, 10))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_remainder_is_empty(self):
         self.assertEqual(_res("wekker om kwart voor 9")[1], "wekker")
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_ten_past_half_three_spelled(self):
         self.assertEqual(_dt("om tien over half drie"),
                          datetime(2026, 10, 17, 14, 40))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_ten_past_half_three_digits(self):
         self.assertEqual(_dt("om 10 over half 3"),
                          datetime(2026, 10, 17, 14, 40))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_five_to_half_three_spelled(self):
         self.assertEqual(_dt("om vijf voor half drie"),
                          datetime(2026, 10, 17, 14, 25))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_five_to_half_three_digits(self):
         self.assertEqual(_dt("om 5 voor half 3"),
                          datetime(2026, 10, 17, 14, 25))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_ten_past_half_without_om(self):
         self.assertEqual(_dt("tien over half drie"),
                          datetime(2026, 10, 17, 14, 40))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_five_to_half_four(self):
         self.assertEqual(_dt("vijf voor half vier"),
                          datetime(2026, 10, 17, 15, 25))
@@ -456,7 +456,7 @@ class TestSpokenClockForms(unittest.TestCase):
                          datetime(2026, 10, 17, 15, 10))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_half_ten_past_remainder_is_empty(self):
         self.assertEqual(_res("wekker om tien over half drie")[1], "wekker")
 
@@ -510,49 +510,49 @@ class TestHoursThatDoNotExist(unittest.TestCase):
 
 class TestQuarterAroundHalf(unittest.TestCase):
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_nine(self):
         self.assertEqual(_dt("om kwart over half 9"),
                          datetime(2026, 10, 17, 20, 45))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_to_half_nine(self):
         self.assertEqual(_dt("om kwart voor half 9"),
                          datetime(2026, 10, 17, 20, 15))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_nine_spelled(self):
         self.assertEqual(_dt("om kwart over half negen"),
                          datetime(2026, 10, 17, 20, 45))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_to_half_nine_spelled(self):
         self.assertEqual(_dt("om kwart voor half negen"),
                          datetime(2026, 10, 17, 20, 15))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_without_om(self):
         self.assertEqual(_dt("kwart over half negen"),
                          datetime(2026, 10, 17, 20, 45))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_to_half_without_om(self):
         self.assertEqual(_dt("kwart voor half negen"),
                          datetime(2026, 10, 17, 20, 15))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_three(self):
         self.assertEqual(_dt("om kwart over half drie"),
                          datetime(2026, 10, 17, 14, 45))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-compound-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_remainder_is_empty(self):
         self.assertEqual(_res("wekker om kwart over half 9")[1], "wekker")
 
@@ -564,51 +564,51 @@ class TestQuarterAroundHalf(unittest.TestCase):
 
 
 class TestNumbersJoinedByOrAnd(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_eight_or_nine_people(self):
         self.assertIsNone(_res("het gaat om 8 of 9 mensen"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_eight_and_nine_children(self):
         self.assertIsNone(_res("om 8 en 9 kinderen"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_spelled_numbers_joined_by_or(self):
         self.assertIsNone(_res("om acht of negen mensen"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_eight_and_spelled_nine(self):
         self.assertIsNone(_res("om 8 en negen"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_eight_or_nine_with_a_day_gives_the_date_only(self):
         res = _res("morgen om 8 of 9 mensen")
         self.assertEqual(res[0].replace(tzinfo=None), datetime(2026, 10, 18))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:hour-alternatives")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_three_or_four_hours_at_noon(self):
         self.assertEqual(_dt("om 3 of 4 uur"), datetime(2026, 10, 17, 16))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:hour-alternatives")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_three_or_four_hours_in_the_morning(self):
         self.assertEqual(_dt("om 3 of 4 uur", _at(7)),
                          datetime(2026, 10, 17, 16))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:hour-alternatives")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_three_or_four_hours_in_the_evening(self):
         self.assertEqual(_dt("om 3 of 4 uur", _at(21)),
                          datetime(2026, 10, 18, 4))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:hour-alternatives")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_three_or_four_hours_remainder(self):
         self.assertEqual(_res("wekker om 3 of 4 uur")[1], "wekker")
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:bare-hour-in-sentence")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_a_stray_number_does_not_move_the_day(self):
         # a bare hour inside a sentence with no clock marker is no clock
         # (ruling 2)
@@ -653,19 +653,19 @@ class TestClausesAroundAnHour(unittest.TestCase):
         self.assertEqual(_res("morgen om 10, want vanavond kan ik niet")[1],
                          "want vanavond kan ik niet")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people_after_the_hour_are_still_no_time(self):
         res = _res("morgen om 3 mensen")
         self.assertEqual(res[0].replace(tzinfo=None), datetime(2026, 10, 18))
 
 
 class TestOmWithANamedDay(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people_are_not_a_time(self):
         res = _res("het gaat morgen om 3 mensen")
         self.assertEqual(res[0].replace(tzinfo=None), datetime(2026, 10, 18))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:count-as-hour")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/982")
     def test_people_without_a_day_are_not_a_time(self):
         self.assertIsNone(_res("het gaat om 3 mensen"))
 
@@ -858,7 +858,7 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
         self.assertEqual(_dt("zaterdagavond"), datetime(2026, 10, 17, 21))
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:hour-alternatives")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
 @pytest.mark.parametrize("hour", [7, 12, 21])
 def test_three_or_four_hours_is_the_same_as_four_hours(hour):
     assert _dt("om 3 of 4 uur", _at(hour)) == _dt("om 4 uur", _at(hour))

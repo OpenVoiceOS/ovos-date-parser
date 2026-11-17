@@ -79,12 +79,12 @@ class TestDayAfterBefore(unittest.TestCase):
         self.assertEqual(_dt("zwei Tage vor gestern"), datetime(2026, 10, 14))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:unit-without-count")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1004")
     def test_greeting_is_not_a_day_count(self):
         self.assertEqual(_dt("guten Tag nach morgen"), datetime(2026, 10, 18))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:unit-without-count")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1004")
     def test_every_day_is_not_a_day_count(self):
         self.assertEqual(_dt("jeden Tag nach morgen"), datetime(2026, 10, 18))
 
@@ -124,7 +124,7 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
     def test_heute(self):
         self.assertEqual(_dt("heute"), datetime(2026, 10, 17))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:de-nach-dayword")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_nach_morgen_is_a_from_anchor(self):
         self.assertEqual(_dt("nach morgen"), datetime(2026, 10, 18))
 
@@ -145,7 +145,7 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
         self.assertEqual(_dt("der Tag nach Weihnachten"),
                          datetime(2026, 12, 26))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:de-nach-dayword")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_after_noon(self):
         self.assertEqual(_dt("nach dem Mittag"), datetime(2026, 10, 17, 12))
 

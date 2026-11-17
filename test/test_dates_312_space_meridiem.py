@@ -18,7 +18,7 @@ ANCHOR = datetime(2024, 6, 15, 10, 0)
 
 
 SPACED_CLOCK = pytest.mark.xfail(
-    strict=True, reason="chronologia-issue:spaced-digit-clock")
+    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
 
 
 class TestIssue312Es(unittest.TestCase):

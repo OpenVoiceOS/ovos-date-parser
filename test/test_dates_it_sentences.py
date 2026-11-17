@@ -51,7 +51,7 @@ class TestMalformedInputDoesNotCrash(unittest.TestCase):
     "99",
     "12345",
     pytest.param("0000", marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:bare-four-digit-clock")),
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
     "at 25",
     "25:99",
     "12:60",

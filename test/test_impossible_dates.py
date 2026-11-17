@@ -60,7 +60,7 @@ class TestImpossibleDatesReturnNone(unittest.TestCase):
 
 
 # Greek month names written without the tonos
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:el-unaccented-month")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
 @pytest.mark.parametrize("token,expected", [
     ("30 φεβρουαριου 2020", None),
     ("31 απριλιου 2020", None),

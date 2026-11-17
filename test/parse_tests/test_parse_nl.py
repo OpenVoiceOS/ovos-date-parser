@@ -236,27 +236,27 @@ class TestParsingNatural(unittest.TestCase):
         "laten we om 8:00 's avonds afspreken",
         "2017-06-27 20:00:00", "laten we afspreken",
         marks=pytest.mark.xfail(
-            strict=True, reason="chronologia-issue:clock-daypart-compose")),
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
     pytest.param(
         "herinner me om 10:45 's avonds",
         "2017-06-27 22:45:00", "herinner me",
         marks=pytest.mark.xfail(
-            strict=True, reason="chronologia-issue:clock-daypart-compose")),
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
     pytest.param(
         "herinner me mijn moeder te bellen op 7 september",
         "2017-09-07 00:00:00", "herinner me mijn moeder te bellen",
         marks=pytest.mark.xfail(
-            strict=True, reason="chronologia-issue:marker-strand")),
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
     pytest.param(
         "plan een afspraak in de nacht van 3 september",
         "2017-09-03 03:00:00", "plan een afspraak",
         marks=pytest.mark.xfail(
-            strict=True, reason="chronologia-issue:marker-strand")),
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
     pytest.param(
         "plan een afspraak in voor donderdagmiddag",
         "2017-06-29 15:00:00", "plan een afspraak in voor",
         marks=pytest.mark.xfail(
-            strict=True, reason="chronologia-issue:nl-middag-afternoon")),
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")),
 ])
 def test_extractdatetime_nl_gaps(text, expected_date, expected_leftover):
     extracted, leftover = extract_datetime(text, lang="nl",

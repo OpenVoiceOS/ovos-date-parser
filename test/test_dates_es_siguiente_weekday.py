@@ -262,7 +262,7 @@ class TestMananaIsTomorrowOrTheMorning(unittest.TestCase):
         self.assertEqual(_dt("mañana"), datetime(2026, 10, 18))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:until-range-start")
+                       reason="ovos-date-parser-family:until-range-start (issue pending)")
     def test_until_tomorrow(self):
         self.assertEqual(_dt("hasta mañana"), datetime(2026, 10, 18))
 
@@ -295,7 +295,7 @@ class TestMorningAfterAnArticleOrAQuantifier(unittest.TestCase):
         self.assertEqual(_dt("la mañana del lunes"),
                          datetime(2026, 10, 19, 9))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:day-early")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_temprano_leaves_no_remainder(self):
         self.assertEqual(
             extract_datetime("mañana temprano", lang="es-ES",
@@ -333,33 +333,32 @@ class TestIntensifierBeforeTemprano(unittest.TestCase):
                     text, lang="es-ES", anchorDate=ANCHOR))
 
 
-def _xfail(family):
-    return pytest.mark.xfail(strict=True,
-                             reason="chronologia-issue:" + family)
+def _xfail(issue):
+    return pytest.mark.xfail(strict=True, reason=issue)
 
 
 @pytest.mark.parametrize("text,expected", [
     # the next 16:30 after Saturday 12:00 is the same day (class 3)
     pytest.param("por la tarde a las 4:30", datetime(2026, 10, 17, 16, 30),
-                 marks=_xfail("daypart-clock-next-occurrence")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1002")),
     pytest.param("tarde a las 4:30", datetime(2026, 10, 17, 16, 30),
-                 marks=_xfail("daypart-before-clock")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1002")),
     # the middle of the CLDR es morning band 06:00-12:00, on Sunday 18
     pytest.param("cada mañana", datetime(2026, 10, 18, 9),
-                 marks=_xfail("habitual-cada")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1034")),
     pytest.param("la mañana de mañana", datetime(2026, 10, 18, 9),
-                 marks=_xfail("dayword-daypart-compose")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1033")),
     # mid-morning is the middle of the same band; 09:00 has passed on
     # Saturday, so it is Sunday 18 (class 3)
     pytest.param("a media mañana", datetime(2026, 10, 18, 9),
-                 marks=_xfail("vocab-daypart")),
+                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/992")),
 ])
 def test_a_part_of_the_day_with_a_clock_or_a_day(text, expected):
     assert _dt(text) == expected
 
 
 @pytest.mark.parametrize("text,expected", [
-    pytest.param(text, expected, marks=_xfail("day-early"))
+    pytest.param(text, expected, marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1033"))
     for text, expected in (
         ("mañana temprano", datetime(2026, 10, 18, 9)),
         ("mañana muy temprano", datetime(2026, 10, 18, 9)),

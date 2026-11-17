@@ -63,7 +63,7 @@ class TestDayAfterBefore(unittest.TestCase):
     def test_day_before_day_before_yesterday(self):
         self.assertEqual(_dt("de dag voor eergisteren"), datetime(2026, 10, 14))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_removes_phrase_from_remainder(self):
         res = extract_datetime("weer op de dag na vandaag",
                                lang="nl-NL", anchorDate=ANCHOR)
@@ -84,7 +84,7 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
         self.assertEqual(_dt("3 dagen na morgen"), datetime(2026, 10, 21))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:unit-without-count")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1004")
     def test_every_day_is_not_a_day_count(self):
         d, rest = extract_datetime("elke dag na vandaag", lang="nl-NL",
                                    anchorDate=ANCHOR)
@@ -105,7 +105,7 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
         self.assertEqual(_dt("de dag na kerst"), datetime(2026, 12, 26))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nl-middag-afternoon")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_after_noon(self):
         self.assertEqual(_dt("na de middag"), datetime(2026, 10, 17, 15))
 

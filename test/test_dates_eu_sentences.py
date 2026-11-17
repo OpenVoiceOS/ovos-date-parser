@@ -80,7 +80,7 @@ class TestImpossibleDates(unittest.TestCase):
                 self.assertIsNone(extract(phrase))
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:false-positive")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
 def test_an_hour_with_no_count_is_no_date():
     assert extract("ordu barru") is None
 

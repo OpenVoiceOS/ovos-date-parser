@@ -145,7 +145,7 @@ class TestAdversarialNn(unittest.TestCase):
         self.assertIsNone(extract_datetime("   ", "nn", anchorDate=ANCHOR))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:nordic-i-dayword")
+                       reason="https://github.com/TigreGotico/chronologia/issues/990")
     def test_gibberish_no_date(self):
         self.assertIsNone(
             extract_datetime("hei korleis går det", "nn", anchorDate=ANCHOR))
@@ -235,13 +235,13 @@ class TestRealSentencesNn(unittest.TestCase):
         self.assertEqual(dt, datetime(2017, 6, 27, 19, 0))
         self.assertEqual(rem, "vekk meg")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_alarm_tomorrow_with_time(self):
         dt, rem = self._dt("set ein alarm klokka 07:30 i morgon")
         self.assertEqual(dt, datetime(2017, 6, 28, 7, 30))
         self.assertEqual(rem, "set ein alarm")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_meeting_weekday_and_hour(self):
         dt, rem = self._dt("møtet er på fredag klokka 14")
         self.assertEqual(dt, datetime(2017, 6, 30, 14, 0))
@@ -260,7 +260,7 @@ class TestRealSentencesNn(unittest.TestCase):
         dt, _ = self._dt("eg reiser 15. august 2021")
         self.assertEqual(dt.date(), datetime(2021, 8, 15).date())
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:dayword-early")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_tomorrow_morning_qualifier(self):
         dt, _ = self._dt("vekk meg i morgon tidleg")
         self.assertEqual(dt, datetime(2017, 6, 28, 8, 0))

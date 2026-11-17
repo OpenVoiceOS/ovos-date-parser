@@ -26,13 +26,13 @@ REF = datetime(2026, 9, 25, 12, 0, 0)
 
 def _known_defects(rows, defects):
     """``rows`` with each row that holds an utterance of ``defects`` marked
-    as a known chronologia defect of the family it names."""
+    as a known defect, tracked by the issue it maps to."""
     marked = []
     for row in rows:
-        family = next((defects[value] for value in row
-                       if isinstance(value, str) and value in defects), None)
-        marks = () if family is None else pytest.mark.xfail(
-            strict=True, reason=f"chronologia-issue:{family}")
+        issue = next((defects[value] for value in row
+                      if isinstance(value, str) and value in defects), None)
+        marks = () if issue is None else pytest.mark.xfail(
+            strict=True, reason=issue)
         marked.append(pytest.param(*row, marks=marks))
     return marked
 
@@ -180,7 +180,7 @@ def test_a_sentence_that_merely_names_a_holiday_costs_milliseconds():
     ("fr-FR", "combien de jours avant noël", "combien de jours avant"),
     ("pt-PT", "quantos dias faltam para o natal", "quantos dias faltam para"),
     ("en-US", "play some christmas music", "play some music"),
-], {"combien de jours avant noël": "plural-unit-no-count"}))
+], {"combien de jours avant noël": "https://github.com/TigreGotico/chronologia/issues/1004"}))
 def test_the_remainder_keeps_every_word_the_parse_did_not_consume(
         lang, utterance, kept):
     """A question word stays in the remainder: only the holiday phrase is
@@ -220,7 +220,7 @@ PREPOSITION_ALONE = [
     PREPOSITION_ALONE, dict.fromkeys(
         ("until easter", "before christmas", "avant noël", "hasta navidad",
          "bis Weihnachten", "tot kerst", "até ao natal"),
-        "until-range-start")))
+        "ovos-date-parser-family:until-range-start (issue pending)")))
 def test_a_preposition_alone_is_no_offset(lang, utterance, expected, kept):
     assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
     assert tuple(extract_datetime(utterance, lang, REF)) == (expected, kept)
@@ -348,7 +348,7 @@ def test_a_clock_chronologia_normalised_raises_nothing(lang, utterance, kept):
     assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:plural-unit-no-count")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1004")
 def test_the_same_question_reads_the_same_in_english_and_french():
     """The French question asked about Christmas and was answered Christmas Eve."""
     english = extract_datetime("how many days until christmas", "en-US", REF)
@@ -482,7 +482,7 @@ def test_two_days_after_christmas_counts_from_christmas():
     ("fr-FR", "paques", "pâques"),
     ("fr-FR", "combien de jours avant noel", "combien de jours avant noël"),
     ("pt-PT", "pascoa", "páscoa"),
-], {"combien de jours avant noel": "plural-unit-no-count"}))
+], {"combien de jours avant noel": "https://github.com/TigreGotico/chronologia/issues/1004"}))
 def test_a_transcript_without_accents_reads_the_same_date(lang, plain, written):
     """Speech to text drops accents; the holiday is named either way.
 
@@ -630,13 +630,13 @@ def test_an_offset_not_in_whole_days_is_counted_in_its_unit(
 
 @pytest.mark.parametrize("lang,utterance,expected,kept",
                          OFFSETS_NOT_IN_WHOLE_DAYS)
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:offset-before-holiday")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/977")
 def test_extract_datetime_counts_an_offset_not_in_whole_days(
         lang, utterance, expected, kept):
     assert tuple(extract_datetime(utterance, lang, REF)) == (expected, kept)
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:offset-before-holiday")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/977")
 def test_a_default_time_does_not_replace_the_time_an_offset_gives():
     """The offset sets the time of day, so a default time is not applied."""
     got = extract_datetime("remind me an hour before new year", "en-US", REF,
@@ -723,7 +723,7 @@ QUARTERS_OF_AN_HOUR_IN_THE_LAYER = [
 ]
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:half-of-count")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
 def test_a_default_time_fills_a_whole_day_offset_with_a_left_over_count():
     """Half of two weeks is 7 days, a day and no time: 18 Dec at 09:00."""
     got = extract_datetime("half of two weeks before christmas", "en-US", REF,
@@ -740,7 +740,7 @@ def test_a_count_left_over_before_the_unit_is_part_of_the_offset(
 
 
 @pytest.mark.parametrize("lang,utterance,expected,kept", QUARTERS_OF_AN_HOUR)
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:offset-before-holiday")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/977")
 def test_extract_datetime_reads_a_quarter_of_an_hour(lang, utterance,
                                                      expected, kept):
     assert tuple(extract_datetime(utterance, lang, REF)) == (expected, kept)
@@ -763,7 +763,7 @@ def test_a_count_with_no_unit_or_fraction_is_handed_back(lang, utterance,
     assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:offset-before-holiday")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/977")
 def test_extract_datetime_reads_a_quarter_before_the_holiday():
     """Swedish "kvart" alone is "Fifteen minutes of time" (Wiktionary,
     "kvart", Swedish noun, sense 2), so "en kvart före jul" is 23:45 on
@@ -800,7 +800,7 @@ def test_an_offset_is_elapsed_time_across_a_clock_change(zone, lang,
     assert got[0].isoformat() == expected and got[1] == ""
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:offset-before-holiday")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/977")
 def test_extract_datetime_counts_elapsed_time_across_a_clock_change():
     anchor = REF.replace(tzinfo=ZoneInfo("Europe/Lisbon"))
     got = extract_datetime("uma hora depois da páscoa", "pt-PT", anchor)
@@ -892,7 +892,7 @@ def test_whole_days_move_the_wall_clock_across_a_clock_change(
     assert got[0].isoformat() == expected and got[1] == ""
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:count-word-strand")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
 def test_extract_datetime_moves_whole_days_on_the_wall_clock():
     anchor = REF.replace(tzinfo=ZoneInfo("Europe/Berlin"))
     got = extract_datetime("ein paar Tage vor Ostermontag", "de-DE", anchor)
@@ -964,7 +964,7 @@ def test_a_fraction_of_a_day_with_a_clock_is_counted_from_the_clock(
     assert extract_holiday_span(utterance, lang, REF) == (expected, "")
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:offset-before-holiday")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/977")
 def test_extract_datetime_counts_a_fraction_of_a_day_from_the_clock():
     """Easter Monday 2027 is 29 March; 09:00 less 36 hours is 27 March
     21:00."""
@@ -1013,7 +1013,7 @@ def test_the_offset_counts_from_a_clock_before_it(lang, utterance, expected):
     assert extract_holiday_span(utterance, lang, REF) == expected
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:offset-before-holiday")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/pull/977")
 def test_extract_datetime_counts_from_a_clock_before_the_offset():
     assert extract_datetime("at 6am 12 hours before easter monday", "en-US",
                             REF) == (datetime(2027, 3, 28, 18, 0), "")
@@ -1021,7 +1021,7 @@ def test_extract_datetime_counts_from_a_clock_before_the_offset():
                             REF) == (datetime(2026, 12, 25, 8, 0), "")
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:half-of-count")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
 def test_a_default_time_does_not_replace_the_clock_of_an_offset():
     """Easter Monday 2027 is 29 March; seven days before at 09:00 is
     22 March 09:00."""
@@ -1243,7 +1243,7 @@ CLOCK_NOT_BESIDE_THE_HOLIDAY = [
         ("buy christmas presents at 5pm", "play christmas music at 9pm",
          "christmas island at 9am", "musique de noël à 21 heures",
          "geschenke für weihnachten um 17 uhr kaufen"),
-        "holiday-name-as-modifier")))
+        "https://github.com/TigreGotico/chronologia/issues/1035")))
 def test_a_clock_that_is_not_the_holidays_keeps_the_engines_day(
         lang, utterance, expected):
     got = extract_datetime(utterance, lang, REF)
@@ -1256,9 +1256,9 @@ def test_a_clock_that_is_not_the_holidays_keeps_the_engines_day(
     ("play christmas music on friday at 9am",),
     ("remind me on friday at 9am about christmas",),
     ("christmas tomorrow at 9am",),
-], {"play christmas music on friday": "holiday-name-as-modifier",
-    "play christmas music on friday at 9am": "holiday-name-as-modifier",
-    "christmas tomorrow at 9am": "holiday-beside-another-date"}))
+], {"play christmas music on friday": "https://github.com/TigreGotico/chronologia/issues/1035",
+    "play christmas music on friday at 9am": "https://github.com/TigreGotico/chronologia/issues/1035",
+    "christmas tomorrow at 9am": "https://github.com/TigreGotico/chronologia/issues/1035"}))
 def test_a_date_word_beside_the_clock_keeps_the_engines_date(utterance):
     """The engine read a date word as well as the clock, so the holiday does
     not replace its answer."""
@@ -1334,7 +1334,7 @@ def test_a_plain_weekday_still_answers_with_the_weekday(utterance=None):
 
 
 @pytest.mark.xfail(strict=True,
-                   reason="chronologia-issue:holiday-name-as-modifier")
+                   reason="https://github.com/TigreGotico/chronologia/issues/1035")
 def test_a_weekday_beside_a_holiday_keeps_the_weekday():
     """Control: the engine's answer stands when it read words the holiday
     phrase does not cover.
@@ -1375,7 +1375,7 @@ WEEKDAY_OUTSIDE_THE_HOLIDAY_PHRASES = [
 
 @pytest.mark.parametrize("utterance,expected", _known_defects(
     WEEKDAY_OUTSIDE_THE_HOLIDAY_PHRASES,
-    {"good friday plans, remind me friday": "holiday-beside-another-date"}))
+    {"good friday plans, remind me friday": "https://github.com/TigreGotico/chronologia/issues/1035"}))
 def test_a_weekday_outside_the_holiday_phrase_keeps_the_engine_answer(
         utterance, expected):
     got = extract_datetime(utterance, "en-US", REF)
@@ -1384,7 +1384,7 @@ def test_a_weekday_outside_the_holiday_phrase_keeps_the_engine_answer(
 
 
 @pytest.mark.xfail(strict=True,
-                   reason="chronologia-issue:holiday-beside-another-date")
+                   reason="https://github.com/TigreGotico/chronologia/issues/1035")
 def test_a_relative_phrase_the_engine_keeps_is_not_taken():
     """Control, the opposite call on a phrase of the same shape.
 
@@ -1425,7 +1425,7 @@ A_GOOD_WEEKDAY_IS_NOT_A_HOLIDAY = [
 @pytest.mark.parametrize("lang,utterance,expected",
                          A_GOOD_WEEKDAY_IS_NOT_A_HOLIDAY)
 @pytest.mark.xfail(strict=True,
-                   reason="chronologia-issue:holiday-name-as-modifier")
+                   reason="https://github.com/TigreGotico/chronologia/issues/1035")
 def test_an_indefinite_article_before_the_name_is_a_weekday(
         lang, utterance, expected):
     got = extract_datetime(utterance, lang, REF)

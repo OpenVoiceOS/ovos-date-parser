@@ -28,7 +28,7 @@ class TestExtractDatetimeEN(unittest.TestCase):
                         "2018-06-15 15:00:00")
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:hour-with-daypart")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1002")
     def test_an_hour_before_tonight(self):
         self._assert_dt("eight tonight", "2017-06-27 20:00:00")
 
@@ -65,7 +65,7 @@ class TestExtractDatetimeEN(unittest.TestCase):
         self.assertIsNone(self._extract(""))
         self.assertIsNone(self._extract("the quick brown fox"))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:now-in-sentence")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_now(self):
         res = self._extract("what time is it now")
         self.assertIsNotNone(res)

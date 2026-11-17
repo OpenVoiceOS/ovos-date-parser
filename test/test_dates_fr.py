@@ -351,7 +351,7 @@ class TestUnaccentedAMarker(unittest.TestCase):
             self.assertFalse(res and res[0] == dt(2117, 9, 4, 7), text)
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:verb-a-as-marker")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_avoir_with_a_pronoun_is_not_a_marker(self):
         self.assertIsNone(extract("elle a 2h de route"))
         self.assertIsNone(extract("il a 3 heures de retard"))

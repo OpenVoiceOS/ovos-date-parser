@@ -14,9 +14,9 @@ import pytest
 
 from ovos_date_parser import extract_datetime
 
-MARKER_STRAND = "chronologia-issue:marker-strand"
-FRACTION_AS_ORDINAL = "chronologia-issue:fraction-as-ordinal"
-MODAL_MAY = "chronologia-issue:modal-may-as-month"
+MARKER_STRAND = "https://github.com/TigreGotico/chronologia/issues/996"
+FRACTION_AS_ORDINAL = "https://github.com/TigreGotico/chronologia/issues/1035"
+MODAL_MAY = "https://github.com/TigreGotico/chronologia/issues/990"
 
 TZ = ZoneInfo("Europe/Lisbon")
 ANCHOR = datetime(2026, 10, 17, 12, 0, tzinfo=TZ)
@@ -122,12 +122,12 @@ class TestLastDayOfMonth(unittest.TestCase):
         self.assertEqual(parse("the last day of this month")[0], at(2026, 10, 31))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:last-day-of-a-passed-month")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_of_february(self):
         self.assertEqual(parse("the last day of february")[0], at(2027, 2, 28))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:last-day-of-a-passed-month")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_of_a_leap_february(self):
         anchor = datetime(2027, 10, 17, 12, 0, tzinfo=TZ)
         self.assertEqual(parse("the last day of february", anchor)[0],
@@ -164,7 +164,7 @@ class TestMonthThenSpelledOrdinal(unittest.TestCase):
         self.assertEqual(parse("march twenty-first")[0], at(2027, 3, 21))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:month-the-ordinal")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_with_article(self):
         self.assertEqual(parse("july the fourth")[0], at(2027, 7, 4))
 
@@ -254,13 +254,13 @@ class TestOrdinarySpeechIsNotADate(unittest.TestCase):
 
 
 class TestAfterAMonthDay(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:after-relation")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_after_month_then_spelled_day(self):
         d, rest = parse("after july fourth")
         self.assertEqual(d, at(2027, 7, 4))
         self.assertEqual(rest, "after")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:after-relation")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_after_month_then_digit_day(self):
         d, rest = parse("after july 4th")
         self.assertEqual(d, at(2027, 7, 4))
@@ -276,7 +276,7 @@ class TestAfterAMonthDay(unittest.TestCase):
         self.assertEqual(d, at(2027, 7, 4))
         self.assertEqual(rest, "from")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:after-relation")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_after_a_weekday_is_untouched(self):
         self.assertEqual(parse("after monday")[0], at(2026, 10, 19))
         self.assertEqual(parse("after tomorrow")[0], at(2026, 10, 18))

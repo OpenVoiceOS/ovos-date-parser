@@ -247,7 +247,7 @@ class TestRealSentenceEdgesId(unittest.TestCase):
 
     # KBBI s.v. "esok": "hari sesudah hari ini; besok". A named day keeps the
     # spoken hour (ruling 17), so 08:00 tomorrow.
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:id-vocabulary")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_mixed_case(self):
         self.assertEqual(
             extract_datetime("ESOK jam 8", "id", anchorDate=ANCHOR)[0],
@@ -292,7 +292,7 @@ def test_lone_hour_takes_the_next_twelve_hour_reading(text, expected):
     assert extract_datetime(text, "id", anchorDate=ANCHOR)[0] == expected
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:id-sampai-jumpa")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
 def test_see_you_at_nine_is_a_clock():
     # "sampai jumpa" is "see you", not "until": nine after noon is 21:00
     found = extract_datetime("Sampai jumpa pukul 9.", "id", anchorDate=ANCHOR)

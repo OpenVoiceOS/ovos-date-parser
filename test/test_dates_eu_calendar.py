@@ -80,7 +80,7 @@ class TestMonthDayYear(unittest.TestCase):
         self.assertEqual(res[0], dt(2027, 6, 5, 0, 0))
         self.assertEqual(res[1], "")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:eu-month-before-day-and-year")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_bare_year_after(self):
         self.assertEqual(extract("ekaina 5 2027")[0], dt(2027, 6, 5, 0, 0))
 
@@ -99,7 +99,7 @@ class TestMonthYearOnly(unittest.TestCase):
         self.assertEqual(res[0], dt(2027, 6, 1, 0, 0))
         self.assertEqual(res[1], "")
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:eu-month-before-day-and-year")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_bare_month_year(self):
         self.assertEqual(extract("ekaina 2027")[0], dt(2027, 6, 1, 0, 0))
 

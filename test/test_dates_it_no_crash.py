@@ -32,24 +32,24 @@ def _dt(text):
     return res[0].replace(tzinfo=None)
 
 
-def _defect(family):
-    return pytest.mark.xfail(strict=True, reason=f"chronologia-issue:{family}")
+def _defect(issue):
+    return pytest.mark.xfail(strict=True, reason=issue)
 
 
 # A range of lone hours takes the next twelve-hour reading of its start
 # (ruling 17): at noon, "dalle 9 alle 11" starts at 21:00 that day.
-HOUR_RANGE = _defect("hour-range-next-twelve")
+HOUR_RANGE = _defect("https://github.com/TigreGotico/chronologia/issues/1032")
 # A part of the day said before the clock ("stasera alle otto") names the
 # half of the day the hour is in.
-DAYPART_THEN_CLOCK = _defect("daypart-then-clock")
+DAYPART_THEN_CLOCK = _defect("https://github.com/TigreGotico/chronologia/issues/1002")
 # "le", "dalle" and "delle" carry the clock as "alle" does.
-ARTICLE_CLOCK = _defect("it-article-clock")
+ARTICLE_CLOCK = _defect("https://github.com/TigreGotico/chronologia/issues/1032")
 # "presto" and "tardi" beside an hour.
-EARLY_LATE = _defect("early-late-modifier")
+EARLY_LATE = _defect("https://github.com/TigreGotico/chronologia/issues/1033")
 # Minutes written as a second number after the hour ("alle 3 30").
-HOUR_SPACE_MINUTES = _defect("hour-space-minutes")
+HOUR_SPACE_MINUTES = _defect("https://github.com/TigreGotico/chronologia/issues/1032")
 # Arithmetic and amounts are no time.
-FALSE_POSITIVE = _defect("false-positive")
+FALSE_POSITIVE = _defect("https://github.com/TigreGotico/chronologia/issues/1035")
 
 
 def _row(*values, marks=()):
@@ -141,7 +141,7 @@ def test_spoken_clock_hours_are_still_read(text, expected):
     ("alle tre e un quarto", datetime(2026, 10, 17, 15, 15)),
     ("alle 3 e un quarto", datetime(2026, 10, 17, 15, 15)),
     _row("alle tre e tre quarti", datetime(2026, 10, 17, 15, 45),
-         marks=_defect("spoken-minutes")),
+         marks=_defect("https://github.com/TigreGotico/chronologia/issues/1032")),
     ("alle tre e venti", datetime(2026, 10, 17, 15, 20)),
     ("alle 3 e venti", datetime(2026, 10, 17, 15, 20)),
     ("alle tre e quindici", datetime(2026, 10, 17, 15, 15)),
@@ -256,11 +256,11 @@ def test_midnight_less_minutes_is_ten_to_midnight():
 @pytest.mark.parametrize("text,expected", [
     ("un quarto d'ora fa", datetime(2026, 10, 17, 11, 45)),
     _row("tre quarti d'ora fa", datetime(2026, 10, 17, 11, 15),
-         marks=_defect("hour-fraction-duration")),
+         marks=_defect("https://github.com/TigreGotico/chronologia/issues/1032")),
     ("tre ore fa", datetime(2026, 10, 17, 9)),
     ("venti minuti fa", datetime(2026, 10, 17, 11, 40)),
     _row("mezzora fa", datetime(2026, 10, 17, 11, 30),
-         marks=_defect("hour-fraction-duration")),
+         marks=_defect("https://github.com/TigreGotico/chronologia/issues/1032")),
     # a counted offset keeps the anchor clock (class 1)
     ("due giorni fa", datetime(2026, 10, 15, 12)),
     ("dieci giorni fa", datetime(2026, 10, 7, 12)),
@@ -330,14 +330,14 @@ def test_a_single_date_is_unchanged():
     ("il 20 alle 8", datetime(2026, 10, 20, 8)),
     ("il 3", datetime(2026, 11, 3)),
 ])
-@_defect("bare-day-of-month")
+@_defect("https://github.com/TigreGotico/chronologia/issues/1035")
 def test_il_followed_by_a_number_is_that_day_of_the_month(text, expected):
     assert _dt(text) == expected
 
 
 @pytest.mark.parametrize("text,expected", [
     _row("il 3 novembre alle 5", datetime(2026, 11, 3, 5),
-         marks=_defect("date-then-clock")),
+         marks=_defect("https://github.com/TigreGotico/chronologia/issues/1034")),
     ("il 15 marzo", datetime(2027, 3, 15)),
 ])
 def test_dates_with_a_month(text, expected):

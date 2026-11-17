@@ -27,7 +27,7 @@ def dt(y, mo, d, h=0, mi=0):
 
 class TestBareHour(unittest.TestCase):
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:bare-number-hour")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_bare_number_hour(self):
         self.assertEqual(extract("20")[0], dt(2117, 9, 3, 20))
 

@@ -45,7 +45,7 @@ PAST_CASES = [
 NON_MATCHES = [
     "2 sitten",
     pytest.param("viikkoa sitten", marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:unit-without-count")),
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1004")),
 ]
 
 

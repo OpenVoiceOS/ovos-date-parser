@@ -199,7 +199,7 @@ class TestCatalanNext(unittest.TestCase):
                 self.assertEqual(_dt(text, "ca-ES"), _oct(19))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:marker-strand")
+                       reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_proper_leaves_no_word_behind(self):
         self.assertEqual(_on("el proper divendres", "ca-ES", ANCHOR),
                          (_oct(23), ""))
@@ -534,7 +534,7 @@ class TestWeekdayPasadoInTheMorning(unittest.TestCase):
 
 @pytest.mark.parametrize("lang,text,expected", [
     pytest.param("ast-ES", text, _oct(23), marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:vocab-next-word"))
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992"))
     for text in ("el próximu vienres", "el proximu vienres")])
 def test_asturian_next_friday_from_a_friday(lang, text, expected):
     """Said on a Friday, "el próximu vienres" is a week away (ruling 6)."""
@@ -543,7 +543,7 @@ def test_asturian_next_friday_from_a_friday(lang, text, expected):
 
 @pytest.mark.parametrize("lang,text,expected", [
     pytest.param(lang, text, datetime(2026, 10, 18, 9), marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:habitual-cada"))
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034"))
     for lang, text in (("gl-ES", "cada mañá"), ("ast-ES", "cada mañana"))])
 def test_every_morning_is_the_next_morning(lang, text, expected):
     """A habitual phrase reads as the next occurrence (ruling 5): the
@@ -553,7 +553,7 @@ def test_every_morning_is_the_next_morning(lang, text, expected):
 
 @pytest.mark.parametrize("lang,text,expected", [
     pytest.param(lang, text, expected, marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:day-early"))
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033"))
     for lang, text, expected in (
         ("gl-ES", "mañá moi cedo", datetime(2026, 10, 18, 9)),
         ("gl-ES", "mañá ben cedo", datetime(2026, 10, 18, 9)),

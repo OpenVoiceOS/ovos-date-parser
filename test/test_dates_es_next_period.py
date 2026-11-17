@@ -187,7 +187,7 @@ class TestWeekdayOfNextWeek(unittest.TestCase):
 
 
 MONTH_NAMED = pytest.mark.xfail(
-    strict=True, reason="chronologia-issue:month-noun-before-name")
+    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
 
 
 class TestNextMonthNamedAsTheCurrentMonth(unittest.TestCase):
@@ -220,7 +220,7 @@ class TestNextMonthNamedAsTheCurrentMonth(unittest.TestCase):
 
 @pytest.mark.parametrize("text", [
     pytest.param(text, marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:marker-strand"))
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996"))
     for text in ("el próximo viernes", "el siguiente viernes")])
 def test_next_friday_from_a_friday_takes_its_article(text):
     """The article that opens the date leaves with it."""
@@ -229,7 +229,7 @@ def test_next_friday_from_a_friday_takes_its_article(text):
                                                      "")
 
 
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
 def test_the_article_of_next_week_leaves_the_sentence():
     res = extract_datetime("recuérdame la próxima semana comprar pan",
                            lang="es-ES", anchorDate=ANCHOR)

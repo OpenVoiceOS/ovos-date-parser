@@ -116,7 +116,7 @@ class TestExtractDatetimeSpokenTimeKab(unittest.TestCase):
     """A lone spoken hour takes the next twelve-hour reading after the
     13:04 anchor (ruling 17): ten o'clock is 22:00 the same day."""
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:kab-spoken-clock")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_bare_hour(self):
         # a lone hour takes the next twelve-hour reading (ruling 17): one
         # o'clock said at 13:04 is 01:00 the next day
@@ -142,7 +142,7 @@ class TestExtractDatetimeSpokenTimeKab(unittest.TestCase):
                                   anchorDate=ANCHOR)
         self.assertEqual((result[0].hour, result[0].minute), (21, 45))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:kab-spoken-clock")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_day_period_disambiguation(self):
         # "d juǧ" alone stays 12h (2:00); a period word resolves to 24h
         result = extract_datetime("d juǧ n uzal", "kab", anchorDate=ANCHOR)
@@ -184,7 +184,7 @@ class TestKabRelativeOffsets(unittest.TestCase):
     """
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:kab-relative-offset")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_a_marked_offset_answers_the_anchor_plus_the_duration(self):
         result = extract_datetime("mbaed 10 n wesrag", "kab",
                                   anchorDate=OFFSET_ANCHOR)
@@ -203,7 +203,7 @@ class TestKabRelativeOffsets(unittest.TestCase):
                                            anchorDate=OFFSET_ANCHOR))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:kab-compound-cardinal")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_a_compound_cardinal_is_not_split_by_a_clock_hour(self):
         """"mraw d yiwen" is eleven, and extract_duration reads "mraw d
         yiwen n tesdidin" as 660 seconds. Reading "d yiwen" as the
@@ -322,7 +322,7 @@ class TestKabBackwardScanIsBounded(unittest.TestCase):
 
 
 KAB_SPOKEN_CLOCK = pytest.mark.xfail(
-    strict=True, reason="chronologia-issue:kab-spoken-clock")
+    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
 
 
 # A lone hour takes the next twelve-hour reading after the anchor (ruling
@@ -346,7 +346,7 @@ def test_half_past_spellings(word):
     ("d lɛecṛa u wac", datetime(2017, 6, 27, 22, 10)),
     ("d lɛecṛa ɣiṛ", datetime(2017, 6, 27, 21, 50)),
 ])
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:kab-spoken-clock")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
 def test_vague_approximations(phrase, expected):
     assert extract_datetime(phrase, "kab", anchorDate=ANCHOR)[0] == expected
 
@@ -354,9 +354,9 @@ def test_vague_approximations(phrase, expected):
 # Midnight said at 13:04 is the coming midnight.
 @pytest.mark.parametrize("phrase", [
     pytest.param("nṣaf n yiḍ", marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:kab-spoken-clock")),
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
     pytest.param("ttnaṣfa n yiḍ", marks=pytest.mark.xfail(
-        strict=True, reason="chronologia-issue:kab-spoken-clock")),
+        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
     "d ttnac n yiḍ",
 ])
 def test_midnight_phrases(phrase):

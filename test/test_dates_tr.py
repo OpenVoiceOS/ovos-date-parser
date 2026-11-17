@@ -266,7 +266,7 @@ class TestRealSentenceEdgesTr(unittest.TestCase):
             datetime(2026, 7, 16, 0, 0))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:tr-uppercase-dotless-i")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_mixed_case_with_dotless_i(self):
         # "YARIN" must lowercase to "yarın" (dotless), not "yarin"; a named
         # day keeps the spoken hour (ruling 17), so 03:00 tomorrow
@@ -317,6 +317,6 @@ def test_lone_hour_takes_the_next_twelve_hour_reading(text, expected):
     ("Alarmı saat 7'ye kur.", [datetime(2026, 7, 15, 19, 0), "Alarmı kur"]),
     ("Randevu 15:30'da.", [datetime(2026, 7, 15, 15, 30), "Randevu"]),
 ])
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:tr-apostrophe-suffix")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
 def test_clock_with_a_case_suffix(text, expected):
     assert extract_datetime(text, "tr", anchorDate=ANCHOR) == expected

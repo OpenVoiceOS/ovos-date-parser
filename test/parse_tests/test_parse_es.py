@@ -170,10 +170,10 @@ class TestDatetime_es(unittest.TestCase):
     pytest.param("ayer noche", datetime(1997, 12, 31, 22),
                  marks=pytest.mark.xfail(
                      strict=True,
-                     reason="chronologia-issue:dayword-daypart-compose")),
+                     reason="https://github.com/TigreGotico/chronologia/issues/1033")),
     pytest.param("el noche ante ante ayer", datetime(1997, 12, 29, 22),
                  marks=pytest.mark.xfail(
-                     strict=True, reason="chronologia-issue:vocab-day-word")),
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
 ])
 def test_a_night_of_a_past_day(text, expected):
     res = extract_datetime(text, anchorDate=datetime(1998, 1, 1), lang='es')

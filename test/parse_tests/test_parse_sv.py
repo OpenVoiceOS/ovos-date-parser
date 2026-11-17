@@ -173,7 +173,7 @@ class TestExtractDuration(unittest.TestCase):
         "vad blir vädret på fredag morgon",
         "2017-06-30 07:30:00", "vad blir vädret",
         marks=pytest.mark.xfail(
-            strict=True, reason="chronologia-issue:marker-strand")),
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
 ])
 def test_extractdatetime_sv_gaps(text, expected_date, expected_leftover):
     extracted, leftover = extract_datetime(text, lang="sv-se",

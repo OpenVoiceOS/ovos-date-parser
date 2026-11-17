@@ -111,17 +111,17 @@ class TestDayOffsets(unittest.TestCase):
     # a counted offset keeps the anchor clock (class 1)
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:vocab-offset-marker")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_in_n_days(self):
         self.assertEqual(extract("en 5 jorns")[0], dt(2117, 9, 8, 13, 30))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:vocab-offset-marker")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_in_n_weeks(self):
         self.assertEqual(extract("en 5 setmanas")[0], dt(2117, 10, 8, 13, 30))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:vocab-offset-marker")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_days_plus_clock(self):
         self.assertEqual(extract("en 2 jorns a las 15")[0], dt(2117, 9, 5, 15, 0))
 

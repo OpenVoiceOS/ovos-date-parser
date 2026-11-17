@@ -57,7 +57,7 @@ class TestDatetimeOC(unittest.TestCase):
             extract_datetime("abans-ièr", anchorDate=self.ANCHOR)[0],
             datetime(1997, 12, 30, tzinfo=default_timezone()))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:oc-vocabulary")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_day_after_tomorrow(self):
         # deman passat = day after tomorrow
         self.assertEqual(
@@ -80,7 +80,7 @@ class TestDatetimeOC(unittest.TestCase):
             datetime(1998, 1, 6, tzinfo=default_timezone()))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:vocab-offset-marker")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_in_x_weeks(self):
         self.assertEqual(
             extract_datetime("en 2 setmanas", anchorDate=self.ANCHOR)[0],
@@ -139,7 +139,7 @@ class TestDatetimeOC(unittest.TestCase):
             datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:vocab-offset-marker")
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_relative_time_offsets(self):
         # relative offsets keep the anchor time of day, matching dates_gl
         self.assertEqual(

@@ -173,7 +173,7 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
     def _dt(self, text):
         return extract_datetime(text, lang="ar", anchorDate=self.A)
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:spoken-minutes")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_and_third_to_the_hour(self):
         self.assertEqual(self._dt("الساعة التاسعة إلا ربعاً")[0].hour, 8)
         self.assertEqual(self._dt("الساعة التاسعة إلا ربعاً")[0].minute, 45)
@@ -235,7 +235,7 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
         # voweled spelling must parse identically to the bare form
         self.assertEqual(self._dt("الساعة الثَّالِثة صباحاً")[0].hour, 3)
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:clitic-prefix")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_weekday_proclitics(self):
         # anchor is a Friday; ب/ل proclitics fuse onto the article
         base = self.A.replace(hour=0, minute=0)
@@ -271,7 +271,7 @@ class TestExtractDatetimeArabicHardening(unittest.TestCase):
         self.assertEqual((self._dt("الساعة 23:59")[0].hour,
                           self._dt("الساعة 23:59")[0].minute), (23, 59))
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:spoken-minutes")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_and_a_third_past_the_hour(self):
         # "وثلث" / "والثلث" = twenty past
         self.assertEqual(self._dt("الساعة الثالثة والثلث")[0].minute, 20)
@@ -308,7 +308,7 @@ if __name__ == "__main__":
 # Minutes spoken after the hour word: "إلا" counts back from the hour, "و"
 # counts on from it. The hour keeps its spoken reading here; ruling 17
 # decides the half of the day in its own issue.
-@pytest.mark.xfail(strict=True, reason="chronologia-issue:spoken-minutes")
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
 def test_quarter_to_the_hour():
     # quarter to: التاسعة إلا ربعاً = 8:45
     result = extract_datetime("الساعة التاسعة إلا ربعاً", lang="ar",
@@ -317,7 +317,7 @@ def test_quarter_to_the_hour():
 
 
 _SPOKEN_MINUTES = pytest.mark.xfail(
-    strict=True, reason="chronologia-issue:spoken-minutes")
+    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")
 
 
 @pytest.mark.parametrize("hour,minute", [

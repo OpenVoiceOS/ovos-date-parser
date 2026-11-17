@@ -62,7 +62,7 @@ class TestDateTimeSpansEN(SpanAssertions):
                          [("next friday at 5 pm", dt(2026, 3, 13, 17, 0)),
                           ("friday at 5 pm", dt(2026, 3, 13, 17, 0))])
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_absolute_date_with_time(self):
         self.assertDates("meeting on march 5th 2027 at 10:30", "en",
                          [("on march 5th 2027 at 10:30", dt(2027, 3, 5, 10, 30)),
@@ -79,7 +79,7 @@ class TestDateTimeSpansEN(SpanAssertions):
     # a bare hour alone reads as a clock (ruling 2), so "7" is the core of
     # "at 7", as "friday at 5 pm" is the core of "next friday at 5 pm"
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:bare-number-hour")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_two_times_in_one_utterance(self):
         self.assertDates("wake me at 7 and again at 9", "en",
                          [("at 7", dt(2026, 3, 11, 19, 0)),
@@ -88,7 +88,7 @@ class TestDateTimeSpansEN(SpanAssertions):
                           ("9", dt(2026, 3, 11, 21, 0))])
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:bare-number-hour")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_punctuation_is_not_part_of_the_surface(self):
         self.assertDates("at 7, please", "en",
                          [("at 7", dt(2026, 3, 11, 19, 0)),
@@ -101,7 +101,7 @@ class TestDateTimeSpansEN(SpanAssertions):
                          [("tomorrow", dt(2026, 3, 12))])
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:symbol-dropped-from-remainder")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_offsets_are_code_points(self):
         # a byte oriented implementation reads 11 here instead of 7
         spans = self.assertDates("café ☕ tomorrow", "en",
@@ -155,7 +155,7 @@ class TestDateTimeSpansEN(SpanAssertions):
         self.assertDates("It will take about 2 hours, 30 minutes, and 10 "
                          "seconds", "en", [])
 
-    @pytest.mark.xfail(strict=True, reason="chronologia-issue:marker-strand")
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_punctuation_still_separates_two_expressions(self):
         self.assertDates("meeting tomorrow, party on saturday", "en",
                          [("tomorrow", dt(2026, 3, 12)),
@@ -289,7 +289,7 @@ class TestSpansPT(SpanAssertions):
                          [("amanhã às 14:30", dt(2026, 3, 12, 14, 30))])
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:range-without-opener")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_a_range_is_one_span(self):
         # "segunda a sexta" is one stretch, Monday 16 to Friday 20, which
         # starts on the Monday: its "sexta" is the 20th, never the 13th.
@@ -350,7 +350,7 @@ class TestSpansFA(SpanAssertions):
     LENGTH = timedelta(hours=1, minutes=57.5)
 
     @pytest.mark.xfail(strict=True,
-                       reason="chronologia-issue:duration-as-clock")
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_a_length_is_no_date(self):
         # the film length is a bare length, which is no date (ruling 3)
         self.assertDates(self.FILM, "fa", [])

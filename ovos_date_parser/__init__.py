@@ -712,22 +712,11 @@ def _extract_datetime_chronologia(
 
 
 def _range_endpoint(found, text: str, lang: str, anchor: datetime):
-    """The reading of the date a range names, when the range opens at the
-    anchor.
-
-    "until easter", "before christmas" and "hasta mañana" are ranges from now
-    to a date. The instant that answers one is that date, with the
-    preposition left in the remainder, and not the anchor, which opens every
-    such range. The date is the candidate that ends where the range ends
-    (chronologia reads the end of the date's last day) or starts there (a
-    range that stops when the date begins), and the words that open the range
-    stand before it: "von montag bis" is no range from now. Any other span,
-    and a range with no such candidate, answers as it stands.
-    """
-    if found.span.end - found.span.start <= _EXACT:
-        return found
-    if found.span.start != AstroDate.from_datetime(
-            anchor.replace(tzinfo=None)):
+    """A range that opens at the anchor ("until easter") answers the date it
+    reaches, with its opening words left in the remainder."""
+    if (found.span.end - found.span.start <= _EXACT
+            or found.span.start != AstroDate.from_datetime(
+                anchor.replace(tzinfo=None))):
         return found
     mentions = _chronologia_timespans(text, lang, anchor)
     for candidate in _chronologia_candidates(text, lang, anchor, limit=10):

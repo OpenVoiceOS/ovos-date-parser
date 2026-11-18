@@ -3,7 +3,7 @@
 The parsers of es, gl, ast, pt and it strip accents and turn hyphens into
 spaces to match words, so "recuérdame mañana comprar pan" used to leave
 "recuerdame comprar pan" and "check-in" came back as "check in". The
-remainder holds the user's words, in lower case. An article or preposition
+remainder holds the user's words, in the case they were typed. An article or preposition
 that is not part of the date ("al médico", "el check-in") stays in it.
 """
 import unittest

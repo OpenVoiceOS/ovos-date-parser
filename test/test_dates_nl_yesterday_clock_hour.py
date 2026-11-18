@@ -213,7 +213,6 @@ class TestNamedPartDecidesAmPm(unittest.TestCase):
     def test_bare_nine_after_the_hour_is_next_morning(self):
         self.assertEqual(_dt("om 9 uur", LATE), datetime(2026, 10, 18, 9))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_bare_nine_colon_keeps_rule(self):
         # a digit clock takes its next twelve-hour reading (ruling 23)
         self.assertEqual(_dt("om 9:00"), datetime(2026, 10, 17, 21))
@@ -287,7 +286,6 @@ class TestTwentyFourHourValues(unittest.TestCase):
         self.assertEqual(_dt("om 9:00", _at(9)), datetime(2026, 10, 17, 9))
         self.assertEqual(_dt("om 9 uur", _at(9)), datetime(2026, 10, 17, 9))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_a_digit_clock_equal_to_the_anchor_is_the_anchor(self):
         # "9:00" said at 21:00 reads 21:00, the anchor itself (ruling 23,
         # class 3)
@@ -410,7 +408,6 @@ class TestSpokenClockForms(unittest.TestCase):
     def test_ten_minutes_ahead_is_a_duration(self):
         self.assertEqual(_dt("over 10 minuten"), datetime(2026, 10, 17, 12, 10))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_remainder_is_empty(self):
         self.assertEqual(_res("wekker om kwart voor 9")[1], "wekker")
 
@@ -802,7 +799,6 @@ class TestNeighbouringFormsUnchanged(unittest.TestCase):
     def test_eight_at_noon_is_this_evening(self):
         self.assertEqual(_dt("om 8 uur"), datetime(2026, 10, 17, 20))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_eight_with_colon(self):
         # a digit clock takes its next twelve-hour reading (ruling 23)
         self.assertEqual(_dt("om 8:00"), datetime(2026, 10, 17, 20))

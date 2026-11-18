@@ -244,9 +244,7 @@ class TestParsingNatural(unittest.TestCase):
             strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
     pytest.param(
         "herinner me mijn moeder te bellen op 7 september",
-        "2017-09-07 00:00:00", "herinner me mijn moeder te bellen",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-09-07 00:00:00", "herinner me mijn moeder te bellen"),
     pytest.param(
         "plan een afspraak in de nacht van 3 september",
         "2017-09-03 03:00:00", "plan een afspraak",

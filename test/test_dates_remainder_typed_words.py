@@ -110,7 +110,6 @@ class TestRemainderKeepsHyphens(unittest.TestCase):
         self.assertEqual(_rest("compra pão, amanhã.", "pt-PT"), "compra pão")
 
 
-@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
 def test_the_article_of_a_weekday_leaves_the_remainder():
     # "el" belongs to "el lunes"; "al" belongs to "al papá"
     assert _rest("recuérdame el lunes llamar al papá", "es-ES") == \

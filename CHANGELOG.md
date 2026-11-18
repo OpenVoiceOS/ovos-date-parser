@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.0a2) (2026-11-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.0a1...0.41.0a2)
+
+**Merged pull requests:**
+
+- test: flip the chronologia xfails that pass and raise the chronologia floor to 0.35.2a1 [\#663](https://github.com/OpenVoiceOS/ovos-date-parser/pull/663) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.0a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.40.0a1...0.41.0a1)
@@ -359,17 +367,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.17a1...0.35.18a1)
 
-**Merged pull requests:**
-
-- fix: eu time inessive in nice\_date\_time, hour words per Araua 35 [\#559](https://github.com/OpenVoiceOS/ovos-date-parser/pull/559) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.17a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.17a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.16a1...0.35.17a1)
-
-**Merged pull requests:**
-
-- fix: es date time doubled article, relative day on another month [\#558](https://github.com/OpenVoiceOS/ovos-date-parser/pull/558) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.16a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.16a1) (2026-11-06)
 

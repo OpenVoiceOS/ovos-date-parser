@@ -239,8 +239,6 @@ class TestRoundTripNb(unittest.TestCase):
 # A digit clock with an hour from 1 to 11 and no leading zero takes the
 # next of its two twelve-hour readings after the anchor (ruling 23): at
 # 13:04, "klokka 10:30" is 22:30 that day.
-@pytest.mark.xfail(strict=True,
-                   reason="https://github.com/TigreGotico/chronologia/issues/1043")
 @pytest.mark.parametrize("hh,mm", [(hh, mm) for hh in (10, 11)
                                    for mm in (0, 15, 30, 45)])
 def test_clock_without_a_leading_zero(hh, mm):
@@ -264,13 +262,11 @@ class TestRealSentencesNb(unittest.TestCase):
         self.assertEqual(dt, datetime(2017, 6, 27, 19, 0))
         self.assertEqual(rem, "vekk meg")
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_alarm_tomorrow_with_time(self):
         dt, rem = self._dt("sett en alarm klokka 07:30 i morgen")
         self.assertEqual(dt, datetime(2017, 6, 28, 7, 30))
         self.assertEqual(rem, "sett en alarm")
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_meeting_weekday_and_hour(self):
         dt, rem = self._dt("møtet er på fredag klokka 14")
         self.assertEqual(dt, datetime(2017, 6, 30, 14, 0))

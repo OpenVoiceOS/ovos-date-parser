@@ -11,7 +11,7 @@ jobs:
     uses: OpenVoiceOS/gh-automations/.github/workflows/build-tests.yml@dev
     secrets: inherit
     with:
-      python_versions: '["3.10", "3.11", "3.12"]'
+      python_versions: '["3.11", "3.12", "3.13"]'
       pre_install_pip: "pytest-timeout pytest-cov"
       # The whole directory, not a list of paths. The enumeration ran
       # 843 of the 2797 tests the tree collects, so 82 of its 89 test

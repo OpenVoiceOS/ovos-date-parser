@@ -62,7 +62,6 @@ class TestDateTimeSpansEN(SpanAssertions):
                          [("next friday at 5 pm", dt(2026, 3, 13, 17, 0)),
                           ("friday at 5 pm", dt(2026, 3, 13, 17, 0))])
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_absolute_date_with_time(self):
         self.assertDates("meeting on march 5th 2027 at 10:30", "en",
                          [("on march 5th 2027 at 10:30", dt(2027, 3, 5, 10, 30)),
@@ -155,7 +154,6 @@ class TestDateTimeSpansEN(SpanAssertions):
         self.assertDates("It will take about 2 hours, 30 minutes, and 10 "
                          "seconds", "en", [])
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_punctuation_still_separates_two_expressions(self):
         self.assertDates("meeting tomorrow, party on saturday", "en",
                          [("tomorrow", dt(2026, 3, 12)),

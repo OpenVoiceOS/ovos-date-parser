@@ -152,7 +152,6 @@ class TestExtractDatetimeArabic(unittest.TestCase):
                 self.assertEqual((result[0].hour, result[0].minute),
                                  (hour, minute))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_digit_clock_takes_the_next_reading(self):
         # a digit clock takes its next twelve-hour reading (ruling 23): at
         # 13:04, "5:30" is 17:30 that day

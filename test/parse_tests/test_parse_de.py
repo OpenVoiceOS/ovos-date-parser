@@ -184,14 +184,12 @@ class TestExtractDatetimeGerman(unittest.TestCase):
         self.assertEqual(self._extract("15. Juni um sieben uhr"),
                          ["2018-06-15 07:00:00", ""])
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_explicit_four_digit_year_still_parses(self):
         self.assertEqual(self._extract("Treffen am 15. Juni 2019"),
                          ["2019-06-15 00:00:00", "Treffen"])
         self.assertEqual(self._extract("kaufe feuerwerk am 21. juli 2020"),
                          ["2020-07-21 00:00:00", "kaufe feuerwerk"])
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_leap_day_without_year_rolls_to_next_leap_year(self):
         # 2017 is not a leap year, the next 29 Feb is in 2020
         self.assertEqual(self._extract("am 29. februar"),
@@ -321,9 +319,7 @@ class TestExtractDuration(unittest.TestCase):
             strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
     pytest.param(
         "erinnere mich um 10:45 abends",
-        "2017-06-27 22:45:00", "erinnere mich",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-06-27 22:45:00", "erinnere mich"),
     pytest.param(
         "was ist das Wetter am freitag morgen",
         "2017-06-30 07:30:00", "was ist das Wetter",
@@ -336,9 +332,7 @@ class TestExtractDuration(unittest.TestCase):
             strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param(
         "am montag bestelle kuchen von der bäckerei",
-        "2017-07-03 00:00:00", "bestelle kuchen von der bäckerei",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-07-03 00:00:00", "bestelle kuchen von der bäckerei"),
     pytest.param(
         "spiele happy birthday musik 5 jahre von heute",
         "2022-06-27 00:00:00", "spiele happy birthday musik",
@@ -356,14 +350,10 @@ class TestExtractDuration(unittest.TestCase):
             strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")),
     pytest.param(
         "erinnere mich mama anzurufen am dritten august",
-        "2017-08-03 00:00:00", "erinnere mich mama anzurufen",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-08-03 00:00:00", "erinnere mich mama anzurufen"),
     pytest.param(
         "kaufe feuerwerk am einundzwanzigsten juli",
-        "2017-07-21 00:00:00", "kaufe feuerwerk",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-07-21 00:00:00", "kaufe feuerwerk"),
     pytest.param(
         "wie ist das wetter 2 wochen ab nächsten freitag",
         "2017-07-14 00:00:00", "wie ist das wetter",
@@ -406,9 +396,7 @@ class TestExtractDuration(unittest.TestCase):
             strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
     pytest.param(
         "wie ist das wetter an diesem donnerstag?",
-        "2017-06-29 00:00:00", "wie ist das wetter",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-06-29 00:00:00", "wie ist das wetter"),
     pytest.param(
         "vereinbare den besuch für 2 wochen und 6 tage ab samstag",
         "2017-07-21 00:00:00", "vereinbare den besuch für",
@@ -416,14 +404,10 @@ class TestExtractDuration(unittest.TestCase):
             strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")),
     pytest.param(
         "beginne die invasion um 03:45 am donnerstag",
-        "2017-06-29 03:45:00", "beginne die invasion",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-06-29 03:45:00", "beginne die invasion"),
     pytest.param(
         "lass uns treffen um 8:00 abends",
-        "2017-06-27 20:00:00", "lass uns treffen",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-06-27 20:00:00", "lass uns treffen"),
 ])
 def test_extractdatetime_de_gaps(text, expected_date, expected_leftover):
     extracted, leftover = extract_datetime(text, lang='de-de',

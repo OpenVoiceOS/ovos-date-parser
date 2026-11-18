@@ -113,7 +113,6 @@ class TestAbsoluteDates(unittest.TestCase):
 
 
 class TestClock(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1043")
     def test_time_rolls_to_next_day(self):
         # a digit clock takes its next twelve-hour reading (ruling 23): at
         # 13:30, "10:45" is 22:45 that day

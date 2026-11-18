@@ -12,10 +12,8 @@ import pytest
 
 from ovos_date_parser import extract_datetime
 
-MARKER_STRAND = "https://github.com/TigreGotico/chronologia/issues/996"
 TWELVE_AT_NIGHT = "https://github.com/TigreGotico/chronologia/issues/1002"
 HOUR_WITH_DAYPART = "https://github.com/TigreGotico/chronologia/issues/1002"
-DIGIT_CLOCK = "https://github.com/TigreGotico/chronologia/issues/1043"
 
 DAY = datetime(2026, 10, 23)
 ANCHORS = [
@@ -69,7 +67,6 @@ def anchored(text, rows):
             for anchor, value in rows]
 
 
-@pytest.mark.xfail(strict=True, reason=MARKER_STRAND)
 @pytest.mark.parametrize("text,anchor,expected", [
     *anchored("at 18:00", [(a, next_after(a, 18, 0)) for a in ANCHORS]),
     *anchored("at 13:00", [(a, next_after(a, 13, 0)) for a in ANCHORS]),
@@ -158,20 +155,13 @@ def earliest_after(anchor, hour, minute):
 
 
 def _digit_clock_rows():
-    """Each row fails on the clock (ruling 23) where its two readings differ,
-    and on the "at" left in the remainder everywhere."""
     for hour in range(1, 12):
         for minute in (15, 30, 45):
             for anchor in BARE_MINUTES_ANCHORS:
-                expected = earliest_after(anchor, hour, minute)
-                reason = (MARKER_STRAND
-                          if expected == next_after(anchor, hour, minute)
-                          else DIGIT_CLOCK)
                 text = f"at {hour}:{minute}"
                 yield pytest.param(
-                    text, anchor, expected,
-                    id=f"{text}@{anchor.isoformat()}",
-                    marks=pytest.mark.xfail(strict=True, reason=reason))
+                    text, anchor, earliest_after(anchor, hour, minute),
+                    id=f"{text}@{anchor.isoformat()}")
 
 
 # A digit clock "H:MM" with no am/pm word or part of the day takes the
@@ -187,14 +177,12 @@ def test_a_digit_clock_takes_the_next_twelve_hour_reading(text, anchor,
 
 
 class TestDigitClockHours(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason=DIGIT_CLOCK)
     def test_after_the_afternoon_hour_in_the_same_hour(self):
         # ruling 23: 13:45 is the next reading of "1:45" after 13:10
         anchor = datetime(2026, 10, 23, 13, 10)
         got = extract_datetime("at 1:45", lang="en-US", anchorDate=anchor)
         self.assertEqual(got[0], datetime(2026, 10, 23, 13, 45))
 
-    @pytest.mark.xfail(strict=True, reason=DIGIT_CLOCK)
     def test_a_named_today_keeps_the_afternoon_reading(self):
         # ruling 23: "today" names no part of the day, so "3:30" said at
         # 15:00 is 15:30

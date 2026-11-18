@@ -86,7 +86,6 @@ class TestFirstOfTheMonth(unittest.TestCase):
     def test_first_of_this_month_is_in_the_past(self):
         self.assertEqual(parse("the first of this month")[0], at(2026, 10, 1))
 
-    @pytest.mark.xfail(strict=True, reason=MARKER_STRAND)
     def test_inside_a_sentence(self):
         d, rest = parse("pay the rent on the first of the month")
         self.assertEqual(d, at(2026, 11, 1))
@@ -144,7 +143,6 @@ class TestLastDayOfMonth(unittest.TestCase):
         self.assertEqual(parse("the last day of next month", anchor)[0],
                          at(2026, 2, 28))
 
-    @pytest.mark.xfail(strict=True, reason=MARKER_STRAND)
     def test_inside_a_sentence(self):
         d, rest = parse("the report is due on the last day of the month")
         self.assertEqual(d, at(2026, 10, 31))
@@ -171,7 +169,6 @@ class TestMonthThenSpelledOrdinal(unittest.TestCase):
     def test_with_year(self):
         self.assertEqual(parse("november fifth 1955")[0], at(1955, 11, 5))
 
-    @pytest.mark.xfail(strict=True, reason=MARKER_STRAND)
     def test_inside_a_sentence(self):
         d, rest = parse("the party is on july second")
         self.assertEqual(d, at(2027, 7, 2))
@@ -266,6 +263,7 @@ class TestAfterAMonthDay(unittest.TestCase):
         self.assertEqual(d, at(2027, 7, 4))
         self.assertEqual(rest, "after")
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1098")
     def test_after_day_then_month(self):
         d, rest = parse("after the fourth of july")
         self.assertEqual(d, at(2027, 7, 4))

@@ -218,10 +218,7 @@ class TestNextMonthNamedAsTheCurrentMonth(unittest.TestCase):
         self.assertEqual(_dt("el mes de octubre"), datetime(2026, 10, 1))
 
 
-@pytest.mark.parametrize("text", [
-    pytest.param(text, marks=pytest.mark.xfail(
-        strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996"))
-    for text in ("el próximo viernes", "el siguiente viernes")])
+@pytest.mark.parametrize("text", ["el próximo viernes", "el siguiente viernes"])
 def test_next_friday_from_a_friday_takes_its_article(text):
     """The article that opens the date leaves with it."""
     res = extract_datetime(text, lang="es-ES", anchorDate=FRIDAY)

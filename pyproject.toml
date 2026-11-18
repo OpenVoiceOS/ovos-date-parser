@@ -8,7 +8,7 @@ description = "OpenVoiceOS's multilingual date and time parsing and formatting l
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "JarbasAI", email = "jarbasai@mailfence.com" },
 ]
@@ -17,9 +17,9 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Text Processing :: Linguistic",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "python-dateutil>=2.6",
@@ -45,7 +45,7 @@ dependencies = [
     # gives a lone spoken hour its next twelve-hour reading (ruling 17: "об
     # 11" said at 13:04 is 23:00). 0.32.9a1 reads a bare hour before a
     # counted noun as a count (ruling 22: nl "om 3 redenen" is no time).
-    "chronologia>=0.32.9a1",
+    "chronologia>=0.35.2a1",
 ]
 dynamic = ["version"]
 

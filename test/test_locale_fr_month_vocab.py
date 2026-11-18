@@ -6,14 +6,14 @@ overwrote with Kabyle (``months.voc``, ``unit_day.voc``, ``unit_year.voc``,
 shipped in 0.31.3a4 to 0.31.3a7).  With Kabyle in those files every scoped
 French phrase below returns ``None``.
 
-Two tripwires follow.  ``months.voc`` must still carry the month names the
-language's own extractor module hard-codes -- that source is not writable by
-the translation app, so it is the reference for what language a folder is
-in, and it is the check that a whole foreign month table fails.  A ``.voc``
+Two tripwires follow.  ``months.voc`` must still carry the month names that
+the language's own date extractor hard-coded -- that source was not writable
+by the translation app, so its table, kept below, is the reference for what
+language a folder is in, and it is the check that a whole foreign month
+table fails.  A ``.voc``
 file may carry another language's month name only when that name is also a
 month of its own language (``marzo`` is both Spanish and Italian).
 """
-import ast
 import os
 import shutil
 import unicodedata
@@ -30,15 +30,57 @@ LOCALE_DIR = os.path.join(PACKAGE_DIR, "locale")
 LANGS = sorted(d for d in os.listdir(LOCALE_DIR)
                if os.path.isdir(os.path.join(LOCALE_DIR, d)))
 
+# The 12 month names each language's date extractor hard-coded in
+# ``dates_<lang>.py``, lower-cased. chronologia reads dates now and the
+# extractors are gone, so their tables are kept here as the reference.
+_EXTRACTOR_MONTHS = {
+    "an": ["chinero", "febrero", "marzo", "abril", "mayo", "chunyo",
+        "chuliol", "agosto", "setiembre", "octubre", "noviembre",
+        "deciembre"],
+    "ast": ["xineru", "febreru", "marzu", "abril", "mayu", "xunu", "xunetu",
+        "agostu", "setiembre", "ochobre", "payares", "avientu"],
+    "az": ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul",
+        "avqust", "sentyabr", "oktyabr", "moyabr", "dekabr"],
+    "ca": ["gener", "febrer", "març", "abril", "maig", "juny", "juliol",
+        "agost", "setembre", "octubre", "novembre", "desembre"],
+    "da": ["januar", "februar", "marts", "april", "maj", "juni", "juli",
+        "august", "september", "oktober", "november", "december"],
+    "de": ["januar", "februar", "märz", "april", "mai", "juni", "juli",
+        "august", "september", "oktober", "november", "dezember"],
+    "el": ["ιανουαριου", "φεβρουαριου", "μαρτιου", "απριλιου", "μαιου",
+        "ιουνιου", "ιουλιου", "αυγουστου", "σεπτεμβριου", "οκτωβριου",
+        "νοεμβριου", "δεκεμβριου"],
+    "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+        "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+    "eu": ["urtarrila", "otsaila", "martxoa", "apirila", "maiatza", "ekaina",
+        "uztaila", "abuztua", "iraila", "urria", "azaroa", "abendua"],
+    "fr": ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+        "août", "septembre", "octobre", "novembre", "décembre"],
+    "fy": ["jannewaris", "febrewaris", "maart", "april", "maaie", "juny",
+        "july", "augustus", "septimber", "oktober", "novimber", "desimber"],
+    "gl": ["xaneiro", "febreiro", "marzo", "abril", "maio", "xuño", "xullo",
+        "agosto", "setembro", "outubro", "novembro", "decembro"],
+    "it": ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+        "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
+    "nl": ["januari", "februari", "maart", "april", "mei", "juni", "juli",
+        "augustus", "september", "oktober", "november", "december"],
+    "oc": ["genier", "febrier", "març", "abril", "mai", "junh", "julhet",
+        "agost", "setembre", "octobre", "novembre", "decembre"],
+    "pt": ["janeiro", "fevereiro", "marco", "abril", "maio", "junho",
+        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+    "ro": ["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
+        "iulie", "august", "septembrie", "octombrie", "noiembrie",
+        "decembrie"],
+    "sv": ["januari", "februari", "mars", "april", "maj", "juni", "juli",
+        "augusti", "september", "oktober", "november", "december"],
+}
+
 # The languages whose month names the foreign check knows about. A locale
 # folder is only one of the languages this package understands: the
-# extractor modules carry a month table for languages that ship no folder,
-# and a swap from one of those is the same defect. Built from the modules,
-# not from LANGS, so the set does not shrink to the folders that exist.
-MONTH_LANGS = sorted(
-    name[len("dates_"):-len(".py")]
-    for name in os.listdir(PACKAGE_DIR)
-    if name.startswith("dates_") and name.endswith(".py"))
+# extractors carried a month table for languages that ship no folder, and a
+# swap from one of those is the same defect. Built from the tables, not from
+# LANGS, so the set does not shrink to the folders that exist.
+MONTH_LANGS = sorted(_EXTRACTOR_MONTHS)
 
 REF = date(2026, 9, 19)
 
@@ -83,30 +125,9 @@ def test_french_vocab_is_french(vocab_fr):
 
 
 def _module_months(lang):
-    """The 12 month names hard-coded in ``dates_<lang>.py``.
-
-    These live in the extractor source, which the translation app never
-    writes, so they are the reference for what language a locale folder
-    is supposed to be in.
-    """
-    path = os.path.join(PACKAGE_DIR, f"dates_{lang}.py")
-    if not os.path.isfile(path):
-        return None
-    with open(path, encoding="utf-8") as handle:
-        tree = ast.parse(handle.read())
-    found = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Assign):
-            continue
-        if not any(getattr(t, "id", "") == "months" for t in node.targets):
-            continue
-        value = node.value
-        if (isinstance(value, ast.List) and len(value.elts) == 12
-                and all(isinstance(e, ast.Constant) for e in value.elts)):
-            found.append([e.value.lower() for e in value.elts])
-    if len(found) != 1:
-        return None
-    return found[0]
+    """The 12 month names the ``dates_<lang>.py`` extractor hard-coded, or
+    None for a language that had no single table."""
+    return _EXTRACTOR_MONTHS.get(lang)
 
 
 def _voc_lines(path):
@@ -119,13 +140,13 @@ def test_months_voc_matches_the_extractor(lang):
     """``months.voc`` is still in its own language.
 
     A folder keeps a small licence to differ from the extractor source:
-    ``locale/pt/months.voc`` writes ``março`` where ``dates_pt.py`` writes
+    ``locale/pt/months.voc`` writes ``março`` where ``dates_pt.py`` wrote
     the ASCII ``marco``.  A whole month table from another language keeps
     none of the 12 names, so the majority rule still catches it.
     """
     expected = _module_months(lang)
     if expected is None:
-        pytest.skip(f"dates_{lang}.py declares no single month table")
+        pytest.skip(f"dates_{lang}.py had no single month table")
     lines = _voc_lines(os.path.join(LOCALE_DIR, lang, "months.voc"))
     kept = [m for m in expected if m in lines]
     assert len(kept) >= 9, (
@@ -141,13 +162,13 @@ def _unaccented(word):
 def _foreign_offenders(lang, lang_dir):
     """Lines in ``lang_dir`` that are another shipped language's month name.
 
-    "Another language" is every ``dates_<lang>.py`` that declares one
+    "Another language" is every ``dates_<lang>.py`` extractor that had one
     12-name month table, not the locale folders alone. Of the 13 languages
     with a month table and no folder, a whole-table swap of 10 is caught by
     names they happen to share with the folders; az, el and eu share none,
     so reading LANGS alone passed them in silence.
 
-    "Own" comes from the extractor source alone, each name with its accents
+    "Own" comes from the extractor table alone, each name with its accents
     and without them: ``locale/fr`` writes ``decembre`` beside ``décembre``
     for a transcript with no accents, and that spelling is French even
     though Occitan writes its own December the same way. Reading
@@ -210,15 +231,15 @@ def test_a_swap_from_a_language_with_no_locale_folder_is_caught(tmp_path,
                                                                 other):
     """The three swaps the folder-only foreign set passed in silence.
 
-    ``dates_az.py``, ``dates_el.py`` and ``dates_eu.py`` each declare a
-    month table and ship no ``locale/`` folder. Their names are shared with
+    The ``dates_az.py``, ``dates_el.py`` and ``dates_eu.py`` extractors
+    each had a month table, and the languages ship no ``locale/`` folder. Their names are shared with
     none of the folders that do ship, so a whole table written over
     ``locale/fr/months.voc`` kept no name the check knew, and the locale
     read as clean. The other ten languages in the same position were caught
     only by coincidental shared names, which is luck, not a check.
     """
     names = _module_months(other)
-    assert names, f"dates_{other}.py declares no single month table"
+    assert names, f"dates_{other}.py had no single month table"
 
     swapped = tmp_path / "fr"
     shutil.copytree(os.path.join(LOCALE_DIR, "fr"), swapped)
@@ -237,8 +258,8 @@ def test_the_foreign_set_reads_the_modules_not_the_locale_folders():
 
     Every language with a month table takes part, including those with no
     locale folder; LANGS stays the set of folders to scan. The 18 languages
-    below each declare a 12-name month table, so a set that drops any of
-    them fails here; a new module with a table only widens it.
+    below each had a 12-name month table, so a set that drops any of
+    them fails here.
     """
     with_tables = {lang for lang in MONTH_LANGS if _module_months(lang)}
     assert with_tables >= {

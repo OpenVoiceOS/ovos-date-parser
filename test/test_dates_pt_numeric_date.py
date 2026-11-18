@@ -9,7 +9,6 @@ import unittest
 from datetime import datetime
 
 from ovos_date_parser import extract_datetime
-from ovos_date_parser.dates_pt import extract_datetime_pt
 
 ANCHOR = datetime(2026, 11, 12, 10, 0)
 
@@ -43,15 +42,6 @@ class TestPortugueseNumericDate(unittest.TestCase):
                         anchorDate=ANCHOR, lang=lang),
                     [datetime(2027, 1, 5, 15, 30), "marca reunião por favor"])
 
-    def test_a_slash_number_before_a_unit_is_no_count(self):
-        # "25/12" or "1/2" before "dia", "semana", "mês" or "ano" is not a
-        # whole count of that unit; the legacy reader reads no date from it
-        for text in ("em 25/12, dia de natal", "daqui a 1/2 semana",
-                     "daqui a 1/2 mês", "daqui a 1/2 ano", "há 1/2 ano",
-                     "há 1/2 semana"):
-            with self.subTest(text=text):
-                self.assertIsNone(extract_datetime_pt(text,
-                                                      anchorDate=ANCHOR))
 
     def test_a_day_of_the_month(self):
         # "no dia 3" is the next 3rd of a month (ruling 13 of the chronologia

@@ -7,7 +7,6 @@ import pytest
 from ovos_date_parser import (extract_datetime, extract_duration, nice_time,
                               nice_duration, nice_weekday, nice_month,
                               nice_year, nice_date)
-from ovos_date_parser.dates_et import extract_duration_et
 
 # Wednesday 10 January 2024, 12:00
 ANCHOR = datetime(2024, 1, 10, 12, 0)
@@ -193,10 +192,6 @@ class TestExtractDurationAdversarialEt(unittest.TestCase):
     def test_number_without_unit(self):
         dur, _ = extract_duration("viis", "et")
         self.assertIsNone(dur)
-
-    def test_direct_function_matches_dispatch(self):
-        self.assertEqual(extract_duration_et("kaks tundi")[0],
-                         timedelta(hours=2))
 
 
 class TestRealSentencesEt(unittest.TestCase):

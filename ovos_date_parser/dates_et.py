@@ -1,4 +1,4 @@
-"""Estonian date and time parsing and formatting.
+"""Estonian date and time formatting.
 
 Estonian, like Finnish, is agglutinative and case-rich: numerals below a
 hundred that are not round agglutinate ("kaksteist" = 12, "kakskümmend" = 20)

@@ -1,4 +1,4 @@
-"""Norwegian Bokmål (nb) date and time parsing.
+"""Norwegian Bokmål (nb) date and time formatting.
 
 Ported from the Danish (da) module — the nearest Scandinavian relative —
 and adapted to Bokmål orthography and the modern tens-first counting

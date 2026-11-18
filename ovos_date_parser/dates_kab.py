@@ -9,7 +9,7 @@ words that carry daily usage (ddqiqa "minute", ssaɛa "hour").
 Spoken clock phrases (e.g. "d lɛecṛa u ṛbeɛ", "d juǧ n uzal") are built
 around the presentative particle "d" ("it is"), the additive/subtractive
 conjunctions "u"/"ɣiṛ", and a closed set of fraction and day-period
-words - see `_extract_spoken_time_kab` below.
+words.
 
 Sources:
 - https://kab.wikipedia.org/wiki/Yennayer (month names)

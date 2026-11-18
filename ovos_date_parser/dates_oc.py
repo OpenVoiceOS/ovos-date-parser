@@ -1,4 +1,4 @@
-"""Occitan date/time parsing and formatting.
+"""Occitan date and time formatting.
 
 Classical orthography (norma classica), Lengadocian referential variety.
 

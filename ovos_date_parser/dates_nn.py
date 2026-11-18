@@ -1,4 +1,4 @@
-"""Norwegian Nynorsk (nn) date and time parsing.
+"""Norwegian Nynorsk (nn) date and time formatting.
 
 Ported from the Danish (da) module — the nearest Scandinavian relative —
 and adapted to Nynorsk orthography and the modern tens-first counting

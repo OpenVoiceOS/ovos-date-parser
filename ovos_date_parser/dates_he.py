@@ -1,5 +1,5 @@
 # Copyright OpenVoiceOS
-"""Hebrew date and time formatting and extraction.
+"""Hebrew date and time formatting, and the Hebrew duration lexicon.
 
 Grammatical gender scope
 ------------------------
@@ -20,21 +20,6 @@ Modern Hebrew tells the clock one way: feminine hour cardinals with the
 half/quarter idioms (שלוש וחצי, רבע לארבע). There is no second colloquial
 register comparable to Catalan "quarts", so no register parameter is
 offered; ``nice_time_he`` keeps this single sensible default.
-
-Extraction scope
-----------------
-``extract_datetime_he`` recognises relative day words, weekday names
-(with or without a ב/ל proclitic), "in N <unit>" / "N <unit> ago"
-offsets in both masculine and feminine spoken forms (routed through the
-number normaliser), the dual nouns יומיים/שבועיים/חודשיים/שנתיים/שעתיים,
-relative hour/minute/second offsets (בעוד N שעות/דקות) including "וחצי"
-/"ורבע" fractions of an hour, explicit "N of <month> [year]" dates (a
-month with a year but no day resolves to the first of the month), and
-clock times given as ``HH:MM``, "בשעה N", or "רבע ל<hour>". A part-of-day
-word (בבוקר/אחר הצהריים/בערב/בלילה) shifts a spoken or absolute hour into
-the right half of the day. Spoken minute compounds beyond half and
-quarter are out of scope: an unrecognised time is left in the returned
-remainder rather than guessed at.
 """
 from datetime import datetime
 

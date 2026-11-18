@@ -1,4 +1,4 @@
-"""Finnish date and time parsing and formatting.
+"""Finnish date and time formatting.
 
 Finnish is agglutinative and heavily inflected: numerals concatenate
 ("kaksikymmentäyksi" = 21) and the noun that follows a numeral greater than

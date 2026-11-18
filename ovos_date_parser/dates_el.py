@@ -1,4 +1,4 @@
-"""Modern Greek (el) date and time formatting and extraction.
+"""Modern Greek (el) date and time formatting, and the Greek duration lexicon.
 
 Gender and case scope
 ----------------------
@@ -21,10 +21,7 @@ conventions and stays inside them:
 Modern Greek clock-telling has a single colloquial standard (the hour
 followed by ``και``/``παρά`` with ``μισή``/``τέταρτο`` or a minute count);
 there is no second legitimate register comparable to the Catalan "quarts"
-system, so :func:`nice_time_el` exposes no register parameter. The
-extraction side accepts every verifiable spoken variant: numerals spelled
-out in words (routed through the number parser), the gendered hour forms
-μία/τρεις/τέσσερις, and the ``και``/``παρά`` + ``μισή``/``τέταρτο`` idioms.
+system, so :func:`nice_time_el` exposes no register parameter.
 
 Copyright: OpenVoiceOS
 """

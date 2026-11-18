@@ -341,8 +341,7 @@ def _xfail(issue):
     # the next 16:30 after Saturday 12:00 is the same day (class 3)
     pytest.param("por la tarde a las 4:30", datetime(2026, 10, 17, 16, 30),
                  marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1002")),
-    pytest.param("tarde a las 4:30", datetime(2026, 10, 17, 16, 30),
-                 marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1002")),
+    pytest.param("tarde a las 4:30", datetime(2026, 10, 17, 16, 30)),
     # the middle of the CLDR es morning band 06:00-12:00, on Sunday 18
     pytest.param("cada mañana", datetime(2026, 10, 18, 9),
                  marks=_xfail("https://github.com/TigreGotico/chronologia/issues/1034")),

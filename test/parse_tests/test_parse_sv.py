@@ -174,9 +174,7 @@ REMAINDER = pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceO
     # a part of the day answers the middle of its band (ruling 10)
     pytest.param(
         "vad blir vädret på fredag morgon",
-        "2017-06-30 07:30:00", "vad blir vädret",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+        "2017-06-30 07:30:00", "vad blir vädret"),
 ])
 def test_extractdatetime_sv_gaps(text, expected_date, expected_leftover):
     extracted, leftover = extract_datetime(text, lang="sv-se",

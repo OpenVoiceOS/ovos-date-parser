@@ -63,7 +63,6 @@ class TestDayAfterBefore(unittest.TestCase):
     def test_day_before_day_before_yesterday(self):
         self.assertEqual(_dt("de dag voor eergisteren"), datetime(2026, 10, 14))
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_removes_phrase_from_remainder(self):
         res = extract_datetime("weer op de dag na vandaag",
                                lang="nl-NL", anchorDate=ANCHOR)

@@ -33,15 +33,9 @@ def _rows(rows, defects):
 # The preposition before a date or a clock belongs to it, so it is not
 # left over.
 _AFTER_DEFECTS = {
-    "remind me on friday; thanks": "https://github.com/TigreGotico/chronologia/issues/996",
-    "remind me on december 25th! ok": "https://github.com/TigreGotico/chronologia/issues/996",
-    "erinnere mich am montag, danke": "https://github.com/TigreGotico/chronologia/issues/996",
     "ricordamelo (il 25 dicembre) grazie": "https://github.com/TigreGotico/chronologia/issues/996",
 }
 _INSIDE_DEFECTS = {
-    "remind me at 8:30 p.m. thanks": "https://github.com/TigreGotico/chronologia/issues/996",
-    "erinnere mich am 3.5.2025 danke": "https://github.com/TigreGotico/chronologia/issues/996",
-    "erinnere mich am 3. Dezember danke": "https://github.com/TigreGotico/chronologia/issues/996",
     "lembra-me no dia 3 dez. obrigado": "https://github.com/TigreGotico/chronologia/issues/992",
     "erinnere mich um 8.30 uhr danke": "https://github.com/TigreGotico/chronologia/issues/1032",
 }

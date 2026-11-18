@@ -243,9 +243,7 @@ ANCHOR = datetime(2017, 6, 27, 13, 4, tzinfo=default_timezone())
     pytest.param("فردا بعد از ظهر", "2017-06-28 15:30:00", "",
                  marks=pytest.mark.xfail(
                      strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
-    pytest.param("ساعت ۱۴:۳۰", "2017-06-27 14:30:00", "",
-                 marks=pytest.mark.xfail(
-                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param("ساعت ۱۴:۳۰", "2017-06-27 14:30:00", ""),
 ])
 def test_extractdatetime_open_fa(text, expected, remainder):
     found = extract_datetime(text, ANCHOR)

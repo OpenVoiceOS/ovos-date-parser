@@ -29,6 +29,7 @@ from ovos_date_parser.ranges import (
     date_to_season, season_to_date, next_season_date, last_season_date,
 )
 from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
+from ovos_spec_tools import standardize_lang
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
 from ovos_date_parser.scoped_en import extract_scoped_date_en
@@ -178,6 +179,20 @@ from ovos_date_parser.dates_uk import (
 from ovos_date_parser.dates_ms import nice_time_ms, extract_datetime_ms
 from ovos_date_parser.dates_id import nice_time_id, extract_datetime_id
 from ovos_date_parser.dates_tr import nice_time_tr, extract_datetime_tr
+
+
+def _reader_lang(lang: str) -> str:
+    """The tag a reader answers for.
+
+    The language takes its shortest standard code ("deu" is "de", "iw" is
+    "he"), and "no", Norwegian in general, reads as its written standard
+    Bokmål, "nb". A tag reads the same in any case and with "_" for "-".
+    """
+    primary, dash, rest = lang.lower().replace("_", "-").partition("-")
+    primary = standardize_lang(primary).lower() if primary else primary
+    if primary == "no":
+        primary = "nb"
+    return primary + dash + rest
 
 
 def _as_datetime(dt):
@@ -408,7 +423,8 @@ def extract_duration(
         A tuple containing the duration (timedelta, relativedelta or
         float depending on resolution) and the remaining text.
     """
-    code = lang.split("-")[0].lower()
+    lang = _reader_lang(lang)
+    code = lang.split("-")[0]
     if (text and code in CHRONOLOGIA_DURATION_LOCALES
             and resolution == DurationResolution.TIMEDELTA
             and not replace_token):
@@ -758,7 +774,7 @@ def extract_datetime(
     """
     if not text:
         return None
-    lang = lang.lower().replace("_", "-")
+    lang = _reader_lang(lang)
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
     routed = lang.split("-")[0] in CHRONOLOGIA_LOCALES

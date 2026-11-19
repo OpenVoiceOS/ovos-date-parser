@@ -150,6 +150,20 @@ def _reader_lang(lang: str) -> str:
     return primary + dash + rest
 
 
+def _reader_lang(lang: str) -> str:
+    """The tag a reader answers for.
+
+    The language takes its shortest standard code ("deu" is "de", "iw" is
+    "he"), and "no", Norwegian in general, reads as its written standard
+    Bokmål, "nb". A tag reads the same in any case and with "_" for "-".
+    """
+    primary, dash, rest = lang.lower().replace("_", "-").partition("-")
+    primary = standardize_lang(primary).lower() if primary else primary
+    if primary == "no":
+        primary = "nb"
+    return primary + dash + rest
+
+
 def _as_datetime(dt):
     """Coerce an :class:`AstroDate` to a real ``datetime`` when it fits one.
 

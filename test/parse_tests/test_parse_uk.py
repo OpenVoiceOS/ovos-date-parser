@@ -1,14 +1,14 @@
 import unittest
 from datetime import datetime
 
-from ovos_date_parser.dates_uk import extract_datetime_uk
+from ovos_date_parser import extract_datetime
 
 # A fixed Tuesday afternoon anchor keeps every assertion deterministic.
 ANCHOR = datetime(2017, 6, 27, 13, 0, 0)
 
 
 def _dt(text):
-    return extract_datetime_uk(text, anchor_date=ANCHOR)
+    return extract_datetime(text, "uk", anchorDate=ANCHOR)
 
 
 class TestUkrainianRelativeDays(unittest.TestCase):
@@ -78,7 +78,7 @@ class TestUkrainianClockTimes(unittest.TestCase):
 
 class TestUkrainianAdversarial(unittest.TestCase):
     def test_empty_returns_none(self):
-        self.assertIsNone(extract_datetime_uk("", anchor_date=ANCHOR))
+        self.assertIsNone(_dt(""))
 
     def test_no_date_returns_none(self):
         self.assertIsNone(_dt("юнк текст без дати"))

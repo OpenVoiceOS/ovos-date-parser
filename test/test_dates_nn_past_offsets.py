@@ -21,17 +21,18 @@ def _dt(text):
 
 
 class TestPastMarkerOffsets(unittest.TestCase):
+    # a counted offset keeps the anchor's clock (routing ruling, class 1)
     def test_past_0(self):
-        self.assertEqual(_dt('2 veker sidan'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('2 veker sidan'), datetime(2017, 6, 13, 13, 4))
 
     def test_past_1(self):
-        self.assertEqual(_dt('3 dagar sidan'), datetime(2017, 6, 24))
+        self.assertEqual(_dt('3 dagar sidan'), datetime(2017, 6, 24, 13, 4))
 
     def test_past_2(self):
-        self.assertEqual(_dt('4 år sidan'), datetime(2013, 6, 27))
+        self.assertEqual(_dt('4 år sidan'), datetime(2013, 6, 27, 13, 4))
 
     def test_sentence_context(self):
-        self.assertEqual(_dt('det hende 2 veker sidan'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('det hende 2 veker sidan'), datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         # future offset minus past offset == 2x the offset

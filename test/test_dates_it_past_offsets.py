@@ -11,6 +11,7 @@ from datetime import datetime
 from ovos_date_parser import extract_datetime
 
 ANCHOR = datetime(2017, 6, 27, 13, 4)  # fixed, deliberately non-midnight
+# A counted offset is arithmetic on the anchor and keeps its clock (class 1).
 
 
 def _dt(text):
@@ -22,19 +23,19 @@ def _dt(text):
 
 class TestPastMarkerOffsets(unittest.TestCase):
     def test_past_0(self):
-        self.assertEqual(_dt('2 settimane fa'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('2 settimane fa'), datetime(2017, 6, 13, 13, 4))
 
     def test_past_1(self):
-        self.assertEqual(_dt('3 giorni fa'), datetime(2017, 6, 24))
+        self.assertEqual(_dt('3 giorni fa'), datetime(2017, 6, 24, 13, 4))
 
     def test_past_2(self):
-        self.assertEqual(_dt('2 mesi fa'), datetime(2017, 4, 27))
+        self.assertEqual(_dt('2 mesi fa'), datetime(2017, 4, 27, 13, 4))
 
     def test_past_3(self):
-        self.assertEqual(_dt('4 anni fa'), datetime(2013, 6, 27))
+        self.assertEqual(_dt('4 anni fa'), datetime(2013, 6, 27, 13, 4))
 
     def test_sentence_context(self):
-        self.assertEqual(_dt('è successo 2 settimane fa'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('è successo 2 settimane fa'), datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         # future offset minus past offset == 2x the offset

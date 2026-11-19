@@ -1,6 +1,8 @@
 import unittest
 from datetime import datetime, time
 
+import pytest
+
 from ovos_date_parser import extract_datetime
 
 
@@ -37,7 +39,8 @@ class TestExtractDateTimeSL(unittest.TestCase):
         self.extract("v soboto", datetime(2023, 6, 10, 0, 0))
 
     def test_in_5_days(self):
-        self.extract("čez 5 dni", datetime(2023, 6, 11, 0, 0))
+        # a counted offset keeps the anchor clock (class 1)
+        self.extract("čez 5 dni", datetime(2023, 6, 11, 6, 0))
 
     def test_ordinal_date(self):
         # June 3 already passed relative to the anchor -> next year
@@ -61,16 +64,18 @@ class TestExtractDateTimeSL(unittest.TestCase):
         self.extract("opoldne", datetime(2023, 6, 6, 12, 0))
 
     def test_midnight(self):
-        self.extract("opolnoči", datetime(2023, 6, 6, 0, 0))
+        # the next midnight after 06:00 (class 3)
+        self.extract("opolnoči", datetime(2023, 6, 7, 0, 0))
 
     def test_digit_time(self):
         self.extract("ob 17:30", datetime(2023, 6, 6, 17, 30))
 
     def test_next_week(self):
-        self.extract("naslednji teden", datetime(2023, 6, 13, 0, 0))
+        # the calendar week after the anchor's, from Monday (class 2b)
+        self.extract("naslednji teden", datetime(2023, 6, 12, 0, 0))
 
     def test_last_week(self):
-        self.extract("prejšnji teden", datetime(2023, 5, 30, 0, 0))
+        self.extract("prejšnji teden", datetime(2023, 5, 29, 0, 0))
 
     def test_in_10_minutes(self):
         self.extract("čez 10 minut", datetime(2023, 6, 6, 6, 10))
@@ -79,6 +84,7 @@ class TestExtractDateTimeSL(unittest.TestCase):
         self.extract("jutri ob pol devetih zvečer",
                      datetime(2023, 6, 7, 20, 30))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_leftover_text(self):
         self.extract("nastavi opomnik za jutri", datetime(2023, 6, 7, 0, 0),
                      "nastavi opomnik")
@@ -98,6 +104,9 @@ class TestExtractDateTimeSL(unittest.TestCase):
         # 29 February does not exist in 2023 or 2024 is the next leap year;
         # the reference must not raise and must land on a real 29 February
         self.extract("29. februarja", datetime(2024, 2, 29, 0, 0))
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")
+    def test_leap_day_leftover_text(self):
         self.extract("nastavi opomnik za 29. februarja",
                      datetime(2024, 2, 29, 0, 0), "nastavi opomnik")
 
@@ -123,8 +132,8 @@ class TestExtractDateTimeSL(unittest.TestCase):
                      datetime(2025, 1, 1, 20, 0))
 
     def test_bare_month_defaults_to_first(self):
-        # "junij" alone; 1 June already passed -> next year
-        self.extract("junij", datetime(2024, 6, 1, 0, 0))
+        # ruling 1: June holds the anchor, so "junij" is this June
+        self.extract("junij", datetime(2023, 6, 1, 0, 0))
 
 
 if __name__ == "__main__":

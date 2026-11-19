@@ -11,6 +11,15 @@ from ovos_date_parser.duration import (
 )
 
 _ARTICLES_FR = ["le", "la", "du", "de", "les", "des"]
+# Typed and transcribed French often drops the accent of "à": "réveille-moi
+# a 7h". A plain "a" is otherwise the verb "avoir", so it is a time marker
+# only when no subject of "avoir" stands before it: "il y a 7 heures" and
+# "elle a 2h de route" are lengths of time, not the hour.
+_AVOIR_SUBJECTS_FR = ["y", "il", "elle", "on", "qui", "ça", "cela"]
+
+
+def _unaccented_a_marker_fr(word_prev, word_prev_prev):
+    return word_prev == "a" and word_prev_prev not in _AVOIR_SUBJECTS_FR
 
 
 def nice_time_fr(dt, speech=True, use_24hour=False, use_ampm=False):
@@ -228,7 +237,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
         elif word in ["semaine", "semaines"] and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "il y a N ..." = N periods in the past (Larousse)
                 if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
                     dayOffset -= int(wordPrev) * 7
@@ -246,7 +255,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 10 mois, mois prochain, mois dernier
         elif word == "mois" and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "il y a N ..." = N periods in the past (Larousse)
                 if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
                     monthOffset = -int(wordPrev)
@@ -264,7 +273,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 ans, an prochain, année dernière
         elif word in ["an", "ans", "année", "années"] and not fromFlag:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "il y a N ..." = N periods in the past (Larousse)
                 if wordPrevPrev == "a" and wordPrevPrevPrev == "y":
                     yearOffset = -int(wordPrev)
@@ -302,7 +311,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 m = monthsShort.index(word)
             used += 1
             datestr = months_en[m]
-            if wordPrev and (wordPrev[0].isdigit()):
+            if wordPrev and (wordPrev and wordPrev[0].isdigit()):
                 # keep only the leading digits so ordinals like "1er"
                 # ("1er janvier") do not leak letters into strptime
                 datestr += " " + re.match(r"\d+", wordPrev).group()
@@ -365,6 +374,8 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
     hrOffset = 0
     minOffset = 0
     secOffset = 0
+    # "dans 0 heures" is an offset even though its value is zero
+    relative = False
     hrAbs = None
     minAbs = None
     ampm = ""
@@ -380,6 +391,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
         wordNextNext = words[idx + 2] if idx + 2 < len(words) else ""
         used = 0
         start = idx
+        a_marker = False
 
         # parse midi et quart, minuit et demi, midi 10, minuit moins 20
         if word in ["midi", "minuit"]:
@@ -434,7 +446,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 start -= 1
                 used += 1
         # parse 5:00 du matin, 12:00, etc
-        elif word[0].isdigit() and _get_ordinal_fr(word) is None:
+        elif word and word[0].isdigit() and _get_ordinal_fr(word) is None:
             isTime = True
             if ":" in word or "h" in word or "min" in word:
                 # parse hours on short format
@@ -463,7 +475,28 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                 i += 1
                     elif stage == 2:
                         break
-                if wordPrev in words_in:
+                # a bare hour with no minutes and no colon ("2h", "3h") is
+                # ambiguous with a duration ("2h de route") unless a time
+                # marker, or the time-telling "il est"/"c'est", introduces
+                # it, or it opens the sentence as its own clock notation
+                # with nothing but a continuation after it ("20h", "20h
+                # 30"); "4h14" and "14:30" stay unambiguous
+                is_time_statement = ((wordPrev == "est" and
+                                       wordPrevPrev == "il") or
+                                      wordPrev == "c'est")
+                sentence_initial_clock = (
+                        wordPrev == "" and
+                        (wordNext == "" or wordNext.isdigit() or
+                         wordNext in ("et", "moins")))
+                a_marker = _unaccented_a_marker_fr(wordPrev, wordPrevPrev)
+                if (not strMM and ":" not in word and
+                        wordPrev not in markers and not a_marker and
+                        not is_time_statement and
+                        not sentence_initial_clock):
+                    isTime = False
+                    used = 0
+                elif wordPrev in words_in:
+                    relative = True
                     hrOffset = int(strHH) if strHH else 0
                     minOffset = int(strMM) if strMM else 0
                 else:
@@ -474,15 +507,27 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 # 5 hours, 10 minutes etc.
                 length = len(word)
                 ampm = ""
+                a_marker = _unaccented_a_marker_fr(wordPrev, wordPrevPrev)
                 if (
                         word.isdigit() and
-                        wordNext in ["heures", "heure"] and word != "0" and
+                        wordNext in ["heures", "heure", "h"] and
+                        (wordPrev in markers or a_marker or
+                         (wordPrev == "est" and wordPrevPrev == "il") or
+                         wordPrev == "c'est" or
+                         (wordPrev == "" and
+                          (wordNextNext == "" or wordNextNext.isdigit() or
+                           wordNextNext in ("et", "moins")))) and
                         (
                                 int(word) < 100 or
                                 int(word) > 2400
                         )):
-                    # "dans 3 heures", "à 3 heures"
+                    # "dans 3 heures", "à 3 heures", and the clock written
+                    # with a space before the "h" ("à 20 h", "20 h 30"),
+                    # which is how French typography and speech-to-text
+                    # both write it. Hour 0 is midnight, the same hour that
+                    # "minuit" gives.
                     if wordPrev in words_in:
+                        relative = True
                         hrOffset = int(word)
                     else:
                         hrAbs = int(word)
@@ -522,7 +567,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                     hrOffset -= 1
                                     minOffset = 60 - int(words[idxHr + 1])
                                 else:
-                                    hrAbs = hrAbs - 1
+                                    hrAbs = 23 if hrAbs == 0 else hrAbs - 1
                                     minAbs = 60 - int(words[idxHr + 1])
                                 used += 2
                                 idxHr += 2
@@ -531,7 +576,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                                     hrOffset -= 1
                                     minOffset = 45
                                 else:
-                                    hrAbs = hrAbs - 1
+                                    hrAbs = 23 if hrAbs == 0 else hrAbs - 1
                                     minAbs = 45
                                 used += 2
                                 idxHr += 2
@@ -543,12 +588,14 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
                 elif word.isdigit() and wordNext == "minutes":
                     # "dans 10 minutes"
                     if wordPrev in words_in:
+                        relative = True
                         minOffset = int(word)
                     else:
                         minAbs = int(word)
                     used = 2
                 elif word.isdigit() and wordNext == "secondes":
                     # "dans 5 secondes"
+                    relative = True
                     secOffset = int(word)
                     used = 2
                 elif word.isdigit() and int(word) > 100:
@@ -600,7 +647,8 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
             for i in range(0, used):
                 words[i + start] = ""
 
-            if start - 1 >= 0 and words[start - 1] in markers:
+            if start - 1 >= 0 and (words[start - 1] in markers or
+                                   (a_marker and words[start - 1] == "a")):
                 words[start - 1] = ""
 
             idx += used - 1
@@ -610,7 +658,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
     # while scanning for dates, so apply its default hour once no explicit
     # time was given
     if hrAbs is None and minAbs is None and timeQualifier and \
-            not (hrOffset or minOffset or secOffset):
+            not (relative or hrOffset or minOffset or secOffset):
         if timeQualifier == "matin":
             hrAbs = 8
         elif timeQualifier == "après-midi":
@@ -629,7 +677,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
 
     # perform date manipulation
     extractedDate = dateNow
-    if hrOffset != 0 or minOffset != 0 or secOffset != 0:
+    if relative or hrOffset != 0 or minOffset != 0 or secOffset != 0:
         # purely relative time ("dans deux heures") keeps the anchor time of day
         extractedDate = extractedDate.replace(microsecond=0, second=0)
     else:
@@ -680,7 +728,7 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
     if hrAbs != -1 and minAbs != -1:
         extractedDate = extractedDate + relativedelta(hours=hrAbs or 0,
                                                       minutes=minAbs or 0)
-        if (hrAbs or minAbs) and datestr == "":
+        if (hrAbs is not None or minAbs is not None) and datestr == "":
             if not daySpecified and dateNow > extractedDate:
                 extractedDate = extractedDate + relativedelta(days=1)
     if hrOffset != 0:
@@ -690,8 +738,8 @@ def extract_datetime_fr(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "et" and words[idx - 1] == "" and \
-                words[idx + 1] == "":
+        if word == "et" and 0 < idx < len(words) - 1 and \
+                words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 
     resultStr = " ".join(words)

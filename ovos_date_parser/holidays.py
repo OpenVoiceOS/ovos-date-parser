@@ -1,0 +1,994 @@
+"""Named holidays ("christmas", "noël", "próxima páscoa") as dates.
+
+A holiday name is a date reference like any other, but it is not a calendar
+construction: no amount of month and weekday vocabulary turns "easter" into
+28 March 2027. The rule behind the name, and the surfaces each language
+speaks it by, live in :mod:`chronologia` — the ``civil_holidays`` package
+holds the rules, and the extraction grammar of each locale holds the
+phrasings. This module is the wiring only. No holiday table, no date rule
+and no per-language holiday vocabulary is copied into this library;
+chronologia is the source, and a language chronologia carries no holiday
+data for simply extracts no holiday.
+
+Why this layer reads chronologia's trace instead of calling it through
+--------------------------------------------------------------------
+chronologia's extractor reads far more than holidays. Handing it every
+utterance this library's own engines made nothing of would quietly replace
+those engines for a whole class of inputs, and would answer "the fourteenth"
+or "in five minutes" from another library's grammar. So the answer is kept
+only when chronologia says a *holiday construction* is what won the match:
+:func:`chronologia.explain` names the construction behind every winning
+match, and the three holiday constructions are enumerated in
+:data:`_HOLIDAY_CONSTRUCTIONS`. Everything else is declined and the caller's
+"no date found" stands.
+
+Reading that trace needs chronologia's language spec, and
+:func:`ovos_date_parser.extract_datetime_spans` asks this layer about every
+window of every utterance. The spec is loaded once per language and kept
+(``load_lang_spec`` compiles a locale on every call and caches nothing,
+about a second each), and the trace itself sits behind a cheap door: a text
+written with no holiday phrase of its language never reaches it. The door is
+chronologia's table too, widened only by the leading clippings speech uses
+and by the accents a transcript drops, and it decides nothing on its own.
+
+What the answer covers is the matched construction's own extent, and nothing
+around it. chronologia states a tense inside the construction it belongs to —
+"next easter", "christmas eve", "veille de noël" each come back as one match
+over all their words — but applies a modifier written outside the
+construction to the result, taking those words out of its remainder with it.
+Reading the extent keeps the tense the phrase states and leaves the question
+its own words, so "how many days until christmas" and "combien de jours
+avant noël" answer alike.
+"""
+from __future__ import annotations
+
+import re
+import threading
+import unicodedata
+from collections import Counter
+from datetime import date, datetime, timedelta, timezone
+from typing import Dict, FrozenSet, List, NamedTuple, Optional, Set, Tuple
+
+#: The constructions chronologia resolves a named holiday with, enumerated
+#: from the ``constructions`` tables of every packaged ``locale/*/lang.json``
+#: (three of the 54 construction names across all locales name a holiday;
+#: ``year_ref`` is a bare year and is not one of them). A match whose slots
+#: carry ``HOLIDAY`` counts too, so a locale that adds a fourth holiday
+#: construction is read without a change here.
+_HOLIDAY_CONSTRUCTIONS = frozenset({"holiday_ref", "holiday_eve",
+                                    "new_year_ref"})
+
+#: The units of chronologia's ``units`` tables that have a fixed length. A
+#: month or a year has none, and chronologia moves a holiday by those.
+_UNIT_LENGTHS = {"second": timedelta(seconds=1),
+                 "minute": timedelta(minutes=1),
+                 "hour": timedelta(hours=1),
+                 "day": timedelta(days=1),
+                 "week": timedelta(weeks=1),
+                 "fortnight": timedelta(weeks=2),
+                 "quarter_hour": timedelta(minutes=15)}
+_DAY = timedelta(days=1)
+
+#: language code -> {spoken surface: chronologia well-known key}. Cached only
+#: to avoid rebuilding chronologia's table on every utterance.
+_SURFACES: Dict[str, Dict[str, str]] = {}
+
+#: language code -> chronologia's loaded language spec. ``load_lang_spec``
+#: reads a locale directory and compiles its constructions on every call and
+#: caches nothing, which costs about a second. The trace this layer reads
+#: needs the spec, and :func:`ovos_date_parser.extract_datetime_spans` asks
+#: this layer about every window of every utterance, so an uncached spec cost
+#: one second per window: 15 to 30 seconds for one sentence carrying a
+#: holiday word. The spec is a value, not a session, so one per language is
+#: kept here and the second call costs nothing.
+_SPECS: Dict[str, object] = {}
+_SPEC_LOCK = threading.Lock()
+
+#: language code -> {accent-folded surface: the surface as the language
+#: writes it}. Speech to text drops accents, and chronologia's surface table
+#: holds only the written form, so "noel" matched nothing while "noël" read
+#: 25 December. Only a folded form of the SAME length is kept, so a
+#: substitution never moves a character offset.
+_FOLDED: Dict[str, Dict[str, str]] = {}
+
+#: language code -> the holiday phrases that language speaks, each also
+#: kept as its multi-word leading clippings. The cheap door in front of the
+#: trace: reading the trace costs a full chronologia parse, and
+#: :func:`extract_datetime_spans` asks this layer about every window of every
+#: utterance, so a text with no holiday phrase in it is turned away before
+#: that parse happens.
+_HOLIDAY_PHRASES: Dict[str, FrozenSet[str]] = {}
+
+
+def _base_lang(lang: str) -> str:
+    """The language subtag of a BCP-47 code, lowercased ("pt-PT" -> "pt")."""
+    return re.split(r"[-_]", lang)[0].lower()
+
+
+def _jurisdiction(lang: str) -> Optional[str]:
+    """The ISO country of a BCP-47 code, uppercased ("pt-PT" -> "PT").
+
+    chronologia scopes a construction that depends on a country by
+    jurisdiction, so the locale's own country is passed on when the code
+    carries one. A bare language code names no country and scopes nothing.
+    """
+    for part in re.split(r"[-_]", lang)[1:]:
+        if len(part) == 2 and part.isalpha():
+            return part.upper()
+    return None
+
+
+def holiday_surfaces(lang: str) -> Dict[str, str]:
+    """Every well-known holiday surface ``lang`` speaks, to chronologia's key.
+
+    chronologia's own table, exposed here so a caller can ask which holidays
+    a language names without importing the reckoning core. It is a reference,
+    not the extraction gate: the extraction grammar of a locale reads
+    phrasings this table does not list, such as the bare English "new year".
+    """
+    base = _base_lang(lang)
+    if base not in _SURFACES:
+        try:
+            from chronologia.civil_holidays import well_known_surfaces
+            _SURFACES[base] = dict(well_known_surfaces(base))
+        except Exception:
+            _SURFACES[base] = {}
+    return _SURFACES[base]
+
+
+def _holiday_surface_forms(lang: str) -> Set[str]:
+    """Every holiday surface ``lang`` speaks, as chronologia holds it.
+
+    Read from chronologia twice over: the extraction spec's own holiday
+    table, which is what its grammar matches, and the well-known surfaces,
+    which carry the spoken aliases. A language chronologia has no data for
+    contributes nothing.
+    """
+    surfaces: Set[str] = set(holiday_surfaces(lang))
+    try:
+        surfaces.update(_spec(lang).holidays)
+    except Exception:
+        pass
+    return surfaces
+
+
+def _holiday_phrases(lang: str) -> FrozenSet[str]:
+    """Every holiday phrase ``lang`` speaks, with its leading clippings.
+
+    Read from chronologia twice over: the extraction spec's own holiday
+    table, which is what its grammar matches, and the well-known surfaces,
+    which carry the spoken aliases. Each phrase also contributes its
+    multi-word leading clippings, because speech clips a holiday's name from
+    the end — English says "new year" for the day the table calls "new
+    year's day" — and the clipping is what the grammar then reads. A single
+    word is never a clipping: "new" alone names no holiday, and admitting it
+    would open this door to every utterance that happens to use the word.
+
+    Phrases are held in the loose form :func:`_loosen` gives them, because
+    the clipped name is not only shorter than the table's: it also drops the
+    possessive and the plural the full name carries. The looseness costs
+    nothing in precision here, because the trace behind this door decides.
+    """
+    base = _base_lang(lang)
+    if base not in _HOLIDAY_PHRASES:
+        surfaces: Set[str] = set(_holiday_surface_forms(base))
+        phrases: Set[str] = set()
+        for surface in surfaces:
+            words = _loosen(surface).split()
+            phrases.add(" ".join(words))
+            for cut in range(2, len(words)):
+                phrases.add(" ".join(words[:cut]))
+        _HOLIDAY_PHRASES[base] = frozenset(p for p in phrases if p)
+    return _HOLIDAY_PHRASES[base]
+
+
+def _loosen(text: str) -> str:
+    """``text`` lowercased, with the possessive and the plural taken off.
+
+    A clipped holiday name differs from the table's full name by more than
+    its missing words: English clips "new year's day" to "new year", losing
+    the apostrophe and the s as well. Comparing both sides in this loose form
+    lets the door recognise the clipping without a rule written for one
+    language. The accents go the same way, because a transcript drops them
+    and the door must not turn away a holiday the speaker named. It is a
+    door, not a decision — the trace behind it still reads the real words,
+    which :func:`_as_written` restores first.
+    """
+    words = re.findall(r"\w+(?:'\w+)?", _fold(text))
+    return " ".join(re.sub(r"(?:'s|s)$", "", w) or w for w in words)
+
+
+def _names_a_holiday(text: str, lang: str) -> bool:
+    """Whether ``text`` is written with any holiday phrase of ``lang``."""
+    loose = _loosen(text)
+    return any(re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", loose)
+               for phrase in _holiday_phrases(lang))
+
+
+def _spec(lang: str):
+    """chronologia's language spec for ``lang``, loaded once per language."""
+    base = _base_lang(lang)
+    spec = _SPECS.get(base)
+    if spec is None:
+        with _SPEC_LOCK:
+            spec = _SPECS.get(base)
+            if spec is None:
+                from chronologia.extract.loader import load_lang_spec
+                spec = _SPECS[base] = load_lang_spec(base)
+    return spec
+
+
+def _fold(text: str) -> str:
+    """``text`` lowercased with its diacritics removed ("noël" -> "noel")."""
+    stripped = "".join(c for c in unicodedata.normalize("NFD", text.lower())
+                       if not unicodedata.combining(c))
+    return unicodedata.normalize("NFC", stripped)
+
+
+def _folded_surfaces(lang: str) -> Dict[str, str]:
+    """Accent-folded surface -> the surface as ``lang`` writes it.
+
+    Built from chronologia's own tables, never hand-listed. A surface whose
+    folded form is a different length is left out: the folded text is handed
+    to chronologia in place of the written one, and an offset that moved
+    would make the extent point at the wrong characters.
+    """
+    base = _base_lang(lang)
+    if base not in _FOLDED:
+        out: Dict[str, str] = {}
+        for surface in _holiday_surface_forms(base):
+            folded = _fold(surface)
+            if folded != surface and len(folded) == len(surface):
+                out.setdefault(folded, surface)
+        _FOLDED[base] = out
+    return _FOLDED[base]
+
+
+def _as_written(text: str, lang: str) -> str:
+    """``text`` with an unaccented holiday surface put back as written.
+
+    A transcript that lost its accents names the holiday no less than one
+    that kept them, but chronologia matches the written form. Each
+    substitution replaces the same number of characters, so every offset in
+    the answer still points into the caller's own text.
+    """
+    folded = _folded_surfaces(lang)
+    if not folded:
+        return text
+    out = text
+    for form, written in folded.items():
+        if form in _fold(out):
+            out = re.sub(rf"(?<!\w){re.escape(form)}(?!\w)", written, out,
+                         flags=re.IGNORECASE)
+    return out
+
+
+def _holiday_extent(text: str, lang: str, anchor: datetime
+                    ) -> Optional[Tuple[int, int]]:
+    """The characters of ``text`` a holiday construction matched, or None.
+
+    The gate and the extent are one question, asked once: a holiday reading
+    is kept only when a winning match is a holiday construction, and what it
+    matched is exactly the characters that construction covers.
+
+    The extent is the whole answer to what the holiday phrase is. chronologia
+    reports the tense a construction carries inside it -- "next easter",
+    "last christmas", "christmas eve" and "veille de noël" each come back as
+    one match over all their words -- while a modifier outside the
+    construction, as in "combien de jours avant noël", is applied to the
+    result without being part of the match. Reading the extent therefore
+    keeps the tense the phrase states and leaves a word the question owns in
+    the remainder, where "how many days until christmas" already left it.
+    """
+    try:
+        from chronologia import explain
+        trace = explain(text, _spec(lang), anchor)
+    except Exception:
+        return None
+    for won in trace.winners:
+        match = won.match
+        if (match.construction not in _HOLIDAY_CONSTRUCTIONS
+                and "HOLIDAY" not in (match.slots or {})):
+            continue
+        try:
+            tokens = trace.tokens[match.span[0]:match.span[1]]
+            return (min(t.char_start for t in tokens),
+                    max(t.char_end for t in tokens))
+        except Exception:
+            return None
+    return None
+
+
+def _caller_spelling(text: str, written: str, remainder: str) -> Optional[str]:
+    """``remainder``, which is cut from ``written``, re-spelled from ``text``.
+
+    :func:`_as_written` may have put an accent back that the caller never
+    typed, and the remainder is handed to the caller, so it must come back in
+    the caller's own characters. Every substitution there replaces the same
+    number of characters, so the two strings are the same length and a
+    position in one is the same position in the other; that equality is
+    checked rather than assumed, and a mismatch returns None so the caller can
+    fall back.
+
+    Each word of the remainder is found in ``written`` left to right, never
+    searched for in the whole string, so a word that occurs twice takes its
+    own occurrence. A word that is not found returns None: chronologia owns
+    the remainder's spelling and may normalise a word one day, and a wrong
+    offset must not be guessed at.
+    """
+    if len(written) != len(text):
+        return None
+    out = []
+    at = 0
+    for word in remainder.split():
+        found = written.find(word, at)
+        if found < 0:
+            return None
+        out.append(text[found:found + len(word)])
+        at = found + len(word)
+    return " ".join(out)
+
+
+def _clock_extent(text: str, lang: str, anchor: datetime,
+                  holiday: Tuple[int, int]) -> Optional[Tuple[int, int]]:
+    """The characters of the one clock time that stands beside the holiday.
+
+    "good friday at 9am" holds two constructions, the holiday and a clock
+    time. None is returned unless exactly one clock time sits outside the
+    holiday's characters, so a text with two clock times keeps the holiday
+    alone rather than guess which time belongs to it.
+    """
+    try:
+        from chronologia import explain
+        trace = explain(text, _spec(lang), anchor)
+        extents = []
+        for won in trace.winners:
+            if won.match.construction != "clock_time":
+                continue
+            # a token chronologia normalised ("10:00" for "10h") has no position
+            tokens = [t for t in trace.tokens[won.match.span[0]:won.match.span[1]]
+                      if t.char_start is not None and t.char_end is not None]
+            extents.append((min(t.char_start for t in tokens),
+                            max(t.char_end for t in tokens)))
+    except Exception:
+        return None
+    outside = [e for e in extents if e[1] <= holiday[0] or e[0] >= holiday[1]]
+    return outside[0] if len(extents) == 1 and outside else None
+
+
+def extract_holiday_span(text: str, lang: str,
+                         anchorDate: Optional[datetime] = None
+                         ) -> Optional[Tuple[datetime, str]]:
+    """Resolve a named holiday in ``text`` to ``(datetime, remainder)``.
+
+    The date is the occurrence the phrase asks for: the next one by default,
+    the one a determiner inside the phrase names when it carries one ("next
+    easter", "last christmas", "christmas eve"), and the one an offset
+    outside the phrase names ("the day after christmas", "two days after
+    christmas", "le jour après noël"), as chronologia reckons it from
+    ``anchorDate``. A verb tense is not read — "when was easter" answers with
+    the next Easter, because chronologia reads no verb — so this claims the
+    determiner and the offset, never the verb.
+
+    The holiday is read from its own characters, and a clock time beside it
+    is composed onto it. Every other word stays in the remainder, so a word
+    this does not read is handed back to the caller: "how many days until
+    christmas" keeps "how many days until", and "after christmas" keeps
+    "after".
+
+    A counted offset written before the holiday moves the date. chronologia
+    applies it from outside the holiday construction, so only a parse of the
+    whole text reads it, and :func:`_offset_answer` keeps that parse only when
+    the words it consumed are a count, a unit and a before or after word.
+    "how many days before christmas" asks for the count, so it has none, and
+    the answer is the holiday.
+
+    A part-of-day offset ("the night before christmas", "le matin après
+    noël") is not read: it has no unit, the holiday answers its own date, and
+    the offset words stay in the remainder. chronologia reads it as a time of
+    day on the holiday and drops the direction; task T-7350 carries that.
+
+    The answer is always the holiday, or the holiday moved by a counted
+    offset. Returns None when the utterance names no holiday in its own
+    language.
+    """
+    answer = _holiday_answer(text, lang, anchorDate)
+    return answer[:2] if answer is not None else None
+
+
+def _holiday_answer(text: str, lang: str, anchorDate: Optional[datetime]
+                    ) -> Optional[Tuple[datetime, str, bool]]:
+    """:func:`extract_holiday_span` plus whether a clock time was read.
+
+    The flag tells a caller that a midnight in the answer was said ("good
+    friday at midnight") and is not the absence of a time of day.
+    """
+    if not text:
+        return None
+    if not _names_a_holiday(text, lang):
+        return None
+    anchor = anchorDate or datetime.now()
+    written = _as_written(text, lang)
+    extent = _holiday_extent(written, lang, anchor)
+    if extent is None:
+        return None
+    alone = _holiday_alone(text, written, lang, anchor, extent)
+    if alone is None:
+        return None
+    start, remainder, clock_read = alone
+    moved = _offset_answer(text, written, lang, anchor, extent, start)
+    if moved is not None:
+        return moved
+    return _in_anchor_zone(start, anchor), remainder, clock_read
+
+
+def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
+                   extent: Tuple[int, int]
+                   ) -> Optional[Tuple[datetime, str, bool]]:
+    """The holiday read from its own characters, with a clock beside it.
+
+    The time is the wall-clock reading chronologia gives, with no zone.
+    Every word outside the holiday phrase and the clock stays in the
+    remainder, so an offset this does not read is handed back to the caller.
+    """
+    first, last = extent
+    try:
+        from chronologia import extract_timespan
+        result = extract_timespan(written[first:last], lang=_base_lang(lang),
+                                  anchor=anchor,
+                                  jurisdiction=_jurisdiction(lang))
+    except Exception:
+        return None
+    if result is None:
+        return None
+    start = result.span.start_datetime
+    if start is None:  # a span outside the datetime range
+        return None
+    cut = [(first, last)]
+    clock_read = False
+    clock = _clock_extent(written, lang, anchor, (first, last))
+    if clock is not None:
+        # the time of day is read from the whole phrase, so the holiday's
+        # date and the clock time compose the way chronologia composes them.
+        # chronologia can win a clock_time match and still leave its words in
+        # the remainder ("easter at 25:00"); only a clock it consumed counts.
+        try:
+            whole = extract_timespan(written, lang=_base_lang(lang),
+                                     anchor=anchor,
+                                     jurisdiction=_jurisdiction(lang))
+        except Exception:
+            whole = None
+        moment = whole.span.start_datetime if whole is not None else None
+        if (moment is not None and moment.date() == start.date()
+                and not _words(written[clock[0]:clock[1]])
+                <= _words(whole.remainder)):
+            start = moment
+            cut.append(clock)
+            clock_read = True
+    remainder = text
+    for begin, end in sorted(cut, reverse=True):
+        remainder = remainder[:begin] + " " + remainder[end:]
+    remainder = re.sub(r"\s{2,}", " ", remainder)
+    return start, remainder.strip(), clock_read
+
+
+def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
+                   extent: Tuple[int, int], holiday: datetime
+                   ) -> Optional[Tuple[datetime, str, bool]]:
+    """The holiday moved by a counted offset written before it, or None.
+
+    chronologia applies "two days after", "the day before" and "the friday
+    before" to the holiday from outside the holiday construction, so only a
+    parse of the whole text reads them. That parse is kept only when it
+    consumed every word of the holiday phrase, and the other words it
+    consumed, apart from its clock times, stand before the holiday, hold a
+    before or after word and carry a count: a number, a quantifier
+    ("a few", "quelques"), or a singular unit or weekday ("the day", "der
+    Tag", "the friday").
+
+    A plural unit with no count is a question for the count ("how many days
+    before christmas", "combien de jours avant noël"), not an offset, and
+    chronologia would read it as one unit. A range ("until christmas") and a
+    preposition alone ("after christmas") carry no count either. In each of
+    these cases, and when a token chronologia normalised has no position in
+    the text ("10:00" for "10h"), the holiday is read alone.
+
+    chronologia moves a holiday by whole days only. An offset that is not a
+    whole number of days, or whose count starts before the run, is counted
+    here from the holiday and its clock, read without the offset: "an hour
+    before new year" is 23:00 on 31 December, and "at 9am an hour before
+    christmas" is 08:00 on Christmas Day. A whole-day offset that does not
+    change the date of ``holiday`` is no offset.
+
+    chronologia can leave the first part of a count over: in "un cuarto de
+    hora antes de navidad" it reads "de hora antes de" and leaves "un
+    cuarto". A whole number, a fraction, or a whole number and then a
+    fraction left over just before the run multiply its count when one of
+    them is a fraction, so this is a quarter of an hour, and they leave the
+    remainder. A count and a unit, or a fraction, left over further back
+    mean that chronologia read only part of the offset ("two days and three
+    hours", "un cuarto y media hora"), and the holiday is read alone.
+
+    Whole days and weeks move the date on the wall clock, and the rest of
+    the offset is elapsed time. When the anchor has a time zone, "ein paar
+    Tage vor Ostermontag" is 00:00 on the Saturday before, although that
+    Sunday has 23 hours. "an hour after easter" on a day the clocks go
+    forward at 01:00 is the instant one hour after the holiday starts, which
+    the zone writes as 02:00. "a day and a half after easter" is the next
+    day at 00:00 and then 12 hours.
+    """
+    try:
+        from chronologia import explain, extract_timespan
+        spec = _spec(lang)
+        result = extract_timespan(written, lang=_base_lang(lang),
+                                  anchor=anchor,
+                                  jurisdiction=_jurisdiction(lang))
+        if result is None or result.span.start_datetime is None:
+            return None
+        trace = explain(written, spec, anchor)
+        clock_tokens = set()
+        for won in trace.winners:
+            if won.match.construction == "clock_time":
+                clock_tokens.update(range(*won.match.span))
+        kept = _kept_extents(written, result.remainder)
+        if kept is None:
+            return None
+        first, last = extent
+        if any(begin < last and first < end for begin, end in kept):
+            # a word of the holiday phrase is left over: chronologia answered
+            # from something else
+            return None
+        run, clock_read = [], False
+        for index, token in enumerate(trace.tokens):
+            if first <= token.char_start < last:
+                continue
+            if any(begin <= token.char_start < end for begin, end in kept):
+                continue
+            if index in clock_tokens:
+                clock_read = True
+                continue
+            if token.char_start >= last:
+                # an offset is written before the holiday it moves
+                return None
+            run.append(token)
+        if not run or not _is_counted_offset(spec, run):
+            return None
+        units = {_fold(surface) for surface in spec.units}
+        quantifiers = {_fold(word): value
+                       for word, value in spec.quantifiers.items()}
+        counting = {token.index for token in trace.tokens
+                    if token.is_number or _fold(token.raw) in quantifiers}
+        if (run[0].index - 1 in clock_tokens & counting
+                and run[0].index not in counting):
+            # the clock took the count: chronologia reads "um 9 Uhr eine
+            # Stunde" as 09:01 and an hour with no count
+            return None
+        counts = {token.index: token.value if token.is_number
+                  else quantifiers[_fold(token.raw)]
+                  for token in trace.tokens
+                  if token.char_start < first
+                  and any(begin <= token.char_start < end
+                          for begin, end in kept)
+                  and (token.is_number or _fold(token.raw) in quantifiers)}
+        # the count chronologia left over just before the run: "un cuarto"
+        # in "un cuarto de hora antes de navidad"
+        prefix = []
+        while run[0].index - len(prefix) - 1 in counts:
+            prefix.insert(0, trace.tokens[run[0].index - len(prefix) - 1])
+        values = [counts[token.index] for token in prefix]
+        if [float(value).is_integer() for value in values] not in (
+                [], [True], [False], [True, False]):
+            return None
+        rest = [token for token in trace.tokens
+                if token.char_start < first and token not in prefix
+                and any(begin <= token.char_start < end
+                        for begin, end in kept)]
+        if any(token.index in counts and (
+                any(_fold(other.raw) in units for other in rest)
+                or not float(counts[token.index]).is_integer())
+               for token in rest):
+            # a count and a unit, or a fraction, left over further back:
+            # chronologia read only the last part of "two days and three
+            # hours before christmas" or "un cuarto y media hora"
+            return None
+        scale = None
+        for value in values:
+            scale = value if scale is None else scale * value
+        exact = _exact_offset(spec, run, scale)
+        if exact is not None:
+            # the holiday and its clock, read with the offset blanked out,
+            # and the apostrophe of "un'ora" with it
+            tokens = prefix + run
+            offset = [(token.char_start, after.char_start
+                       if after.index == token.index + 1 else token.char_end)
+                      for token, after
+                      in zip(tokens, tokens[1:] + tokens[-1:])]
+            for begin, end in offset:
+                gap = " " * (end - begin)
+                text = text[:begin] + gap + text[end:]
+                written = written[:begin] + gap + written[end:]
+            alone = _holiday_alone(text, written, lang, anchor, extent)
+            if alone is None:
+                return None
+            wall, remainder, clock_read = alone
+            return (_moved(wall, exact, anchor), remainder,
+                    clock_read or bool((exact.days + exact.rest) % _DAY))
+        moment = _in_anchor_zone(result.span.start_datetime, anchor)
+        if moment.date() == holiday.date():
+            return None
+        remainder = _caller_spelling(text, written, result.remainder)
+    except Exception:
+        return None
+    if remainder is None:
+        return None
+    return moment, re.sub(r"\s{2,}", " ", remainder).strip(), clock_read
+
+
+def _kept_extents(written: str, remainder: str
+                  ) -> Optional[List[Tuple[int, int]]]:
+    """Where each word of ``remainder`` sits in ``written``, left to right.
+
+    A word that is not found returns None, as :func:`_caller_spelling` does.
+    """
+    out = []
+    at = 0
+    for word in remainder.split():
+        found = written.find(word, at)
+        if found < 0:
+            return None
+        out.append((found, found + len(word)))
+        at = found + len(word)
+    return out
+
+
+def _is_counted_offset(spec, run: list) -> bool:
+    """Whether the consumed tokens ``run`` are "<count> <unit> <before|after>".
+
+    The count is a number, a quantifier, or a singular unit or weekday. A
+    weekday with no before or after ("remind me on sunday to buy palms for
+    palm sunday") is a date of its own, not an offset of the holiday. A
+    count with no unit or weekday ("en kvart före jul") names no length, so
+    it is no offset either.
+    """
+    words = [_fold(token.raw) for token in run]
+    directions = set()
+    for name in ("before", "after", "offset_after"):
+        for surface in spec.connectors.get(name, ()):
+            directions.update(_fold(word)
+                              for word in re.findall(r"\w+", surface))
+    if not directions & set(words):
+        return False
+    units = {_fold(word) for word in spec.units} | {
+        _fold(word) for word in spec.weekdays}
+    if not units & set(words):
+        return False
+    plural = {_fold(word) for word in spec.plural_units}
+    quantifiers = {_fold(word) for word in spec.quantifiers}
+    return (any(token.is_number for token in run)
+            or any(word in quantifiers for word in words)
+            or any(word in units and word not in plural for word in words))
+
+
+class _Offset(NamedTuple):
+    """A signed offset the holiday layer counts itself."""
+    #: whole days, moved on the wall clock
+    days: timedelta
+    #: the rest, added as elapsed time
+    rest: timedelta
+
+
+def _moved(wall: datetime, offset: _Offset, anchor: datetime) -> datetime:
+    """The wall-clock reading ``wall`` moved the whole days of ``offset`` on
+    the wall clock and then its rest of elapsed time, as an instant in
+    ``anchor``'s zone."""
+    moment = _in_anchor_zone(wall + offset.days, anchor)
+    if moment.tzinfo is None:
+        return moment + offset.rest
+    return (moment.astimezone(timezone.utc)
+            + offset.rest).astimezone(moment.tzinfo)
+
+
+def _exact_offset(spec, run: list, scale: Optional[float]
+                  ) -> Optional[_Offset]:
+    """The signed offset to count here rather than take from chronologia.
+
+    That is an offset that is not a whole number of days, or one whose
+    count starts before the run. The count is the number chronologia read
+    ("2", or 0.5 for "half an"), else the quantifier nearest the unit ("an",
+    "meia", "un"), else one for a singular unit ("the hour before").
+    ``scale`` is the product of the count chronologia left over just before
+    the run, or None. It multiplies the count ("un cuarto de hora" is
+    1 x 0.25 x 1 hour, "ein paar Tage" is 1 x 2 days). A whole number other
+    than one needs a fraction in the count: "2 an hour" is no count.
+
+    Returns the whole days of a unit of a day or longer, and the rest of the
+    offset as elapsed time: "a day and a half" is one day and 12 hours,
+    "36 hours" is no days and 36 hours. Returns None for a whole number of
+    days, a weekday, or a unit with no fixed length, which chronologia
+    moves correctly. Raises ValueError when the run holds a unit shorter
+    than a day, or follows a left-over count, with a count this cannot
+    read: two units, a weekday, two numbers, both directions, or a
+    left-over whole number with no fraction. A fraction beside a number in
+    the run raises too. The caller then reads the holiday alone.
+    """
+    words = [_fold(token.raw) for token in run]
+    units = {_fold(surface): unit for surface, unit in spec.units.items()}
+    weekdays = {_fold(word) for word in spec.weekdays}
+    # a weekday is a unit with no fixed length ("the friday before")
+    lengths = [_UNIT_LENGTHS.get(units.get(word)) for word in words
+               if word in units or word in weekdays]
+    numbers = [token.value for token in run if token.is_number]
+    quantifiers = {_fold(word): value
+                   for word, value in spec.quantifiers.items()}
+    counts = [quantifiers[word] for word in words if word in quantifiers]
+    before = {_fold(word) for surface in spec.connectors.get("before", ())
+              for word in re.findall(r"\w+", surface)} & set(words)
+    after = {_fold(word) for name in ("after", "offset_after")
+             for surface in spec.connectors.get(name, ())
+             for word in re.findall(r"\w+", surface)} & set(words)
+    if numbers and any(not float(value).is_integer() for value in counts):
+        # a fraction chronologia did not fold into the number: "at 9am half
+        # of two weeks before christmas" is two weeks to it
+        raise ValueError("a fraction this cannot count")
+    count = numbers[0] if numbers else counts[-1] if counts else 1
+    if (len(lengths) != 1 or lengths[0] is None or len(numbers) > 1
+            or bool(before) == bool(after)
+            or scale not in (None, 1) and float(scale).is_integer()
+            and float(count).is_integer()):
+        if scale is not None or any(length is not None and length < _DAY
+                                    for length in lengths):
+            raise ValueError("an offset this cannot count")
+        return None
+    offset = lengths[0] * count * (1 if scale is None else scale)
+    if not offset % _DAY and scale is None:
+        return None
+    days = _DAY * int(offset / _DAY) if lengths[0] >= _DAY else timedelta()
+    sign = -1 if before else 1
+    return _Offset(sign * days, sign * (offset - days))
+
+
+def _engine_read_only_a_clock(written: str, lang: str, anchor: datetime,
+                              holiday: Tuple[int, int],
+                              consumed: FrozenSet[str]) -> bool:
+    """Whether the words the engine consumed are a clock time and nothing
+    that places a date.
+
+    A word the engine consumed beside the clock counts as a filler ("um" in
+    "weihnachten um 18:30") unless chronologia reads it as part of another
+    match ("friday", "tomorrow"). The date of such an answer is only the day
+    the clock next comes round.
+    """
+    clock = _clock_extent(written, lang, anchor, holiday)
+    if clock is None or not consumed:
+        return False
+    try:
+        from chronologia import explain
+        trace = explain(written, _spec(lang), anchor)
+        placed = []
+        for won in trace.winners:
+            tokens = trace.tokens[won.match.span[0]:won.match.span[1]]
+            placed.append((min(t.char_start for t in tokens),
+                           max(t.char_end for t in tokens)))
+    except Exception:
+        return False
+    for word in re.finditer(r"\w+", written):
+        if _fold(word.group()) not in consumed:
+            continue
+        if clock[0] <= word.start() < clock[1]:
+            continue
+        if any(begin <= word.start() < end for begin, end in placed):
+            return False
+    if not _word_set(written[clock[0]:clock[1]]) & consumed:
+        return False
+    return _clock_is_the_holidays(written, lang, holiday, clock)
+
+
+def _clock_is_the_holidays(written: str, lang: str, holiday: Tuple[int, int],
+                           clock: Tuple[int, int]) -> bool:
+    """Whether the clock time is said of the holiday, not of the sentence.
+
+    "christmas at 9am" and "at 9am on christmas" say when the holiday is.
+    "play christmas music at 9pm" and "musique de noël à 21 heures" use the
+    holiday as an adjective of something else, so the clock is the date.
+    The holiday and the clock must touch, with only the locale's own
+    connectors (at, on, the) between them. When the holiday comes first, the
+    word before it must be one of those connectors or nothing. A genitive
+    connector (de, of, van) is not one: it makes the holiday a modifier.
+    """
+    connectors = _spec(lang).connectors
+    linking = set()
+    for name in ("at", "on", "in", "until", "article"):
+        for surface in connectors.get(name, ()):
+            linking.update(_fold(word) for word in re.findall(r"\w+", surface))
+    for surface in connectors.get("of", ()):
+        linking.difference_update(_fold(word)
+                                  for word in re.findall(r"\w+", surface))
+    between = written[min(holiday[1], clock[1]):max(holiday[0], clock[0])]
+    if any(_fold(word) not in linking for word in re.findall(r"\w+", between)):
+        return False
+    if clock[0] < holiday[0]:
+        return True
+    before = re.findall(r"\w+", written[:holiday[0]])
+    return not before or _fold(before[-1]) in linking
+
+
+def holiday_overrides_engine(text: str, lang: str, engine_date: datetime,
+                            engine_remainder: str = "",
+                            anchorDate: Optional[datetime] = None) -> bool:
+    """Whether a language engine read its date out of the holiday phrase.
+
+    A holiday name may be written with calendar vocabulary of its own
+    language: "good friday", "palm sunday", "may day". A per-language engine
+    reads the weekday inside such a name and answers with the coming Friday,
+    and the holiday layer, asked only when the engine found nothing, is never
+    reached. The engine order is right everywhere else, so the question asked
+    here is narrow: did the engine take its date from the holiday phrase
+    itself?
+
+    Args:
+        text: the text the engine was given.
+        lang: the BCP-47 code the engine was given.
+        engine_date: the datetime the engine answered with. Its date is the
+            value compared; its time is not read.
+        engine_remainder: what the engine left over. Read only by the cheap
+            guard below, which declines without a second engine call when the
+            engine consumed no word of the holiday phrase.
+        anchorDate: the date relative dating is reckoned from.
+
+    The question is answered by asking the engine the holiday phrase on its
+    own. The override fires when that answer's date equals ``engine_date``,
+    the date the engine gave the whole text. For "good friday" the slice
+    "good friday" gives the coming Friday and so does the whole text, so the
+    engine read its date out of the phrase. For "play christmas music on
+    friday" the slice is "christmas", which the engine cannot read at all, so
+    the Friday came from elsewhere and stays the engine's. For "good friday
+    and next friday" the slice gives the coming Friday and the whole text
+    gives the one after, so the dates differ and the engine keeps its answer.
+
+    When the engine consumed no word of the holiday phrase, the override
+    fires only if what it consumed is one clock time and nothing that places
+    a date, as in "christmas at 9am": the engine's date is then the day the
+    clock next comes round, and the holiday date is the one asked for.
+
+    Only the date is compared, never the time. A time of day beside the
+    holiday name does not move the date, so "good friday at 9am" and
+    "remind me on good friday at 9am" override exactly as the bare name does.
+
+    The holiday layer answers with a date, so the engine's time of day is not
+    carried onto it. "good friday at 9am" gives Good Friday at midnight and
+    leaves "at 9am" in the remainder.
+
+    A date word that moves the date keeps the engine's answer, as in "good
+    friday and next friday". A word of the holiday phrase that the engine
+    consumed and that also stands outside the phrase is a date the speaker
+    gave separately, so the engine's answer stands: "remind me friday about
+    good friday" is the coming Friday. "the friday before good friday" and
+    "monday after easter monday" keep the engine's answer for the same
+    reason, which is not the date they name.
+
+    A holiday name takes no indefinite article, so "have a good friday" is a
+    weekday and keeps the engine's answer. chronologia matches no holiday
+    after an indefinite article, so no extent is found and this declines.
+
+    The engine is asked twice for a text that names a holiday of its
+    language, once by the caller and once here, so such a text costs more
+    than one that names none. A text that names no holiday pays nothing: the
+    table lookup below answers first.
+    """
+    if not text:
+        return False
+    if not _names_a_holiday(text, lang):
+        return False
+    anchor = anchorDate or datetime.now()
+    written = _as_written(text, lang)
+    extent = _holiday_extent(written, lang, anchor)
+    if extent is None:
+        return False
+    first, last = extent
+    phrase_words = _word_set(written[first:last])
+    consumed = _word_set(text) - _word_set(engine_remainder)
+    outside_words = _word_set(written[:first] + " " + written[last:])
+    if consumed & phrase_words & outside_words:
+        return False
+    if not (consumed & phrase_words):
+        # The engine read its date from words the phrase does not cover, so
+        # the slice below cannot give the same date except by coincidence.
+        # Declining here is what keeps a text that merely names a holiday
+        # ("play christmas music on friday") to one engine call. The one
+        # exception is a clock time beside the name: "christmas at 9am" has
+        # no date word outside the holiday, and the engine's date is only
+        # the day its clock next comes round.
+        if not _engine_read_only_a_clock(written, lang, anchor, (first, last),
+                                         consumed):
+            return False
+        answer = _holiday_answer(text, lang, anchor)
+        return answer is not None and answer[2]
+    # imported here, not at module scope: ovos_date_parser/__init__.py imports
+    # this module, so a top-level import would be a cycle.
+    from ovos_date_parser import _extract_datetime_engine
+    inner = _extract_datetime_engine(written[first:last], lang,
+                                     anchorDate=anchor)
+    return inner is not None and inner[0].date() == engine_date.date()
+
+
+def _words(text: str) -> Counter:
+    """The folded words of ``text`` with their counts, so a word the clock
+    shares with the rest of the sentence ("at") is counted once per use."""
+    return Counter(_fold(word) for word in re.findall(r"\w+", text or ""))
+
+
+def _word_set(text: str) -> FrozenSet[str]:
+    """The folded words of ``text``, for comparing one extent with another."""
+    return frozenset(_fold(word) for word in re.findall(r"\w+", text or ""))
+
+
+def _in_anchor_zone(moment: datetime, anchor: datetime) -> datetime:
+    """``moment``, a wall-clock reading, as an instant in ``anchor``'s zone.
+
+    chronologia answers wall-clock and naive by design: its extractor keeps
+    zones out of the computing core, and a caller that wants an instant
+    crosses the wall-clock-to-instant seam itself, with
+    :func:`chronologia.resolve_wall_clock`. This library's per-language
+    engines answer in the anchor's zone, so the holiday answer crosses that
+    seam here; a caller comparing it with an aware "now" otherwise raised
+    ``TypeError`` on the holiday alone.
+
+    ``resolve_wall_clock`` does not guess at a DST discontinuity. On a fold
+    (the reading happens twice) the earlier instant is taken. On a gap (a
+    spring-forward at midnight, so the day has no 00:00) the first reading
+    that exists that day is taken, which is the instant the day begins. A
+    naive anchor names no zone, and the answer stays naive.
+    """
+    tz = anchor.tzinfo
+    if tz is None or moment.tzinfo is not None:
+        return moment
+    zone = _as_zoneinfo(tz)
+    try:
+        from chronologia import resolve_wall_clock
+        for minutes in range(moment.hour * 60 + moment.minute,
+                             moment.hour * 60 + moment.minute + 4 * 60, 30):
+            resolved = resolve_wall_clock(moment.year, moment.month,
+                                          moment.day, minutes // 60,
+                                          minutes % 60, zone)
+            if isinstance(resolved, tuple):  # a fold: the earlier instant
+                resolved = resolved[0]
+            if hasattr(resolved, "datetime"):  # not NeverExisted (a gap)
+                when = resolved.datetime()
+                if when is not None:
+                    return when.replace(second=moment.second,
+                                        microsecond=moment.microsecond)
+    except Exception:
+        pass
+    return moment.replace(tzinfo=zone)
+
+
+def _as_zoneinfo(tz):
+    """``tz`` as a :class:`zoneinfo.ZoneInfo` when it names an IANA zone.
+
+    A pytz zone attached without ``localize()`` reads the zone's oldest
+    offset (Copenhagen's local mean time, +00:53), so chronologia, which
+    attaches the zone it is given, needs the IANA zone itself.
+    """
+    key = getattr(tz, "zone", None) or getattr(tz, "key", None)
+    if isinstance(key, str):
+        try:
+            from zoneinfo import ZoneInfo
+            return ZoneInfo(key)
+        except Exception:
+            pass
+    return tz
+
+
+def extract_holiday_date(text: str, lang: str,
+                         ref_date: Optional[date] = None
+                         ) -> Optional[Tuple[date, str]]:
+    """The :func:`extract_holiday_span` answer as ``(date, remainder)``."""
+    anchor = None
+    if ref_date is not None:
+        anchor = (ref_date if isinstance(ref_date, datetime)
+                  else datetime(ref_date.year, ref_date.month, ref_date.day))
+    got = extract_holiday_span(text, lang, anchorDate=anchor)
+    if got is None:
+        return None
+    moment, remainder = got
+    return moment.date(), remainder

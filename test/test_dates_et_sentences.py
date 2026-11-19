@@ -2,6 +2,8 @@
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -48,6 +50,7 @@ class TestRelativeSecondOffset(unittest.TestCase):
         self.assertEqual(res[0], dt(2117, 9, 3, 13, 30, 5))
         self.assertEqual(res[1], "koosolek")
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1004")
     def test_bare_second_unit_without_number(self):
         # mirrors minutes/hours: a bare unit with no numeral is not an offset
         self.assertIsNone(extract("sekundi pärast"))
@@ -69,19 +72,22 @@ class TestRelativeMinuteHourOffsetStillWorks(unittest.TestCase):
 class TestSpokenClockWords(unittest.TestCase):
     """Estonian fraction-of-hour clock words name the coming hour."""
 
+    # A lone spoken hour takes the next twelve-hour reading after the anchor
+    # (ruling 17): at 13:30, 07:15 is 19:15.
+
     def test_quarter_of_eight_is_seven_fifteen(self):
         # "veerand kaheksa" = a quarter into the eighth hour = 07:15
-        self.assertEqual(extract("veerand kaheksa")[0], dt(2117, 9, 3, 7, 15))
+        self.assertEqual(extract("veerand kaheksa")[0], dt(2117, 9, 3, 19, 15))
 
     def test_half_of_eight_is_seven_thirty(self):
         # "pool kaheksa" = half into the eighth hour = 07:30
-        self.assertEqual(extract("pool kaheksa")[0], dt(2117, 9, 3, 7, 30))
+        self.assertEqual(extract("pool kaheksa")[0], dt(2117, 9, 3, 19, 30))
 
     def test_quarter_of_nine(self):
-        self.assertEqual(extract("kell veerand üheksa")[0], dt(2117, 9, 3, 8, 15))
+        self.assertEqual(extract("kell veerand üheksa")[0], dt(2117, 9, 3, 20, 15))
 
     def test_bare_hour_word(self):
-        self.assertEqual(extract("kell kaheksa")[0], dt(2117, 9, 3, 8, 0))
+        self.assertEqual(extract("kell kaheksa")[0], dt(2117, 9, 3, 20, 0))
 
 
 class TestRelativeDayOffsets(unittest.TestCase):
@@ -91,7 +97,8 @@ class TestRelativeDayOffsets(unittest.TestCase):
         self.assertEqual(extract("ülehomme")[0], dt(2117, 9, 5))
 
     def test_three_days(self):
-        self.assertEqual(extract("kolme päeva pärast")[0], dt(2117, 9, 6))
+        # a counted offset keeps the anchor clock (class 1)
+        self.assertEqual(extract("kolme päeva pärast")[0], dt(2117, 9, 6, 13, 30))
 
     def test_tomorrow_at_eight(self):
         self.assertEqual(extract("homme kell 8")[0], dt(2117, 9, 4, 8, 0))
@@ -107,8 +114,8 @@ class TestImpossibleDatesReturnNone(unittest.TestCase):
         self.assertIsNone(extract("31. aprillil"))
 
     def test_february_29_non_leap_year(self):
-        # 2117 is not a leap year, so 29 February does not exist
-        self.assertIsNone(extract("29. veebruaril"))
+        # 2117 is not a leap year; the next 29 February is in 2120 (class 3)
+        self.assertEqual(extract("29. veebruaril")[0], dt(2120, 2, 29))
 
     def test_gibberish_returns_none(self):
         self.assertIsNone(extract("xyzzy plurgh"))

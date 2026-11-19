@@ -26,11 +26,19 @@ from ovos_utils.time import now_local
 # feminine cardinals for counting feminine nouns like دقيقة (gender polarity)
 _FEM_TEENS_AR = {11: "إحدى عشرة", 12: "اثنتا عشرة"}
 
-# feminine hour names, spoken with the definite article after "الساعة"
+# Feminine hour names, spoken with the definite article after "الساعة".
+# Arabic Without Walls (UC Davis), chapter 9 grammar note: "To tell time in
+# Standard Arabic, ordinal numbers are used. Since the ordinal number
+# functions as an adjective after الساعة, the feminine form of the number is
+# used"; "The only exception is (one o' clock) الساعة الواحدة, which does not
+# use the ordinal الأولى but uses instead the cardinal الواحدة".
+# https://arabicwithoutwalls.ucdavis.edu/chapter9/grammar_note9.html
 _HOUR_NAMES_AR = {1: "الواحدة", 2: "الثانية", 3: "الثالثة", 4: "الرابعة",
                   5: "الخامسة", 6: "السادسة", 7: "السابعة", 8: "الثامنة",
                   9: "التاسعة", 10: "العاشرة", 11: "الحادية عشرة",
                   12: "الثانية عشرة"}
+
+_TO_THE_HOUR_AR = {40: "إلا ثلثاً", 45: "إلا ربعاً"}
 
 # duration units; the dual forms encode both the count and the unit
 _UNIT_SECONDS_AR = {
@@ -103,6 +111,9 @@ def _fem_cardinal_ar(number):
     return _ONES_FEM_AR[unit] + " و" + _TENS_AR[tens * 10]
 
 
+# Arabic Without Walls, the same note: "For minute quantities from three to
+# ten, the plural دقائق is used ... For quantities above ten, the singular
+# دقيقة is used".
 def _nice_minutes_ar(minutes):
     """Minutes with the gender-polarity agreement of دقيقة (feminine)."""
     if minutes == 1:
@@ -151,12 +162,19 @@ def nice_time_ar(dt, speech=True, use_24hour=False, use_ampm=False):
     if dt.hour == 0 and dt.minute == 0:
         return "منتصف الليل"
     if dt.hour == 12 and dt.minute == 0:
-        return "الظهر"
+        # Arabic Wikipedia, "نظام 12 ساعة": "الثانية عشرة ظهراً (12PM)".
+        return "الساعة الثانية عشرة ظهراً" if use_ampm else "الظهر"
 
     hour = dt.hour % 12 or 12
-    if dt.minute == 45:
+    # "All The Arabic You Never Learned The First Time Around", "How to Tell
+    # Time": "إلاّ is used before رُبع and ثُلث to express the equivalent of
+    # 'quarter to' the hour or 'twenty minutes' to the hour. When preceded by
+    # إلاّ these words are in the indefinite accusative." (الساعة العاشرة إلا
+    # ثُلثاً). https://allthearabicyouneverlearnedthefirsttimearound.com/p3/how-to-tell-time/
+    if dt.minute in _TO_THE_HOUR_AR:
         next_hour = (dt.hour + 1) % 12 or 12
-        speak = "الساعة " + _HOUR_NAMES_AR[next_hour] + " إلا ربعاً"
+        speak = ("الساعة " + _HOUR_NAMES_AR[next_hour] + " "
+                 + _TO_THE_HOUR_AR[dt.minute])
     else:
         speak = "الساعة " + _HOUR_NAMES_AR[hour]
         if dt.minute == 15:

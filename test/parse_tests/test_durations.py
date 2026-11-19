@@ -20,7 +20,7 @@ class TestExtractDurationFr(unittest.TestCase):
     def test_composite(self):
         self.assertEqual(
             extract_duration("3 jours 8 heures 10 minutes et 49 secondes", "fr"),
-            (timedelta(days=3, hours=8, minutes=10, seconds=49), "et"))
+            (timedelta(days=3, hours=8, minutes=10, seconds=49), ""))
 
     def test_in_sentence(self):
         duration, remainder = extract_duration(
@@ -48,14 +48,15 @@ class TestExtractDurationIt(unittest.TestCase):
                          (timedelta(minutes=10), ""))
         self.assertEqual(extract_duration("tre giorni", "it"),
                          (timedelta(days=3), ""))
-        self.assertEqual(extract_duration("un'ora", "it")[0], None)
+        self.assertEqual(extract_duration("un'ora", "it"),
+                         (timedelta(hours=1), ""))
         self.assertEqual(extract_duration("2 ore", "it"),
                          (timedelta(hours=2), ""))
 
     def test_composite(self):
         self.assertEqual(
             extract_duration("3 giorni 8 ore 10 minuti e 49 secondi", "it"),
-            (timedelta(days=3, hours=8, minutes=10, seconds=49), "e"))
+            (timedelta(days=3, hours=8, minutes=10, seconds=49), ""))
 
     def test_in_sentence(self):
         duration, remainder = extract_duration(

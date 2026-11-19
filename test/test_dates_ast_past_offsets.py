@@ -24,20 +24,22 @@ def _dt(text):
 
 
 class TestPastMarkerOffsets(unittest.TestCase):
+    # class 1: a counted offset keeps the anchor's clock, 13:04
+
     def test_prefix_hai_weeks(self):
-        self.assertEqual(_dt('hai 2 selmanes'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('hai 2 selmanes'), datetime(2017, 6, 13, 13, 4))
 
     def test_prefix_fai_days(self):
-        self.assertEqual(_dt('fai 3 dies'), datetime(2017, 6, 24))
+        self.assertEqual(_dt('fai 3 dies'), datetime(2017, 6, 24, 13, 4))
 
     def test_suffix_atras_months(self):
-        self.assertEqual(_dt('2 meses atras'), datetime(2017, 4, 27))
+        self.assertEqual(_dt('2 meses atras'), datetime(2017, 4, 27, 13, 4))
 
     def test_prefix_fai_years(self):
-        self.assertEqual(_dt('fai 2 años'), datetime(2015, 6, 27))
+        self.assertEqual(_dt('fai 2 años'), datetime(2015, 6, 27, 13, 4))
 
     def test_sentence_context(self):
-        self.assertEqual(_dt('foi hai 2 selmanes'), datetime(2017, 6, 13))
+        self.assertEqual(_dt('foi hai 2 selmanes'), datetime(2017, 6, 13, 13, 4))
 
     def test_symmetry_future_minus_past(self):
         fut = _dt('en 2 selmanes')

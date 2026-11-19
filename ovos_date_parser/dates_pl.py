@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from ovos_number_parser.numbers_pl import pronounce_number_pl, extract_number_pl, numbers_to_digits_pl
-from ovos_number_parser.util import is_numeric
+from ovos_number_parser.util import GrammaticalGender, is_numeric
 from ovos_utils.time import now_local
 from ovos_date_parser.duration import (
     DurationResolution, DURATION_LEXICONS, extract_duration_generic
@@ -267,12 +267,9 @@ def nice_time_pl(dt, speech=True, use_24hour=True, use_ampm=False):
     # Either "0 8 hundred" or "13 hundred"
     if string[0:2] == '00':
         speak = ""
-    elif string[0] == '0':
-        speak += pronounce_number_pl(int(string[1]), ordinals=True)
-        speak = speak[:-1] + 'a'
     else:
-        speak = pronounce_number_pl(int(string[0:2]), ordinals=True)
-        speak = speak[:-1] + 'a'
+        speak = pronounce_number_pl(int(string[0:2]), ordinals=True,
+                                    gender=GrammaticalGender.FEMININE)
 
     speak += ' ' if string[0:2] != '00' else ''
     if string[3:5] == '00':
@@ -299,6 +296,9 @@ def nice_duration_pl(duration, speech=True):
     Returns:
         str: timespan as a string
     """
+    if isinstance(duration, timedelta):
+        duration = duration.total_seconds()
+
     if not speech:
         # M:SS, MM:SS, H:MM:SS, Dd H:MM:SS format
         _days = int(duration // 86400)
@@ -411,6 +411,72 @@ _ORDINAL_DAY_UNITS_PL = {
 }
 
 
+_ORDINAL_TENS_PL = {
+    2: 'dwudziestego', 3: 'trzydziestego', 4: 'czterdziestego',
+    5: 'pięćdziesiątego', 6: 'sześćdziesiątego', 7: 'siedemdziesiątego',
+    8: 'osiemdziesiątego', 9: 'dziewięćdziesiątego',
+}
+_HUNDREDS_PL = {
+    1: 'sto', 2: 'dwieście', 3: 'trzysta', 4: 'czterysta', 5: 'pięćset',
+    6: 'sześćset', 7: 'siedemset', 8: 'osiemset', 9: 'dziewięćset',
+}
+_ORDINAL_HUNDREDS_PL = {
+    1: 'setnego', 2: 'dwusetnego', 3: 'trzechsetnego', 4: 'czterechsetnego',
+    5: 'pięćsetnego', 6: 'sześćsetnego', 7: 'siedemsetnego',
+    8: 'osiemsetnego', 9: 'dziewięćsetnego',
+}
+_ORDINAL_THOUSANDS_PL = {
+    1: 'tysięcznego', 2: 'dwutysięcznego', 3: 'trzytysięcznego',
+    4: 'czterotysięcznego', 5: 'pięciotysięcznego', 6: 'sześciotysięcznego',
+    7: 'siedmiotysięcznego', 8: 'ośmiotysięcznego',
+    9: 'dziewięciotysięcznego',
+}
+
+
+def nice_year_pl(dt, bc=False, genitive=False):
+    """Format a year as Polish reads it: an ordinal.
+
+    A year said alone is a nominative ordinal (CLDR RBNF pl
+    ``%spellout-ordinal-masculine``): 2024 is "dwa tysiące dwudziesty
+    czwarty". Inside a date the year is a genitive ordinal (CLDR
+    ``%spellout-numbering-year``): 1905 is "tysiąc dziewięćset piątego".
+    The thousands stay cardinal before a remainder; a round number takes
+    the isolated ordinal ("dwutysięczny", "tysiąc dziewięćsetny").
+
+    Args:
+        dt (datetime): date whose year to format
+        bc (bool): append "p.n.e." after the year
+        genitive (bool): the genitive form a date takes
+    Returns:
+        (str): the year in words
+    """
+    thousands, rest = divmod(dt.year, 1000)
+    hundreds, below = divmod(rest, 100)
+    if not rest:
+        words = [_ORDINAL_THOUSANDS_PL[thousands]]
+    else:
+        words = [pronounce_number_pl(thousands * 1000)] if thousands else []
+        if not below:
+            words.append(_ORDINAL_HUNDREDS_PL[hundreds])
+        else:
+            if hundreds:
+                words.append(_HUNDREDS_PL[hundreds])
+            tens, units = divmod(below, 10)
+            if below < 20 or not units:
+                words.append(_ORDINAL_DAY_UNITS_PL.get(below)
+                             or _ORDINAL_TENS_PL[tens])
+            else:
+                words += [_ORDINAL_TENS_PL[tens], _ORDINAL_DAY_UNITS_PL[units]]
+    year = " ".join(words)
+    if not genitive:
+        # the nominative ending replaces the genitive -ego:
+        # "drugiego" -> "drugi", "piątego" -> "piąty"
+        year = re.sub(r"ego\b", "y", re.sub(r"iego\b", "i", year))
+    if bc:
+        return f"{year} p.n.e."
+    return year
+
+
 def _build_ordinal_days_pl():
     phrases = {}
     for day in range(1, 32):
@@ -473,7 +539,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
         wordList = s.split()
         for idx, word in enumerate(wordList):
             ordinals = ["ci", "szy", "gi"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     if ordinal in word:
                         word = word.replace(ordinal, "")
@@ -583,7 +649,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 start -= 1
                 used = 2
         elif word == "tydzień" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 dayOffset += int(wordPrev) * 7
                 start -= 1
                 used = 2
@@ -597,7 +663,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 used = 2
                 # parse 10 months, next month, last month
         elif word == "miesiąc" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 monthOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -611,7 +677,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 years, next year, last year
         elif word == "rok" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 yearOffset = int(wordPrev)
                 start -= 1
                 used = 2
@@ -782,7 +848,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -863,15 +929,15 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
                     remainder = wordNext.replace(".", "").lstrip().rstrip()
                 if (
                         remainder == "pm" or
-                        (word[0].isdigit() and (wordNext == 'wieczorem' or wordNext == 'wieczór')) or
-                        (word[0].isdigit() and wordNext == 'po' and wordNextNext == 'południu') or
-                        (word[0].isdigit() and wordNext == 'w' and wordNextNext == 'nocy')):
+                        (word and word[0].isdigit() and (wordNext == 'wieczorem' or wordNext == 'wieczór')) or
+                        (word and word[0].isdigit() and wordNext == 'po' and wordNextNext == 'południu') or
+                        (word and word[0].isdigit() and wordNext == 'w' and wordNextNext == 'nocy')):
                     strHH = strNum
                     remainder = "pm"
                     used = 2 if wordNext in ['po', 'w'] else 1
                 elif (
                         remainder == "am" or
-                        (word[0].isdigit() and wordNext == 'rano')):
+                        (word and word[0].isdigit() and wordNext == 'rano')):
                     strHH = strNum
                     remainder = "am"
                     used = 1
@@ -1107,7 +1173,7 @@ def extract_datetime_pl(string, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "i" and \
+        if word == "i" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

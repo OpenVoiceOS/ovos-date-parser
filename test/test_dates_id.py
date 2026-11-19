@@ -1,6 +1,8 @@
 import unittest
 from datetime import datetime, time, timedelta
 
+import pytest
+
 from dateutil.relativedelta import relativedelta
 
 from ovos_date_parser import (nice_time, nice_duration, extract_duration,
@@ -93,7 +95,7 @@ class TestAdversarialId(unittest.TestCase):
         self.assertEqual(extract_duration("jam", "id"), (None, "jam"))
 
     def test_number_without_unit(self):
-        self.assertEqual(extract_duration("lima", "id"), (None, "5"))
+        self.assertEqual(extract_duration("lima", "id"), (None, "lima"))
 
     def test_uses_indonesian_not_malay_units(self):
         # "detik"/"menit" are Indonesian; Malay "minit" must NOT match here
@@ -121,18 +123,18 @@ class TestExtractDatetimeId(unittest.TestCase):
                          datetime(2026, 7, 10, 0, 0))
 
     def test_offsets(self):
+        # a counted offset keeps the anchor clock (class 1)
         self.assertEqual(self._dt("tiga hari lalu")[0],
-                         datetime(2026, 7, 12, 0, 0))
+                         datetime(2026, 7, 12, 12, 0))
         self.assertEqual(self._dt("dua jam lagi")[0],
                          datetime(2026, 7, 15, 14, 0))
+        # a named week is the calendar week, from Monday (class 2b)
         self.assertEqual(self._dt("minggu depan")[0],
-                         datetime(2026, 7, 22, 0, 0))
+                         datetime(2026, 7, 20, 0, 0))
         self.assertEqual(self._dt("minggu lalu")[0],
-                         datetime(2026, 7, 8, 0, 0))
+                         datetime(2026, 7, 6, 0, 0))
 
     def test_clock(self):
-        self.assertEqual(self._dt("pukul 3")[0], datetime(2026, 7, 15, 3, 0))
-        self.assertEqual(self._dt("jam 9")[0], datetime(2026, 7, 15, 9, 0))
         self.assertEqual(self._dt("15:30")[0], datetime(2026, 7, 15, 15, 30))
 
     def test_month_date(self):
@@ -177,8 +179,10 @@ class TestRealSentencesId(unittest.TestCase):
         return extract_datetime(text, "id", anchorDate=ANCHOR, **kw)
 
     def test_relative_day_sentences(self):
+        # "pagi" belongs to the clock; the remainder keeps the words as
+        # written
         self.assertEqual(self._dt("Meeting besok jam 10 pagi."),
-                         [datetime(2026, 7, 16, 10, 0), "meeting pagi"])
+                         [datetime(2026, 7, 16, 10, 0), "Meeting"])
         self.assertEqual(self._dt("Hari ini saya libur.")[0],
                          datetime(2026, 7, 15, 0, 0))
         self.assertEqual(self._dt("Kemarin hujan.")[0],
@@ -190,38 +194,39 @@ class TestRealSentencesId(unittest.TestCase):
 
     def test_offset_sentences(self):
         self.assertEqual(self._dt("Ingatkan saya dua jam lagi."),
-                         [datetime(2026, 7, 15, 14, 0), "ingatkan saya"])
+                         [datetime(2026, 7, 15, 14, 0), "Ingatkan saya"])
+        # a counted offset keeps the anchor clock (class 1)
         self.assertEqual(self._dt("Tiga hari yang lalu dia pergi.")[0],
-                         datetime(2026, 7, 12, 0, 0))
+                         datetime(2026, 7, 12, 12, 0))
         self.assertEqual(
             self._dt("Tolong ingatkan lima belas menit lagi.")[0],
             datetime(2026, 7, 15, 12, 15))
 
     def test_weekday_sentences(self):
         self.assertEqual(self._dt("Ada acara Selasa depan."),
-                         [datetime(2026, 7, 21, 0, 0), "ada acara"])
+                         [datetime(2026, 7, 21, 0, 0), "Ada acara"])
         self.assertEqual(self._dt("Jumat lalu kami bertemu.")[0],
                          datetime(2026, 7, 10, 0, 0))
 
     def test_period_sentences(self):
+        # a named period is the calendar unit (class 2b)
         self.assertEqual(self._dt("Minggu depan libur."),
-                         [datetime(2026, 7, 22, 0, 0), "libur"])
+                         [datetime(2026, 7, 20, 0, 0), "libur"])
         self.assertEqual(self._dt("Bulan depan gajian.")[0],
-                         datetime(2026, 8, 15, 0, 0))
+                         datetime(2026, 8, 1, 0, 0))
         self.assertEqual(self._dt("Tahun lalu kami menikah.")[0],
-                         datetime(2025, 7, 15, 0, 0))
+                         datetime(2025, 1, 1, 0, 0))
 
     def test_clock_sentences(self):
-        self.assertEqual(self._dt("Sampai jumpa pukul 9.")[0],
-                         datetime(2026, 7, 15, 9, 0))
+        # "sore" is the afternoon, so three is 15:00
         self.assertEqual(self._dt("Rapat pukul tiga sore.")[0],
-                         datetime(2026, 7, 15, 3, 0))
+                         datetime(2026, 7, 15, 15, 0))
         self.assertEqual(self._dt("Kereta berangkat 15:30.")[0],
                          datetime(2026, 7, 15, 15, 30))
 
     def test_month_date_sentences(self):
         self.assertEqual(self._dt("Ulang tahun 17 Agustus 2026!"),
-                         [datetime(2026, 8, 17, 0, 0), "ulang tahun"])
+                         [datetime(2026, 8, 17, 0, 0), "Ulang tahun"])
 
     def test_combined_date_and_time(self):
         self.assertEqual(self._dt("Besok pukul 8 ada kelas.")[0],
@@ -240,6 +245,9 @@ class TestRealSentenceEdgesId(unittest.TestCase):
             extract_datetime("... besok ...", "id", anchorDate=ANCHOR)[0],
             datetime(2026, 7, 16, 0, 0))
 
+    # KBBI s.v. "esok": "hari sesudah hari ini; besok". A named day keeps the
+    # spoken hour (ruling 17), so 08:00 tomorrow.
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_mixed_case(self):
         self.assertEqual(
             extract_datetime("ESOK jam 8", "id", anchorDate=ANCHOR)[0],
@@ -265,7 +273,27 @@ class TestRealSentenceEdgesId(unittest.TestCase):
         self.assertIsNone(
             extract_datetime("lima minit lagi", "id", anchorDate=ANCHOR))
 
-    def test_omitted_half_idiom(self):
-        # "setengah empat" (half to four) is deliberately not supported
-        self.assertIsNone(
-            extract_datetime("pukul setengah empat", "id", anchorDate=ANCHOR))
+    def test_half_idiom(self):
+        # "setengah empat" (half to four) is 03:30, and a lone hour takes
+        # the next twelve-hour reading after noon (ruling 17)
+        self.assertEqual(
+            extract_datetime("pukul setengah empat", "id",
+                             anchorDate=ANCHOR)[0],
+            datetime(2026, 7, 15, 15, 30))
+
+
+# A lone spoken hour takes the next twelve-hour reading after the anchor
+# (ruling 17): at noon, three is 15:00 and nine is 21:00.
+@pytest.mark.parametrize("text,expected", [
+    ("pukul 3", datetime(2026, 7, 15, 15, 0)),
+    ("jam 9", datetime(2026, 7, 15, 21, 0)),
+])
+def test_lone_hour_takes_the_next_twelve_hour_reading(text, expected):
+    assert extract_datetime(text, "id", anchorDate=ANCHOR)[0] == expected
+
+
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
+def test_see_you_at_nine_is_a_clock():
+    # "sampai jumpa" is "see you", not "until": nine after noon is 21:00
+    found = extract_datetime("Sampai jumpa pukul 9.", "id", anchorDate=ANCHOR)
+    assert found == [datetime(2026, 7, 15, 21, 0), "Sampai jumpa"]

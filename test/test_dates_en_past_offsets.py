@@ -43,8 +43,9 @@ class TestPastMarkerOffsets(unittest.TestCase):
         self.assertEqual((fut - past).total_seconds() / 3600, 4)
 
     def test_adversarial_non_offset(self):
-        # no past marker -> must not flip to the past
-        self.assertEqual(_dt('2 hours'), datetime(2017, 6, 27, 15, 4))
+        # with no direction word a length names no point in time (ruling 3)
+        self.assertIsNone(extract_datetime('2 hours', lang='en',
+                                           anchorDate=ANCHOR))
 
 
 if __name__ == "__main__":

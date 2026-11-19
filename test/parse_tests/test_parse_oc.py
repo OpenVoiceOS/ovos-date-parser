@@ -1,5 +1,8 @@
 import unittest
+from unittest import mock
 from datetime import datetime, timedelta
+
+import pytest
 
 from ovos_config.locale import get_default_tz as default_timezone
 
@@ -49,28 +52,36 @@ class TestDatetimeOC(unittest.TestCase):
         self.assertEqual(
             extract_datetime("ièr", anchorDate=self.ANCHOR)[0],
             datetime(1997, 12, 31, tzinfo=default_timezone()))
-        # deman passat = day after tomorrow
-        self.assertEqual(
-            extract_datetime("deman passat", anchorDate=self.ANCHOR)[0],
-            datetime(1998, 1, 3, tzinfo=default_timezone()))
         # abans-ièr = day before yesterday
         self.assertEqual(
             extract_datetime("abans-ièr", anchorDate=self.ANCHOR)[0],
             datetime(1997, 12, 30, tzinfo=default_timezone()))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
+    def test_day_after_tomorrow(self):
+        # deman passat = day after tomorrow
+        self.assertEqual(
+            extract_datetime("deman passat", anchorDate=self.ANCHOR),
+            [datetime(1998, 1, 3, tzinfo=default_timezone()), ""])
+
     def test_next_week(self):
+        # a named week is the calendar week, from Monday (class 2b)
         self.assertEqual(
             extract_datetime("la setmana que ven", anchorDate=self.ANCHOR)[0],
-            datetime(1998, 1, 8, tzinfo=default_timezone()))
+            datetime(1998, 1, 5, tzinfo=default_timezone()))
         self.assertEqual(
             extract_datetime("la setmana passada", anchorDate=self.ANCHOR)[0],
-            datetime(1997, 12, 25, tzinfo=default_timezone()))
+            datetime(1997, 12, 22, tzinfo=default_timezone()))
 
     def test_in_x_days(self):
         # "d'aquí 5 jorns" = in 5 days
         self.assertEqual(
             extract_datetime("d'aquí 5 jorns", anchorDate=self.ANCHOR)[0],
             datetime(1998, 1, 6, tzinfo=default_timezone()))
+
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
+    def test_in_x_weeks(self):
         self.assertEqual(
             extract_datetime("en 2 setmanas", anchorDate=self.ANCHOR)[0],
             datetime(1998, 1, 15, tzinfo=default_timezone()))
@@ -127,6 +138,8 @@ class TestDatetimeOC(unittest.TestCase):
                              anchorDate=self.ANCHOR)[0],
             datetime(1998, 1, 1, 15, 0, tzinfo=default_timezone()))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_relative_time_offsets(self):
         # relative offsets keep the anchor time of day, matching dates_gl
         self.assertEqual(
@@ -173,11 +186,14 @@ class TestDurationOC(unittest.TestCase):
         self.assertEqual(rest, "met un temporizador de")
 
     def test_nonstandard_units(self):
-        from ovos_date_parser.duration import DAYS_IN_1_MONTH, DAYS_IN_1_YEAR
-        self.assertEqual(extract_duration("1 an"),
-                         (timedelta(days=DAYS_IN_1_YEAR), ""))
-        self.assertEqual(extract_duration("2 mes"),
-                         (timedelta(days=2 * DAYS_IN_1_MONTH), ""))
+        # counted from 2017-06-27: a year ends 365 days on, two months
+        # (27 July, 27 August) 30 + 31 = 61 days on
+        with mock.patch.object(_odp, "now_local",
+                               return_value=datetime(2017, 6, 27, 13, 4)):
+            self.assertEqual(extract_duration("1 an"),
+                             (timedelta(days=365), ""))
+            self.assertEqual(extract_duration("2 mes"),
+                             (timedelta(days=61), ""))
 
     def test_no_duration(self):
         duration, rest = extract_duration("adiu amics")

@@ -61,24 +61,29 @@ class TestRelativeOffsetsStillWork(unittest.TestCase):
         self.assertEqual(extract("3 tunnin päästä")[0],
                          dt(2117, 9, 3, 16, 30))
 
-    def test_minutes_zero_the_seconds(self):
+    def test_minutes_keep_the_seconds(self):
+        # a counted offset is arithmetic on the anchor (class 1)
         anchor = datetime(2117, 9, 3, 13, 30, 42)
         self.assertEqual(extract("15 minuutin päästä", anchor=anchor)[0],
-                         dt(2117, 9, 3, 13, 45, 0))
+                         dt(2117, 9, 3, 13, 45, 42))
 
 
 class TestClockAndEdgeCases(unittest.TestCase):
     """Clock idioms parse; impossible dates return None rather than crashing."""
 
     def test_quarter_past_seven(self):
-        self.assertEqual(extract("varttia yli seitsemän")[0].hour, 7)
+        # the next reading after the 13:30 anchor (ruling 17)
+        self.assertEqual(extract("varttia yli seitsemän")[0].hour, 19)
         self.assertEqual(extract("varttia yli seitsemän")[0].minute, 15)
 
     def test_impossible_february_day(self):
         self.assertIsNone(extract("30 helmikuuta"))
 
     def test_leap_day_non_leap_year(self):
-        self.assertIsNone(extract("29 helmikuuta", anchor=datetime(2119, 1, 1)))
+        # the next 29 February after 1 January 2119 is in 2120 (class 3)
+        self.assertEqual(
+            extract("29 helmikuuta", anchor=datetime(2119, 1, 1))[0],
+            dt(2120, 2, 29))
 
     def test_leap_day_leap_year(self):
         self.assertEqual(extract("29 helmikuuta", anchor=datetime(2120, 1, 1))[0],

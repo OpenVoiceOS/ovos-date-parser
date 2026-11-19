@@ -107,21 +107,24 @@ class TestDatetime_eu(unittest.TestCase):
                          datetime(1998, 8, 11, tzinfo=default_timezone()))
 
     def test_extract_datetime_relative(self):
+        # A part of the day answers the middle of its band: night
+        # 21:00-24:00 is 22:30, morning 00:00-12:00 is 06:00 and afternoon
+        # 12:00-19:00 is 15:30. "honetan" (in this) is part of the date.
         self.assertEqual(extract_datetime("gaurko gaua", anchorDate=datetime(1998, 1, 1),
-                                          lang='eu'), [datetime(1998, 1, 1, 21, 0, 0, tzinfo=default_timezone()), ''])
+                                          lang='eu'), [datetime(1998, 1, 1, 22, 30, 0, tzinfo=default_timezone()), ''])
         self.assertEqual(extract_datetime("gau honetan", anchorDate=datetime(1998, 1, 1),
                                           lang='eu'),
-                         [datetime(1998, 1, 1, 21, 0, 0, tzinfo=default_timezone()), 'honetan'])
+                         [datetime(1998, 1, 1, 22, 30, 0, tzinfo=default_timezone()), ''])
         self.assertEqual(extract_datetime("atzoko gaua", anchorDate=datetime(1998, 1, 1),
-                                          lang='eu')[0], datetime(1997, 12, 31, 21, tzinfo=default_timezone()))
+                                          lang='eu')[0], datetime(1997, 12, 31, 22, 30, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime("herenegungo gaua", anchorDate=datetime(1998, 1, 1),
-                                          lang='eu')[0], datetime(1997, 12, 30, 21, tzinfo=default_timezone()))
+                                          lang='eu')[0], datetime(1997, 12, 30, 22, 30, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime("duela 3 eguneko gaua", anchorDate=datetime(1998, 1, 1),
-                                          lang='eu')[0], datetime(1997, 12, 29, 21, tzinfo=default_timezone()))
+                                          lang='eu')[0], datetime(1997, 12, 29, 22, 30, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime("biharko goiza", anchorDate=datetime(1998, 1, 1),
-                                          lang='eu')[0], datetime(1998, 1, 2, 8, tzinfo=default_timezone()))
+                                          lang='eu')[0], datetime(1998, 1, 2, 6, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime("atzoko arratsaldea", anchorDate=datetime(1998, 1, 1),
-                                          lang='eu')[0], datetime(1997, 12, 31, 15, tzinfo=default_timezone()))
+                                          lang='eu')[0], datetime(1997, 12, 31, 15, 30, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime("duela 2 egun", anchorDate=datetime(1998, 1, 1),
                                           lang='eu')[0], datetime(1997, 12, 30, tzinfo=default_timezone()))
 

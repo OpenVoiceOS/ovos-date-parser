@@ -286,7 +286,7 @@ def extract_datetime_fy(text, anchorDate=None, default_time=None):
         wordList = s.split()
         for idx, word in enumerate(wordList):
             ordinals = ["ste", "de"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     if ordinal in word:
                         word = word.replace(ordinal, "")
@@ -611,7 +611,7 @@ def extract_datetime_fy(text, anchorDate=None, default_time=None):
             secOffset = 1
             words[idx - 1] = ""
             used += 1
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -914,7 +914,7 @@ def extract_datetime_fy(text, anchorDate=None, default_time=None):
     except (OverflowError, ValueError):
         return None
     for idx, word in enumerate(words):
-        if words[idx] == "en" and \
+        if word == "en" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

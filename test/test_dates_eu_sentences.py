@@ -2,6 +2,8 @@
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -73,9 +75,14 @@ class TestImpossibleDates(unittest.TestCase):
     """Impossible or empty inputs must return None, never crash."""
 
     def test_impossible_dates_return_none(self):
-        for phrase in ("otsailak 30", "urtarrilak 45", "", "xyzzy", "ordu barru"):
+        for phrase in ("otsailak 30", "urtarrilak 45", "", "xyzzy"):
             with self.subTest(phrase=phrase):
                 self.assertIsNone(extract(phrase))
+
+
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
+def test_an_hour_with_no_count_is_no_date():
+    assert extract("ordu barru") is None
 
 
 if __name__ == "__main__":

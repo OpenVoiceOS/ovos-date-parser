@@ -284,7 +284,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                 continue
             wordNext = wordList[idx + 1] if idx + 1 < len(wordList) else ""
             ordinals = ["ci", "cü", "cı", "cu"]
-            if word[0].isdigit():
+            if word and word[0].isdigit():
                 for ordinal in ordinals:
                     if ordinal in wordNext:
                         skip_next_word = True
@@ -421,7 +421,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                     if wordNext == "sonra":
                         used += 1
         elif word == "həftə" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N həftə əvvəl/qabaq" = N weeks in the past (İzahlı lüğət)
                 if wordNext in ("əvvəl", "qabaq"):
                     dayOffset -= int(wordPrev) * 7
@@ -445,7 +445,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 10 months, next month, last month
         elif word == "ay" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N ay əvvəl/qabaq" = N months in the past (İzahlı lüğət)
                 if wordNext in ("əvvəl", "qabaq"):
                     monthOffset = -int(wordPrev)
@@ -465,7 +465,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                 used = 2
         # parse 5 il, gələn il, keçən il
         elif word == "il" and not fromFlag and wordPrev:
-            if wordPrev[0].isdigit():
+            if wordPrev and wordPrev[0].isdigit():
                 # "N il əvvəl/qabaq" = N years in the past (İzahlı lüğət)
                 if wordNext in ("əvvəl", "qabaq"):
                     yearOffset = -int(wordPrev)
@@ -624,7 +624,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                 if wordNext in markers:
                     used += 1
         # parse 5:00 am, 12:00 p.m., etc
-        elif word[0].isdigit():
+        elif word and word[0].isdigit():
             isTime = True
             strHH = ""
             strMM = ""
@@ -725,7 +725,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
                         isTime = False
                         hrAbs = -1
                         minAbs = -1
-                    elif wordNext and wordNext[0].isdigit():
+                    elif wordNext and wordNext.isdigit():
                         # military time, e.g. "04 38 hours"
                         strHH = strNum
                         strMM = wordNext
@@ -785,8 +785,13 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
             return None
         extractedDate = extractedDate.replace(hour=0, minute=0, second=0)
         if not hasYear:
-            temp = temp.replace(year=extractedDate.year,
-                                tzinfo=extractedDate.tzinfo)
+            try:
+                temp = temp.replace(year=extractedDate.year,
+                                    tzinfo=extractedDate.tzinfo)
+            except ValueError:
+                # a day that does not exist in this year, "29 fevral" outside
+                # a leap year; report nothing rather than a wrong guess
+                return None
             if extractedDate < temp:
                 extractedDate = extractedDate.replace(
                     year=int(currentYear),
@@ -837,7 +842,7 @@ def extract_datetime_az(text, anchorDate=None, default_time=None):
     if secOffset != 0:
         extractedDate = extractedDate + relativedelta(seconds=secOffset)
     for idx, word in enumerate(words):
-        if words[idx] == "və" and \
+        if word == "və" and 0 < idx < len(words) - 1 and \
                 words[idx - 1] == "" and words[idx + 1] == "":
             words[idx] = ""
 

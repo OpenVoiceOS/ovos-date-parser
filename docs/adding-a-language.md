@@ -7,19 +7,15 @@ and is wired into the dispatcher functions in `ovos_date_parser/__init__.py`.
 
 Parsing:
 
-- `extract_datetime_<code>(text, anchorDate=None, default_time=None)`:
-  returns `[datetime, remaining_text]` or `None`. Handle at least: weekday
-  names, month plus day (plus optional year), today/tomorrow/yesterday,
-  relative offsets ("in N hours/days/weeks"), morning/afternoon/evening
-  qualifiers, and digit times.
-- Duration parsing: the preferred path is the shared duration engine.
-  Register a `DurationLexicon` (unit words and conjunctions) with
-  `register_duration_lexicon(...)` in `ovos_date_parser/duration.py`, then have
-  `extract_duration_<code>` delegate to
-  `extract_duration_generic(text, DURATION_LEXICONS["<code>"], ...)`. Languages
-  on this engine get `resolution` and `replace_token` support for free. A
-  standalone `extract_duration_<code>(text) -> (timedelta, remaining_text)` is
-  needed only when a language cannot use the shared lexicon.
+- Dates and times are read by
+  [chronologia](https://github.com/TigreGotico/chronologia). Add the language
+  there first, then add its code to `CHRONOLOGIA_LOCALES` in `__init__.py`.
+- Durations are read by chronologia too, once its code is in
+  `CHRONOLOGIA_DURATION_LOCALES`. Until then, register a `DurationLexicon`
+  (unit words and conjunctions) with `register_duration_lexicon(...)` in
+  `ovos_date_parser/duration.py`. `extract_duration` reads it through the
+  shared duration engine, which also gives the language `resolution` and
+  `replace_token` support.
 
 Formatting:
 
@@ -44,9 +40,8 @@ and translate it.
 
 ## 3. Dispatcher
 
-Add the language-prefix branch to each matching top-level function in
-`__init__.py` (`extract_datetime`, `extract_duration`, `nice_time`,
-`nice_date`, and the rest).
+Add the language-prefix branch to each formatting function in
+`__init__.py` (`nice_time`, `nice_date`, and the rest).
 
 ## 4. Tests
 

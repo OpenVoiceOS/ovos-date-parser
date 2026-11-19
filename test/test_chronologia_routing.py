@@ -409,3 +409,24 @@ def test_portuguese_routes_to_chronologia(text, expected, brazil, lang):
 ])
 def test_portuguese_text_with_no_date_is_none(text, lang):
     assert extract_datetime(text, lang, anchorDate=ANCHOR) is None
+
+
+AR_TEXT = "غدا الساعة الخامسة مساء"
+
+
+@pytest.mark.parametrize("text,tag,bare", [
+    (AR_TEXT, "arz", "ar"), (AR_TEXT, "ary", "ar"),
+    (AR_TEXT, "ars", "ar"), (AR_TEXT, "arq", "ar"),
+    ("sabah saat 5", "azb", "az"),
+    ("tomorrow at 5pm", "en ", "en"), ("amanhã às 17h", "pt\t", "pt"),
+])
+def test_a_macrolanguage_member_or_padded_tag_reads_as_its_routed_code(
+        text, tag, bare):
+    expected = when(text, bare)
+    assert expected is not None
+    assert when(text, tag) == expected
+
+
+@pytest.mark.parametrize("tag", ["enm", "frr"])
+def test_a_language_that_only_shares_a_prefix_with_a_reader_gets_no_reading(tag):
+    assert when("tomorrow at 5pm", tag) is None

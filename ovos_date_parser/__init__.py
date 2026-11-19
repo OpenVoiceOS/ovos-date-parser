@@ -136,29 +136,29 @@ from ovos_date_parser.dates_id import nice_time_id
 from ovos_date_parser.dates_tr import nice_time_tr
 
 
-def _reader_lang(lang: str) -> str:
-    """The tag a reader answers for.
-
-    The language takes its shortest standard code ("deu" is "de", "iw" is
-    "he"), and "no", Norwegian in general, reads as its written standard
-    Bokmål, "nb". A tag reads the same in any case and with "_" for "-".
-    """
-    primary, dash, rest = lang.lower().replace("_", "-").partition("-")
-    primary = standardize_lang(primary).lower() if primary else primary
-    if primary == "no":
-        primary = "nb"
-    return primary + dash + rest
+# Individual languages of the Arabic (ar) and Azerbaijani (az) macrolanguages,
+# from https://iso639-3.sil.org/code_tables/macrolanguage_mappings
+_MACROLANGUAGE = {
+    **dict.fromkeys(
+        ("aao", "abh", "abv", "acm", "acq", "acw", "acx", "acy", "adf", "aeb",
+         "aec", "afb", "ajp", "apc", "apd", "arb", "arq", "ars", "ary", "arz",
+         "auz", "avl", "ayh", "ayl", "ayn", "ayp", "pga", "shu", "ssh"), "ar"),
+    **dict.fromkeys(("azb", "azj"), "az"),
+}
 
 
 def _reader_lang(lang: str) -> str:
     """The tag a reader answers for.
 
     The language takes its shortest standard code ("deu" is "de", "iw" is
-    "he"), and "no", Norwegian in general, reads as its written standard
-    Bokmål, "nb". A tag reads the same in any case and with "_" for "-".
+    "he"), an individual Arabic or Azerbaijani language reads as its
+    macrolanguage, and "no", Norwegian in general, reads as its written
+    standard Bokmål, "nb". A tag reads the same in any case and with "_" for
+    "-", and white space around it does not count.
     """
-    primary, dash, rest = lang.lower().replace("_", "-").partition("-")
+    primary, dash, rest = lang.strip().lower().replace("_", "-").partition("-")
     primary = standardize_lang(primary).lower() if primary else primary
+    primary = _MACROLANGUAGE.get(primary, primary)
     if primary == "no":
         primary = "nb"
     return primary + dash + rest

@@ -343,26 +343,40 @@ def nice_duration(
     return nice_duration_generic(lang, duration, speech)
 
 
+_WORD_EDGE = re.compile(r"^[\W_]+|[\W_]+$")
+
+
 def _word_keys(words: List[str]) -> List[str]:
     """The words without surrounding punctuation or case, to compare them."""
-    return [word.strip(_SPAN_PUNCTUATION).lower() for word in words]
+    return [_WORD_EDGE.sub("", word).lower() for word in words]
 
 
 def _mark_consumed(text: str, remainder: str, token: str) -> str:
     """The text with ``token`` where the words the remainder lost were written.
 
     chronologia's remainder has no sentence punctuation, so the words are
-    compared without it and the text's own words are kept.
+    compared without it and the text's own words, with their punctuation,
+    are kept.
     """
-    words = [word for word in text.split() if word.strip(_SPAN_PUNCTUATION)]
-    kept = remainder.split()
+    text_words = text.split()
+    at = [i for i, word in enumerate(text_words) if _WORD_EDGE.sub("", word)]
+    words = [text_words[i] for i in at]
+    kept = [word for word in remainder.split() if _WORD_EDGE.sub("", word)]
     marked = []
     for op, i1, i2, j1, j2 in SequenceMatcher(
             None, _word_keys(words), _word_keys(kept),
             autojunk=False).get_opcodes():
-        if op != "equal":
+        # a word of punctuation alone stays with the word before it
+        end = at[i2] if i2 < len(at) else len(text_words)
+        if op == "equal":
+            marked.extend(text_words[0 if i1 == 0 else at[i1]:end])
+        else:
+            if i1 == 0:
+                marked.extend(text_words[:at[0]])
             marked.append(token)
-        marked.extend(words[i1:i2] if op == "equal" else kept[j1:j2])
+            marked.extend(kept[j1:j2])
+            if i2 > i1:
+                marked.extend(text_words[at[i2 - 1] + 1:end])
     return " ".join(marked)
 
 

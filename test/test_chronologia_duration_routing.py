@@ -185,6 +185,12 @@ PUNCTUATED = [
      "recorda'm d'aquí a <d> de trucar a la mare."),
     ("gl", "lémbrame dentro de dúas horas de chamar á nai.", 7200,
      "lémbrame dentro de <d> de chamar á nai."),
+    ("fr", "Salut ! Rappelle-moi dans 5 minutes d'appeler maman.", 300,
+     "Salut ! Rappelle-moi dans <d> d'appeler maman."),
+    ("en", "remind me in two hours to call mom ? merci", 7200,
+     "remind me in <d> to call mom ? merci"),
+    ("de", "„Erinnere mich in 5 Minuten an Mama“", 300,
+     "„Erinnere mich in <d> an Mama“"),
 ]
 
 

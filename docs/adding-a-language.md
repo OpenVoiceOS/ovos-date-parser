@@ -15,8 +15,11 @@ A language has two independent paths in this package: reading, which chronologia
 Run this check first. It lists which functions already work for a language code.
 
 ```python
+import logging
 from datetime import datetime
 import ovos_date_parser as p
+
+logging.disable(logging.CRITICAL)  # a missing resource file logs a warning
 
 dt = datetime(2024, 1, 5, 15, 30)
 for name, call in {
@@ -49,7 +52,7 @@ A language with `reads: False` needs the reading path. A language that raises `N
 
 ## Reading: add the language to chronologia
 
-This package holds no reader. `extract_datetime` normalizes the tag and calls chronologia, so the language must exist there first. Follow
+This package holds no date reader for a chronologia locale. `extract_datetime` normalizes the tag and calls chronologia, so the language must exist there first. Durations also have readers in this package, covered below. Follow
 [chronologia's guide](https://github.com/TigreGotico/chronologia/blob/dev/docs/adding-a-language.md). It covers the vocabulary files, their sources and their tests.
 
 When the chronologia release that reads the language is published, make two changes here:

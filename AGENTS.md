@@ -46,21 +46,23 @@ Run the first line while you work. Run the second before you push.
 
 ## Rules
 
-1. This package holds no reader. A reading defect belongs in chronologia. A
+1. Dates read through chronologia. Durations and the ja and zh fallbacks have
+   readers in this package. A date-reading defect belongs in chronologia. A
    language joins the reading set only through `CHRONOLOGIA_LOCALES`
    ([adding-a-language](docs/adding-a-language.md)).
 2. A writer takes every word from a source. Name the sources in the module
    docstring, as `dates_kab.py` does. Take expected strings in tests from a
-   source, never from the output of the code.
-3. A new writer has the branch in each `nice_*` function in `__init__.py`.
-   `test/test_lang_parity.py` guards the languages that write every function.
-4. The per-language reader names are shims with a computed removal version.
-   Do not add a reader of its own to a `dates_<code>.py` module.
-5. Never edit `ovos_date_parser/version.py`. The release workflow bumps it.
-6. Squash to one commit with a Conventional Commits message (`fix:`,
-   `feat:`, `docs:`). Open the pull request against `dev`, as a draft.
-7. Documentation states what is. It carries no dates and no history, and its
-   prose follows ASD-STE100 in flavored mode.
+   source, never from the output of the code
+   ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
+3. A new writer has a branch in each `nice_*` function in `__init__.py`
+   ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
+   `test/test_lang_parity.py` checks the 26 languages in its last `LANGS`
+   assignment. It does not check bg, el, et, fi, he, hr, nb, nn and tr.
+4. The per-language reader names are shims with a computed removal version
+   ([api](docs/api.md#deprecated-reader-names)). Do not add a reader of its
+   own to a `dates_<code>.py` module.
+5. Never edit `ovos_date_parser/version.py`. The workflow
+   `.github/workflows/release_workflow.yml` bumps it.
 
 ## Documentation
 

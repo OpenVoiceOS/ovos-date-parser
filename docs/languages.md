@@ -30,7 +30,9 @@ The region and the rest of the tag stay as they are. This is the function `_read
 ('de', 'nb', 'ar-xx', 'pt-br')
 ```
 
-A writer reads the two-letter code and the region. `nice_time(dt, "pt-BR")` and `nice_time(dt, "PT_BR")` both work, and `"no"` reaches Bokmål. A writer does not map three-letter codes, so use `de` and not `deu`. A language with no writer raises `NotImplementedError`.
+A writer lower-cases the tag and tests which writer code it starts with. `nice_time(dt, "pt-BR")` and `nice_time(dt, "PT_BR")` both work. A tag that starts with the code of a writer reaches that writer, so `"fil"`, the Filipino code, reaches the Finnish writer. `nice_time` raises `NotImplementedError` for a tag that starts with no writer code, such as `xx`. A writer does not map three-letter codes, so use `de` and not `deu`.
+
+The tag `"no"` reaches Bokmål in `nice_time`, `nice_date`, `nice_date_time`, `nice_day`, `nice_weekday`, `nice_month` and `nice_year`. In `nice_duration` and `nice_relative_time` it raises `NotImplementedError`, so pass `nb` there.
 
 ## Languages that read
 
@@ -54,7 +56,7 @@ Any other language goes to [dateparser](https://dateparser.readthedocs.io). Japa
 | chronologia | an, ast, bg, ca, cs, el, en, fi, fr, fy, hr, id, it, ms, nb, nn, oc, pl, ro, ru, sk, sl, tr, uk | The default call only. A month or a year counts from the moment of the call |
 | shared duration engine | az, da, de, es, et, eu, gl, he, hu, nl, pt, and every chronologia-path language except ast when the call sets `resolution` or `replace_token` | `resolution` and `replace_token` work |
 | reader of its own | ar, fa, kab, sv | A plain `timedelta` only. Other options raise `NotImplementedError` |
-| none | be, cy, eo, fil, ga, ha, hi, hy, is, ka, ko, lt, lv, mk, mt, mwl, sq, sr, sw, ta, th, vi | The call returns `(None, text)` |
+| none | be, cy, eo, fil, ga, ha, hi, hy, is, ka, ko, lt, lv, mk, mt, mwl, sq, sr, sw, ta, th, vi | The default call returns `(None, text)`. A call with `resolution` or `replace_token` raises `NotImplementedError` |
 
 A call on ast with `resolution` or `replace_token` raises `NotImplementedError`, because ast has no lexicon.
 

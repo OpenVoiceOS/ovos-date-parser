@@ -10,9 +10,9 @@ see: languages.md, adding-a-language.md
 
 This page lists the public functions of `ovos_date_parser`: the readers that turn text into values, and the writers that turn values into words. Every function takes a BCP-47 language code in `lang`.
 
-Readers and writers resolve the code in different ways, and [languages.md](languages.md) gives the steps. A reader accepts a tag in any case, with `_` or `-`, and maps `deu` to `de` and `no` to `nb`. A writer lower-cases the tag and matches its first letters, so `"pt-BR"` and `"pt"` reach Portuguese, and the region `BR` selects the Brazilian number spelling (`dezesseis`, where every other Portuguese tag says `dezasseis`).
+Readers and writers resolve the code in different ways, and [languages.md](languages.md) gives the steps. A reader accepts a tag in any case, with `_` or `-`, and maps `deu` to `de` and `no` to `nb`. A writer lower-cases the tag and tests which writer code it starts with, so `"pt-BR"` and `"pt"` reach Portuguese, `"fil"` reaches the Finnish writer (`fi`), and the region `BR` selects the Brazilian number spelling (`dezesseis`, where every other Portuguese tag says `dezasseis`).
 
-`extract_datetime` answers every locale in `ovos_date_parser.CHRONOLOGIA_LOCALES` through [chronologia](https://github.com/TigreGotico/chronologia). It sends any other locale to [dateparser](https://dateparser.readthedocs.io). A writer for a language it does not know raises `NotImplementedError`.
+`extract_datetime` answers every locale in `ovos_date_parser.CHRONOLOGIA_LOCALES` through [chronologia](https://github.com/TigreGotico/chronologia). It sends any other locale to [dateparser](https://dateparser.readthedocs.io). `nice_time` raises `NotImplementedError` for a tag that starts with no writer code.
 
 ```python
 from ovos_date_parser import (
@@ -32,7 +32,9 @@ small parsing dependencies.
 
 Extract a datetime from a phrase. Returns a pair of the `datetime` and the
 remaining text, or `None` when the text contains no date or time. The pair is
-a list for a date the reader finds and a tuple for a named holiday.
+a list when chronologia reads the date, and a tuple when the holiday layer
+answers because the reader found no date. `"christmas"` in en and `"noël"` in fr
+give a list. `"noel"` in fr gives a tuple.
 
 ```python
 >>> from datetime import datetime, time
@@ -112,7 +114,8 @@ now: "2 months" said on 27 June 2017 is 61 days. A call that sets
 engine supports them. The languages ar, fa, kab and sv use a dedicated reader
 that accepts neither, and ast has no engine entry. Passing either option to
 those languages raises `NotImplementedError`. A language with no duration
-reader at all returns `(None, text)`. [languages.md](languages.md) lists the
+reader returns `(None, text)` on the default call and raises
+`NotImplementedError` when the call sets `resolution` or `replace_token`. [languages.md](languages.md) lists the
 path of each language.
 
 - `resolution` (`DurationResolution`): the type to return.
@@ -226,7 +229,7 @@ The per-language reader names `extract_datetime_<lang>` and `extract_duration_<l
 [datetime.datetime(2023, 1, 16, 15, 30), '']
 ```
 
-The shim takes the same arguments as the old reader: `anchorDate` and `default_time` for dates, and `resolution` and `replace_token` for durations. The warning fires when the name is looked up, not when the reader is called.
+The shim takes `anchorDate` and `default_time` for dates, and `resolution` and `replace_token` for durations. The warning fires when the name is looked up, not when the reader is called.
 
 `extract_duration_ar`, `extract_duration_ast`, `extract_duration_fa`, `extract_duration_kab` and `extract_duration_sv` are ordinary functions, not shims.
 
@@ -248,8 +251,9 @@ Speakable or display form of a time.
 - `speech`: words for TTS (`True`) or a digit clock string (`False`).
 - `use_24hour`: 24-hour reading ("thirteen thirty") instead of 12-hour.
 - `use_ampm`: add the am/pm or part-of-day marker in 12-hour mode.
-- `variant`: Catalan-only register selector (`TimeVariantCA`, see below).
-  Other languages ignore it.
+- `variant`: a time-telling register for ca, sk, hr and bg. ca takes a
+  `TimeVariantCA` member (see below). sk, hr and bg take `"traditional"` or
+  `"analog"`. Other languages ignore it.
 
 **Catalan registers.** Catalan can read the clock in several styles. Import the
 enum and pass it as `variant`:

@@ -87,8 +87,8 @@ class TestExtractDurationEN(unittest.TestCase):
         self._assert_dur("ninety minutes", 5400)
 
     def test_empty_duration(self):
-        # empty input yields nothing at all
-        self.assertIsNone(extract_duration("", lang="en-us"))
+        # empty input has no duration and no text left
+        self.assertEqual(extract_duration("", lang="en-us"), (None, ""))
         # no duration present -> None delta, text returned untouched
         self.assertEqual(extract_duration("hello there", lang="en-us"),
                          (None, "hello there"))

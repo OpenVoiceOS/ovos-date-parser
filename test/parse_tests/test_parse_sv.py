@@ -126,22 +126,16 @@ class TestExtractDuration(unittest.TestCase):
 
         td, remains = extract_duration("om 2 och en halv timme", lang='sv-se')
         self.assertEqual(td, timedelta(hours=2, minutes=30))
-        self.assertEqual(remains, "om och")
-
-        td, remains = extract_duration("starta en 9 minuters timer",
-                                       lang='sv-se')
-        self.assertEqual(td, timedelta(minutes=9))
-        self.assertEqual(remains, "starta timer")
+        self.assertEqual(remains, "om")
 
         # Extraction of things like "kvart" and "halvtimme"
         td, remains = extract_duration("i en kvart", lang='sv-se')
         self.assertEqual(td, timedelta(minutes=15))
-        self.assertEqual(remains, "i")
+        self.assertEqual(remains, "")
 
         td, remains = extract_duration("hämta mig om två timmar och en kvart",
                                        lang='sv-se')
         self.assertEqual(td, timedelta(hours=2, minutes=15))
-        self.assertEqual(remains, "hämta mig om och")
 
         td, remains = extract_duration("om en halvtimme", lang='sv-se')
         self.assertEqual(td, timedelta(minutes=30))

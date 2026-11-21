@@ -100,20 +100,18 @@ when nothing is found.
 (None, 'nothing here')
 ```
 
-In the locales of `ovos_date_parser.CHRONOLOGIA_DURATION_LOCALES` the answer
-comes from chronologia. A month or a year is a calendar length counted from
-now: "2 months" said on 27 June 2017 is 61 days. A call that sets
-`resolution` or `replace_token` is answered by the shared duration engine.
+Every locale in `ovos_date_parser.CHRONOLOGIA_LOCALES` is read by chronologia.
+A month or a year is a calendar length counted from the day of the call:
+"2 months" said on 27 June 2017 is 61 days. A locale outside that set answers `(None, text)`.
 
-`resolution` and `replace_token` are keyword-only and supported only for the
-languages on the shared duration engine. The languages ar, ast, fa, kab, and
-sv use a simpler dedicated parser and accept neither. Passing them to those
-languages raises `NotImplementedError`.
+`resolution` and `replace_token` are keyword-only. Both convert chronologia's
+answer, a `timedelta` and the text left over, so a month or a year reaches
+them as a day count.
 
 - `resolution` (`DurationResolution`): the type to return.
   - `TIMEDELTA` (default): a `datetime.timedelta`.
-  - `RELATIVEDELTA`: a calendar-accurate `dateutil.relativedelta`, so
-    "2 months" stays 2 months rather than an approximate day count.
+  - `RELATIVEDELTA`: a `dateutil.relativedelta` of the same length, in days
+    and the units below a day.
   - Single-unit totals such as `TOTAL_SECONDS`, `TOTAL_MINUTES`,
     `TOTAL_HOURS`, `TOTAL_DAYS`: a `float` in that unit.
 - `replace_token` (`str`): string that replaces each consumed duration

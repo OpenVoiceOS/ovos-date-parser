@@ -1,10 +1,9 @@
 """Spanish datetime extraction: natural phrasing, clock words and edge cases."""
 import unittest
 from datetime import datetime, timedelta
+from unittest import mock
 
 from ovos_config.locale import get_default_tz as default_timezone
-from ovos_utils.time import DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
-
 import ovos_date_parser as _odp
 
 ANCHOR = datetime(1998, 1, 1)
@@ -205,14 +204,15 @@ class TestDurations(unittest.TestCase):
         self.assertEqual(_odp.extract_duration("noventa minutos", lang="es"),
                          (timedelta(minutes=90), ""))
 
+    @mock.patch.object(_odp, "now_local", lambda: datetime(2017, 6, 27, 13, 4))
     def test_month_year_units(self):
         self.assertEqual(_odp.extract_duration("1 mes", lang="es"),
-                         (timedelta(days=DAYS_IN_1_MONTH), ""))
+                         (timedelta(days=30), ""))
         self.assertEqual(_odp.extract_duration("1 año", lang="es"),
-                         (timedelta(days=DAYS_IN_1_YEAR), ""))
+                         (timedelta(days=365), ""))
 
     def test_empty(self):
-        self.assertIsNone(_odp.extract_duration("", lang="es"))
+        self.assertEqual(_odp.extract_duration("", lang="es"), (None, ""))
 
 
 if __name__ == "__main__":

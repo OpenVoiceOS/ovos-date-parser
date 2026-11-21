@@ -197,7 +197,7 @@ class TestExtractDatetimeAdversarialFi(unittest.TestCase):
 
 class TestExtractDurationAdversarialFi(unittest.TestCase):
     def test_empty(self):
-        self.assertIsNone(extract_duration("", "fi"))
+        self.assertEqual(extract_duration("", "fi"), (None, ""))
 
     def test_no_duration(self):
         dur, rem = extract_duration("ei mitään tässä", "fi")

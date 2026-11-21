@@ -248,14 +248,12 @@ falls back to a generic word table.
 A language that is neither in the table nor in `CHRONOLOGIA_LOCALES` uses the
 `dateparser` fallback for `extract_datetime`.
 This fallback is good at absolute dates and weak at conversational relative
-phrases. The languages on the shared duration engine (all of the above except
-ar, ast, fa, kab, sv) also support the `resolution` and `replace_token` options
-of `extract_duration`. See [docs/api.md](docs/api.md).
+phrases. See [docs/api.md](docs/api.md).
 
-In the locales of `CHRONOLOGIA_DURATION_LOCALES`, `extract_duration` is answered
-by chronologia. A month or a year is a calendar length counted from now, so
-"2 months" said on 27 June is 61 days. A call with `resolution` or
-`replace_token` goes to the shared duration engine.
+`extract_duration` answers every locale in `CHRONOLOGIA_LOCALES` through
+chronologia. A month or a year is a calendar length counted from the day of the call, so
+"2 months" said on 27 June is 61 days. The `resolution` and `replace_token`
+options convert that answer. A locale outside the set answers `(None, text)`.
 
 **Formatting**
 

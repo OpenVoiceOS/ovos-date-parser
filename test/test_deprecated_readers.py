@@ -22,8 +22,8 @@ ANCHOR = datetime(2017, 6, 27, 13, 4)
 DATETIME_LANGS = ("an ar ast az bg ca cs da de el en es et eu fa fi fr fy gl "
                   "he hr hu id it kab ms nb nl nn oc pl pt ro ru sk sl sv tr "
                   "uk").split()
-DURATION_LANGS = ("an az bg ca cs da de el en es et eu fi fr fy gl he hr hu "
-                  "it nb nl nn pl pt ro ru sk sl uk").split()
+DURATION_LANGS = ("an ar ast az bg ca cs da de el en es et eu fa fi fr fy gl "
+                  "he hr hu it kab nb nl nn pl pt ro ru sk sl sv uk").split()
 
 
 def next_major():
@@ -77,14 +77,17 @@ def test_a_duration_reader_name_reads_a_duration():
     assert reader("ten minutes") == (timedelta(minutes=10), "")
 
 
-@pytest.mark.parametrize("name", ["extract_duration_ar", "extract_duration_ast",
-                                  "extract_duration_kab", "extract_duration_fa",
-                                  "extract_duration_sv"])
-def test_a_duration_reader_extract_duration_calls_is_no_shim(name):
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        reader = getattr(odp, name)
-    assert reader.__module__ == f"ovos_date_parser.dates_{name.split('_')[-1]}"
+@pytest.mark.parametrize("lang,text,length", [
+    ("ar", "ساعتان", timedelta(hours=2)),
+    ("ast", "10 minutos", timedelta(minutes=10)),
+    ("fa", "2 ساعت", timedelta(hours=2)),
+    ("kab", "10 n tesdidin", timedelta(minutes=10)),
+    ("sv", "5 minuter", timedelta(minutes=5)),
+])
+def test_a_former_own_reader_name_reads_through_extract_duration(lang, text,
+                                                                 length):
+    reader = deprecated(f"extract_duration_{lang}")
+    assert reader(text) == (length, "")
 
 
 @pytest.mark.parametrize("name", ["extract_datetime_xx", "extract_duration_ar_x",

@@ -5,12 +5,14 @@ import warnings
 from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time, tzinfo
+from difflib import SequenceMatcher
 from functools import lru_cache
 from importlib import import_module
 from typing import Callable, List, Optional, Tuple, Union
 from zoneinfo import ZoneInfo
 
 import dateparser # fallback parser
+from dateutil.relativedelta import relativedelta
 from dateparser.conf import settings as dateparser_settings
 from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
@@ -19,7 +21,7 @@ from ovos_utils.time import now_local
 
 from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
 from ovos_date_parser.dates_ar import (
-    extract_duration_ar, nice_time_ar, nice_duration_ar,
+    nice_time_ar, nice_duration_ar,
 )
 from ovos_date_parser.ranges import (
     Hemisphere, Season, DateTimeResolution, BEFORE_PRESENT_EPOCH,
@@ -57,10 +59,10 @@ from ovos_date_parser.eras import (
 from chronologia import TIMELINES, PERIODS, calibrate_c14, DAY_PARTS
 from chronologia import extract_duration as _chronologia_extract_duration
 from ovos_date_parser.duration import (
-    DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
+    DurationResolution, convert_duration
 )
 from ovos_date_parser.dates_ast import (
-    extract_duration_ast, nice_year_ast, nice_weekday_ast, nice_month_ast,
+    nice_year_ast, nice_weekday_ast, nice_month_ast,
     nice_day_ast, nice_date_time_ast, nice_date_ast, nice_time_ast,
 )
 from ovos_date_parser.dates_an import (
@@ -91,7 +93,7 @@ from ovos_date_parser.dates_eu import (
     nice_date_day_eu, nice_time_inessive_eu,
 )
 from ovos_date_parser.dates_et import nice_time_et, nice_year_et
-from ovos_date_parser.dates_fa import nice_time_fa, extract_duration_fa
+from ovos_date_parser.dates_fa import nice_time_fa
 from ovos_date_parser.dates_fi import nice_time_fi, nice_year_fi
 from ovos_date_parser.dates_fr import nice_time_fr
 from ovos_date_parser.dates_gl import (
@@ -115,7 +117,7 @@ from ovos_date_parser.dates_oc import (
     nice_date_time_oc, nice_date_oc, nice_time_oc,
 )
 from ovos_date_parser.dates_hu import nice_time_hu
-from ovos_date_parser.dates_kab import extract_duration_kab, nice_time_kab
+from ovos_date_parser.dates_kab import nice_time_kab
 from ovos_date_parser.dates_it import nice_time_it
 from ovos_date_parser.dates_nl import nice_part_of_day_nl, nice_time_nl
 from ovos_date_parser.dates_pl import (
@@ -128,7 +130,7 @@ from ovos_date_parser.dates_pt import (
 from ovos_date_parser.dates_ru import nice_time_ru, nice_duration_ru
 from ovos_date_parser.dates_sl import nice_time_sl
 from ovos_date_parser.dates_sv import (
-    extract_duration_sv, nice_time_sv, nice_year_sv,
+    nice_time_sv, nice_year_sv,
 )
 from ovos_date_parser.dates_uk import nice_time_uk, nice_duration_uk
 from ovos_date_parser.dates_ms import nice_time_ms
@@ -341,79 +343,55 @@ def nice_duration(
     return nice_duration_generic(lang, duration, speech)
 
 
-#: Locales whose ``extract_duration`` is answered by chronologia rather than
-#: by this package's own reader.
-#:
-#: A locale joins the list when chronologia reads every duration this
-#: package's reader reads correctly. A month or a year is a calendar length
-#: counted from now, not the mean length this package's readers use.
-CHRONOLOGIA_DURATION_LOCALES = frozenset({
-    "an", "ast", "bg", "ca", "cs", "el", "en", "fi", "fr", "fy", "hr", "id",
-    "it", "ms", "nb", "nn", "oc", "pl", "ro", "ru", "sk", "sl", "tr", "uk",
-})
-
-
-def _extract_duration_chronologia(text: str, code: str
-                                  ) -> Tuple[Optional[timedelta], str]:
-    """Answer through chronologia, counting a month or a year from now.
-
-    "Now" is :func:`now_local`, the configured zone's wall clock, as for the
-    routed :func:`extract_datetime`. A text with no duration answers
-    ``(None, text)``, as this package's readers do.
-    """
-    found = _chronologia_extract_duration(text, code, anchor=now_local())
-    if found is None:
-        return None, text
-    return found.duration, found.remainder
+def _mark_consumed(text: str, remainder: str, token: str) -> str:
+    """The remainder with ``token`` where the words it lost were written."""
+    words = text.split()
+    kept = remainder.split()
+    marked = []
+    for op, i1, i2, j1, j2 in SequenceMatcher(None, words, kept,
+                                              autojunk=False).get_opcodes():
+        if op != "equal":
+            marked.append(token)
+        marked.extend(kept[j1:j2])
+    return " ".join(marked)
 
 
 def extract_duration(
         text: str, lang: str, *,
         resolution: DurationResolution = DurationResolution.TIMEDELTA,
         replace_token: str = ""
-) -> Tuple[Optional[timedelta], str]:
+) -> Tuple[Optional[Union[timedelta, relativedelta, float]], str]:
     """
     Convert a phrase into a duration and return the remainder text.
+
+    The locales in ``CHRONOLOGIA_LOCALES`` are read by chronologia, which
+    counts a month or a year on the calendar from the day of the call. Any other locale
+    answers ``(None, text)``.
 
     Args:
         text: String containing a duration.
         lang: A BCP-47 language code.
-        resolution: Format to return the duration in — timedelta
-            (default), calendar-accurate relativedelta, or a total in a
-            single unit. Only supported for languages on the shared
-            duration engine.
+        resolution: Format to return the duration in: timedelta (default),
+            relativedelta, or a total in a single unit. The answer is
+            chronologia's timedelta converted, so a month or a year counts
+            as the days it has from the day of the call.
         replace_token: String each consumed duration is replaced with in
-            the remainder, marking where it was found. Only supported
-            for languages on the shared duration engine.
+            the remainder, marking where it was found.
 
     Returns:
         A tuple containing the duration (timedelta, relativedelta or
         float depending on resolution) and the remaining text.
     """
-    lang = _reader_lang(lang)
-    code = lang.split("-")[0]
-    if (text and code in CHRONOLOGIA_DURATION_LOCALES
-            and resolution == DurationResolution.TIMEDELTA
-            and not replace_token):
-        return _extract_duration_chronologia(text, code)
-    if code in DURATION_LEXICONS:
-        return extract_duration_generic(text, DURATION_LEXICONS[code],
-                                        resolution, replace_token)
-    if resolution != DurationResolution.TIMEDELTA or replace_token:
-        raise NotImplementedError(
-            f"resolution/replace_token not supported for language: {lang}")
-    if lang.startswith("ar"):
-        return extract_duration_ar(text)
-    if lang.startswith("ast"):
-        return extract_duration_ast(text)
-    if lang.startswith("kab"):
-        return extract_duration_kab(text)
-    if lang.startswith("fa"):
-        return extract_duration_fa(text)
-    if lang.startswith("sv"):
-        return extract_duration_sv(text)
-    # no native extractor for this language, report no duration found
-    return None, text
+    code = _reader_lang(lang).split("-")[0]
+    if not text or code not in CHRONOLOGIA_LOCALES:
+        return None, text
+    found = _chronologia_extract_duration(text, code, anchor=now_local())
+    if found is None:
+        return None, text
+    length, remainder = found
+    if replace_token:
+        remainder = _mark_consumed(text, remainder, replace_token)
+    return convert_duration(length, resolution), remainder
 
 
 def _search_dates_word_by_word(text: str, language: str, settings: dict
@@ -2157,9 +2135,9 @@ _DATETIME_READER_LANGS = frozenset({
     "sv", "tr", "uk",
 })
 _DURATION_READER_LANGS = frozenset({
-    "an", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es", "et", "eu",
-    "fi", "fr", "fy", "gl", "he", "hr", "hu", "it", "nb", "nl", "nn", "pl",
-    "pt", "ro", "ru", "sk", "sl", "uk",
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
+    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "it", "kab",
+    "nb", "nl", "nn", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "uk",
 })
 _READER_REMOVAL_VERSION = f"{VERSION_MAJOR + 1}.0.0"
 

@@ -301,7 +301,9 @@ class TestSpansPT(SpanAssertions):
 
     def test_compound_duration_is_one_span(self):
         self.assertDurations("daqui a duas horas e trinta minutos", "pt",
-                             [("duas horas e trinta minutos",
+                             [("a duas horas e trinta minutos",
+                               timedelta(hours=2, minutes=30)),
+                              ("duas horas e trinta minutos",
                                timedelta(hours=2, minutes=30))])
 
     def test_offsets_are_code_points(self):

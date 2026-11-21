@@ -3,11 +3,8 @@ from datetime import datetime, time, timedelta
 
 import pytest
 
-from dateutil.relativedelta import relativedelta
-
 from ovos_date_parser import (nice_time, nice_duration, extract_duration,
                               nice_relative_time, extract_datetime)
-from ovos_date_parser.duration import DurationResolution
 
 # a fixed Wednesday noon anchor
 ANCHOR = datetime(2026, 7, 15, 12, 0)
@@ -67,15 +64,6 @@ class TestDurationTr(unittest.TestCase):
         self.assertEqual(
             extract_duration("on beş dakika", "tr"),
             (timedelta(minutes=15), ""))
-        self.assertEqual(
-            extract_duration("üç yıl iki ay", "tr",
-                             resolution=DurationResolution.RELATIVEDELTA),
-            (relativedelta(years=3, months=2), ""))
-        # "sene" is an accepted synonym for "yıl" (year)
-        self.assertEqual(
-            extract_duration("bir sene", "tr",
-                             resolution=DurationResolution.RELATIVEDELTA),
-            (relativedelta(years=1), ""))
 
     def test_relative_time(self):
         anchor = datetime(2026, 7, 17, 14, 0, 0)
@@ -94,7 +82,7 @@ class TestDurationTr(unittest.TestCase):
 
 class TestAdversarialTr(unittest.TestCase):
     def test_empty(self):
-        self.assertIsNone(extract_duration("", "tr"))
+        self.assertEqual(extract_duration("", "tr"), (None, ""))
 
     def test_no_duration(self):
         self.assertEqual(extract_duration("merhaba dünya", "tr"),

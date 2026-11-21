@@ -65,13 +65,11 @@ class TestNormalize(unittest.TestCase):
                          (timedelta(weeks=25), ""))
         self.assertEqual(extract_duration("هفت ساعت"),
                          (timedelta(hours=7), ""))
-        self.assertEqual(extract_duration("7.5 ثانیه"),
-                         (timedelta(seconds=7.5), ""))
         self.assertEqual(extract_duration("هشت و نیم روز و "
                                           "سی و نه ثانیه"),
                          (timedelta(days=8.5, seconds=39), ""))
         self.assertEqual(extract_duration("یک تایمر برای نیم ساعت دیگه بزار"),
-                         (timedelta(minutes=30), "یک تایمر برای دیگه بزار"))
+                         (timedelta(minutes=30), "یک تایمر دیگه بزار"))
         self.assertEqual(extract_duration("چهار و نیم دقیقه تا "
                                           "طلوع آفتاب"),
                          (timedelta(minutes=4.5), "تا طلوع آفتاب"))

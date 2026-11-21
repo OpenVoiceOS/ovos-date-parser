@@ -1,4 +1,4 @@
-"""Modern Greek (el) date and time formatting, and the Greek duration lexicon.
+"""Modern Greek (el) date and time formatting.
 
 Gender and case scope
 ----------------------
@@ -25,16 +25,8 @@ system, so :func:`nice_time_el` exposes no register parameter.
 
 Copyright: OpenVoiceOS
 """
-import unicodedata
-
-from ovos_number_parser import numbers_to_digits
 from ovos_number_parser.numbers_el import pronounce_number_el
 from ovos_utils.time import now_local
-
-from ovos_date_parser.duration import (
-    register_duration_lexicon,
-    DurationLexicon,
-)
 
 # 0=Monday .. 6=Sunday, matching datetime.weekday()
 WEEKDAYS_EL = {
@@ -94,15 +86,6 @@ _FEM_HOURS = {
 def _fem_hour(hour):
     """Feminine spoken form of an hour value (0-23)."""
     return _FEM_HOURS.get(hour, pronounce_number_el(hour))
-
-
-def _fold_el(text):
-    """Lowercase Greek text, drop diacritics and normalize final sigma."""
-    text = text.lower().replace("ς", "σ")
-    decomposed = unicodedata.normalize("NFD", text)
-    stripped = "".join(c for c in decomposed
-                       if unicodedata.combining(c) == 0)
-    return unicodedata.normalize("NFC", stripped)
 
 
 def nice_year_el(dt, bc=False):
@@ -273,25 +256,3 @@ def nice_time_el(dt, speech=True, use_24hour=False, use_ampm=False):
         else:
             speak += " το βράδυ"
     return speak
-
-
-# Greek number words are normalized to digits with accents folded, so the
-# unit fragments below are written accent-free. Nouns take their plural
-# nominative/accusative forms after a numeral.
-register_duration_lexicon(DurationLexicon(
-    lang="el",
-    normalize=lambda text: numbers_to_digits(_fold_el(text), "el"),
-    units={
-        "microseconds": r"μικροδευτερολεπτ[οα]",
-        "milliseconds": r"μιλιδευτερολεπτ[οα]|χιλιοστοδευτερολεπτ[οα]",
-        "seconds": r"δευτερολεπτ[οα]",
-        "minutes": r"λεπτ[οα]",
-        "hours": r"ωρ[αεσ]+",
-        "days": r"(?:η?μερ[αεσ]+)",
-        "weeks": r"εβδομαδ[αεσ]+",
-        "months": r"μην[αεσ]+|μηνασ",
-        "years": r"χρον(?:ια|οσ|ο)|ετ(?:οσ|η)",
-        "decades": r"δεκαετι[αεσ]+",
-        "centuries": r"αιων[αεσ]+",
-        "millenniums": r"χιλιετι[αεσ]+",
-    }))

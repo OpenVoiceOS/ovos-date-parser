@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.1a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a3) (2026-11-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a2...0.41.1a3)
+
+**Merged pull requests:**
+
+- refactor: remove the per-language date readers [\#666](https://github.com/OpenVoiceOS/ovos-date-parser/pull/666) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a2) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a1...0.41.1a2)
@@ -362,17 +370,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.20a1...0.35.21a1)
 
-**Merged pull requests:**
-
-- fix: pt and es nice\_day day unpadded, es day label with "de" [\#565](https://github.com/OpenVoiceOS/ovos-date-parser/pull/565) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.20a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.20a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.19a1...0.35.20a1)
-
-**Merged pull requests:**
-
-- fix: eu 24-hour time reading per Araua 35, section 5 c\) [\#564](https://github.com/OpenVoiceOS/ovos-date-parser/pull/564) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.19a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.19a1) (2026-11-06)
 

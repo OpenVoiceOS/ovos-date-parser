@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.1a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a2) (2026-11-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a1...0.41.1a2)
+
+**Merged pull requests:**
+
+- test: follow chronologia 0.40 and mark its regressions as strict xfails [\#671](https://github.com/OpenVoiceOS/ovos-date-parser/pull/671) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a1) (2026-11-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.0a2...0.41.1a1)
@@ -365,7 +373,6 @@
 **Merged pull requests:**
 
 - fix: eu 24-hour time reading per Araua 35, section 5 c\) [\#564](https://github.com/OpenVoiceOS/ovos-date-parser/pull/564) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix: eu nice\_time KeyError from 0:31 to 0:59 and 12:31 to 12:59 [\#563](https://github.com/OpenVoiceOS/ovos-date-parser/pull/563) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.19a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.19a1) (2026-11-06)
 

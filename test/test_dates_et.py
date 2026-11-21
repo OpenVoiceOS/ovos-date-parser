@@ -219,6 +219,9 @@ class TestRealSentencesEt(unittest.TestCase):
         ("meeldetuletus viie minuti pärast",
          (2024, 1, 10, 12, 5), "meeldetuletus"),
         ("ärka poole tunni pärast", (2024, 1, 10, 12, 30), "ärka"),
+        # genitive of "poolteist" is "poolteise" or "pooleteise" (ÕS 2018)
+        ("helista pooleteise tunni pärast",
+         (2024, 1, 10, 13, 30), "helista"),
         # relative day/week offsets
         # a counted offset keeps the anchor clock (class 1)
         ("helista mulle kolme päeva pärast",
@@ -246,13 +249,6 @@ class TestRealSentencesEt(unittest.TestCase):
                    res[0].hour, res[0].minute)
             self.assertEqual(got, exp, text)
             self.assertEqual(res[1], leftover, text)
-
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1233")
-    def test_one_and_a_half_hours_genitive_spelling(self):
-        res = extract_datetime("helista pooleteist tunni pärast", "et", ANCHOR)
-        self.assertEqual((res[0], res[1]),
-                         (datetime(2024, 1, 10, 13, 30), "helista"))
 
 
 class TestRealSentenceDurationsEt(unittest.TestCase):

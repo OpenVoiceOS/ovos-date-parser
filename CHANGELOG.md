@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.1a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a5) (2026-11-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a4...0.41.1a5)
+
+**Merged pull requests:**
+
+- docs: README, docs index, navigation and agent hints [\#674](https://github.com/OpenVoiceOS/ovos-date-parser/pull/674) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.1a4](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a4) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a3...0.41.1a4)
@@ -365,10 +373,6 @@
 ## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.22a1...0.35.23a1)
-
-**Merged pull requests:**
-
-- fix: eu part-of-day prefix follows the hour said, noon and evening bands [\#569](https://github.com/OpenVoiceOS/ovos-date-parser/pull/569) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.22a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.22a1) (2026-11-06)
 

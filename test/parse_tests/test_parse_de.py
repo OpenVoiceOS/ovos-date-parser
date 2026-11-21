@@ -376,9 +376,7 @@ class TestExtractDuration(unittest.TestCase):
             strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1032")),
     pytest.param(
         "wie ist das wetter am mittwoch um 7:30 Uhr abends",
-        "2017-06-28 19:30:00", "wie ist das wetter",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
+        "2017-06-28 19:30:00", "wie ist das wetter"),
     pytest.param(
         "wie ist das wetter am mittwoch um 7 uhr 30 am abend",
         "2017-06-28 19:30:00", "wie ist das wetter",

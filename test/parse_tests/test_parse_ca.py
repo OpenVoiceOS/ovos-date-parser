@@ -189,13 +189,9 @@ class TestNormalize(unittest.TestCase):
                  marks=pytest.mark.xfail(
                      strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")),
     pytest.param("recorda de trucar a la mare el dia 3 d'agost",
-                 "2017-08-03 00:00:00", 'recorda de trucar a la mare',
-                 marks=pytest.mark.xfail(
-                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+                 "2017-08-03 00:00:00", 'recorda de trucar a la mare'),
     pytest.param('gasta diners el dia 13 de maig',
-                 "2018-05-13 00:00:00", 'gasta diners',
-                 marks=pytest.mark.xfail(
-                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+                 "2018-05-13 00:00:00", 'gasta diners'),
     pytest.param('quin temps farà a les 0700 hores',
                  "2017-06-27 07:00:00", 'quin temps farà',
                  marks=pytest.mark.xfail(

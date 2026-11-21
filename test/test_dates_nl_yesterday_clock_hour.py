@@ -227,8 +227,9 @@ class TestNamedPartDecidesAmPm(unittest.TestCase):
         self.assertEqual(_dt("morgen ochtend om 9"), datetime(2026, 10, 18, 9))
 
     def test_today_nine_uur(self):
-        # a named day keeps the spoken hour (ruling 17)
-        self.assertEqual(_dt("vandaag om 9 uur"), datetime(2026, 10, 17, 9))
+        # "vandaag" is no part of the day, so the hour takes its next
+        # twelve-hour reading after the anchor (ruling 17): 21:00 at noon
+        self.assertEqual(_dt("vandaag om 9 uur"), datetime(2026, 10, 17, 21))
 
 
 def _at(h, m=0):

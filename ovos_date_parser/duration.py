@@ -315,6 +315,10 @@ register_duration_lexicon(DurationLexicon(
     }))
 
 
+# letters-only stand-in the number reader leaves alone
+_HU_WEEK = "weekunit"
+
+
 def _normalize_hu(text: str) -> str:
     # "hét" is both "seven" and "week": read it as the unit when a number
     # precedes it and as the numeral otherwise
@@ -324,11 +328,11 @@ def _normalize_hu(text: str) -> str:
     for i, tok in enumerate(tokens):
         if tok == "hét" and i > 0 and \
                 extract_number_hu(tokens[i - 1]) is not False:
-            protected.append("\x00hét\x00")
+            protected.append(_HU_WEEK)
         else:
             protected.append(tok)
     text = numbers_to_digits(" ".join(protected), "hu")
-    return text.replace("\x00hét\x00", "hét")
+    return text.replace(_HU_WEEK, "hét")
 
 
 register_duration_lexicon(DurationLexicon(

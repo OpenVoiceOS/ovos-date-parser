@@ -113,6 +113,16 @@ class TestExtractDurationHu(unittest.TestCase):
         self.assertEqual(extract_duration("öt hét", "hu"),
                          (timedelta(weeks=5), ""))
 
+    def test_het_is_week_after_other_numbers(self):
+        self.assertEqual(extract_duration("két hét", "hu"),
+                         (timedelta(days=14), ""))
+        self.assertEqual(extract_duration("húsz hét", "hu"),
+                         (timedelta(days=140), ""))
+
+    def test_het_is_seven_before_nap(self):
+        self.assertEqual(extract_duration("hét nap", "hu"),
+                         (timedelta(days=7), ""))
+
     def test_het_is_seven_before_unit(self):
         self.assertEqual(extract_duration("hét perc", "hu"),
                          (timedelta(minutes=7), ""))

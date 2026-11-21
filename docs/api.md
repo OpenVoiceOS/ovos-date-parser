@@ -1,16 +1,18 @@
 # API reference
 
-All public functions live in the top-level `ovos_date_parser` package and take
-a BCP-47 language code (`lang`). Dialects resolve by prefix (`"pt-BR"`,
-`"pt-PT"`, and `"pt"` all reach the Portuguese parser). For Portuguese, the region
-selects the number spelling of the `nice_*` formatters: `BR` gives the
-Brazilian forms (`dezesseis`), and every other tag gives the European forms
-(`dezasseis`). `extract_datetime` reads a tag in any case and with `_` in
-place of `-` (`"EN-US"`, `"pt_br"`). It answers every locale in
-`ovos_date_parser.CHRONOLOGIA_LOCALES` through
-[chronologia](https://github.com/TigreGotico/chronologia), and falls back to
-[dateparser](https://dateparser.readthedocs.io) for a language that no reader
-covers. Other unsupported languages raise `NotImplementedError`.
+<!-- agent-hint
+covers: every public function of ovos_date_parser with its signature, defaults and real output
+source: ovos_date_parser/__init__.py, ovos_date_parser/holidays.py, ovos_date_parser/spoken.py, ovos_date_parser/duration.py
+generated: no
+verify: python -m pytest test/test_deprecated_readers.py test/test_reader_lang.py test/test_datetime_spans.py
+see: languages.md, adding-a-language.md
+-->
+
+This page lists the public functions of `ovos_date_parser`: the readers that turn text into values, and the writers that turn values into words. Every function takes a BCP-47 language code in `lang`.
+
+Readers and writers resolve the code in different ways, and [languages.md](languages.md) gives the steps. A reader accepts a tag in any case, with `_` or `-`, and maps `deu` to `de` and `no` to `nb`. A writer lower-cases the tag and matches its first letters, so `"pt-BR"` and `"pt"` reach Portuguese, and the region `BR` selects the Brazilian number spelling (`dezesseis`, where every other Portuguese tag says `dezasseis`).
+
+`extract_datetime` answers every locale in `ovos_date_parser.CHRONOLOGIA_LOCALES` through [chronologia](https://github.com/TigreGotico/chronologia). It sends any other locale to [dateparser](https://dateparser.readthedocs.io). A writer for a language it does not know raises `NotImplementedError`.
 
 ```python
 from ovos_date_parser import (
@@ -28,8 +30,9 @@ small parsing dependencies.
 
 ### `extract_datetime(text, lang, anchorDate=None, default_time=None)`
 
-Extract a datetime from a phrase. Returns `[datetime, remaining_text]`, or
-`None` when the text contains no date or time.
+Extract a datetime from a phrase. Returns a pair of the `datetime` and the
+remaining text, or `None` when the text contains no date or time. The pair is
+a list for a date the reader finds and a tuple for a named holiday.
 
 ```python
 >>> from datetime import datetime, time
@@ -38,7 +41,7 @@ Extract a datetime from a phrase. Returns `[datetime, remaining_text]`, or
 [datetime.datetime(2023, 1, 20, 8, 0), 'lets meet']
 >>> extract_datetime("amanhã às 15h30", "pt", anchorDate=datetime(2023, 1, 15))
 [datetime.datetime(2023, 1, 16, 15, 30), '']
->>> extract_datetime("this has no date", "en")
+>>> print(extract_datetime("this has no date", "en"))
 None
 ```
 
@@ -73,7 +76,7 @@ in it, so the same question reads the same way in every language:
 [datetime.datetime(2026, 12, 25, 0, 0), 'how many days until']
 >>> extract_datetime("combien de jours avant noel", "fr-FR",
 ...                  anchorDate=datetime(2026, 9, 25))
-[datetime.datetime(2026, 12, 25, 0, 0), 'combien de jours avant']
+(datetime.datetime(2026, 12, 25, 0, 0), 'combien de jours avant')
 ```
 
 A tense the phrase states inside itself is still read: "next easter", "last
@@ -105,10 +108,12 @@ comes from chronologia. A month or a year is a calendar length counted from
 now: "2 months" said on 27 June 2017 is 61 days. A call that sets
 `resolution` or `replace_token` is answered by the shared duration engine.
 
-`resolution` and `replace_token` are keyword-only and supported only for the
-languages on the shared duration engine. The languages ar, ast, fa, kab, and
-sv use a simpler dedicated parser and accept neither. Passing them to those
-languages raises `NotImplementedError`.
+`resolution` and `replace_token` are keyword-only. Only the shared duration
+engine supports them. The languages ar, fa, kab and sv use a dedicated reader
+that accepts neither, and ast has no engine entry. Passing either option to
+those languages raises `NotImplementedError`. A language with no duration
+reader at all returns `(None, text)`. [languages.md](languages.md) lists the
+path of each language.
 
 - `resolution` (`DurationResolution`): the type to return.
   - `TIMEDELTA` (default): a `datetime.timedelta`.
@@ -181,11 +186,14 @@ word cannot be aligned back to the input from it.
 ### `extract_duration_spans(text, lang)`
 
 The same for durations, returning `DurationSpan` objects whose `value` is a
-`timedelta`. A compound duration is a single span.
+`timedelta`. A compound duration is one expression. Framing words such as
+"for" come back both ways, as they do for `extract_datetime_spans`.
 
 ```python
 >>> extract_duration_spans("nap for two hours and thirty minutes", "en")
-[DurationSpan(start=8, end=36, surface='two hours and thirty minutes',
+[DurationSpan(start=4, end=36, surface='for two hours and thirty minutes',
+              value=datetime.timedelta(seconds=9000)),
+ DurationSpan(start=8, end=36, surface='two hours and thirty minutes',
               value=datetime.timedelta(seconds=9000))]
 ```
 
@@ -198,6 +206,29 @@ Two durations in one sentence stay two spans. Read as one expression, "in ten
 minutes and again in half an hour" is ten and a half hours, a length nobody
 said, so a phrase the extractor lost the thread in counts as one duration only
 when nothing inside it reads as a duration of its own.
+
+## Deprecated reader names
+
+The per-language reader names `extract_datetime_<lang>` and `extract_duration_<lang>` are shims. Each one calls `extract_datetime(text, lang)` or `extract_duration(text, lang)` and gives a `DeprecationWarning` that names the removal version, the next major version. The shims exist for these codes:
+
+- `extract_datetime_<lang>`: an, ar, ast, az, bg, ca, cs, da, de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, ms, nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr, uk
+- `extract_duration_<lang>`: an, az, bg, ca, cs, da, de, el, en, es, et, eu, fi, fr, fy, gl, he, hr, hu, it, nb, nl, nn, pl, pt, ro, ru, sk, sl, uk
+
+```python
+>>> import warnings
+>>> import ovos_date_parser
+>>> with warnings.catch_warnings(record=True) as caught:
+...     warnings.simplefilter("always")
+...     reader = ovos_date_parser.extract_datetime_pt
+>>> str(caught[0].message)
+"extract_datetime_pt is deprecated and is removed in 1.0.0; use extract_datetime(text, 'pt')"
+>>> reader("amanhã às 15h30", anchorDate=datetime(2023, 1, 15))
+[datetime.datetime(2023, 1, 16, 15, 30), '']
+```
+
+The shim takes the same arguments as the old reader: `anchorDate` and `default_time` for dates, and `resolution` and `replace_token` for durations. The warning fires when the name is looked up, not when the reader is called.
+
+`extract_duration_ar`, `extract_duration_ast`, `extract_duration_fa`, `extract_duration_kab` and `extract_duration_sv` are ordinary functions, not shims.
 
 ## Formatting (datetime to text)
 
@@ -339,4 +370,4 @@ Dict of display strings for GUI clients:
 `time_format="full"` selects a 24-hour `time_string`.
 
 ---
-[Home](../README.md) · [Language notes →](languages.md)
+[Home](index.md) · [Languages →](languages.md)

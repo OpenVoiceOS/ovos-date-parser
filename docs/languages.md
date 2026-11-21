@@ -1,163 +1,170 @@
-# Language notes
+# Languages
 
-Per-language behavior that goes beyond the support matrix in the README.
+<!-- agent-hint
+covers: which languages the package reads, which it writes, and what each writer does
+source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, nice_time; ovos_date_parser/duration.py:convert_duration; ovos_date_parser/res/*/
+generated: no
+verify: sed '/^\x60\x60\x60/d' docs/languages.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
+see: api.md, adding-a-language.md
+-->
 
-## Relative expressions
+This page lists the languages that `extract_datetime` and `extract_duration` read, the languages that the `nice_*` functions write, and the notes that apply to single writers.
 
-Every `extract_datetime` implementation resolves relative phrases against
-`anchorDate`: "tomorrow morning", "next tuesday", "in 2 hours", "day before
-yesterday", and their equivalents. Purely relative offsets ("in 2 hours")
-keep the anchor's time of day. Day-level expressions ("tomorrow") resolve to
-midnight unless a time is present or `default_time` is passed.
+## Language tags
 
-## Time formats understood
+Reading and writing treat the tag in different ways. A reader normalizes the tag before it looks at the language. A writer lower-cases the tag and then finds its language in one of two ways, described below.
 
-Digit forms (`15:30`, `3:30 pm`) parse in every language alongside the
-spoken forms. Portuguese also understands the `15h30` / `14h30min`
-style. Explicit years parse in the languages with full date support
-("11 de agosto de 1998").
+The reader steps are, in order:
 
-## nice_time conventions
+1. Strip white space and lower-case the tag.
+2. Replace `_` with `-`.
+3. Standardize the language part, so `deu` becomes `de` and `iw` becomes `he`.
+4. Map an individual Arabic or Azerbaijani language to its macrolanguage, so `arb` becomes `ar` and `azj` becomes `az`.
+5. Map `no` to `nb`, the written standard Bokmål.
 
-- Languages with a 12-hour speech habit (en, pt, es, and others) speak
-  "half past one" style with an optional am/pm marker
-  (`use_ampm=True` produces "in the morning" equivalents).
-- `use_24hour=True` produces military-style readings ("thirteen thirty").
-- French reads 12-hour by default ("une heure vingt-deux",
-  "huit heures moins vingt").
-- Basque, Catalan, and Persian have their own idiomatic readings. Catalan
-  supports `TimeVariantCA` for bell-tower style.
-- Occitan (classical orthography, Lengadocian variety) reads 12-hour with
-  the traditional quarter idioms: "una ora e quart", "cinc oras e mièja",
-  and the quarter-to form naming the next hour ("doas oras manca un quart"
-  for 1:45). Noon and midnight are "miègjorn" and "mièjanuèch".
+The region and the rest of the tag stay as they are. This is the function `_reader_lang` in `ovos_date_parser/__init__.py`.
 
-## Asturian (ast)
+```python
+>>> from ovos_date_parser import _reader_lang
+>>> _reader_lang("  DEU "), _reader_lang("no"), _reader_lang("arb-XX"), _reader_lang("pt_BR")
+('de', 'nb', 'ar-xx', 'pt-br')
+```
 
-Full support: `nice_time`, `nice_date`, `nice_date_time`, `nice_day`,
-`nice_weekday`, `nice_month`, `nice_year`, `extract_datetime`, and
-`extract_duration`. Spoken time follows the feminine-article convention
-("la una", "les cinco y media", "les ocho menos cuartu", "en puntu") with
-`use_ampm=True` adding "de la madrugada / mañana / tarde / nueche".
-Duration parsing handles the Asturian plurals in `-es` (hores, selmanes,
-díes) as well as the singular forms. "mañana" is ambiguous between
-"tomorrow" and "morning" and resolves the same way as in Spanish.
+A writer lower-cases the tag. Then it finds the language in one of two ways.
 
-## Kabyle
+1. `nice_time`, `nice_year` and the per-language branches of the other `nice_*` functions test which writer code the tag starts with. A tag that starts with a writer code reaches that writer, even when the tag names another language. The Filipino tag `fil` starts with `fi`, so `nice_time` and `nice_year` answer in Finnish.
+2. The generic writers read the folder `res/<code>/`. They take the part of the tag before the first `-` and look for that folder by exact name. These writers are the generic date family, `nice_duration` and `nice_relative_time`. The tag `PT_BR` gives the folder `pt_br`, which does not exist.
 
-Weekdays are the everyday Arabic-derived names (`letnayen` through
-`lḥedd`). Months follow the Kabyle calendar spellings (`yennayer`, `fuṛar`,
-through `dujembeṛ`). `extract_datetime` covers the relative day words
-(`azekka` "tomorrow", `iḍelli` "yesterday", `ass-a` "today"), weekday and
-month names with day numbers, digit clock times, and spoken clock phrases
-(see below). It does not yet cover year words. `extract_duration`
-accepts both the Amazigh neologisms (`tasint` second, `amalas` week) and
-the Arabic-derived units in daily use (`ddqiqa` minute, `ssaɛa` hour),
-with an optional genitive `n` between quantity and unit (`10 n
-tesdidin`). `nice_time` joins hour and minutes with the conjunction `d`.
-Day parts use `ssbeḥ` (morning) and `tameddit` (evening). Years are
-given in digits. A verified spoken-year formulation is not available.
+The result for each function, with a tag that starts with a writer code and a tag with an underscore:
 
-### Spoken clock phrases
+| Function | `fil` | `PT_BR` |
+|---|---|---|
+| `nice_time` | Finnish | Portuguese |
+| `nice_year` | Finnish | Portuguese |
+| `nice_date`, `nice_date_time` | `NotImplementedError` | Portuguese |
+| `nice_day`, `nice_weekday`, `nice_month`, `get_date_strings` | English | Portuguese |
+| `nice_duration`, `nice_relative_time` | `NotImplementedError` | `NotImplementedError` |
 
-`extract_datetime` understands the native "presentative" clock grammar
-built around `d` ("it is"), not just digit times.
+`nice_time` raises `NotImplementedError` for a tag that starts with no writer code, such as `xx`. A writer does not map three-letter codes, so use `de` and not `deu`. Write the region with `-`, as in `pt-BR`.
 
-- Bare hours: `d lweḥda` (1:00), `d lɛecṛa` (10:00).
-- Exact: `swaswa` marks the hour precisely (`d lɛecṛa swaswa`).
-- Quarter/half: `u ṛbeɛ` (+15), `u neṣṣ`/`azgen`/`nofc`/`nofç`/`nefs`
-  (+30). All four spellings of "half" are accepted, spanning the
-  Amazigh word, the old Arabic borrowing, and two contemporary variants.
-- Minus: `ɣiṛ` plus a number subtracts from the next hour (`d lɛecṛa ɣiṛ
-  xemsa` = 9:55). `ɣiṛ ṛbeɛ` is quarter-to. Bare `ɣiṛ` with no number is
-  a vague "almost the hour" and resolves to a fixed 10-minute-to offset,
-  matching the source grammar's own description of it as indeterminate
-  rather than a specific count.
-- Vague plus: `u wac` / `u ci` ("and a bit") resolve the same way, as a
-  fixed 10 minutes past.
-- Day-period disambiguation: a trailing `n <period>` both attaches a
-  period and resolves 12h/24h ambiguity. `d juǧ` alone stays 2:00, but
-  `d juǧ n uzal` resolves to 14:00. Periods recognized: `ṣṣbeḥ` (early
-  morning, 4-8h), `ssbeḥ` (morning, 8-12h), `uzal` (midday, 12-15h),
-  `tameddit`/`tmeddit` (afternoon/evening, 15-20h), `iḍ`/`yiḍ` (night,
-  20-4h).
-- Regional variant: `ssaɛtin` is accepted as an alternative to `juǧ` for
-  "two o'clock" (Soummam valley usage), for example `d ssaɛtin ɣiṛ xemsa`
-  (1:55).
-- Midnight set phrases: `nṣaf n yiḍ` and `ttnaṣfa n yiḍ` both resolve
-  directly to 00:00.
+The tag `"no"` reaches Bokmål in `nice_time`, `nice_date`, `nice_date_time`, `nice_day`, `nice_weekday`, `nice_month` and `nice_year`. In `nice_duration` and `nice_relative_time` it raises `NotImplementedError`, so pass `nb` there.
 
-Clock-hour nouns carry a fused definite article that the parser strips
-before handing the word to the number extractor. This surfaces two
-ways, mirroring Arabic sun/moon letters: a plain `l-` before some
-consonants (`lɛecṛa`, `lxemsa`) and gemination of the noun's own first
-consonant before others (`ttnac` = article + `tnac` "12", `ttlata` =
-article + `tlata` "3"). "One o'clock" also uses the feminine
-loan-numeral `weḥda`, agreeing with the feminine noun `ssaɛa` (hour),
-rather than the masculine `waḥed` used elsewhere.
+## Languages that read
 
-Not yet handled: the preposition `af` ("at") as an alternative to `d`
-(`Af ttlata n ṣṣbeḥ`, "at three in the early morning"). Only one
-example of this construction is attested, and it is unclear whether it
-behaves identically to `d` in every pattern above. `nice_time` also
-does not yet generate these forms (fractions, day-periods beyond
-`ssbeḥ`/`tameddit`, the vague markers). Extraction is currently richer
-than generation for this language.
+`extract_datetime` reads the 61 locales in `CHRONOLOGIA_LOCALES`:
 
-## Norwegian Bokmål (nb)
+| Codes |
+|---|
+| an Aragonese, ar Arabic, ast Asturian, az Azerbaijani, be Belarusian, bg Bulgarian, ca Catalan, cs Czech, cy Welsh, da Danish, de German |
+| el Greek, en English, eo Esperanto, es Spanish, et Estonian, eu Basque, fa Persian, fi Finnish, fil Filipino, fr French, fy Western Frisian |
+| ga Irish, gl Galician, ha Hausa, he Hebrew, hi Hindi, hr Croatian, hu Hungarian, hy Armenian, id Indonesian, is Icelandic, it Italian |
+| ka Georgian, kab Kabyle, ko Korean, lt Lithuanian, lv Latvian, mk Macedonian, ms Malay, mt Maltese, mwl Mirandese, nb Norwegian Bokmål |
+| nl Dutch, nn Norwegian Nynorsk, oc Occitan, pl Polish, pt Portuguese, ro Romanian, ru Russian, sk Slovak, sl Slovenian, sq Albanian |
+| sr Serbian, sv Swedish, sw Swahili, ta Tamil, th Thai, tr Turkish, uk Ukrainian, vi Vietnamese |
 
-Bokmål is supported with `no` accepted as an alias. It covers `nice_time`,
-`nice_date`, `nice_date_time`, `nice_day`, `nice_weekday`, `nice_month`,
-`nice_year`, `nice_duration`, `nice_relative_time`, `extract_datetime`, and
-`extract_duration`. Number and ordinal words use the modern tens-first
-counting reform (`tjueen` = 21) with decimal tens (`femti`, `åtti`), so
-years read "nitten hundre og åttifire" and "to tusen og tjueen". Weekdays
-are `mandag` through `søndag`. One o'clock reads with the neuter `ett`
-(`klokka ett`). `extract_datetime` covers relative day words, weekdays
-with `neste`/`forrige`, month names with day and optional year, and digit
-clock times.
+Any other language goes to [dateparser](https://dateparser.readthedocs.io). Japanese has a weekday reader of its own in front of dateparser, and Chinese has an unspaced-text reader behind it. The fallback reads absolute dates well and conversational phrases poorly, and it logs a warning.
 
-## Fallbacks
+`extract_duration` reads the same locales through chronologia. A month or a year counts from the day of the call. A locale outside the set answers `(None, text)`. The `resolution` and `replace_token` options convert chronologia's answer, so a month or a year reaches them as a day count.
 
-If a language has no `extract_datetime` implementation, the
-[dateparser](https://dateparser.readthedocs.io) library is tried. It handles
-absolute dates well but not conversational relative phrases.
+## Languages that write
 
-`nice_duration` uses a generic per-language unit table
-(`nice_duration_generic`) for languages without a dedicated implementation.
-Plural declension may be imperfect (for example, Slovenian dual forms).
+All 39 writers are also reader locales. The code list is `an, ar, ast, az, bg, ca, cs, da, de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, ms, nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr, uk`. Thirty-five of them write the whole set of functions. Four write less:
 
-## Romanian
+| Language | Missing |
+|---|---|
+| an Aragonese, fy Western Frisian | `nice_duration` and `nice_relative_time` raise `NotImplementedError` |
+| id Indonesian, ms Malay | `nice_date`, `nice_date_time` and `nice_year` raise `NotImplementedError` |
 
-- `nice_time` speaks quarter-hours idiomatically: "opt și un sfert" (8:15),
-  "opt și jumătate" (8:30, half past), "nouă fără un sfert" (8:45, "fără"
-  means minus, quarter to nine). Exact hours take "fix". `use_ampm=True`
-  appends "dimineața" / "după-amiaza" / "seara" / "noaptea".
-- "luni" is both Monday and the plural of "lună" (month). A numeric context
-  ("3 luni") selects the month unit, otherwise it is the weekday.
-- "mai" is both May and a very common adverb. It only parses as a month next
-  to a day or year number ("3 mai", "mai 2019").
-- Spoken numbers are understood in dates, times, and durations
-  ("peste trei zile", "douăzeci de minute").
+The `spoken_time`, `spoken_date` and `spoken_year` functions in `ovos_date_parser/spoken.py` write Dutch, Italian and Portuguese only. Any other language raises `UnsupportedForm`.
 
-## Danish (da)
+`nice_relative_time` uses one shared implementation, with a dedicated one for Basque. `nice_duration` has dedicated writers for ar, az, pl, ru and uk, and a shared writer that reads `res/<lang>/date_words.json` for the rest.
 
-- `nice_year` supports an explicit AD/CE marker via `nice_year(dt, "da",
-  ad=True)`, appending "e.Kr." the same way `bc=True` appends "f.Kr.". The two
-  are mutually exclusive. If both are passed, `bc` wins. Years are implicitly
-  AD when neither flag is set, as before.
-- The `ad` parameter is part of the generic `year_format` engine and is a
-  no-op for any locale that does not define an `"ad"` key in its
-  `year_format` resource, so it does not affect other languages.
+## Notes on single writers
+
+These examples ran against the code.
+
+French reads the 12-hour clock by default.
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
+>>> nice_time(datetime(2024, 1, 5, 1, 22), "fr"), nice_time(datetime(2024, 1, 5, 7, 40), "fr")
+('une heure vingt-deux', 'huit heures moins vingt')
+```
+
+Catalan has four registers, selected with `TimeVariantCA`.
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
+>>> from ovos_date_parser.dates_ca import TimeVariantCA
+>>> nice_time(datetime(2024, 1, 5, 15, 30), "ca")
+'les tres i trenta'
+>>> nice_time(datetime(2024, 1, 5, 15, 30), "ca", variant=TimeVariantCA.BELL)
+'dos quarts de quatre de la tarda'
+```
+
+Occitan uses the traditional quarter idioms, with the quarter-to form naming the next hour, and "miègjorn" and "mièjanuèch" for noon and midnight.
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
+>>> [nice_time(datetime(2024, 1, 5, h, m), "oc") for h, m in [(1, 15), (5, 30), (1, 45), (12, 0), (0, 0)]]
+['una ora e quart', 'cinc oras e mièja', 'doas oras manca un quart', 'miègjorn', 'mièjanuèch']
+```
+
+Romanian says a quarter-hour with "un sfert" and "fără un sfert", where "fără" means minus. An exact hour takes "fix", and `use_ampm=True` adds a part of the day.
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
+>>> [nice_time(datetime(2024, 1, 5, 8, m), "ro") for m in (15, 30, 45, 0)]
+['opt și un sfert', 'opt și jumătate', 'nouă fără un sfert', 'opt fix']
+>>> nice_time(datetime(2024, 1, 5, 8, 15), "ro", use_ampm=True)
+'opt și un sfert dimineața'
+```
+
+Asturian follows the feminine-article convention, and `use_ampm=True` adds "de la madrugada", "de la mañana", "de la tarde" or "de la nueche".
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
+>>> nice_time(datetime(2024, 1, 5, 1, 0), "ast"), nice_time(datetime(2024, 1, 5, 7, 45), "ast")
+('la una en puntu', 'les ocho menos cuartu')
+```
+
+Norwegian Bokmål uses the tens-first number forms, so a year reads "to tusen og tjueen".
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_year
+>>> nice_year(datetime(2021, 1, 1), "nb"), nice_year(datetime(1984, 1, 1), "nb")
+('to tusen og tjueen', 'nitten hundre og åttifire')
+```
+
+Danish `nice_year` takes `ad=True` to add "e.kr." and `bc=True` to add "f.kr.". When both are set, `bc` wins. The `ad` option has no effect in a language whose `year_format` resource has no `ad` key.
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_year
+>>> nice_year(datetime(1984, 1, 1), "da", ad=True)
+'nitten hundrede og fire og firs e.kr.'
+```
+
+Kabyle writes a clock time with the conjunction `d` and the weekday and month names of the Kabyle calendar.
+
+```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
+>>> nice_time(datetime(2024, 1, 5, 15, 30), "kab")
+'d ttlata u neṣṣ'
+```
 
 ## Known gaps
 
-- Relative past wording ("anoche", "bart", "last night") is not handled in
-  es/eu. The corresponding tests are skipped.
-- `nice_time` is missing for sl.
-- `gl` and `hu` `extract_datetime` are partial (see the README matrix).
-- A month or a year in `extract_duration` is a day count, so the
-  `RELATIVEDELTA` resolution never returns months or years.
+- `nice_year`, `nice_date` and `nice_date_time` do not exist for id and ms.
+- The decade and century labels of `nice_span` exist for English only, plus Arabic and Hebrew decades of the 20th century.
+- `nice_relative_time` uses one shared implementation, so its phrasing is not tuned to each language.
 
 ---
-[← API reference](api.md) · [Home](../README.md) · [Adding a language →](adding-a-language.md)
+[← API reference](api.md) · [Home](index.md) · [Adding a language →](adding-a-language.md)

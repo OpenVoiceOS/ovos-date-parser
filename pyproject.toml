@@ -45,7 +45,9 @@ dependencies = [
     # gives a lone spoken hour its next twelve-hour reading (ruling 17: "об
     # 11" said at 13:04 is 23:00). 0.32.9a1 reads a bare hour before a
     # counted noun as a count (ruling 22: nl "om 3 redenen" is no time).
-    "chronologia>=0.35.2a1",
+    # 0.40.2a1 is the alpha whose values the strict xfails and the holiday
+    # clock tests pin.
+    "chronologia>=0.40.2a1",
 ]
 dynamic = ["version"]
 

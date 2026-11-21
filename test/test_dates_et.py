@@ -219,7 +219,8 @@ class TestRealSentencesEt(unittest.TestCase):
         ("meeldetuletus viie minuti pärast",
          (2024, 1, 10, 12, 5), "meeldetuletus"),
         ("ärka poole tunni pärast", (2024, 1, 10, 12, 30), "ärka"),
-        ("helista pooleteist tunni pärast",
+        # genitive of "poolteist" is "poolteise" or "pooleteise" (ÕS 2018)
+        ("helista pooleteise tunni pärast",
          (2024, 1, 10, 13, 30), "helista"),
         # relative day/week offsets
         # a counted offset keeps the anchor clock (class 1)

@@ -198,8 +198,6 @@ class TestCatalanNext(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(_dt(text, "ca-ES"), _oct(19))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/996")
     def test_proper_leaves_no_word_behind(self):
         self.assertEqual(_on("el proper divendres", "ca-ES", ANCHOR),
                          (_oct(23), ""))

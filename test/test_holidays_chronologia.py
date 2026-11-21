@@ -337,15 +337,16 @@ def test_a_holiday_word_left_over_is_no_offset_of_the_holiday():
     assert tuple(got) == (datetime(2027, 3, 26, 0, 0), "two days after friday")
 
 
-@pytest.mark.parametrize("lang,utterance,kept", [
-    ("fr-FR", "noël 10h", "10h"),
-    ("fr-FR", "10h noël", "10h"),
-    ("fr-FR", "noël 9h30", "9h30"),
-    ("pt-PT", "natal 10h", "10h"),
+@pytest.mark.parametrize("lang,utterance,expected", [
+    ("fr-FR", "noël 10h", datetime(2026, 12, 25, 10, 0)),
+    ("fr-FR", "10h noël", datetime(2026, 12, 25, 10, 0)),
+    ("fr-FR", "noël 9h30", datetime(2026, 12, 25, 9, 30)),
+    ("pt-PT", "natal 10h", datetime(2026, 12, 25, 10, 0)),
 ])
-def test_a_clock_chronologia_normalised_raises_nothing(lang, utterance, kept):
-    """chronologia gives "10h" a token with no position in the text."""
-    assert extract_holiday_span(utterance, lang, REF) == (CHRISTMAS, kept)
+def test_a_clock_beside_the_holiday_is_the_time_of_it(lang, utterance,
+                                                      expected):
+    """chronologia reads "10h" as the clock of the holiday and consumes it."""
+    assert extract_holiday_span(utterance, lang, REF) == (expected, "")
 
 
 @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1004")
@@ -892,7 +893,6 @@ def test_whole_days_move_the_wall_clock_across_a_clock_change(
     assert got[0].isoformat() == expected and got[1] == ""
 
 
-@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
 def test_extract_datetime_moves_whole_days_on_the_wall_clock():
     anchor = REF.replace(tzinfo=ZoneInfo("Europe/Berlin"))
     got = extract_datetime("ein paar Tage vor Ostermontag", "de-DE", anchor)

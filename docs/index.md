@@ -4,7 +4,7 @@
 covers: the list of every page under docs/ in reading order
 source: docs/*.md
 generated: no
-verify: for f in api languages adding-a-language; do test -f docs/$f.md && grep -q "($f.md)" docs/index.md && echo ok $f; done
+verify: diff <(ls docs/*.md | sed 's#docs/##' | grep -v '^index.md$' | sort) <(grep -o '^| \[[^]]*\]([a-z-]*\.md)' docs/index.md | sed 's/.*(\(.*\))/\1/' | sort)
 see: ../README.md, ../AGENTS.md
 -->
 

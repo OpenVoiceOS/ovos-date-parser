@@ -12,10 +12,10 @@ Writing lives in this package.
 
 | Path | Holds |
 |---|---|
-| `ovos_date_parser/__init__.py` | The public functions, the reader routing (`CHRONOLOGIA_LOCALES`, `CHRONOLOGIA_DURATION_LOCALES`, `_reader_lang`), the dispatch of every `nice_*` function and the deprecated reader names |
+| `ovos_date_parser/__init__.py` | The public functions, the reader routing (`CHRONOLOGIA_LOCALES`, `_reader_lang`), the dispatch of every `nice_*` function and the deprecated reader names |
 | `ovos_date_parser/dates_<code>.py` | The writers of one language: `nice_time_<code>` and the date family |
 | `ovos_date_parser/res/<code>/` | `date_time.json` for the generic date writer, `date_words.json` for the generic duration writer |
-| `ovos_date_parser/duration.py` | The shared duration engine and `DURATION_LEXICONS` |
+| `ovos_date_parser/duration.py` | `DurationResolution` and `convert_duration` |
 | `ovos_date_parser/spoken.py` | `spoken_time`, `spoken_date` and `spoken_year` for nl, it and pt |
 | `ovos_date_parser/holidays.py` | Named holidays, answered through chronologia |
 | `ovos_date_parser/locale/<code>/*.voc` | Phrase files that overlay chronologia's, file by file |
@@ -46,8 +46,8 @@ Run the first line while you work. Run the second before you push.
 
 ## Rules
 
-1. Dates read through chronologia. Durations and the ja and zh fallbacks have
-   readers in this package. A date-reading defect belongs in chronologia. A
+1. Dates and durations read through chronologia. The ja and zh fallbacks have
+   readers in this package. A reading defect belongs in chronologia. A
    language joins the reading set only through `CHRONOLOGIA_LOCALES`
    ([adding-a-language](docs/adding-a-language.md)).
 2. A writer takes every word from a source. Name the sources in the module

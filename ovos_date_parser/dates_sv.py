@@ -1,7 +1,4 @@
-from datetime import timedelta
-
-from ovos_number_parser.numbers_sv import pronounce_number_sv, _find_numbers_in_text, _combine_adjacent_numbers
-from ovos_number_parser.util import tokenize
+from ovos_number_parser.numbers_sv import pronounce_number_sv
 
 
 def nice_year_sv(dt, bc=False):
@@ -148,79 +145,3 @@ def nice_time_sv(dt, speech=True, use_24hour=False, use_ampm=False):
         return speak
 
 
-def extract_duration_sv(text):
-    """
-    Convert a swedish phrase into a number of seconds.
-
-    The function handles durations from seconds up to days.
-
-    Convert things like:
-        "10 minute"
-        "2 and a half hours"
-        "3 days 8 hours 10 minutes and 49 seconds"
-    into an int, representing the total number of seconds.
-
-    The words used in the duration will be consumed, and
-    the remainder returned.
-
-    As an example, "set a timer for 5 minutes" would return
-    (300, "set a timer for").
-
-    Args:
-        text (str): string containing a duration
-
-    Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found. The text returned
-                    will have whitespace stripped from the ends.
-    """
-    tokens = tokenize(text)
-    number_tok_map = _find_numbers_in_text(tokens)
-    if not number_tok_map:
-        # No numbers means no duration; also avoids indexing an empty
-        # token list downstream when the input is empty or whitespace.
-        return None, text
-    # Combine adjacent numbers
-    simplified = _combine_adjacent_numbers(number_tok_map)
-
-    states = {
-        'days': 0,
-        'hours': 0,
-        'minutes': 0,
-        'seconds': 0
-    }
-
-    # Parser state, mapping words that should set the parser to collect
-    # numbers to a specific time "size"
-    state_words = {
-        'days': ('dygn', 'dag', 'dagar', 'dags'),
-        'hours': ('timmar', 'timme', 'timma', 'timmes', 'timmas'),
-        'minutes': ('minuter', 'minuters', 'minut', 'minuts'),
-        'seconds': ('sekunder', 'sekunders', 'sekund', 'sekunds')
-    }
-    binding_words = ('och')
-
-    consumed = []
-    state = None
-    valid = False
-
-    for num, toks in simplified:
-        if state and num:
-            states[state] += num
-            consumed.extend(toks)
-            valid = True  # If a state field got set this is valid duration
-        elif num is None:
-            for s in state_words:
-                if toks[0].word in state_words[s]:
-                    state = s
-                    consumed.extend(toks)
-                    break
-            else:
-                if toks[0].word not in binding_words:
-                    state = None
-
-    td = timedelta(**states)
-    remainder = ' '.join([t.word for t in tokens if t not in consumed])
-    return (td, remainder) if valid else (None, text)

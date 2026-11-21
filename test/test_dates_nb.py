@@ -197,8 +197,7 @@ class TestAdversarialNb(unittest.TestCase):
         self.assertIn("42", remainder)
 
     def test_empty_duration(self):
-        # the shared duration engine returns None (not a tuple) for empty input
-        self.assertIsNone(extract_duration("", "nb"))
+        self.assertEqual(extract_duration("", "nb"), (None, ""))
 
     def test_zero_and_large_minutes(self):
         self.assertEqual(extract_duration("0 minutter", "nb")[0], timedelta(0))

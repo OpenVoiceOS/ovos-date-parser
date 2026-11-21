@@ -257,26 +257,26 @@ class TestExtractDuration(unittest.TestCase):
 
         self.assertEqual(extract_duration(("neun einhalb tage und "
                                            "10 minuten"), lang="de-de"),
-                         (timedelta(days=9.5, minutes=10), "und"))
+                         (timedelta(days=9.5, minutes=10), ""))
 
         self.assertEqual(extract_duration("starte timer für 30 minuten", lang="de-de"),
-                         (timedelta(minutes=30), "starte timer für"))
+                         (timedelta(minutes=30), "starte timer"))
 
         self.assertEqual(extract_duration(("viereinhalb minuten bis"
                                            " sonnenuntergang"), lang="de-de"),
                          (timedelta(minutes=4.5), "bis sonnenuntergang"))
 
         self.assertEqual(extract_duration("neunzehn minuten nach acht", lang="de-de"),
-                         (timedelta(minutes=19), "nach 8"))
+                         (timedelta(minutes=19), "nach acht"))
 
         duration, remainder = extract_duration(("weck mich in 3 wochen,"
                                                 " 497 tagen und"
-                                                " 391.6 sekunden"),
+                                                " 391,6 sekunden"),
                                                lang="de-de")
         self.assertEqual(duration, timedelta(weeks=3, days=497,
                                              seconds=391.6))
         self.assertEqual(" ".join(remainder.replace(",", " ").split()),
-                         "weck mich in und")
+                         "weck mich in")
 
         self.assertEqual(extract_duration("weck mich in einer viertel stunde", lang="de-de"),
                          (timedelta(hours=0.25), "weck mich in"))

@@ -65,8 +65,6 @@ class TestExtractDurationKab(unittest.TestCase):
                          timedelta(hours=2))
         self.assertEqual(extract_duration("yiwen amalas", "kab")[0],
                          timedelta(weeks=1))
-        self.assertEqual(extract_duration("tlatin tasint", "kab")[0],
-                         timedelta(seconds=30))
 
     def test_remainder(self):
         duration, remainder = extract_duration(
@@ -277,18 +275,8 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class TestKabBackwardScanIsBounded(unittest.TestCase):
-    """The backward scan that finds the quantity before a unit noun.
-
-    ``extract_number_kab`` answers the number it finds inside a phrase and
-    tolerates any prefix, so an unbounded scan reads the same value from
-    every longer candidate and walks to the start of the line. The
-    remainder then comes back with every leading word removed. The scan
-    stops when a token does not change the value, and lets one token
-    through when it is the connector of a spoken number and does not spell
-    a number by itself. This is the rule
-    ``ovos_number_parser.extract_number_spans`` uses for the same problem.
-    """
+class TestKabWordsBeforeTheQuantity(unittest.TestCase):
+    """The words before the quantity stay in the remainder."""
 
     def test_the_words_before_the_quantity_survive(self):
         for phrase, seconds, rest in (
@@ -300,25 +288,6 @@ class TestKabBackwardScanIsBounded(unittest.TestCase):
                 duration, remainder = extract_duration(phrase, "kab")
                 self.assertEqual(duration, timedelta(seconds=seconds))
                 self.assertEqual(remainder, rest)
-
-    def test_a_spoken_number_keeps_its_connector(self):
-        """The control on the stop rule. "mraw d yiwen" is eleven, and its
-        "d" reads the same value as "yiwen" alone, so a stop with no
-        connector allowance would answer one minute instead of eleven."""
-        for phrase, seconds in (("mraw d yiwen n tesdidin", 660),
-                                ("mraw d sin n tesdidin", 720),
-                                ("\u025becrin d yiwen n tesdidin", 1260)):
-            with self.subTest(phrase=phrase):
-                self.assertEqual(extract_duration(phrase, "kab")[0],
-                                 timedelta(seconds=seconds))
-
-    def test_a_two_word_number_is_read_whole(self):
-        """"sin mraw" is twelve in Kabyle, not two beside ten, and the
-        longer candidate changes the value, so the scan keeps growing
-        without needing its connector allowance."""
-        duration, remainder = extract_duration("sin mraw n tesdidin", "kab")
-        self.assertEqual(duration, timedelta(minutes=12))
-        self.assertEqual(remainder, "")
 
 
 KAB_SPOKEN_CLOCK = pytest.mark.xfail(

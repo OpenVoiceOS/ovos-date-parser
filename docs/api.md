@@ -109,23 +109,19 @@ when nothing is found.
 (None, 'nothing here')
 ```
 
-In the locales of `ovos_date_parser.CHRONOLOGIA_DURATION_LOCALES` the answer
-comes from chronologia. A month or a year is a calendar length counted from
-now: "2 months" said on 27 June 2017 is 61 days. A call that sets
-`resolution` or `replace_token` is answered by the shared duration engine.
+Every locale in `ovos_date_parser.CHRONOLOGIA_LOCALES` is read by chronologia.
+A month or a year is a calendar length counted from the day of the call:
+"2 months" said on 27 June 2017 is 61 days. A locale outside that set answers
+`(None, text)`. [languages.md](languages.md) lists the locales.
 
-`resolution` and `replace_token` are keyword-only. Only the shared duration
-engine supports them. The languages ar, fa, kab and sv use a dedicated reader
-that accepts neither, and ast has no engine entry. Passing either option to
-those languages raises `NotImplementedError`. A language with no duration
-reader returns `(None, text)` on the default call and raises
-`NotImplementedError` when the call sets `resolution` or `replace_token`. [languages.md](languages.md) lists the
-path of each language.
+`resolution` and `replace_token` are keyword-only. Both convert chronologia's
+answer, a `timedelta` and the text left over, so a month or a year reaches
+them as a day count.
 
 - `resolution` (`DurationResolution`): the type to return.
   - `TIMEDELTA` (default): a `datetime.timedelta`.
-  - `RELATIVEDELTA`: a calendar-accurate `dateutil.relativedelta`, so
-    "2 months" stays 2 months rather than an approximate day count.
+  - `RELATIVEDELTA`: a `dateutil.relativedelta` of the same length, in days
+    and the units below a day.
   - Single-unit totals such as `TOTAL_SECONDS`, `TOTAL_MINUTES`,
     `TOTAL_HOURS`, `TOTAL_DAYS`: a `float` in that unit.
 - `replace_token` (`str`): string that replaces each consumed duration
@@ -223,7 +219,7 @@ when nothing inside it reads as a duration of its own.
 The per-language reader names `extract_datetime_<lang>` and `extract_duration_<lang>` are shims. Each one calls `extract_datetime(text, lang)` or `extract_duration(text, lang)` and gives a `DeprecationWarning` that names the removal version, the next major version. The shims exist for these codes:
 
 - `extract_datetime_<lang>`: an, ar, ast, az, bg, ca, cs, da, de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, ms, nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr, uk
-- `extract_duration_<lang>`: an, az, bg, ca, cs, da, de, el, en, es, et, eu, fi, fr, fy, gl, he, hr, hu, it, nb, nl, nn, pl, pt, ro, ru, sk, sl, uk
+- `extract_duration_<lang>`: an, ar, ast, az, bg, ca, cs, da, de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, it, kab, nb, nl, nn, pl, pt, ro, ru, sk, sl, sv, uk
 
 ```python
 >>> from datetime import datetime
@@ -239,8 +235,6 @@ The per-language reader names `extract_datetime_<lang>` and `extract_duration_<l
 ```
 
 The shim takes `anchorDate` and `default_time` for dates, and `resolution` and `replace_token` for durations. The warning fires when the name is looked up, not when the reader is called.
-
-`extract_duration_ar`, `extract_duration_ast`, `extract_duration_fa`, `extract_duration_kab` and `extract_duration_sv` are ordinary functions, not shims.
 
 ## Formatting (datetime to text)
 

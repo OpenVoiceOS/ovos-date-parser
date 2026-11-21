@@ -2,7 +2,7 @@
 
 <!-- agent-hint
 covers: the two paths for a new language, reading in chronologia and writing in a nice_* module here
-source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, CHRONOLOGIA_DURATION_LOCALES, nice_time, nice_date, nice_duration; ovos_date_parser/dates_ms.py; ovos_date_parser/res/
+source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, nice_time, nice_date, nice_duration; ovos_date_parser/dates_ms.py; ovos_date_parser/res/
 generated: no
 verify: diff <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' docs/adding-a-language.md | sed '1d;$d' | python -) <(sed -n '/^\x60\x60\x60text/,/^\x60\x60\x60$/p' docs/adding-a-language.md | sed '1d;$d')
 see: languages.md, api.md
@@ -52,15 +52,15 @@ A language with `reads: False` needs the reading path. A language that raises `N
 
 ## Reading: add the language to chronologia
 
-This package holds no date reader for a chronologia locale. `extract_datetime` normalizes the tag and calls chronologia, so the language must exist there first. Durations also have readers in this package, covered below. Follow
+This package holds no reader for a chronologia locale. `extract_datetime` and `extract_duration` normalize the tag and call chronologia, so the language must exist there first. Follow
 [chronologia's guide](https://github.com/TigreGotico/chronologia/blob/dev/docs/adding-a-language.md). It covers the vocabulary files, their sources and their tests.
 
 When the chronologia release that reads the language is published, make two changes here:
 
 1. Raise the floor of `chronologia` in `pyproject.toml` to that release.
-2. Add the code to `CHRONOLOGIA_LOCALES` in `ovos_date_parser/__init__.py`. A locale outside the set goes to the dateparser fallback.
+2. Add the code to `CHRONOLOGIA_LOCALES` in `ovos_date_parser/__init__.py`. A locale outside the set goes to the dateparser fallback for dates and answers `(None, text)` for durations.
 
-Add the code to `CHRONOLOGIA_DURATION_LOCALES` only when chronologia reads every duration that the shared duration engine reads correctly. A month or a year then counts on the calendar from the moment of the call. Until then, register a `DurationLexicon` for the language with `register_duration_lexicon(...)`, as `ovos_date_parser/dates_ms.py` does. The module that registers it must be imported in `__init__.py`. The shared engine then answers `extract_duration` and supports `resolution` and `replace_token`.
+The same entry gives the language `extract_duration`. A month or a year counts on the calendar from the day of the call. The `resolution` and `replace_token` options convert chronologia's answer.
 
 Phrase files that this package adds on top of chronologia, such as era and calendar-scoped phrases, live in `ovos_date_parser/locale/<code>/*.voc`. A file there overrides the file of the same name in chronologia.
 

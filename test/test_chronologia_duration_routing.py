@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Routing ``extract_duration`` through chronologia.
+"""Routing ``extract_duration`` through chronologia for every locale it reads.
 
 A month or a year has no fixed length, so the route counts it on the calendar
 from now. "Now" is pinned to Tuesday 2017-06-27 13:04, and every expected
@@ -77,6 +77,22 @@ ROWS = [
     ("uk", "1 рік", 365 * DAY, ""),
 ]
 
+#: five minutes, the same length in every other locale chronologia reads
+MINUTES = {
+    "ar": "5 دقائق", "az": "5 dəqiqə", "be": "5 хвілін", "cy": "5 munud",
+    "da": "5 minutter", "de": "5 Minuten", "eo": "5 minutoj",
+    "es": "5 minutos", "et": "5 minutit", "eu": "5 minutu",
+    "fa": "5 دقیقه", "fil": "5 minuto", "ga": "5 nóiméad",
+    "gl": "5 minutos", "ha": "minti 5", "he": "5 דקות", "hi": "5 मिनट",
+    "hu": "5 perc", "hy": "5 րոպե", "is": "5 mínútur", "ka": "5 წუთი",
+    "kab": "5 n tesdidin", "ko": "5분", "lt": "5 minutės", "lv": "5 minūtes",
+    "mk": "5 минути", "mt": "5 minuti", "mwl": "5 minutos",
+    "nl": "5 minuten", "pt": "5 minutos", "sq": "5 minuta",
+    "sr": "5 минута", "sv": "5 minuter", "sw": "dakika 5",
+    "ta": "5 நிமிடங்கள்", "th": "5 นาที", "vi": "5 phút",
+}
+ROWS += [(lang, text, 300, "") for lang, text in MINUTES.items()]
+
 
 @pytest.fixture(autouse=True)
 def now(monkeypatch):
@@ -93,7 +109,7 @@ def test_a_routed_locale_reads_the_length(lang, text, seconds, remainder):
 
 
 def test_every_routed_locale_has_a_row():
-    assert set(LOCALES) == set(ovos_date_parser.CHRONOLOGIA_DURATION_LOCALES)
+    assert set(LOCALES) == ovos_date_parser.CHRONOLOGIA_LOCALES
 
 
 @pytest.mark.parametrize("text,lang", [
@@ -126,30 +142,60 @@ def test_a_text_with_no_duration_is_returned_whole(lang):
 @pytest.mark.parametrize("lang", LOCALES)
 def test_an_empty_text_is_no_duration(lang):
     for empty in ("", None):
-        found = extract_duration(empty, lang)
-        assert found is None or found[0] is None
+        assert extract_duration(empty, lang) == (None, empty)
 
 
-def test_the_options_of_the_shared_engine_stay_with_it():
-    """chronologia has no resolution or replace token, so a call that asks
-    for one is answered by the shared engine, which has both."""
+def test_the_options_convert_the_answer():
     assert extract_duration("2 months", "en") == (timedelta(days=61), "")
     assert extract_duration(
         "2 months", "en", resolution=DurationResolution.RELATIVEDELTA
-    ) == (relativedelta(months=2), "")
+    ) == (relativedelta(days=61), "")
+    assert extract_duration(
+        "2 months", "en", resolution=DurationResolution.TOTAL_DAYS
+    ) == (61.0, "")
     assert extract_duration("set a timer for 5 minutes", "en",
                             replace_token="<d>") == (
-        timedelta(minutes=5), "set a timer for <d>")
+        timedelta(minutes=5), "set a timer <d>")
 
 
-def test_a_locale_outside_the_set_keeps_its_reader():
-    assert "pt" not in ovos_date_parser.CHRONOLOGIA_DURATION_LOCALES
-    got = extract_duration("2 meses", "pt")[0]
-    assert got != timedelta(days=61)
-    assert timedelta(days=60) < got < timedelta(days=61)
+@pytest.mark.parametrize("lang,text", [("ja", "2時間"), ("zh", "两小时")])
+def test_a_locale_chronologia_does_not_read_answers_no_duration(lang, text):
+    assert lang not in ovos_date_parser.CHRONOLOGIA_LOCALES
+    assert extract_duration(text, lang) == (None, text)
 
 
-def test_the_set_does_not_follow_the_datetime_set(monkeypatch):
-    monkeypatch.setattr(ovos_date_parser, "CHRONOLOGIA_LOCALES",
-                        frozenset())
-    assert extract_duration("2 months", "en") == (timedelta(days=61), "")
+PUNCTUATED = [
+    # (lang, text, length, remainder with the token)
+    ("en", "remind me in two hours to call mom.", 7200,
+     "remind me in <d> to call mom."),
+    ("en", "start the timer, 3 minutes", 180, "start the timer, <d>"),
+    ("pt", "lembra-me daqui a duas horas de ligar à mãe.", 7200,
+     "lembra-me daqui <d> de ligar à mãe."),
+    ("es", "recuérdame en dos horas llamar a mamá.", 7200,
+     "recuérdame en <d> llamar a mamá."),
+    ("de", "erinnere mich in zwei Stunden an meine Mutter.", 7200,
+     "erinnere mich in <d> an meine Mutter."),
+    ("fr", "rappelle-moi dans deux heures d'appeler maman.", 7200,
+     "rappelle-moi dans <d> d'appeler maman."),
+    ("it", "ricordami tra due ore di chiamare la mamma.", 7200,
+     "ricordami tra <d> di chiamare la mamma."),
+    ("nl", "herinner me over twee uur om mama te bellen.", 7200,
+     "herinner me over <d> om mama te bellen."),
+    ("ca", "recorda'm d'aquí a dues hores de trucar a la mare.", 7200,
+     "recorda'm d'aquí a <d> de trucar a la mare."),
+    ("gl", "lémbrame dentro de dúas horas de chamar á nai.", 7200,
+     "lémbrame dentro de <d> de chamar á nai."),
+    ("fr", "Salut ! Rappelle-moi dans 5 minutes d'appeler maman.", 300,
+     "Salut ! Rappelle-moi dans <d> d'appeler maman."),
+    ("en", "remind me in two hours to call mom ? merci", 7200,
+     "remind me in <d> to call mom ? merci"),
+    ("de", "„Erinnere mich in 5 Minuten an Mama“", 300,
+     "„Erinnere mich in <d> an Mama“"),
+]
+
+
+@pytest.mark.parametrize("lang,text,seconds,marked", PUNCTUATED)
+def test_the_token_stands_where_the_length_was_beside_punctuation(
+        lang, text, seconds, marked):
+    assert extract_duration(text, lang, replace_token="<d>") == (
+        timedelta(seconds=seconds), marked)

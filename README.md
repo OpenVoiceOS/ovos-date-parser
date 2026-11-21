@@ -54,11 +54,10 @@ value for repeatable results.
 
 Reading is the job of chronologia. `extract_datetime` normalizes the language
 tag and calls chronologia for every locale it reads. `extract_duration` calls
-chronologia for 24 locales and uses a shared duration engine for 11 more. Four
-languages (ar, fa, kab, sv) have a reader of their own, and 22 have no duration
-reader. [docs/languages.md](docs/languages.md) lists each one. This
-package adds the `datetime` shape of the answer, the leftover text, named
-holidays, and the span scans `extract_datetime_spans` and
+chronologia for the same locales. [docs/languages.md](docs/languages.md) lists
+each one. This package adds the `datetime` shape of the answer, the leftover
+text, named holidays, the `resolution` and `replace_token` options of
+`extract_duration`, and the span scans `extract_datetime_spans` and
 `extract_duration_spans`.
 
 Writing is the job of this package. The `nice_*` functions and the `spoken_*`

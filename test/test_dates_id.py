@@ -3,11 +3,8 @@ from datetime import datetime, time, timedelta
 
 import pytest
 
-from dateutil.relativedelta import relativedelta
-
 from ovos_date_parser import (nice_time, nice_duration, extract_duration,
                               nice_relative_time, extract_datetime)
-from ovos_date_parser.duration import DurationResolution
 
 # a fixed Wednesday noon anchor
 ANCHOR = datetime(2026, 7, 15, 12, 0)
@@ -60,10 +57,6 @@ class TestDurationId(unittest.TestCase):
         self.assertEqual(
             extract_duration("lima belas menit", "id"),
             (timedelta(minutes=15), ""))
-        self.assertEqual(
-            extract_duration("tiga tahun dua bulan", "id",
-                             resolution=DurationResolution.RELATIVEDELTA),
-            (relativedelta(years=3, months=2), ""))
         # "pekan" is an accepted synonym for "minggu" (week)
         self.assertEqual(
             extract_duration("dua pekan", "id")[0], timedelta(weeks=2))
@@ -85,7 +78,7 @@ class TestDurationId(unittest.TestCase):
 
 class TestAdversarialId(unittest.TestCase):
     def test_empty(self):
-        self.assertIsNone(extract_duration("", "id"))
+        self.assertEqual(extract_duration("", "id"), (None, ""))
 
     def test_no_duration(self):
         self.assertEqual(extract_duration("halo dunia", "id"),

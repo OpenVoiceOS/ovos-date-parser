@@ -19,31 +19,10 @@ idiomatic case-marked forms ("üçü on geçiyor" = "ten past three")
 require the accusative/ablative declension of the numeral and are left
 out rather than approximated.
 
-Weekday and month names use standard orthography. Turkish nouns stay
-singular after a numeral (iki saat = "two hour"), so the duration units
-are the bare stems; "decade" is the phrase "on yıl" ("ten years"), not
-a single word, and is omitted.
+Weekday and month names use standard orthography.
 """
 
 from ovos_number_parser import pronounce_number
-
-from ovos_date_parser.duration import DurationLexicon, register_duration_lexicon
-
-register_duration_lexicon(DurationLexicon(
-    lang="tr",
-    units={
-        "microseconds": r"mikrosaniye",
-        "milliseconds": r"milisaniye",
-        "seconds": r"saniye",
-        "minutes": r"dakika",
-        "hours": r"saat",
-        "days": r"gün",
-        "weeks": r"hafta",
-        "months": r"ay",
-        "years": r"yıl|sene",
-        "centuries": r"yüzyıl|asır",
-        "millenniums": r"binyıl|milenyum",
-    }))
 
 
 def _period_tr(hour):

@@ -28,25 +28,6 @@ menit). Weekday names (Isnin, Khamis, Jumaat, Ahad) and several months
 
 from ovos_number_parser import pronounce_number
 
-from ovos_date_parser.duration import DurationLexicon, register_duration_lexicon
-
-register_duration_lexicon(DurationLexicon(
-    lang="ms",
-    units={
-        "microseconds": r"mikrosaat",
-        "milliseconds": r"milisaat",
-        "seconds": r"saat|detik",
-        "minutes": r"minit",
-        "hours": r"jam",
-        "days": r"hari",
-        "weeks": r"minggu",
-        "months": r"bulan",
-        "years": r"tahun",
-        "decades": r"dekad",
-        "centuries": r"abad",
-        "millenniums": r"milenium|alaf",
-    }))
-
 
 def _period_ms(hour):
     if hour < 12:

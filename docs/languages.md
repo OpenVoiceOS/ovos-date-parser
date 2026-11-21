@@ -2,7 +2,7 @@
 
 <!-- agent-hint
 covers: which languages the package reads, which it writes, and what each writer does
-source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, CHRONOLOGIA_DURATION_LOCALES, nice_time; ovos_date_parser/duration.py:DURATION_LEXICONS; ovos_date_parser/res/*/
+source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, nice_time; ovos_date_parser/duration.py:convert_duration; ovos_date_parser/res/*/
 generated: no
 verify: sed '/^\x60\x60\x60/d' docs/languages.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
 see: api.md, adding-a-language.md
@@ -64,18 +64,7 @@ The tag `"no"` reaches Bokmål in `nice_time`, `nice_date`, `nice_date_time`, `n
 
 Any other language goes to [dateparser](https://dateparser.readthedocs.io). Japanese has a weekday reader of its own in front of dateparser, and Chinese has an unspaced-text reader behind it. The fallback reads absolute dates well and conversational phrases poorly, and it logs a warning.
 
-`extract_duration` takes one of four paths, chosen by the language and the options:
-
-| Path | Languages | Options |
-|---|---|---|
-| chronologia | an, ast, bg, ca, cs, el, en, fi, fr, fy, hr, id, it, ms, nb, nn, oc, pl, ro, ru, sk, sl, tr, uk | The default call only. A month or a year counts from the moment of the call |
-| shared duration engine | az, da, de, es, et, eu, gl, he, hu, nl, pt, and every chronologia-path language except ast when the call sets `resolution` or `replace_token` | `resolution` and `replace_token` work |
-| reader of its own | ar, fa, kab, sv | A plain `timedelta` only. Other options raise `NotImplementedError` |
-| none | be, cy, eo, fil, ga, ha, hi, hy, is, ka, ko, lt, lv, mk, mt, mwl, sq, sr, sw, ta, th, vi | The default call returns `(None, text)`. A call with `resolution` or `replace_token` raises `NotImplementedError` |
-
-A call on ast with `resolution` or `replace_token` raises `NotImplementedError`, because ast has no lexicon.
-
-The shared engine keeps one `DurationLexicon` per language in `ovos_date_parser/duration.py`.
+`extract_duration` reads the same locales through chronologia. A month or a year counts from the day of the call. A locale outside the set answers `(None, text)`. The `resolution` and `replace_token` options convert chronologia's answer, so a month or a year reaches them as a day count.
 
 ## Languages that write
 

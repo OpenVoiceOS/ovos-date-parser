@@ -54,7 +54,9 @@ Run the first line while you work. Run the second before you push.
    docstring, as `dates_kab.py` does. Take expected strings in tests from a
    source, never from the output of the code
    ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
-3. A new writer has a branch in each `nice_*` function in `__init__.py`
+3. A new writer has a branch in `nice_time` in `__init__.py`. It has a branch
+   in another `nice_*` function only when no `res/<code>/` file serves it, and
+   in `nice_duration` only when the shared writer cannot say the language
    ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
    `test/test_lang_parity.py` checks the 26 languages in its last `LANGS`
    assignment. It does not check bg, el, et, fi, he, hr, nb, nn and tr.

@@ -4,7 +4,7 @@
 covers: the two paths for a new language, reading in chronologia and writing in a nice_* module here
 source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, CHRONOLOGIA_DURATION_LOCALES, nice_time, nice_date, nice_duration; ovos_date_parser/dates_ms.py; ovos_date_parser/res/
 generated: no
-verify: python -m pytest test/test_lang_parity.py test/test_chronologia_routing.py
+verify: sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' docs/adding-a-language.md | sed '1d;$d' | python -
 see: languages.md, api.md
 -->
 

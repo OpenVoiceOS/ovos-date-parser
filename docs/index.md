@@ -4,7 +4,7 @@
 covers: the list of every page under docs/ in reading order
 source: docs/*.md
 generated: no
-verify: ls docs/*.md and compare with the table
+verify: for f in api languages adding-a-language; do test -f docs/$f.md && grep -q "($f.md)" docs/index.md && echo ok $f; done
 see: ../README.md, ../AGENTS.md
 -->
 

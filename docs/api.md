@@ -4,13 +4,13 @@
 covers: every public function of ovos_date_parser with its signature, defaults and real output
 source: ovos_date_parser/__init__.py, ovos_date_parser/holidays.py, ovos_date_parser/spoken.py, ovos_date_parser/duration.py
 generated: no
-verify: python -m pytest test/test_deprecated_readers.py test/test_reader_lang.py test/test_datetime_spans.py
+verify: sed '/^\x60\x60\x60/d' docs/api.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
 see: languages.md, adding-a-language.md
 -->
 
 This page lists the public functions of `ovos_date_parser`: the readers that turn text into values, and the writers that turn values into words. Every function takes a BCP-47 language code in `lang`.
 
-Readers and writers resolve the code in different ways, and [languages.md](languages.md) gives the steps. A reader accepts a tag in any case, with `_` or `-`, and maps `deu` to `de` and `no` to `nb`. A writer lower-cases the tag and tests which writer code it starts with, so `"pt-BR"` and `"pt"` reach Portuguese, `"fil"` reaches the Finnish writer (`fi`), and the region `BR` selects the Brazilian number spelling (`dezesseis`, where every other Portuguese tag says `dezasseis`).
+Readers and writers resolve the code in different ways, and [languages.md](languages.md) gives the steps. A reader accepts a tag in any case, with `_` or `-`, and maps `deu` to `de` and `no` to `nb`. A writer lower-cases the tag. `nice_time`, `nice_year` and the per-language branches of the other `nice_*` functions test which writer code the tag starts with, so `"pt-BR"` and `"pt"` reach Portuguese. The writers that read `res/<code>/` take the code before the first `-` and look for that folder by exact name. The table in [languages.md](languages.md#language-tags) shows the result for each function. The region `BR` selects the Brazilian number spelling (`dezesseis`, where every other Portuguese tag says `dezasseis`).
 
 `extract_datetime` answers every locale in `ovos_date_parser.CHRONOLOGIA_LOCALES` through [chronologia](https://github.com/TigreGotico/chronologia). It sends any other locale to [dateparser](https://dateparser.readthedocs.io). `nice_time` raises `NotImplementedError` for a tag that starts with no writer code.
 
@@ -37,7 +37,8 @@ answers because the reader found no date. `"christmas"` in en and `"noël"` in f
 give a list. `"noel"` in fr gives a tuple.
 
 ```python
->>> from datetime import datetime, time
+>>> from datetime import datetime
+>>> from ovos_date_parser import extract_datetime
 >>> extract_datetime("lets meet next friday at 8am", "en",
 ...                  anchorDate=datetime(2023, 1, 15))
 [datetime.datetime(2023, 1, 20, 8, 0), 'lets meet']
@@ -73,6 +74,8 @@ Only the holiday phrase leaves the remainder. A word the question owns stays
 in it, so the same question reads the same way in every language:
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import extract_datetime
 >>> extract_datetime("how many days until christmas", "en-US",
 ...                  anchorDate=datetime(2026, 9, 25))
 [datetime.datetime(2026, 12, 25, 0, 0), 'how many days until']
@@ -99,6 +102,7 @@ Parse a duration. Returns `(duration, remaining_text)`. `duration` is `None`
 when nothing is found.
 
 ```python
+>>> from ovos_date_parser import extract_duration
 >>> extract_duration("set a timer for 5 minutes", "en")
 (datetime.timedelta(seconds=300), 'set a timer')
 >>> extract_duration("nothing here", "en")
@@ -128,6 +132,7 @@ path of each language.
   in `remaining_text`, marking where it was found.
 
 ```python
+>>> from ovos_date_parser import extract_duration
 >>> from ovos_date_parser.duration import DurationResolution
 >>> extract_duration("meeting in 2 weeks", "en",
 ...                  resolution=DurationResolution.RELATIVEDELTA,
@@ -145,6 +150,8 @@ written. Returns a list of frozen `DateTimeSpan` objects with `start`, `end`,
 `text[start:end] == surface` always holds. Spans come back sorted by `start`.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import extract_datetime_spans
 >>> extract_datetime_spans("wake me next friday at 5 pm", "en",
 ...                        anchor_date=datetime(2023, 1, 18))
 [DateTimeSpan(start=8, end=27, surface='next friday at 5 pm', value=...),
@@ -193,6 +200,7 @@ The same for durations, returning `DurationSpan` objects whose `value` is a
 "for" come back both ways, as they do for `extract_datetime_spans`.
 
 ```python
+>>> from ovos_date_parser import extract_duration_spans
 >>> extract_duration_spans("nap for two hours and thirty minutes", "en")
 [DurationSpan(start=4, end=36, surface='for two hours and thirty minutes',
               value=datetime.timedelta(seconds=9000)),
@@ -218,6 +226,7 @@ The per-language reader names `extract_datetime_<lang>` and `extract_duration_<l
 - `extract_duration_<lang>`: an, az, bg, ca, cs, da, de, el, en, es, et, eu, fi, fr, fy, gl, he, hr, hu, it, nb, nl, nn, pl, pt, ro, ru, sk, sl, uk
 
 ```python
+>>> from datetime import datetime
 >>> import warnings
 >>> import ovos_date_parser
 >>> with warnings.catch_warnings(record=True) as caught:
@@ -240,6 +249,8 @@ The shim takes `anchorDate` and `default_time` for dates, and `resolution` and `
 Speakable or display form of a time.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
 >>> nice_time(datetime(2023, 1, 15, 13, 30), "en")
 'half past one'
 >>> nice_time(datetime(2023, 1, 15, 13, 30), "en", speech=False)
@@ -259,6 +270,8 @@ Speakable or display form of a time.
 enum and pass it as `variant`:
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
 >>> from ovos_date_parser.dates_ca import TimeVariantCA
 >>> nice_time(datetime(2023, 1, 15, 15, 30), "ca")                          # DEFAULT
 'les tres i trenta'
@@ -276,6 +289,8 @@ and the year drops when it matches `now`. `include_weekday=False` drops the
 weekday.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_date
 >>> nice_date(datetime(2024, 1, 5), "en")
 'friday, january fifth, twenty twenty four'
 ```
@@ -300,6 +315,8 @@ A.D./C.E. marker via `ad=True`. `bc` takes precedence when both are set. `ad`
 is a no-op for locales that do not define one.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_year
 >>> nice_year(datetime(1984, 1, 1), "en")
 'nineteen eighty four'
 ```
@@ -320,7 +337,7 @@ is the inverse of `extract_timespan`: in English a label from a day up re-parses
 to the same span.
 
 ```python
->>> from ovos_date_parser import nice_span, extract_timespan
+>>> from ovos_date_parser import extract_timespan, nice_span
 >>> span, _ = extract_timespan("the 19th century", "en")
 >>> nice_span(span, "en")
 'the 19th century'
@@ -349,6 +366,7 @@ missing.
 Speakable timespan. Accepts seconds (`int`/`float`) or a `timedelta`.
 
 ```python
+>>> from ovos_date_parser import nice_duration
 >>> nice_duration(61, "en")
 'one minute one second'
 >>> nice_duration(5000, "en", speech=False)

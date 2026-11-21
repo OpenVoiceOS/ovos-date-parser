@@ -4,7 +4,7 @@
 covers: which languages the package reads, which it writes, and what each writer does
 source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, CHRONOLOGIA_DURATION_LOCALES, nice_time; ovos_date_parser/duration.py:DURATION_LEXICONS; ovos_date_parser/res/*/
 generated: no
-verify: python -m pytest test/test_chronologia_routing.py test/test_chronologia_duration_routing.py test/test_lang_parity.py
+verify: sed '/^\x60\x60\x60/d' docs/languages.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
 see: api.md, adding-a-language.md
 -->
 
@@ -12,7 +12,7 @@ This page lists the languages that `extract_datetime` and `extract_duration` rea
 
 ## Language tags
 
-Reading and writing treat the tag in different ways. A reader normalizes the tag before it looks at the language. A writer lower-cases the tag and matches its first letters.
+Reading and writing treat the tag in different ways. A reader normalizes the tag before it looks at the language. A writer lower-cases the tag and then finds its language in one of two ways, described below.
 
 The reader steps are, in order:
 
@@ -30,7 +30,22 @@ The region and the rest of the tag stay as they are. This is the function `_read
 ('de', 'nb', 'ar-xx', 'pt-br')
 ```
 
-A writer lower-cases the tag and tests which writer code it starts with. `nice_time(dt, "pt-BR")` and `nice_time(dt, "PT_BR")` both work. A tag that starts with the code of a writer reaches that writer, so `"fil"`, the Filipino code, reaches the Finnish writer. `nice_time` raises `NotImplementedError` for a tag that starts with no writer code, such as `xx`. A writer does not map three-letter codes, so use `de` and not `deu`.
+A writer lower-cases the tag. Then it finds the language in one of two ways.
+
+1. `nice_time`, `nice_year` and the per-language branches of the other `nice_*` functions test which writer code the tag starts with. A tag that starts with a writer code reaches that writer, even when the tag names another language. The Filipino tag `fil` starts with `fi`, so `nice_time` and `nice_year` answer in Finnish.
+2. The generic writers read the folder `res/<code>/`. They take the part of the tag before the first `-` and look for that folder by exact name. These writers are the generic date family, `nice_duration` and `nice_relative_time`. The tag `PT_BR` gives the folder `pt_br`, which does not exist.
+
+The result for each function, with a tag that starts with a writer code and a tag with an underscore:
+
+| Function | `fil` | `PT_BR` |
+|---|---|---|
+| `nice_time` | Finnish | Portuguese |
+| `nice_year` | Finnish | Portuguese |
+| `nice_date`, `nice_date_time` | `NotImplementedError` | Portuguese |
+| `nice_day`, `nice_weekday`, `nice_month`, `get_date_strings` | English | Portuguese |
+| `nice_duration`, `nice_relative_time` | `NotImplementedError` | `NotImplementedError` |
+
+`nice_time` raises `NotImplementedError` for a tag that starts with no writer code, such as `xx`. A writer does not map three-letter codes, so use `de` and not `deu`. Write the region with `-`, as in `pt-BR`.
 
 The tag `"no"` reaches Bokmål in `nice_time`, `nice_date`, `nice_date_time`, `nice_day`, `nice_weekday`, `nice_month` and `nice_year`. In `nice_duration` and `nice_relative_time` it raises `NotImplementedError`, so pass `nb` there.
 
@@ -82,6 +97,8 @@ These examples ran against the code.
 French reads the 12-hour clock by default.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
 >>> nice_time(datetime(2024, 1, 5, 1, 22), "fr"), nice_time(datetime(2024, 1, 5, 7, 40), "fr")
 ('une heure vingt-deux', 'huit heures moins vingt')
 ```
@@ -89,6 +106,9 @@ French reads the 12-hour clock by default.
 Catalan has four registers, selected with `TimeVariantCA`.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
+>>> from ovos_date_parser.dates_ca import TimeVariantCA
 >>> nice_time(datetime(2024, 1, 5, 15, 30), "ca")
 'les tres i trenta'
 >>> nice_time(datetime(2024, 1, 5, 15, 30), "ca", variant=TimeVariantCA.BELL)
@@ -98,6 +118,8 @@ Catalan has four registers, selected with `TimeVariantCA`.
 Occitan uses the traditional quarter idioms, with the quarter-to form naming the next hour, and "miègjorn" and "mièjanuèch" for noon and midnight.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
 >>> [nice_time(datetime(2024, 1, 5, h, m), "oc") for h, m in [(1, 15), (5, 30), (1, 45), (12, 0), (0, 0)]]
 ['una ora e quart', 'cinc oras e mièja', 'doas oras manca un quart', 'miègjorn', 'mièjanuèch']
 ```
@@ -105,6 +127,8 @@ Occitan uses the traditional quarter idioms, with the quarter-to form naming the
 Romanian says a quarter-hour with "un sfert" and "fără un sfert", where "fără" means minus. An exact hour takes "fix", and `use_ampm=True` adds a part of the day.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
 >>> [nice_time(datetime(2024, 1, 5, 8, m), "ro") for m in (15, 30, 45, 0)]
 ['opt și un sfert', 'opt și jumătate', 'nouă fără un sfert', 'opt fix']
 >>> nice_time(datetime(2024, 1, 5, 8, 15), "ro", use_ampm=True)
@@ -114,6 +138,8 @@ Romanian says a quarter-hour with "un sfert" and "fără un sfert", where "făr�
 Asturian follows the feminine-article convention, and `use_ampm=True` adds "de la madrugada", "de la mañana", "de la tarde" or "de la nueche".
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
 >>> nice_time(datetime(2024, 1, 5, 1, 0), "ast"), nice_time(datetime(2024, 1, 5, 7, 45), "ast")
 ('la una en puntu', 'les ocho menos cuartu')
 ```
@@ -121,6 +147,8 @@ Asturian follows the feminine-article convention, and `use_ampm=True` adds "de l
 Norwegian Bokmål uses the tens-first number forms, so a year reads "to tusen og tjueen".
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_year
 >>> nice_year(datetime(2021, 1, 1), "nb"), nice_year(datetime(1984, 1, 1), "nb")
 ('to tusen og tjueen', 'nitten hundre og åttifire')
 ```
@@ -128,6 +156,8 @@ Norwegian Bokmål uses the tens-first number forms, so a year reads "to tusen og
 Danish `nice_year` takes `ad=True` to add "e.kr." and `bc=True` to add "f.kr.". When both are set, `bc` wins. The `ad` option has no effect in a language whose `year_format` resource has no `ad` key.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_year
 >>> nice_year(datetime(1984, 1, 1), "da", ad=True)
 'nitten hundrede og fire og firs e.kr.'
 ```
@@ -135,6 +165,8 @@ Danish `nice_year` takes `ad=True` to add "e.kr." and `bc=True` to add "f.kr.". 
 Kabyle writes a clock time with the conjunction `d` and the weekday and month names of the Kabyle calendar.
 
 ```python
+>>> from datetime import datetime
+>>> from ovos_date_parser import nice_time
 >>> nice_time(datetime(2024, 1, 5, 15, 30), "kab")
 'd ttlata u neṣṣ'
 ```

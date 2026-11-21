@@ -3,8 +3,6 @@
 Time is told with the feminine ordinal hour names after "الساعة"
 (e.g. "الساعة الثالثة" = 3 o'clock) using half-past semantics:
 "التاسعة والنصف" = 9:30, "التاسعة إلا ربعاً" = quarter to nine.
-Extraction accepts both Western and Eastern Arabic-Indic digits and
-tolerates unvocalized spelling variants.
 
 Counted-noun agreement follows Wright, "A Grammar of the Arabic
 Language" Vol. I: the dual endings -āni (nominative) / -aini (oblique)
@@ -18,8 +16,6 @@ from datetime import timedelta
 from ovos_number_parser.numbers_ar import (
     pronounce_number_ar,
     _normalize_ar,
-    _tokenize_ar,
-    _parse_number_span,
     _ONES_FEM_AR,
     _TENS_AR,
 )
@@ -40,32 +36,6 @@ _HOUR_NAMES_AR = {1: "الواحدة", 2: "الثانية", 3: "الثالثة",
                   12: "الثانية عشرة"}
 
 _TO_THE_HOUR_AR = {40: "إلا ثلثاً", 45: "إلا ربعاً"}
-
-# duration units; the dual forms encode both the count and the unit
-_UNIT_SECONDS_AR = {
-    "ثانية": 1, "ثوان": 1, "ثواني": 1,
-    "دقيقة": 60, "دقائق": 60,
-    "ساعة": 3600, "ساعات": 3600,
-    "يوم": 86400, "أيام": 86400,
-    "أسبوع": 604800, "أسابيع": 604800,
-    "شهر": 2592000, "أشهر": 2592000, "شهور": 2592000,
-    "سنة": 31536000, "سنوات": 31536000, "سنين": 31536000,
-    "عام": 31536000, "أعوام": 31536000,
-}
-_DUAL_UNIT_SECONDS_AR = {
-    "ثانيتان": 1, "ثانيتين": 1,
-    "دقيقتان": 60, "دقيقتين": 60,
-    "ساعتان": 3600, "ساعتين": 3600,
-    "يومان": 86400, "يومين": 86400,
-    "أسبوعان": 604800, "أسبوعين": 604800,
-    "شهران": 2592000, "شهرين": 2592000,
-    "سنتان": 31536000, "سنتين": 31536000,
-    "عامان": 31536000, "عامين": 31536000,
-}
-
-_UNITS_LOOKUP_AR = {_normalize_ar(k): v for k, v in _UNIT_SECONDS_AR.items()}
-_DUALS_LOOKUP_AR = {_normalize_ar(k): v
-                    for k, v in _DUAL_UNIT_SECONDS_AR.items()}
 
 _MONTHS_AR = {1: "يناير", 2: "فبراير", 3: "مارس", 4: "أبريل", 5: "مايو",
               6: "يونيو", 7: "يوليو", 8: "أغسطس", 9: "سبتمبر",
@@ -265,69 +235,3 @@ def nice_duration_ar(duration, speech=True):
     return " و".join(parts)
 
 
-def extract_duration_ar(text):
-    """
-    Convert an Arabic phrase into a number of seconds.
-
-    Convert things like "عشر دقائق" (10 minutes), "ساعتان" (2 hours) or
-    "ثلاثة أيام وخمس ساعات" into a timedelta. The words used in the
-    duration are consumed and the remainder returned.
-
-    Args:
-        text (str): string containing a duration
-
-    Returns:
-        (timedelta, str):
-                    A tuple containing the duration and the remaining text
-                    not consumed in the parsing. The first value will
-                    be None if no duration is found.
-    """
-    if not text:
-        return None, text
-    tokens = _tokenize_ar(text)
-    total = timedelta(0)
-    found = False
-    remainder = []
-    last_unit = None
-    i = 0
-    n = len(tokens)
-    while i < n:
-        tok = tokens[i]
-        if tok == "و" and i + 1 < n and (
-                tokens[i + 1] in _UNITS_LOOKUP_AR or
-                tokens[i + 1] in _DUALS_LOOKUP_AR or
-                _parse_number_span(tokens, i + 1)[0] is not None):
-            i += 1
-            continue
-        if tok in _DUALS_LOOKUP_AR:
-            total += timedelta(seconds=2 * _DUALS_LOOKUP_AR[tok])
-            last_unit = _DUALS_LOOKUP_AR[tok]
-            found = True
-            i += 1
-            continue
-        if tok in _UNITS_LOOKUP_AR:
-            # bare unit means one: "ساعة" = 1 hour
-            total += timedelta(seconds=_UNITS_LOOKUP_AR[tok])
-            last_unit = _UNITS_LOOKUP_AR[tok]
-            found = True
-            i += 1
-            continue
-        value, j = _parse_number_span(tokens, i)
-        if value is not None:
-            if j < n and tokens[j] in _UNITS_LOOKUP_AR:
-                total += timedelta(seconds=value * _UNITS_LOOKUP_AR[tokens[j]])
-                last_unit = _UNITS_LOOKUP_AR[tokens[j]]
-                found = True
-                i = j + 1
-                continue
-            if found and last_unit and 0 < value < 1 and j == i + 1:
-                # trailing fraction of the last unit: "ساعة ونصف" = 1.5h
-                total += timedelta(seconds=value * last_unit)
-                i = j
-                continue
-        remainder.append(tok)
-        last_unit = None
-        i += 1
-    if not found:
-        return None, text
-    return total, " ".join(remainder)

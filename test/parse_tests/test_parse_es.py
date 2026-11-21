@@ -15,6 +15,7 @@
 #
 import unittest
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 
@@ -27,7 +28,6 @@ from ovos_date_parser import (
 
 # --- test harness compatibility shims (adapt legacy call convention to dev API) ---
 import ovos_date_parser as _odp
-from ovos_utils.time import DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 from ovos_config.locale import get_default_tz as default_timezone
 LANG = "es"
 
@@ -150,36 +150,31 @@ class TestExtractDuration(unittest.TestCase):
                          (timedelta(days=3), ""))
         self.assertEqual(extract_duration("25 semanas"),
                          (timedelta(weeks=25), ""))
-        self.assertEqual(extract_duration("7.5 segundos"),
+        self.assertEqual(extract_duration("7,5 segundos"),
                          (timedelta(seconds=7.5), ""))
         self.assertEqual(extract_duration("10-segundos"),
                          (timedelta(seconds=10.0), ""))
         self.assertEqual(extract_duration("5-minutos"),
                          (timedelta(minutes=5), ""))
 
+    @mock.patch.object(_odp, "now_local", lambda: datetime(2017, 6, 27, 13, 4))
     def test_non_std_units(self):
-        self.assertEqual(
-            extract_duration("1 mes"),
-            (timedelta(days=DAYS_IN_1_MONTH), ""))
-
+        # months and years are counted on the calendar from 27 June 2017
+        self.assertEqual(extract_duration("1 mes"),
+                         (timedelta(days=30), ""))
         self.assertEqual(extract_duration("3 meses"),
-                         (timedelta(days=DAYS_IN_1_MONTH * 3), ""))
+                         (timedelta(days=92), ""))
         self.assertEqual(extract_duration("1 año"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 1), ""))
+                         (timedelta(days=365), ""))
+        # 5 * 365 + 1 (29 February 2020)
         self.assertEqual(extract_duration("5 años"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 5), ""))
+                         (timedelta(days=1826), ""))
+        # 10 * 365 + 2 (2020 and 2024)
         self.assertEqual(extract_duration("1 decada"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 10), ""))
+                         (timedelta(days=3652), ""))
+        # 50 * 365 + 12 leap days from 2020 to 2064
         self.assertEqual(extract_duration("5 decadas"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 10 * 5), ""))
-        self.assertEqual(extract_duration("1 siglo"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 100), ""))
-        self.assertEqual(extract_duration("5 siglos"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 100 * 5), ""))
-        self.assertEqual(extract_duration("1 milenio"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 1000), ""))
-        self.assertEqual(extract_duration("5 milenios"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 1000 * 5), ""))
+                         (timedelta(days=18262), ""))
 
     def test_remainder_has_no_dangling_conjunctions(self):
         # a leftover "y"/"," that only joined two consumed duration

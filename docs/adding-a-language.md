@@ -10,12 +10,9 @@ Parsing:
 - Dates and times are read by
   [chronologia](https://github.com/TigreGotico/chronologia). Add the language
   there first, then add its code to `CHRONOLOGIA_LOCALES` in `__init__.py`.
-- Durations are read by chronologia too, once its code is in
-  `CHRONOLOGIA_DURATION_LOCALES`. Until then, register a `DurationLexicon`
-  (unit words and conjunctions) with `register_duration_lexicon(...)` in
-  `ovos_date_parser/duration.py`. `extract_duration` reads it through the
-  shared duration engine, which also gives the language `resolution` and
-  `replace_token` support.
+- Durations are read by chronologia too, through the same
+  `CHRONOLOGIA_LOCALES` entry. `extract_duration` also gives the language
+  `resolution` and `replace_token` support by converting chronologia's answer.
 
 Formatting:
 

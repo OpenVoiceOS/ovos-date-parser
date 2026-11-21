@@ -156,9 +156,8 @@ Plural declension may be imperfect (for example, Slovenian dual forms).
   es/eu. The corresponding tests are skipped.
 - `nice_time` is missing for sl.
 - `gl` and `hu` `extract_datetime` are partial (see the README matrix).
-- The `resolution` / `replace_token` options of `extract_duration` are only
-  available on the shared duration engine. ar, ast, fa, kab, and sv use a
-  dedicated parser that returns a plain `timedelta` and rejects those options.
+- A month or a year in `extract_duration` is a day count, so the
+  `RELATIVEDELTA` resolution never returns months or years.
 
 ---
 [← API reference](api.md) · [Home](../README.md) · [Adding a language →](adding-a-language.md)

@@ -27,25 +27,6 @@ for number.
 
 from ovos_number_parser import pronounce_number
 
-from ovos_date_parser.duration import DurationLexicon, register_duration_lexicon
-
-register_duration_lexicon(DurationLexicon(
-    lang="id",
-    units={
-        "microseconds": r"mikrodetik",
-        "milliseconds": r"milidetik",
-        "seconds": r"detik",
-        "minutes": r"menit",
-        "hours": r"jam",
-        "days": r"hari",
-        "weeks": r"minggu|pekan",
-        "months": r"bulan",
-        "years": r"tahun",
-        "decades": r"dekade|dasawarsa",
-        "centuries": r"abad",
-        "millenniums": r"milenium",
-    }))
-
 
 def _period_id(hour):
     if hour < 11:

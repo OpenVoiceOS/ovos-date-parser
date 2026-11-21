@@ -179,7 +179,7 @@ class TestExtractDatetimeAdversarialEt(unittest.TestCase):
 
 class TestExtractDurationAdversarialEt(unittest.TestCase):
     def test_empty(self):
-        self.assertIsNone(extract_duration("", "et"))
+        self.assertEqual(extract_duration("", "et"), (None, ""))
 
     def test_no_duration(self):
         dur, _ = extract_duration("siin pole midagi", "et")

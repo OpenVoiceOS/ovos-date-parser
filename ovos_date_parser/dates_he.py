@@ -23,14 +23,8 @@ offered; ``nice_time_he`` keeps this single sensible default.
 """
 from datetime import datetime
 
-from ovos_number_parser import numbers_to_digits
 from ovos_number_parser.numbers_he import pronounce_number_he
 from ovos_utils.time import now_local
-
-from ovos_date_parser.duration import (
-    register_duration_lexicon,
-    DurationLexicon,
-)
 
 # Python weekday(): 0=Monday .. 6=Sunday
 WEEKDAYS_HE = {
@@ -255,23 +249,3 @@ def nice_time_he(dt, speech=True, use_24hour=False, use_ampm=False):
         else:
             speak += " בערב"
     return speak
-
-
-register_duration_lexicon(DurationLexicon(
-    lang="he",
-    normalize=lambda text: numbers_to_digits(text, "he"),
-    joiner=r"(?:\s+|-)",
-    units={
-        "microseconds": r"מיקרו[ ]?שני[ה]?|מיקרו[ ]?שניות",
-        "milliseconds": r"מילי[ ]?שני[ה]?|מילי[ ]?שניות|אלפית[ ]?השנייה",
-        "seconds": r"שנייה|שני[ה]?|שניות",
-        "minutes": r"דקה|דקות",
-        "hours": r"שעה|שעות|שעתיים",
-        "days": r"יום|ימים|יומיים",
-        "weeks": r"שבוע|שבועות|שבועיים",
-        "months": r"חודש|חודשים|חודשיים",
-        "years": r"שנה|שנים|שנתיים",
-        "decades": r"עשור|עשורים",
-        "centuries": r"מאה|מאות",
-        "millenniums": r"אלף שנה|אלפי שנים|מילניום",
-    }))

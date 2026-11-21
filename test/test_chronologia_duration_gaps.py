@@ -4,8 +4,12 @@
 Each row is a phrase this package's own readers read before ``extract_duration``
 moved to chronologia. A row is a strict xfail that names the chronologia issue
 tracking it, so the row fails the run as soon as the issue is fixed and the
-marker has to go. Months and years are counted from a pinned "now", and the
-expected value of a calendar row is dateutil's calendar arithmetic from it.
+marker has to go. The calendar rows (#1238) and the token rows (#1242) also need
+a change here: ``extract_duration`` reads only the timedelta and the remainder
+of chronologia's answer, so a months field or a consumed span reaches the
+caller only when the adapter uses it. Months and years are counted from a
+pinned "now", and the expected value of a calendar row is dateutil's calendar
+arithmetic from it.
 """
 from datetime import datetime, timedelta
 
@@ -105,3 +109,18 @@ def test_a_calendar_length_in_months_and_years(lang, text, duration,
     assert extract_duration(
         text, lang, resolution=DurationResolution.RELATIVEDELTA
     ) == (duration, remainder)
+
+
+TOKEN_ROWS = [
+    # the consumed span is unknown, so a word diff places the token
+    gap(1242, "en", "boil it 5 minutes 5 times", "boil it <d> 5 times"),
+    gap(1242, "pt", "mexe 5 minutos 5 vezes", "mexe <d> 5 vezes"),
+    gap(1242, "fr", "minuteur d'une heure", "minuteur <d>"),
+    gap(1242, "ca", "temporitzador d'una hora", "temporitzador <d>"),
+]
+
+
+@pytest.mark.parametrize("lang,text,marked,remainder", TOKEN_ROWS)
+def test_the_token_marks_the_place_of_a_repeated_or_elided_length(
+        lang, text, marked, remainder):
+    assert extract_duration(text, lang, replace_token="<d>")[1] == marked

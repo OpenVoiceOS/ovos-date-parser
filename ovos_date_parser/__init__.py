@@ -343,16 +343,26 @@ def nice_duration(
     return nice_duration_generic(lang, duration, speech)
 
 
+def _word_keys(words: List[str]) -> List[str]:
+    """The words without surrounding punctuation or case, to compare them."""
+    return [word.strip(_SPAN_PUNCTUATION).lower() for word in words]
+
+
 def _mark_consumed(text: str, remainder: str, token: str) -> str:
-    """The remainder with ``token`` where the words it lost were written."""
-    words = text.split()
+    """The text with ``token`` where the words the remainder lost were written.
+
+    chronologia's remainder has no sentence punctuation, so the words are
+    compared without it and the text's own words are kept.
+    """
+    words = [word for word in text.split() if word.strip(_SPAN_PUNCTUATION)]
     kept = remainder.split()
     marked = []
-    for op, i1, i2, j1, j2 in SequenceMatcher(None, words, kept,
-                                              autojunk=False).get_opcodes():
+    for op, i1, i2, j1, j2 in SequenceMatcher(
+            None, _word_keys(words), _word_keys(kept),
+            autojunk=False).get_opcodes():
         if op != "equal":
             marked.append(token)
-        marked.extend(kept[j1:j2])
+        marked.extend(words[i1:i2] if op == "equal" else kept[j1:j2])
     return " ".join(marked)
 
 

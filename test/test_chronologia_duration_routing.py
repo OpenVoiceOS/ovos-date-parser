@@ -162,3 +162,34 @@ def test_the_options_convert_the_answer():
 def test_a_locale_chronologia_does_not_read_answers_no_duration(lang, text):
     assert lang not in ovos_date_parser.CHRONOLOGIA_LOCALES
     assert extract_duration(text, lang) == (None, text)
+
+
+PUNCTUATED = [
+    # (lang, text, length, remainder with the token)
+    ("en", "remind me in two hours to call mom.", 7200,
+     "remind me in <d> to call mom."),
+    ("en", "start the timer, 3 minutes", 180, "start the timer, <d>"),
+    ("pt", "lembra-me daqui a duas horas de ligar à mãe.", 7200,
+     "lembra-me daqui <d> de ligar à mãe."),
+    ("es", "recuérdame en dos horas llamar a mamá.", 7200,
+     "recuérdame en <d> llamar a mamá."),
+    ("de", "erinnere mich in zwei Stunden an meine Mutter.", 7200,
+     "erinnere mich in <d> an meine Mutter."),
+    ("fr", "rappelle-moi dans deux heures d'appeler maman.", 7200,
+     "rappelle-moi dans <d> d'appeler maman."),
+    ("it", "ricordami tra due ore di chiamare la mamma.", 7200,
+     "ricordami tra <d> di chiamare la mamma."),
+    ("nl", "herinner me over twee uur om mama te bellen.", 7200,
+     "herinner me over <d> om mama te bellen."),
+    ("ca", "recorda'm d'aquí a dues hores de trucar a la mare.", 7200,
+     "recorda'm d'aquí a <d> de trucar a la mare."),
+    ("gl", "lémbrame dentro de dúas horas de chamar á nai.", 7200,
+     "lémbrame dentro de <d> de chamar á nai."),
+]
+
+
+@pytest.mark.parametrize("lang,text,seconds,marked", PUNCTUATED)
+def test_the_token_stands_where_the_length_was_beside_punctuation(
+        lang, text, seconds, marked):
+    assert extract_duration(text, lang, replace_token="<d>") == (
+        timedelta(seconds=seconds), marked)

@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import warnings
 from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta, time, tzinfo
@@ -13,13 +14,12 @@ import dateparser # fallback parser
 from dateparser.conf import settings as dateparser_settings
 from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
-from ovos_number_parser import extract_number
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
 from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
 from ovos_date_parser.dates_ar import (
-    extract_datetime_ar, extract_duration_ar, nice_time_ar, nice_duration_ar,
+    extract_duration_ar, nice_time_ar, nice_duration_ar,
 )
 from ovos_date_parser.ranges import (
     Hemisphere, Season, DateTimeResolution, BEFORE_PRESENT_EPOCH,
@@ -30,6 +30,7 @@ from ovos_date_parser.ranges import (
 )
 from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
 from ovos_spec_tools import standardize_lang
+from ovos_date_parser.version import VERSION_MAJOR
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
 from ovos_date_parser.scoped_en import extract_scoped_date_en
@@ -59,137 +60,105 @@ from ovos_date_parser.duration import (
     DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
 )
 from ovos_date_parser.dates_ast import (
-    extract_duration_ast, extract_datetime_ast, nice_year_ast, nice_weekday_ast, nice_month_ast,
-    nice_day_ast, nice_date_time_ast, nice_date_ast, nice_time_ast
+    extract_duration_ast, nice_year_ast, nice_weekday_ast, nice_month_ast,
+    nice_day_ast, nice_date_time_ast, nice_date_ast, nice_time_ast,
 )
 from ovos_date_parser.dates_an import (
     nice_year_an, nice_weekday_an, nice_month_an, nice_day_an, nice_date_an,
-    nice_time_an, nice_date_time_an, extract_datetime_an, extract_duration_an
+    nice_time_an, nice_date_time_an,
 )
 from ovos_date_parser.dates_fy import (
     nice_year_fy, nice_weekday_fy, nice_month_fy, nice_day_fy,
     nice_date_time_fy, nice_date_fy, nice_time_fy, nice_part_of_day_fy,
-    extract_datetime_fy, extract_duration_fy
 )
-from ovos_date_parser.dates_az import (
-    extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
-)
-from ovos_date_parser.dates_ca import (
-    TimeVariantCA, extract_datetime_ca, nice_time_ca, extract_duration_ca
-)
-from ovos_date_parser.dates_cs import (
-    extract_duration_cs, extract_datetime_cs, nice_time_cs, nice_year_cs
-)
-from ovos_date_parser.dates_sk import (
-    extract_duration_sk, extract_datetime_sk, nice_time_sk
-)
-from ovos_date_parser.dates_hr import (
-    extract_duration_hr, extract_datetime_hr, nice_time_hr
-)
-from ovos_date_parser.dates_bg import (
-    extract_duration_bg, extract_datetime_bg, nice_time_bg
-)
-from ovos_date_parser.dates_da import (
-    extract_datetime_da, extract_duration_da, nice_time_da,
-)
-from ovos_date_parser.dates_de import (
-    extract_datetime_de, extract_duration_de, nice_time_de,
-)
-from ovos_date_parser.dates_nb import (
-    extract_datetime_nb, extract_duration_nb, nice_time_nb,
-)
-from ovos_date_parser.dates_nn import (
-    extract_datetime_nn, extract_duration_nn, nice_time_nn,
-)
-from ovos_date_parser.dates_en import (
-    extract_datetime_en, extract_date_en, extract_time_en,
-    extract_duration_en, nice_time_en
-)
+from ovos_date_parser.dates_az import nice_duration_az, nice_time_az
+from ovos_date_parser.dates_ca import TimeVariantCA, nice_time_ca
+from ovos_date_parser.dates_cs import nice_time_cs, nice_year_cs
+from ovos_date_parser.dates_sk import nice_time_sk
+from ovos_date_parser.dates_hr import nice_time_hr
+from ovos_date_parser.dates_bg import nice_time_bg
+from ovos_date_parser.dates_da import nice_time_da
+from ovos_date_parser.dates_de import nice_time_de
+from ovos_date_parser.dates_nb import nice_time_nb
+from ovos_date_parser.dates_nn import nice_time_nn
+from ovos_date_parser.dates_en import nice_time_en
 from ovos_date_parser.dates_es import (
-    extract_datetime_es, extract_duration_es, nice_time_es, nice_date_time_es, nice_date_es,
-    nice_weekday_es, nice_day_es, nice_year_es, nice_month_es
+    nice_time_es, nice_date_time_es, nice_date_es, nice_weekday_es,
+    nice_day_es, nice_year_es, nice_month_es,
 )
 from ovos_date_parser.dates_eu import (
-    extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
-    nice_year_eu, nice_date_year_eu, nice_date_day_eu, nice_time_inessive_eu,
+    nice_time_eu, nice_relative_time_eu, nice_year_eu, nice_date_year_eu,
+    nice_date_day_eu, nice_time_inessive_eu,
 )
-from ovos_date_parser.dates_et import (
-    extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
-)
-from ovos_date_parser.dates_fa import (
-    extract_datetime_fa, nice_time_fa, extract_duration_fa,
-)
-from ovos_date_parser.dates_fi import (
-    extract_datetime_fi, extract_duration_fi, nice_time_fi, nice_year_fi,
-)
-from ovos_date_parser.dates_fr import (
-    extract_duration_fr,
-    extract_datetime_fr, nice_time_fr
-)
+from ovos_date_parser.dates_et import nice_time_et, nice_year_et
+from ovos_date_parser.dates_fa import nice_time_fa, extract_duration_fa
+from ovos_date_parser.dates_fi import nice_time_fi, nice_year_fi
+from ovos_date_parser.dates_fr import nice_time_fr
 from ovos_date_parser.dates_gl import (
-    extract_duration_gl, extract_datetime_gl, nice_year_gl, nice_weekday_gl, nice_month_gl,
-    nice_day_gl, nice_date_time_gl, nice_date_gl, nice_time_gl
+    nice_year_gl, nice_weekday_gl, nice_month_gl, nice_day_gl,
+    nice_date_time_gl, nice_date_gl, nice_time_gl,
 )
 from ovos_date_parser.dates_el import (
-    extract_duration_el, extract_datetime_el, nice_year_el, nice_weekday_el, nice_month_el,
-    nice_day_el, nice_date_time_el, nice_date_el, nice_time_el
+    nice_year_el, nice_weekday_el, nice_month_el, nice_day_el,
+    nice_date_time_el, nice_date_el, nice_time_el,
 )
 from ovos_date_parser.dates_he import (
-    extract_duration_he, extract_datetime_he, nice_year_he, nice_weekday_he, nice_month_he,
-    nice_day_he, nice_date_time_he, nice_date_he, nice_time_he
+    nice_year_he, nice_weekday_he, nice_month_he, nice_day_he,
+    nice_date_time_he, nice_date_he, nice_time_he,
 )
 from ovos_date_parser.dates_ro import (
-    extract_duration_ro, extract_datetime_ro, nice_year_ro, nice_weekday_ro, nice_month_ro,
-    nice_day_ro, nice_date_time_ro, nice_date_ro, nice_time_ro
+    nice_year_ro, nice_weekday_ro, nice_month_ro, nice_day_ro,
+    nice_date_time_ro, nice_date_ro, nice_time_ro,
 )
 from ovos_date_parser.dates_oc import (
-    extract_datetime_oc, nice_year_oc, nice_weekday_oc, nice_month_oc,
-    nice_day_oc, nice_date_time_oc, nice_date_oc, nice_time_oc
+    nice_year_oc, nice_weekday_oc, nice_month_oc, nice_day_oc,
+    nice_date_time_oc, nice_date_oc, nice_time_oc,
 )
-from ovos_date_parser.dates_hu import nice_time_hu, extract_duration_hu, extract_datetime_hu
-from ovos_date_parser.dates_kab import (
-    extract_datetime_kab, extract_duration_kab, nice_time_kab,
-)
-from ovos_date_parser.dates_it import (
-    extract_datetime_it, nice_time_it, extract_duration_it
-)
-from ovos_date_parser.dates_nl import (
-    extract_datetime_nl, nice_part_of_day_nl, extract_duration_nl, nice_time_nl
-)
+from ovos_date_parser.dates_hu import nice_time_hu
+from ovos_date_parser.dates_kab import extract_duration_kab, nice_time_kab
+from ovos_date_parser.dates_it import nice_time_it
+from ovos_date_parser.dates_nl import nice_part_of_day_nl, nice_time_nl
 from ovos_date_parser.dates_pl import (
-    extract_datetime_pl, extract_duration_pl, nice_time_pl, nice_duration_pl,
-    nice_year_pl
+    nice_time_pl, nice_duration_pl, nice_year_pl,
 )
 from ovos_date_parser.dates_pt import (
-    extract_datetime_pt, extract_duration_pt, nice_time_pt, nice_date_pt, nice_year_pt, nice_date_time_pt,
-    nice_month_pt, nice_weekday_pt, nice_day_pt, portuguese_variant
+    nice_time_pt, nice_date_pt, nice_year_pt, nice_date_time_pt, nice_month_pt,
+    nice_weekday_pt, nice_day_pt, portuguese_variant,
 )
-from ovos_date_parser.dates_ru import (
-    extract_datetime_ru, extract_duration_ru, nice_time_ru, nice_duration_ru
-)
-from ovos_date_parser.dates_sl import (
-    nice_time_sl, extract_duration_sl, extract_datetime_sl
-)
+from ovos_date_parser.dates_ru import nice_time_ru, nice_duration_ru
+from ovos_date_parser.dates_sl import nice_time_sl
 from ovos_date_parser.dates_sv import (
-    extract_datetime_sv, extract_duration_sv, nice_time_sv, nice_year_sv
+    extract_duration_sv, nice_time_sv, nice_year_sv,
 )
-from ovos_date_parser.dates_uk import (
-    extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
-)
-from ovos_date_parser.dates_ms import nice_time_ms, extract_datetime_ms
-from ovos_date_parser.dates_id import nice_time_id, extract_datetime_id
-from ovos_date_parser.dates_tr import nice_time_tr, extract_datetime_tr
+from ovos_date_parser.dates_uk import nice_time_uk, nice_duration_uk
+from ovos_date_parser.dates_ms import nice_time_ms
+from ovos_date_parser.dates_id import nice_time_id
+from ovos_date_parser.dates_tr import nice_time_tr
+
+
+# Individual languages of the Arabic (ar) and Azerbaijani (az) macrolanguages,
+# from https://iso639-3.sil.org/code_tables/macrolanguage_mappings
+_MACROLANGUAGE = {
+    **dict.fromkeys(
+        ("aao", "abh", "abv", "acm", "acq", "acw", "acx", "acy", "adf", "aeb",
+         "aec", "afb", "ajp", "apc", "apd", "arb", "arq", "ars", "ary", "arz",
+         "auz", "avl", "ayh", "ayl", "ayn", "ayp", "pga", "shu", "ssh"), "ar"),
+    **dict.fromkeys(("azb", "azj"), "az"),
+}
 
 
 def _reader_lang(lang: str) -> str:
     """The tag a reader answers for.
 
     The language takes its shortest standard code ("deu" is "de", "iw" is
-    "he"), and "no", Norwegian in general, reads as its written standard
-    Bokmål, "nb". A tag reads the same in any case and with "_" for "-".
+    "he"), an individual Arabic or Azerbaijani language reads as its
+    macrolanguage, and "no", Norwegian in general, reads as its written
+    standard Bokmål, "nb". A tag reads the same in any case and with "_" for
+    "-", and white space around it does not count.
     """
-    primary, dash, rest = lang.lower().replace("_", "-").partition("-")
+    primary, dash, rest = lang.strip().lower().replace("_", "-").partition("-")
     primary = standardize_lang(primary).lower() if primary else primary
+    primary = _MACROLANGUAGE.get(primary, primary)
     if primary == "no":
         primary = "nb"
     return primary + dash + rest
@@ -375,11 +344,9 @@ def nice_duration(
 #: Locales whose ``extract_duration`` is answered by chronologia rather than
 #: by this package's own reader.
 #:
-#: A locale joins the list when chronologia reads every duration the legacy
-#: reader reads correctly. The set is separate from ``CHRONOLOGIA_LOCALES``:
-#: a locale can route its durations while its dates stay with the legacy
-#: extractor. A month or a year is a calendar length counted from now, not the
-#: mean length the legacy readers use.
+#: A locale joins the list when chronologia reads every duration this
+#: package's reader reads correctly. A month or a year is a calendar length
+#: counted from now, not the mean length this package's readers use.
 CHRONOLOGIA_DURATION_LOCALES = frozenset({
     "an", "ast", "bg", "ca", "cs", "el", "en", "fi", "fr", "fy", "hr", "id",
     "it", "ms", "nb", "nn", "oc", "pl", "ro", "ru", "sk", "sl", "tr", "uk",
@@ -392,7 +359,7 @@ def _extract_duration_chronologia(text: str, code: str
 
     "Now" is :func:`now_local`, the configured zone's wall clock, as for the
     routed :func:`extract_datetime`. A text with no duration answers
-    ``(None, text)``, as the legacy readers do.
+    ``(None, text)``, as this package's readers do.
     """
     found = _chronologia_extract_duration(text, code, anchor=now_local())
     if found is None:
@@ -553,19 +520,13 @@ def _extract_date_zh_unspaced(text: str, settings: dict,
     return date, text[:start] + text[end:]
 
 
-#: Locales whose ``extract_datetime`` is answered by chronologia rather than
-#: by this package's own per-language extractor: every locale chronologia
-#: reads.
+#: Locales whose ``extract_datetime`` is answered by chronologia: every
+#: locale chronologia reads. Any other locale is read by dateparser, with a
+#: weekday reader for ja and an unspaced reader for zh beside it, because
+#: chronologia does not read them.
 #:
-#: The legacy extractors are wrong about some phrases: they read "at 13 pm"
-#: as 13:00 and "at 23 am" as 11:00, answer a bare duration ("trois jours",
-#: "dix secondes") with a date, and read "j'ai vingt et un ans" -- an age --
-#: as the year 2038. A reading that chronologia gets wrong and a legacy
-#: extractor got right is a chronologia defect, and the test that pins it is
-#: marked with the chronologia issue that tracks it.
-#:
-#: ja and zh stay with their own extractors, because chronologia does not
-#: read them.
+#: A reading that chronologia gets wrong is a chronologia defect, and the
+#: test that pins it is marked with the chronologia issue that tracks it.
 CHRONOLOGIA_LOCALES = frozenset({
     "an", "ar", "ast", "az", "be", "bg", "ca", "cs", "cy", "da", "de", "el",
     "en", "eo", "es", "et", "eu", "fa", "fi", "fil", "fr", "fy", "ga", "gl",
@@ -915,12 +876,11 @@ def _extract_datetime_engine(
                                              default_time)
     spaced = _separate_punctuation(text)
     if spaced == text:
-        return _extract_datetime_legacy(text, lang, anchorDate, default_time)
+        return _extract_datetime_fallback(text, lang, anchorDate, default_time)
     if anchorDate is None:
-        anchorDate = (datetime.now() if lang.split("-")[0] in _NAIVE_NOW
-                      else now_local())
-    found = _extract_datetime_legacy(text, lang, anchorDate, default_time)
-    separated = _extract_datetime_legacy(spaced, lang, anchorDate,
+        anchorDate = now_local()
+    found = _extract_datetime_fallback(text, lang, anchorDate, default_time)
+    separated = _extract_datetime_fallback(spaced, lang, anchorDate,
                                          default_time)
     if separated is None:
         return found
@@ -930,68 +890,21 @@ def _extract_datetime_engine(
             and len(words) <= len(found[1].split())):
         return found
     if separated[0].time() != time(0) and not _holds_clock(
-            spaced, lang, separated[1]):
+            spaced, separated[1]):
         return found
     # The engines read a lone "," as a word that ends a phrase, which the
     # words before the first mark confirm or deny.
     clause = _first_clause(spaced)
     if clause != spaced:
-        lead = _extract_datetime_legacy(clause, lang, anchorDate,
+        lead = _extract_datetime_fallback(clause, lang, anchorDate,
                                         default_time)
         if lead is not None and lead[0] != separated[0]:
             return found
     return [separated[0], " ".join(words)]
 
 
-# Engines whose own default "now" is a naive datetime.
-_NAIVE_NOW = frozenset({"eu", "id", "ms", "tr", "kab"})
-
-# The hour that a singular preposition takes: "a la una", "à uma", "á unha".
-_ONE = ("una", "uma", "unha", "un", "1")
-
-# Words that put a clock time after them, by language, from each engine's own
-# vocabulary: the words of the preposition, and the numbers it may precede
-# when the engine allows only some.
-_CLOCK_PREPOSITIONS = {
-    "en": [(("at",), None)],  # dates_en.py:168 markers, :615
-    "es": [(("a", "las"), None),  # dates_es.py:84
-           (("a", "la"), _ONE)],  # dates_es.py:97 "a la una, a las dos"
-    "gl": [(("ás",), None),  # dates_gl.py:98, :286 "ás catro"
-           (("á",), _ONE)],  # dates_gl.py:98, :286 "á unha"
-    "ca": [(("a", "les"), None)],  # dates_ca.py:655
-    "ast": [(("a", "les"), None),  # dates_ast.py:79, :284
-            (("a", "la"), _ONE)],  # dates_ast.py:284 "a la una"
-    "an": [(("a", "las"), None)],  # dates_an.py:229
-    "oc": [(("a", "las"), None)],  # dates_oc.py:85, :87
-    "pt": [(("às",), None),  # dates_pt.py:270-275 "às duas"
-           (("à",), _ONE)],  # dates_pt.py:270-275 "à uma"
-    "fr": [(("à",), None)],  # dates_fr.py:14, :170
-    "de": [(("um",), None)],  # dates_de.py:134
-    "it": [(("alle",), None),  # dates_it.py:149-153
-           (("alla",), _ONE),  # dates_it.py:149-153
-           (("all'",), _ONE),  # contraction of "alla" before "una"
-           (("a",), None)],  # dates_it.py:150
-    "nl": [(("om",), None)],  # dates_nl.py:85, :130
-    "fy": [(("om",), None)],  # dates_fy.py:135, :137
-    "da": [(("klokken",), None)],  # dates_da.py:209
-    "nb": [(("klokka",), None), (("klokken",), None)],  # dates_nb.py:175
-    "nn": [(("klokka",), None), (("klokken",), None)],  # dates_nn.py:59, :177
-    "ru": [(("в",), None), (("во",), None)],  # dates_ru.py:391, :821
-    "uk": [(("о",), None), (("у",), None), (("в",), None)],  # dates_uk.py:308
-    "pl": [(("o",), None), (("w",), None)],  # dates_pl.py:579
-    "ro": [(("la", "ora"), None)],  # dates_ro.py:107, :110
-    "bg": [(("в",), None), (("във",), None)],  # dates_bg.py:170
-    "sl": [(("ob",), None)],  # dates_sl.py:175, :188
-    "el": [(("στις",), None)],  # dates_el.py:109, :176
-    "et": [(("kell",), None)],  # dates_et.py:6, :7
-    "id": [(("pukul",), None)],  # dates_id.py:16, :17
-    "ms": [(("pukul",), None)],  # dates_ms.py:16
-    "tr": [(("saat",), None)],  # dates_tr.py:16, :23
-    "az": [(("saat",), None)],  # dates_az.py:191
-}
-
 # A clock written as one token: hours and minutes. A bare "8h" is also a
-# duration, so it counts only after a clock preposition.
+# duration, so it is not one.
 _CLOCK_FORMAT = re.compile(r"\d{1,2}h\d{2}|\d{1,2}:\d{2}")
 
 
@@ -1013,45 +926,13 @@ def _bare(token: str) -> str:
     return "".join(char for char in token.lower() if char.isalnum())
 
 
-def _holds_clock(spaced: str, lang: str, leftover: str) -> bool:
-    """True when the reading took up a clock phrase of the text.
-
-    A clock phrase is a number, digit or word, right after a clock
-    preposition of the language ("a las 8", "ás oito"), or a token written
-    as hours and minutes ("8h30", "8:30"). A lone number is not one, nor are
-    labels such as "4B" and "2.3": es, gl and ca read a number that ends a
-    phrase as an hour, and a lone comma ends the phrase.
-    """
+def _holds_clock(spaced: str, leftover: str) -> bool:
+    """True when the reading took up a token written as hours and minutes
+    ("8h30", "8:30"). A lone number is not one, nor are labels such as "4B"
+    and "2.3"."""
     words = [word for word in spaced.split() if _is_word(word)]
-    taken = _consumed(words, leftover)
-    code = lang.split("-")[0]
-    parts = []  # (word, word position); "l'una" is "l'" and "una"
-    for position, word in enumerate(words):
-        word = word.lower()
-        cut = word.find("'") + 1
-        for part in ([word[:cut], word[cut:]] if 0 < cut < len(word)
-                     else [word]):
-            parts.append((part, position))
-    for position in taken:
-        if _CLOCK_FORMAT.fullmatch(words[position].lower()):
-            return True
-    for start in range(len(parts)):
-        for preposition, only in _CLOCK_PREPOSITIONS.get(code, ()):
-            end = start + len(preposition)
-            if end >= len(parts) or tuple(
-                    part for part, _ in parts[start:end]) != preposition:
-                continue
-            number, position = parts[end]
-            if only is not None and number not in only:
-                continue
-            if position in taken and (number[0].isdigit()
-                                      or _is_number_word(number, code)):
-                return True
-    return False
-
-
-def _is_number_word(word: str, code: str) -> bool:
-    return extract_number(word, lang=code) is not False
+    return any(_CLOCK_FORMAT.fullmatch(words[position].lower())
+               for position in _consumed(words, leftover))
 
 
 def _adds_clock(written: datetime, separated: datetime) -> bool:
@@ -1075,91 +956,14 @@ def _first_clause(spaced: str) -> str:
     return " ".join(clause)
 
 
-def _extract_datetime_legacy(
+def _extract_datetime_fallback(
         text: str,
         lang: str,
         anchorDate: Optional[datetime],
         default_time: Optional[time],
 ) -> Optional[Tuple[datetime, str]]:
-    """The per-language extractors, and the dateparser fallback behind them."""
-    if lang.startswith("an"):
-        return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ar"):
-        return extract_datetime_ar(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ast"):
-        return extract_datetime_ast(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("az"):
-        return extract_datetime_az(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ca"):
-        return extract_datetime_ca(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("cs"):
-        return extract_datetime_cs(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("sk"):
-        return extract_datetime_sk(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("hr"):
-        return extract_datetime_hr(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("bg"):
-        return extract_datetime_bg(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("da"):
-        return extract_datetime_da(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("de"):
-        return extract_datetime_de(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("en"):
-        return extract_datetime_en(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("es"):
-        return extract_datetime_es(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("et"):
-        return extract_datetime_et(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("eu"):
-        return extract_datetime_eu(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fa"):
-        return extract_datetime_fa(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fi"):
-        return extract_datetime_fi(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fr"):
-        return extract_datetime_fr(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fy"):
-        return extract_datetime_fy(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("gl"):
-        return extract_datetime_gl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("el"):
-        return extract_datetime_el(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("he"):
-        return extract_datetime_he(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("oc"):
-        return extract_datetime_oc(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ro"):
-        return extract_datetime_ro(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("hu"):
-        return extract_datetime_hu(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("it"):
-        return extract_datetime_it(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("kab"):
-        return extract_datetime_kab(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("nl"):
-        return extract_datetime_nl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("nn"):
-        return extract_datetime_nn(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("nb") or lang.startswith("no"):
-        return extract_datetime_nb(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("pl"):
-        return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("pt"):
-        return extract_datetime_pt(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ru"):
-        return extract_datetime_ru(text, anchor_date=anchorDate, default_time=default_time)
-    if lang.startswith("sl"):
-        return extract_datetime_sl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("sv"):
-        return extract_datetime_sv(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("uk"):
-        return extract_datetime_uk(text, anchor_date=anchorDate, default_time=default_time)
-    if lang.startswith("ms"):
-        return extract_datetime_ms(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("id"):
-        return extract_datetime_id(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("tr"):
-        return extract_datetime_tr(text, anchorDate=anchorDate, default_time=default_time)
+    """The reading of a language chronologia does not route: dateparser, with
+    a weekday reader for ja and an unspaced reader for zh beside it."""
     if lang.split("-")[0].lower() == "ja":
         found = _extract_weekday_ja(text, anchorDate, default_time)
         if found:
@@ -1497,8 +1301,7 @@ def extract_duration_spans(text: str, lang: str) -> List[DurationSpan]:
 
 #: Span-native natural-language extraction (text -> DateSpan) is owned by
 #: the reckoning core. ``extract_timespan`` and ``explain`` are re-exported
-#: here unchanged so the parser keeps its public surface; the legacy
-#: ``extract_datetime`` / ``extract_date_xx`` paths are untouched by this.
+#: here unchanged so the parser keeps its public surface.
 from chronologia import extract_timespan, explain
 
 
@@ -2343,7 +2146,52 @@ _LAZY_TABLES = {"SCOPED_VOCAB_EN": "scoped_en",
                    for code in ("en", "pt", "es", "fr", "de", "it")}}
 
 
+#: The languages whose own ``extract_datetime_<lang>`` and
+#: ``extract_duration_<lang>`` readers this module once exported. The names
+#: still answer, through :func:`extract_datetime` and :func:`extract_duration`,
+#: until the next major release.
+_DATETIME_READER_LANGS = frozenset({
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
+    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
+    "kab", "ms", "nb", "nl", "nn", "oc", "pl", "pt", "ro", "ru", "sk", "sl",
+    "sv", "tr", "uk",
+})
+_DURATION_READER_LANGS = frozenset({
+    "an", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es", "et", "eu",
+    "fi", "fr", "fy", "gl", "he", "hr", "hu", "it", "nb", "nl", "nn", "pl",
+    "pt", "ro", "ru", "sk", "sl", "uk",
+})
+_READER_REMOVAL_VERSION = f"{VERSION_MAJOR + 1}.0.0"
+
+
+def _deprecated_reader(name: str):
+    """The reader a removed ``extract_datetime_<lang>`` or
+    ``extract_duration_<lang>`` name stands for, or None for any other name."""
+    kind, _, lang = name.removeprefix("extract_").partition("_")
+    if kind == "datetime" and lang in _DATETIME_READER_LANGS:
+        def reader(text, anchorDate=None, default_time=None):
+            return extract_datetime(text, lang, anchorDate=anchorDate,
+                                    default_time=default_time)
+        public = "extract_datetime"
+    elif kind == "duration" and lang in _DURATION_READER_LANGS:
+        def reader(text, resolution=DurationResolution.TIMEDELTA,
+                   replace_token=""):
+            return extract_duration(text, lang, resolution=resolution,
+                                    replace_token=replace_token)
+        public = "extract_duration"
+    else:
+        return None
+    warnings.warn(f"{name} is deprecated and is removed in "
+                  f"{_READER_REMOVAL_VERSION}; use {public}(text, {lang!r})",
+                  DeprecationWarning, stacklevel=3)
+    reader.__name__ = reader.__qualname__ = name
+    return reader
+
+
 def __getattr__(name):
     if name in _LAZY_TABLES:
         return getattr(import_module(f"ovos_date_parser.{_LAZY_TABLES[name]}"), name)
+    reader = _deprecated_reader(name)
+    if reader is not None:
+        return reader
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

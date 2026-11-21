@@ -1,6 +1,6 @@
-"""Frozen-oracle harness for the extract_datetime_en refactor.
+"""Frozen-oracle harness for extract_datetime in English.
 
-Dumps extract_datetime_en's output over a large deterministic corpus of
+Dumps the output of ``extract_datetime(text, "en")`` over a large deterministic corpus of
 natural-language sentences so a refactor can be gated on byte-identical
 behaviour (the same method used for the French number-pronunciation
 migration).  Run once on the pre-refactor tree with ``dump``, then on the

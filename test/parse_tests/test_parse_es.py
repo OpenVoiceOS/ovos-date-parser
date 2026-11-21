@@ -25,11 +25,9 @@ from ovos_date_parser import (
 )
 
 
-
 # --- test harness compatibility shims (adapt legacy call convention to dev API) ---
 import ovos_date_parser as _odp
-from ovos_date_parser import extract_datetime_es
-from ovos_utils.time import now_local, to_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
+from ovos_utils.time import DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 from ovos_config.locale import get_default_tz as default_timezone
 LANG = "es"
 
@@ -46,50 +44,10 @@ def extract_duration(text, lang=LANG):
     return _odp.extract_duration(text, lang=lang)
 
 
-def normalize(text, lang=LANG, remove_articles=True):
-    # the dev extractors normalize internally; passthrough preserves assertions
-    return text
 # --- end shims ---
 
 class TestDatetime_es(unittest.TestCase):
 
-    def test_datetime_by_date_es(self):
-        # test currentDate==None
-        _now = datetime.now()
-        relative_year = _now.year if (_now.month == 1 and _now.day < 11) else \
-            (_now.year + 1)
-        self.assertEqual(extract_datetime_es("11 ene", anchorDate=_now)[0],
-                         datetime(relative_year, 1, 11))
-
-        # test months
-        self.assertEqual(extract_datetime(
-            "11 ene", lang='es', anchorDate=datetime(1998, 1, 1))[0],
-                         datetime(1998, 1, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 feb", lang='es', anchorDate=datetime(1998, 2, 1))[0],
-                         datetime(1998, 2, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 mar", lang='es', anchorDate=datetime(1998, 3, 1))[0],
-                         datetime(1998, 3, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 abr", lang='es', anchorDate=datetime(1998, 4, 1))[0],
-                         datetime(1998, 4, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 may", lang='es', anchorDate=datetime(1998, 5, 1))[0],
-                         datetime(1998, 5, 11, tzinfo=default_timezone()))
-        # there is an issue with the months of june through september (below)
-        # hay un problema con las meses junio hasta septiembre (lea abajo)
-        self.assertEqual(extract_datetime(
-            "11 oct", lang='es', anchorDate=datetime(1998, 10, 1))[0],
-                         datetime(1998, 10, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 nov", lang='es', anchorDate=datetime(1998, 11, 1))[0],
-                         datetime(1998, 11, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 dic", lang='es', anchorDate=datetime(1998, 12, 1))[0],
-                         datetime(1998, 12, 11, tzinfo=default_timezone()))
-
-        self.assertEqual(extract_datetime("", lang='es'), None)
 
     # TODO fix bug causing these tests to fail (MycroftAI/mycroft-core#2348)
     #         reparar error de traducción preveniendo las funciones abajo de

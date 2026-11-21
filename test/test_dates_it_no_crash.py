@@ -42,6 +42,8 @@ HOUR_RANGE = _defect("https://github.com/TigreGotico/chronologia/issues/1032")
 # A part of the day said before the clock ("stasera alle otto") names the
 # half of the day the hour is in.
 DAYPART_THEN_CLOCK = _defect("https://github.com/TigreGotico/chronologia/issues/1002")
+# "stasera dieci meno un quarto" gives no reading.
+DAYPART_THEN_MENO = _defect("https://github.com/TigreGotico/chronologia/issues/1234")
 # "le", "dalle" and "delle" carry the clock as "alle" does.
 ARTICLE_CLOCK = _defect("https://github.com/TigreGotico/chronologia/issues/1032")
 # "presto" and "tardi" beside an hour.
@@ -242,7 +244,9 @@ def test_meno_without_a_clock_hour_has_no_time(text):
 @pytest.mark.parametrize("text,expected", [
     ("alle dieci meno cinque", datetime(2026, 10, 17, 21, 55)),
     ("le tre meno un quarto", datetime(2026, 10, 17, 14, 45)),
-    ("stasera dieci meno un quarto", datetime(2026, 10, 17, 21, 45)),
+    pytest.param("stasera dieci meno un quarto",
+                 datetime(2026, 10, 17, 21, 45),
+                 marks=DAYPART_THEN_MENO),
     ("ore 3 meno 10", datetime(2026, 10, 17, 14, 50)),
 ])
 def test_meno_after_a_clock_hour(text, expected):

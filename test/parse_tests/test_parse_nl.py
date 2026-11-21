@@ -234,14 +234,10 @@ class TestParsingNatural(unittest.TestCase):
 @pytest.mark.parametrize("text,expected_date,expected_leftover", [
     pytest.param(
         "laten we om 8:00 's avonds afspreken",
-        "2017-06-27 20:00:00", "laten we afspreken",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
+        "2017-06-27 20:00:00", "laten we afspreken"),
     pytest.param(
         "herinner me om 10:45 's avonds",
-        "2017-06-27 22:45:00", "herinner me",
-        marks=pytest.mark.xfail(
-            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1002")),
+        "2017-06-27 22:45:00", "herinner me"),
     pytest.param(
         "herinner me mijn moeder te bellen op 7 september",
         "2017-09-07 00:00:00", "herinner me mijn moeder te bellen"),

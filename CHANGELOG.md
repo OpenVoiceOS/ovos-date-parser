@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a1) (2026-11-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.0a2...0.41.1a1)
+
+**Merged pull requests:**
+
+- fix: read a language tag by its short code, and no as nb [\#665](https://github.com/OpenVoiceOS/ovos-date-parser/pull/665) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.0a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.0a2) (2026-11-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.0a1...0.41.0a2)

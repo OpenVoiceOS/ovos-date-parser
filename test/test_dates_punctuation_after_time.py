@@ -39,7 +39,6 @@ _INSIDE_DEFECTS = {
 }
 _EXACT_DEFECTS = {
     "a las 9, esta noche": "https://github.com/TigreGotico/chronologia/issues/1001",
-    "a las 9, por la noche": "https://github.com/TigreGotico/chronologia/issues/1001",
 }
 
 

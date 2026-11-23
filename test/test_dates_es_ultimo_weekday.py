@@ -143,35 +143,27 @@ class TestLastWeekdayWithAPrefixedYearOrNamedMonth(unittest.TestCase):
                   datetime(2027, 12, 31))
 
 
-RELATIVE_PERIOD = pytest.mark.xfail(
-    strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1034")
-
-
 @pytest.mark.parametrize("text,expected", [
-    pytest.param(text, expected, marks=RELATIVE_PERIOD)
-    for text, expected in (
-        ("el último viernes del mes que viene", datetime(2026, 11, 27)),
-        ("el último viernes del mes siguiente", datetime(2026, 11, 27)),
-        ("el último viernes del mes pasado", datetime(2026, 9, 25)),
-        ("el último viernes del año que viene", datetime(2027, 12, 31)),
-        ("el último viernes del año siguiente", datetime(2027, 12, 31)),
-        ("el último viernes del año pasado", datetime(2025, 12, 26)),
-        ("el último viernes de noviembre del año que viene",
-         datetime(2027, 11, 26)),
-        ("el último viernes de octubre del año pasado",
-         datetime(2025, 10, 31)),
-        ("el último viernes de octubre del año 2027", datetime(2027, 10, 29)),
-        ("el último viernes del mes de noviembre", datetime(2026, 11, 27)),
-        ("el último viernes del mes de octubre del año que viene",
-         datetime(2027, 10, 29)))])
+    ("el último viernes del mes que viene", datetime(2026, 11, 27)),
+    ("el último viernes del mes siguiente", datetime(2026, 11, 27)),
+    ("el último viernes del mes pasado", datetime(2026, 9, 25)),
+    ("el último viernes del año que viene", datetime(2027, 12, 31)),
+    ("el último viernes del año siguiente", datetime(2027, 12, 31)),
+    ("el último viernes del año pasado", datetime(2025, 12, 26)),
+    ("el último viernes de noviembre del año que viene",
+     datetime(2027, 11, 26)),
+    ("el último viernes de octubre del año pasado",
+     datetime(2025, 10, 31)),
+    ("el último viernes de octubre del año 2027", datetime(2027, 10, 29)),
+    ("el último viernes del mes de noviembre", datetime(2026, 11, 27)),
+    ("el último viernes del mes de octubre del año que viene",
+     datetime(2027, 10, 29))])
 def test_last_weekday_of_a_named_or_shifted_period(text, expected):
     assert _dt(text) == expected
 
 
-@pytest.mark.parametrize("text", [
-    pytest.param(text, marks=RELATIVE_PERIOD)
-    for text in ("el último viernes del mes que viene",
-                 "el último viernes del año que viene")])
+@pytest.mark.parametrize("text", ["el último viernes del mes que viene",
+                                  "el último viernes del año que viene"])
 def test_only_the_understood_words_leave_the_sentence(text):
     """The whole phrase is the date, its article included."""
     res = extract_datetime(text, lang="es-ES", anchorDate=ANCHOR)

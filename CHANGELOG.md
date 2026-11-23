@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.1a6](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a6) (2026-11-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a5...0.41.1a6)
+
+**Merged pull requests:**
+
+- test: drop 29 strict xfails that chronologia 0.42.20a1 fixes [\#679](https://github.com/OpenVoiceOS/ovos-date-parser/pull/679) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.1a5](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a5) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a4...0.41.1a5)
@@ -303,10 +311,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.32a1...0.35.33a1)
 
-**Merged pull requests:**
-
-- fix\(es\): keep spelled numbers as typed in the remainder [\#572](https://github.com/OpenVoiceOS/ovos-date-parser/pull/572) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.32a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.32a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.31a1...0.35.32a1)
@@ -314,10 +318,6 @@
 ## [0.35.31a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.31a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.30a1...0.35.31a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): spell numbers in the Brazilian forms for a pt-BR tag [\#571](https://github.com/OpenVoiceOS/ovos-date-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.30a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.30a1) (2026-11-12)
 

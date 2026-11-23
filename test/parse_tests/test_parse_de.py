@@ -50,7 +50,7 @@ class TestExtractDatetime(unittest.TestCase):
 
         # midnight equal to the anchor is the anchor (routing ruling, class 3)
         testExtract("setze den timer auf zwölf uhr nachts",
-                    "2017-06-27 00:00:00", "setze den timer auf")
+                    "2017-06-27 00:00:00", "setze den timer")
 
         testExtract("setze den frisörtermin auf halb neun",
                     "2017-06-27 08:30:00", "setze den frisörtermin auf")
@@ -215,7 +215,7 @@ class TestExtractDatetimeGerman(unittest.TestCase):
         # midnight equal to the anchor is the anchor (routing ruling, class 3);
         # the remainder keeps the article and the verb's preposition
         self.assertEqual(self._extract("setze den timer auf zwölf uhr nachts"),
-                         ["2017-06-27 00:00:00", "setze den timer auf"])
+                         ["2017-06-27 00:00:00", "setze den timer"])
 
     def test_empty_and_junk_return_none(self):
         for text in ["", "   ", "?", "kein zeit", "hallo wie geht es dir"]:

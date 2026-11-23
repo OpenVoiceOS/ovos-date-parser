@@ -413,38 +413,26 @@ class TestSpokenClockForms(unittest.TestCase):
     def test_remainder_is_empty(self):
         self.assertEqual(_res("wekker om kwart voor 9")[1], "wekker")
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_ten_past_half_three_spelled(self):
         self.assertEqual(_dt("om tien over half drie"),
                          datetime(2026, 10, 17, 14, 40))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_ten_past_half_three_digits(self):
         self.assertEqual(_dt("om 10 over half 3"),
                          datetime(2026, 10, 17, 14, 40))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_five_to_half_three_spelled(self):
         self.assertEqual(_dt("om vijf voor half drie"),
                          datetime(2026, 10, 17, 14, 25))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_five_to_half_three_digits(self):
         self.assertEqual(_dt("om 5 voor half 3"),
                          datetime(2026, 10, 17, 14, 25))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_ten_past_half_without_om(self):
         self.assertEqual(_dt("tien over half drie"),
                          datetime(2026, 10, 17, 14, 40))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_five_to_half_four(self):
         self.assertEqual(_dt("vijf voor half vier"),
                          datetime(2026, 10, 17, 15, 25))
@@ -453,8 +441,6 @@ class TestSpokenClockForms(unittest.TestCase):
         self.assertEqual(_dt("om tien over drie"),
                          datetime(2026, 10, 17, 15, 10))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_half_ten_past_remainder_is_empty(self):
         self.assertEqual(_res("wekker om tien over half drie")[1], "wekker")
 
@@ -507,50 +493,34 @@ class TestHoursThatDoNotExist(unittest.TestCase):
 
 
 class TestQuarterAroundHalf(unittest.TestCase):
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_nine(self):
         self.assertEqual(_dt("om kwart over half 9"),
                          datetime(2026, 10, 17, 20, 45))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_to_half_nine(self):
         self.assertEqual(_dt("om kwart voor half 9"),
                          datetime(2026, 10, 17, 20, 15))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_nine_spelled(self):
         self.assertEqual(_dt("om kwart over half negen"),
                          datetime(2026, 10, 17, 20, 45))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_to_half_nine_spelled(self):
         self.assertEqual(_dt("om kwart voor half negen"),
                          datetime(2026, 10, 17, 20, 15))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_without_om(self):
         self.assertEqual(_dt("kwart over half negen"),
                          datetime(2026, 10, 17, 20, 45))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_to_half_without_om(self):
         self.assertEqual(_dt("kwart voor half negen"),
                          datetime(2026, 10, 17, 20, 15))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_quarter_past_half_three(self):
         self.assertEqual(_dt("om kwart over half drie"),
                          datetime(2026, 10, 17, 14, 45))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_remainder_is_empty(self):
         self.assertEqual(_res("wekker om kwart over half 9")[1], "wekker")
 

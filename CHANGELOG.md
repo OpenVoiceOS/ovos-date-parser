@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.1a7](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a7) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a6...0.41.1a7)
+
+**Merged pull requests:**
+
+- test\(de\): "auf" before the clock is part of the time [\#681](https://github.com/OpenVoiceOS/ovos-date-parser/pull/681) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.1a6](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a6) (2026-11-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a5...0.41.1a6)
@@ -348,10 +356,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.26a1...0.35.27a1)
 
-**Merged pull requests:**
-
-- fix\(pt,es,gl,ast\): put "de" before the year in nice\_date [\#573](https://github.com/OpenVoiceOS/ovos-date-parser/pull/573) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.26a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.26a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.25a1...0.35.26a1)
@@ -368,7 +372,6 @@
 
 - fix\(de\): say "eine Minute" and "ein Tag" in nice\_duration [\#582](https://github.com/OpenVoiceOS/ovos-date-parser/pull/582) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(uk\): spell 16 and the hundreds 500, 600 and 900 in Ukrainian [\#575](https://github.com/OpenVoiceOS/ovos-date-parser/pull/575) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(sl\): spell the ordinal of 15 as "petnajsti" in the date resource [\#574](https://github.com/OpenVoiceOS/ovos-date-parser/pull/574) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
 

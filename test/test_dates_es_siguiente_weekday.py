@@ -261,8 +261,6 @@ class TestMananaIsTomorrowOrTheMorning(unittest.TestCase):
     def test_tomorrow_alone(self):
         self.assertEqual(_dt("mañana"), datetime(2026, 10, 18))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/OpenVoiceOS/ovos-date-parser/issues/659")
     def test_until_tomorrow(self):
         self.assertEqual(_dt("hasta mañana"), datetime(2026, 10, 18))
 

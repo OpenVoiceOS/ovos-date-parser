@@ -216,11 +216,7 @@ PREPOSITION_ALONE = [
 ]
 
 
-@pytest.mark.parametrize("lang,utterance,expected,kept", _known_defects(
-    PREPOSITION_ALONE, dict.fromkeys(
-        ("until easter", "before christmas", "avant noël", "hasta navidad",
-         "bis Weihnachten", "tot kerst", "até ao natal"),
-        "https://github.com/OpenVoiceOS/ovos-date-parser/issues/659")))
+@pytest.mark.parametrize("lang,utterance,expected,kept", PREPOSITION_ALONE)
 def test_a_preposition_alone_is_no_offset(lang, utterance, expected, kept):
     assert extract_holiday_span(utterance, lang, REF) == (expected, kept)
     assert tuple(extract_datetime(utterance, lang, REF)) == (expected, kept)
@@ -1580,3 +1576,22 @@ class TestHolidayDiscontinuity:
         got = _in_anchor_zone(datetime(2026, 12, 25),
                               datetime(2026, 10, 1, tzinfo=zone))
         assert got == datetime(2026, 12, 25, tzinfo=zone)
+
+
+#: A range that opens at the anchor answers the date it reaches. The expected
+#: value is date arithmetic on the anchor, Friday 2026-03-13 being two days
+#: after the Wednesday 2026-03-11.
+RANGE_FROM_NOW = [
+    ("de", "bis freitag", datetime(2026, 3, 13), "bis"),
+    ("en", "until friday", datetime(2026, 3, 13), "until"),
+    ("en", "until 5pm", datetime(2026, 3, 11, 17), "until"),
+    ("en", "until june", datetime(2026, 6, 1), "until"),
+]
+
+
+@pytest.mark.parametrize("lang,utterance,expected,remainder", RANGE_FROM_NOW)
+def test_a_range_from_now_answers_the_date_it_reaches(
+        lang, utterance, expected, remainder):
+    anchor = datetime(2026, 3, 11, 10, 0)
+    found = extract_datetime(utterance, lang, anchor)
+    assert (found[0], found[1]) == (expected, remainder)

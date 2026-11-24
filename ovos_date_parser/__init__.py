@@ -57,6 +57,8 @@ from ovos_date_parser.eras import (
 # timeline, named-period and radiocarbon-calibration facilities alongside the
 # established date-parsing API.
 from chronologia import TIMELINES, PERIODS, calibrate_c14, DAY_PARTS
+from chronologia import extract_candidates as _chronologia_candidates
+from chronologia import extract_timespans as _chronologia_timespans
 from chronologia import extract_duration as _chronologia_extract_duration
 from ovos_date_parser.duration import (
     DurationResolution, convert_duration
@@ -684,7 +686,30 @@ def _extract_datetime_chronologia(
     found = extract_timespan(text, lang, anchor)
     if found is None:
         return None
+    found = _range_endpoint(found, text, lang, anchor)
     return _routed(found, lang, default_time, anchor)
+
+
+def _range_endpoint(found, text: str, lang: str, anchor: datetime):
+    """A range that opens at the anchor ("until easter") answers the date it
+    reaches, with its opening words left in the remainder."""
+    if (found.span.end - found.span.start <= _EXACT
+            or found.span.start != AstroDate.from_datetime(
+                anchor.replace(tzinfo=None))):
+        return found
+    mentions = _chronologia_timespans(text, lang, anchor)
+    for candidate in _chronologia_candidates(text, lang, anchor, limit=10):
+        span = candidate.span
+        if span.start <= found.span.start or found.span.end not in (
+                span.end, span.start):
+            continue
+        date = next((m for m in mentions if m.span == span), None)
+        opening = (set(candidate.remainder.lower().split())
+                   - set(found.remainder.lower().split()))
+        if (date is not None and date.char_span is not None
+                and opening <= set(text[:date.char_span[0]].lower().split())):
+            return found._replace(span=span, remainder=candidate.remainder)
+    return found
 
 
 def _routed(found, lang: str, default_time: Optional[time],

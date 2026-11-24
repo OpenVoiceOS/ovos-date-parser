@@ -169,7 +169,7 @@ An expression with nothing to drop comes back once.
 
 A single word left behind can still bridge two halves that need each other, as in "in two weeks and three days". Punctuation between two words is no boundary on its own. So "3 uur 's middags" and "2 hours, 30 minutes, and 10 seconds" each stay whole. An expression can run up to twenty words, long enough for "in two weeks and three days and four hours".
 
-The cost of a scan follows how much of the text reads as an expression, not the length of the text.
+The cost of a scan grows with the length of the text, and each expression in the text adds to it.
 
 The offsets are what `extract_datetime` cannot give. Its remaining text says which words it consumed. It does not say where they sat. A text with a repeated word cannot be aligned back to the input from it.
 
@@ -275,7 +275,7 @@ Catalan can read the clock in several styles. Import the enum and pass it as `va
 'dos quarts de quatre de la tarda'
 ```
 
-`TimeVariantCA` members are `DEFAULT`, `BELL`, `FULL_BELL` and `SPANISH_LIKE`. Slovak, Croatian and Bulgarian read the minutes as numbers by default. With a `variant`, they read the last quarter against the next hour: `trištvrte na štyri` (sk), `petnaest do četiri` (hr) and `четири без четвърт` (bg).
+`TimeVariantCA` members are `DEFAULT`, `BELL`, `FULL_BELL` and `SPANISH_LIKE`. Slovak, Croatian and Bulgarian read the minutes as numbers by default. With `variant="traditional"` or `variant="analog"` on the 12-hour clock, they read the last quarter against the next hour: `trištvrte na štyri` (sk), `petnaest do četiri` (hr) and `четири без четвърт` (bg).
 
 ```python
 >>> from datetime import datetime

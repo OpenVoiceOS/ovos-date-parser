@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.3a1) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.2a3...0.41.3a1)
+
+**Merged pull requests:**
+
+- fix: a range that opens at the anchor answers the date it reaches [\#668](https://github.com/OpenVoiceOS/ovos-date-parser/pull/668) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.2a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.2a3) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.2a2...0.41.2a3)
@@ -377,10 +385,6 @@
 ## [0.35.24a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.24a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.23a1...0.35.24a1)
-
-**Merged pull requests:**
-
-- fix\(de\): say "eine Minute" and "ein Tag" in nice\_duration [\#582](https://github.com/OpenVoiceOS/ovos-date-parser/pull/582) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.2a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.2a3) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.2a2...0.41.2a3)
+
+**Merged pull requests:**
+
+- docs: align docs with the code, STE pass [\#683](https://github.com/OpenVoiceOS/ovos-date-parser/pull/683) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.2a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.2a2) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.2a1...0.41.2a2)
@@ -302,10 +310,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.37a1...0.35.38a1)
 
-**Merged pull requests:**
-
-- fix\(de\): read vorvorgestern, vorletzte, im letzten and numeric dates [\#581](https://github.com/OpenVoiceOS/ovos-date-parser/pull/581) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.37a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.37a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.36a1...0.35.37a1)
@@ -349,10 +353,6 @@
 ## [0.35.30a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.30a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.29a1...0.35.30a1)
-
-**Merged pull requests:**
-
-- fix\(fa\): read the year as a Persian cardinal joined with "و" [\#580](https://github.com/OpenVoiceOS/ovos-date-parser/pull/580) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.29a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.29a1) (2026-11-12)
 

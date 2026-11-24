@@ -38,7 +38,8 @@ class TestExtractDatetime(unittest.TestCase):
             self.assertEqual(res[1], expected_leftover)
 
         # the remainder keeps the words that are not part of the date: an
-        # article, and the preposition the verb takes ("setze ... auf")
+        # article, and "auf" before a spoken hour with no "Uhr"; "auf" before
+        # "<hour> Uhr" belongs to the clock
         testExtract("mache den frisörtermin in einer halben stunde",
                     "2017-06-27 00:30:00", "mache den frisörtermin")
 
@@ -213,7 +214,7 @@ class TestExtractDatetimeGerman(unittest.TestCase):
 
     def test_wraparound_midnight(self):
         # midnight equal to the anchor is the anchor (routing ruling, class 3);
-        # the remainder keeps the article and the verb's preposition
+        # "auf" before "<hour> Uhr" belongs to the clock
         self.assertEqual(self._extract("setze den timer auf zwölf uhr nachts"),
                          ["2017-06-27 00:00:00", "setze den timer"])
 

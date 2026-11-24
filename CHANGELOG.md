@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.41.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.4a1) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.3a1...0.41.4a1)
+
+**Closed issues:**
+
+- Routed remainder keeps the typed case and drops sv "klockan" and "och"; the legacy remainder was lower case and kept both [\#660](https://github.com/OpenVoiceOS/ovos-date-parser/issues/660)
+
+**Merged pull requests:**
+
+- fix: the remainder keeps the case the user typed [\#669](https://github.com/OpenVoiceOS/ovos-date-parser/pull/669) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.3a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.3a1) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.2a3...0.41.3a1)
@@ -111,10 +123,6 @@
 ## [0.40.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.40.0a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.39.0a1...0.40.0a1)
-
-**Merged pull requests:**
-
-- feat: answer extract\_datetime from chronologia for Russian and Ukrainian [\#586](https://github.com/OpenVoiceOS/ovos-date-parser/pull/586) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.39.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.39.0a1) (2026-11-17)
 
@@ -309,10 +317,6 @@
 ## [0.35.39a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.39a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.38a1...0.35.39a1)
-
-**Merged pull requests:**
-
-- fix\(pl\): say the hour as a feminine ordinal in nice\_time [\#587](https://github.com/OpenVoiceOS/ovos-date-parser/pull/587) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.38a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.38a1) (2026-11-12)
 

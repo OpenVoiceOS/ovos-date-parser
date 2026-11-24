@@ -4,7 +4,7 @@
 covers: which languages the package reads, which it writes, and what each writer does
 source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, nice_time; ovos_date_parser/duration.py:convert_duration; ovos_date_parser/res/*/
 generated: no
-verify: sed '/^\x60\x60\x60/d' docs/languages.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
+verify: sed '/^\x60\x60\x60/d' docs/languages.md | .venv/bin/python -I -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
 see: api.md, adding-a-language.md
 -->
 
@@ -33,14 +33,14 @@ The region and the rest of the tag stay as they are. This is the function `_read
 A writer lower-cases the tag. Then it finds the language in one of two ways.
 
 1. `nice_time`, `nice_year` and the per-language branches of the other `nice_*` functions test which writer code the tag starts with. A tag that starts with a writer code reaches that writer, even when the tag names another language. The Filipino tag `fil` starts with `fi`, so `nice_time` and `nice_year` answer in Finnish.
+
 2. The generic writers read the folder `res/<code>/`. They take the part of the tag before the first `-` and look for that folder by exact name. These writers are the generic date family, `nice_duration` and `nice_relative_time`. The tag `PT_BR` gives the folder `pt_br`, which does not exist.
 
 The result for each function, with a tag that starts with a writer code and a tag with an underscore:
 
 | Function | `fil` | `PT_BR` |
 |---|---|---|
-| `nice_time` | Finnish | Portuguese |
-| `nice_year` | Finnish | Portuguese |
+| `nice_time`, `nice_year` | Finnish | Portuguese |
 | `nice_date`, `nice_date_time` | `NotImplementedError` | Portuguese |
 | `nice_day`, `nice_weekday`, `nice_month`, `get_date_strings` | English | Portuguese |
 | `nice_duration`, `nice_relative_time` | `NotImplementedError` | `NotImplementedError` |
@@ -53,16 +53,27 @@ The tag `"no"` reaches Bokmål in `nice_time`, `nice_date`, `nice_date_time`, `n
 
 `extract_datetime` reads the 61 locales in `CHRONOLOGIA_LOCALES`:
 
-| Codes |
-|---|
-| an Aragonese, ar Arabic, ast Asturian, az Azerbaijani, be Belarusian, bg Bulgarian, ca Catalan, cs Czech, cy Welsh, da Danish, de German |
-| el Greek, en English, eo Esperanto, es Spanish, et Estonian, eu Basque, fa Persian, fi Finnish, fil Filipino, fr French, fy Western Frisian |
-| ga Irish, gl Galician, ha Hausa, he Hebrew, hi Hindi, hr Croatian, hu Hungarian, hy Armenian, id Indonesian, is Icelandic, it Italian |
-| ka Georgian, kab Kabyle, ko Korean, lt Lithuanian, lv Latvian, mk Macedonian, ms Malay, mt Maltese, mwl Mirandese, nb Norwegian Bokmål |
-| nl Dutch, nn Norwegian Nynorsk, oc Occitan, pl Polish, pt Portuguese, ro Romanian, ru Russian, sk Slovak, sl Slovenian, sq Albanian |
-| sr Serbian, sv Swedish, sw Swahili, ta Tamil, th Thai, tr Turkish, uk Ukrainian, vi Vietnamese |
+```text
+an Aragonese, ar Arabic, ast Asturian, az Azerbaijani, be Belarusian, bg Bulgarian, ca Catalan
+cs Czech, cy Welsh, da Danish, de German, el Greek, en English, eo Esperanto
+es Spanish, et Estonian, eu Basque, fa Persian, fi Finnish, fil Filipino, fr French
+fy Western Frisian, ga Irish, gl Galician, ha Hausa, he Hebrew, hi Hindi, hr Croatian
+hu Hungarian, hy Armenian, id Indonesian, is Icelandic, it Italian, ka Georgian, kab Kabyle
+ko Korean, lt Lithuanian, lv Latvian, mk Macedonian, ms Malay, mt Maltese, mwl Mirandese
+nb Norwegian Bokmål, nl Dutch, nn Norwegian Nynorsk, oc Occitan, pl Polish, pt Portuguese, ro Romanian
+ru Russian, sk Slovak, sl Slovenian, sq Albanian, sr Serbian, sv Swedish, sw Swahili
+ta Tamil, th Thai, tr Turkish, uk Ukrainian, vi Vietnamese
+```
 
-Any other language goes to [dateparser](https://dateparser.readthedocs.io). Japanese has a weekday reader of its own in front of dateparser, and Chinese has an unspaced-text reader behind it. The fallback reads absolute dates well and conversational phrases poorly, and it logs a warning.
+The set has 61 codes.
+
+```python
+>>> from ovos_date_parser import CHRONOLOGIA_LOCALES
+>>> len(CHRONOLOGIA_LOCALES)
+61
+```
+
+Any other language goes to [dateparser](https://dateparser.readthedocs.io). Japanese has its own weekday reader in front of dateparser. Chinese has an unspaced-text reader behind it. The fallback reads absolute dates well and conversational phrases poorly, and it logs a warning.
 
 `extract_duration` reads the same locales through chronologia. A month or a year counts from the day of the call. A locale outside the set answers `(None, text)`. The `resolution` and `replace_token` options convert chronologia's answer, so a month or a year reaches them as a day count.
 
@@ -77,7 +88,7 @@ All 39 writers are also reader locales. The code list is `an, ar, ast, az, bg, c
 
 The `spoken_time`, `spoken_date` and `spoken_year` functions in `ovos_date_parser/spoken.py` write Dutch, Italian and Portuguese only. Any other language raises `UnsupportedForm`.
 
-`nice_relative_time` uses one shared implementation, with a dedicated one for Basque. `nice_duration` has dedicated writers for ar, az, pl, ru and uk, and a shared writer that reads `res/<lang>/date_words.json` for the rest.
+The function `nice_relative_time` uses one shared implementation, with a dedicated one for Basque. The function `nice_duration` has dedicated writers for ar, az, pl, ru and uk. A shared writer that reads `res/<lang>/date_words.json` serves the rest.
 
 ## Notes on single writers
 

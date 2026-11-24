@@ -4,7 +4,7 @@
 covers: what the package does, how to install it, a first example, and where the docs are
 source: ovos_date_parser/__init__.py (extract_datetime, extract_duration, nice_time, nice_duration, CHRONOLOGIA_LOCALES); pyproject.toml
 generated: no
-verify: diff <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' README.md | sed '1d;$d' | python -) <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/s/^print(.*)  *# //p' README.md)
+verify: diff <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' README.md | sed '1d;$d' | .venv/bin/python -I -) <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/s/^print(.*)  *# //p' README.md)
 see: docs/index.md, docs/api.md, docs/languages.md
 -->
 
@@ -52,13 +52,9 @@ value for repeatable results.
 
 ## Who does what
 
-Reading is the job of chronologia. `extract_datetime` normalizes the language
-tag and calls chronologia for every locale it reads. `extract_duration` calls
-chronologia for the same locales. [docs/languages.md](docs/languages.md) lists
-each one. This package adds the `datetime` shape of the answer, the leftover
-text, named holidays, the `resolution` and `replace_token` options of
-`extract_duration`, and the span scans `extract_datetime_spans` and
-`extract_duration_spans`.
+Reading is the job of chronologia. The function `extract_datetime` normalizes the language tag and calls chronologia for every locale it reads. The function `extract_duration` calls chronologia for the same locales. [docs/languages.md](docs/languages.md) lists each locale.
+
+This package adds the `datetime` shape of the answer, the leftover text, named holidays, the `resolution` and `replace_token` options of `extract_duration`, and the span scans `extract_datetime_spans` and `extract_duration_spans`.
 
 Writing is the job of this package. The `nice_*` functions and the `spoken_*`
 functions say a time, a date, a year or a duration in the words of a language.
@@ -69,11 +65,7 @@ dates well and conversational phrases poorly.
 
 ## Languages
 
-`extract_datetime` reads the 61 locales in `CHRONOLOGIA_LOCALES`. The `nice_*`
-formatters write 39 languages, and chronologia reads every one of them.
-[docs/languages.md](docs/languages.md) lists both sets. A tag in any case, with
-`_` or `-`, reaches the same reader: `"EN-US"`, `"pt_br"` and `"deu"` all work
-for reading.
+`extract_datetime` reads the 61 locales in `CHRONOLOGIA_LOCALES`. The `nice_*` formatters write 39 languages, and chronologia reads every one of them. [docs/languages.md](docs/languages.md) lists both sets. A tag in any case, with `_` or `-`, reaches the same reader: `"EN-US"`, `"pt_br"` and `"deu"` all work for reading.
 
 ## Documentation
 

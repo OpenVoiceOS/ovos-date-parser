@@ -12,7 +12,7 @@ These pages describe `ovos-date-parser`, a library that reads date, time and dur
 
 | Page | What you get |
 |---|---|
-| [API reference](api.md) | Every public function with its signature, defaults and real output, and the deprecated reader names |
+| [API reference](api.md) | Every public function with its signature, defaults and real output, and the engine that answers it |
 | [Languages](languages.md) | The languages that read, the languages that write, how a tag resolves, and notes on single writers |
 | [Adding a language](adding-a-language.md) | A check for what a language lacks, then a path for reading and a path for writing |
 

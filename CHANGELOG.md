@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.2a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.2a2) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.2a1...0.41.2a2)
+
+**Merged pull requests:**
+
+- test: strict xfail for nice\_relative\_time of equal instants in de, es, ca [\#685](https://github.com/OpenVoiceOS/ovos-date-parser/pull/685) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.2a1) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a7...0.41.2a1)
@@ -350,17 +358,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.28a1...0.35.29a1)
 
-**Merged pull requests:**
-
-- fix\(cs\): put the day before the genitive month and localize the era [\#579](https://github.com/OpenVoiceOS/ovos-date-parser/pull/579) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.35.28a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.28a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.27a1...0.35.28a1)
-
-**Merged pull requests:**
-
-- fix\(pl\): read dates, years and date-times in Polish [\#578](https://github.com/OpenVoiceOS/ovos-date-parser/pull/578) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.27a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.27a1) (2026-11-12)
 

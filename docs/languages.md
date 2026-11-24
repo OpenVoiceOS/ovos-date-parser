@@ -65,7 +65,7 @@ ru Russian, sk Slovak, sl Slovenian, sq Albanian, sr Serbian, sv Swedish, sw Swa
 ta Tamil, th Thai, tr Turkish, uk Ukrainian, vi Vietnamese
 ```
 
-The count is a fact that you can check.
+The set has 61 codes.
 
 ```python
 >>> from ovos_date_parser import CHRONOLOGIA_LOCALES

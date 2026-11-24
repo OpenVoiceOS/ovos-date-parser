@@ -70,7 +70,7 @@ Run the first line while you work. Run the second before you push.
 
 2. A writer takes every word from a source. Name the sources in the module docstring, as `dates_kab.py` does. Take expected strings in tests from a source, never from the output of the code ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
 
-3. A new writer has a branch in `nice_time` in `__init__.py`. It has a branch in another `nice_*` function only when no `res/<code>/` file serves it. It has a branch in `nice_duration` only when the shared writer cannot say the language ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
+3. A writer that you add has a branch in `nice_time` in `__init__.py`. It has a branch in another `nice_*` function only when no `res/<code>/` file serves it. It has a branch in `nice_duration` only when the shared writer cannot say the language ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
 
    `test/test_lang_parity.py` checks the 26 languages in its last `LANGS` assignment. It skips bg, el, et, fi, he, hr, nb, nn and tr, and the four languages that write less (an, fy, id and ms).
 

@@ -10,7 +10,7 @@ see: languages.md, adding-a-language.md
 
 This page lists the public functions of `ovos_date_parser`: the readers that turn text into values, and the writers that turn values into words. Every function takes a BCP-47 language code in `lang`.
 
-Two engines answer the functions.
+Three engines answer the functions.
 
 | Functions | Answered by |
 |---|---|
@@ -169,6 +169,8 @@ An expression with nothing to drop comes back once.
 
 A single word left behind can still bridge two halves that need each other, as in "in two weeks and three days". Punctuation between two words is no boundary on its own. So "3 uur 's middags" and "2 hours, 30 minutes, and 10 seconds" each stay whole. An expression can run up to twenty words, long enough for "in two weeks and three days and four hours".
 
+The cost of a scan follows how much of the text reads as an expression, not the length of the text.
+
 The offsets are what `extract_datetime` cannot give. Its remaining text says which words it consumed. It does not say where they sat. A text with a repeated word cannot be aligned back to the input from it.
 
 ### `extract_duration_spans(text, lang)`
@@ -273,13 +275,16 @@ Catalan can read the clock in several styles. Import the enum and pass it as `va
 'dos quarts de quatre de la tarda'
 ```
 
-`TimeVariantCA` members are `DEFAULT`, `BELL`, `FULL_BELL` and `SPANISH_LIKE`. Slovak, Croatian and Bulgarian read the minutes as numbers by default and use the quarter idiom with a `variant`.
+`TimeVariantCA` members are `DEFAULT`, `BELL`, `FULL_BELL` and `SPANISH_LIKE`. Slovak, Croatian and Bulgarian read the minutes as numbers by default. With a `variant`, they read the last quarter against the next hour: `trištvrte na štyri` (sk), `petnaest do četiri` (hr) and `четири без четвърт` (bg).
 
 ```python
 >>> from datetime import datetime
 >>> from ovos_date_parser import nice_time
 >>> [nice_time(datetime(2023, 1, 15, 15, 45), "sk", variant=v) for v in (None, "analog")]
 ['tri štyridsaťpäť', 'trištvrte na štyri']
+
+>>> [nice_time(datetime(2023, 1, 15, 15, 45), lang, variant="analog") for lang in ("hr", "bg")]
+['petnaest do četiri', 'четири без четвърт']
 ```
 
 ### `nice_date(dt, lang, now=None, include_weekday=True)`

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.41.2a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.2a1) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a7...0.41.2a1)
+
+**Closed issues:**
+
+- hu extract\_duration: the "hét" guard in \_normalize\_hu fails when ovos-number-parser reads hu through numtag [\#662](https://github.com/OpenVoiceOS/ovos-date-parser/issues/662)
+
+**Merged pull requests:**
+
+- fix: follow chronologia 0.43.0a1 \(daypart before a clock, year-less ordinal day\) [\#686](https://github.com/OpenVoiceOS/ovos-date-parser/pull/686) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.1a7](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.1a7) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.1a6...0.41.1a7)
@@ -277,7 +289,6 @@
 **Merged pull requests:**
 
 - fix\(pl\): say the hour as a feminine ordinal in nice\_time [\#587](https://github.com/OpenVoiceOS/ovos-date-parser/pull/587) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(da,nb,nn\): read an ordinal word as a date only before a month [\#576](https://github.com/OpenVoiceOS/ovos-date-parser/pull/576) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.38a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.38a1) (2026-11-12)
 
@@ -350,7 +361,6 @@
 **Merged pull requests:**
 
 - fix\(pl\): read dates, years and date-times in Polish [\#578](https://github.com/OpenVoiceOS/ovos-date-parser/pull/578) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(nl\): write year and number words as Taaladvies Regel 1 does [\#577](https://github.com/OpenVoiceOS/ovos-date-parser/pull/577) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.27a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.27a1) (2026-11-12)
 
@@ -371,7 +381,6 @@
 **Merged pull requests:**
 
 - fix\(de\): say "eine Minute" and "ein Tag" in nice\_duration [\#582](https://github.com/OpenVoiceOS/ovos-date-parser/pull/582) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(uk\): spell 16 and the hundreds 500, 600 and 900 in Ukrainian [\#575](https://github.com/OpenVoiceOS/ovos-date-parser/pull/575) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.23a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.23a1) (2026-11-06)
 

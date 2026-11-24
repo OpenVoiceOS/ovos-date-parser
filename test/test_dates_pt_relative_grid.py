@@ -376,7 +376,12 @@ def cases(a, lang):
         else:
             out.append(("a última semana " + tail,
                         end - timedelta(end.weekday())))
-        out.append(("o primeiro dia " + tail, pick("dia", 1)))
+        first_day = pick("dia", 1)
+        # a year-less ordinal day takes the next occurrence, like "dia 1 de dezembro"
+        if tail.split()[0] == "de" and tail.split()[1] in MONTHS \
+                and first_day < midnight(a):
+            first_day += relativedelta(years=1)
+        out.append(("o primeiro dia " + tail, first_day))
         for word, n in (("primeira", 1), ("segunda", 2), ("terceira", 3)):
             out.append((f"a {word} semana {tail}",
                         iso_week(end.year, n) if of_year

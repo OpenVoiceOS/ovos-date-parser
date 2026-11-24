@@ -47,7 +47,9 @@ dependencies = [
     # counted noun as a count (ruling 22: nl "om 3 redenen" is no time).
     # 0.41.0a2 is the alpha whose values the strict xfails, the duration rows
     # and the holiday clock tests pin.
-    "chronologia>=0.42.20a1",
+    # 0.42.25a1 reads de "auf" before "<hour> Uhr" as part of the clock, which
+    # the "setze den timer auf zwölf uhr nachts" rows pin.
+    "chronologia>=0.42.25a1",
 ]
 dynamic = ["version"]
 

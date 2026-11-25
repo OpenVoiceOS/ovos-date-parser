@@ -11,7 +11,7 @@ see: docs/index.md, docs/api.md, docs/languages.md
 This library turns date, time and duration phrases into `datetime` and
 `timedelta` values, and turns those values back into words. It reads 61
 languages through [chronologia](https://github.com/TigreGotico/chronologia)
-and writes 39 languages with its own `nice_*` formatters.
+and writes 40 languages with its own `nice_*` formatters.
 
 The library is a plain Python package. It needs no voice assistant at runtime.
 [OpenVoiceOS](https://openvoiceos.org) uses it, and so can an NER pipeline, a
@@ -65,7 +65,7 @@ dates well and conversational phrases poorly.
 
 ## Languages
 
-`extract_datetime` reads the 61 locales in `CHRONOLOGIA_LOCALES`. The `nice_*` formatters write 39 languages, and chronologia reads every one of them. [docs/languages.md](docs/languages.md) lists both sets. A tag in any case, with `_` or `-`, reaches the same reader: `"EN-US"`, `"pt_br"` and `"deu"` all work for reading.
+`extract_datetime` reads the 61 locales in `CHRONOLOGIA_LOCALES`. The `nice_*` formatters write 40 languages, and chronologia reads every one of them except Bosnian, which reads as Croatian. [docs/languages.md](docs/languages.md) lists both sets. A tag in any case, with `_` or `-`, reaches the same reader: `"EN-US"`, `"pt_br"` and `"deu"` all work for reading.
 
 ## Documentation
 

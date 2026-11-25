@@ -22,7 +22,7 @@ A reader standardizes the tag, then replaces its language with the closest local
 ('de', 'nb', 'ar-XX', 'pt-BR')
 ```
 
-A writer finds its language with `writer_lang` in `ovos_date_parser/common.py`. It picks the writer language that the language subtag of the tag is closest to, so `PT_BR` reaches Portuguese in every writer, `no` and `nob` reach Bokmål, `deu` reaches German and `arz` reaches Arabic. A language within linguatag's match distance of a writer reads as that writer: `lb` as German, `bs` as Croatian (so the month names are Croatian, not Bosnian), `mo` as Romanian and `prs` as Persian. A tag that no writer language is close to, such as `fil` or `xx`, raises `NotImplementedError`. Filipino does not reach Finnish, and South Ndebele (`nbl`) does not reach Bokmål.
+A writer finds its language with `writer_lang` in `ovos_date_parser/common.py`. It picks the writer language that the language subtag of the tag is closest to, so `PT_BR` reaches Portuguese in every writer, `no` and `nob` reach Bokmål, `deu` reaches German and `arz` reaches Arabic. A language within linguatag's match distance of a writer reads as that writer: `lb` as German, `mo` as Romanian and `prs` as Persian. Bosnian has a writer of its own, so `bs` and `bs-BA` write the Bosnian month and weekday names (`mart`, not `ožujak`). Its clock follows the Croatian one. A tag that no writer language is close to, such as `fil` or `xx`, raises `NotImplementedError`. Filipino does not reach Finnish, and South Ndebele (`nbl`) does not reach Bokmål.
 
 The Portuguese writers speak the Brazilian forms when the region of the tag is `BR`. A bare `pt` has the region `PT`.
 
@@ -56,7 +56,7 @@ Any other language goes to [dateparser](https://dateparser.readthedocs.io). Japa
 
 ## Languages that write
 
-All 39 writers are also reader locales. The code list is `an, ar, ast, az, bg, ca, cs, da, de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, ms, nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr, uk`. Thirty-five of them write the whole set of functions. Four write less:
+All writers but `bs` are also reader locales, and `bs` reads as Croatian. The 40 writers have the codes `an, ar, ast, az, bg, bs, ca, cs, da, de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, ms, nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr, uk`. Thirty-six of them write the whole set of functions. Four write less:
 
 | Language | Missing |
 |---|---|

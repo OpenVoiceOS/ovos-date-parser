@@ -229,7 +229,7 @@ def nice_time(
         return nice_time_cs(dt, speech, use_24hour, use_ampm)
     if code == "sk":
         return nice_time_sk(dt, speech, use_24hour, use_ampm, variant=variant)
-    if code == "hr":
+    if code in ("hr", "bs"):
         return nice_time_hr(dt, speech, use_24hour, use_ampm, variant=variant)
     if code == "bg":
         return nice_time_bg(dt, speech, use_24hour, use_ampm, variant=variant)

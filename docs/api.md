@@ -35,7 +35,7 @@ from ovos_date_parser import (
 )
 ```
 
-Nothing here needs a running OVOS stack. The package is pure Python plus a few small parsing dependencies.
+Nothing here needs a running OVOS stack. The package is pure Python plus a few small parsing dependencies. [How it works](how-it-works.md) shows the path of each call. The functions of single languages are in [writers.md](writers.md), and the range, era and scoped-date helpers are in [helpers.md](helpers.md).
 
 ## Parsing (text to structured value)
 
@@ -89,6 +89,8 @@ A tense that the phrase states inside itself is still read. "next easter", "last
 These functions are the holiday layer on its own, for a caller that wants a holiday and nothing else. They answer `(datetime, remainder)` and `(date, remainder)`. They answer `None` when the text names no holiday in its own language.
 
 `holidays.holiday_surfaces(lang)` returns the table of chronologia with the holiday names that the language speaks, mapped to its language-neutral keys. A language that chronologia has no holiday data for gets an empty map, and not a guess at English.
+
+`holidays.holiday_overrides_engine(text, lang, engine_date, engine_remainder="", anchorDate=None)` answers `True` when a language engine took its date from the holiday phrase itself. A holiday name such as "good friday" holds the weekday word "friday", and an engine can read that word as the coming Friday. `extract_datetime` asks this function for a locale outside `CHRONOLOGIA_LOCALES`, and a `True` answer sends the text to the holiday layer. The function answers `False` for a text with a date that the holiday name does not explain, such as "good friday and next friday". It costs a second engine call for a text that names a holiday, and nothing for a text that names none.
 
 ```python
 >>> from datetime import datetime
@@ -428,4 +430,4 @@ The `spoken_time`, `spoken_date` and `spoken_year` functions in `ovos_date_parse
 - `spoken_year(lang, year, *, ordinal=False, case=None, declension=None)`: the year is from 1 to 9999.
 
 ---
-[← README](../README.md) · [Home](index.md) · [Languages →](languages.md)
+[Index](index.md) · [← How it works](how-it-works.md) · [Language writers →](writers.md)

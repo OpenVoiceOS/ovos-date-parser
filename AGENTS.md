@@ -5,12 +5,10 @@ covers: the purpose, repository map, setup, test commands and hard rules for a c
 source: ovos_date_parser/__init__.py:CHRONOLOGIA_LOCALES, test/test_reader_lang.py, test/test_deprecated_readers.py, test/test_lang_parity.py
 generated: no
 verify: grep -oP '^\| \x60\K[^\x60,]*' AGENTS.md | grep -v '<' | xargs ls -d > /dev/null || exit 1
-see: docs/index.md, docs/api.md, docs/languages.md, docs/adding-a-language.md
+see: docs/index.md, docs/how-it-works.md, docs/api.md, docs/writers.md, docs/languages.md, docs/adding-a-language.md
 -->
 
-Read this file before you change anything in the repository. It gives the map,
-the setup, the rules and the checks to run before a push. The documentation
-index is [docs/index.md](docs/index.md).
+Read this file before you change anything in the repository.
 
 `ovos-date-parser` reads date, time and duration phrases and writes values
 back as words. Reading goes to [chronologia](https://github.com/TigreGotico/chronologia).
@@ -41,7 +39,8 @@ The tests, the docs and the scripts:
 | Path | Holds |
 |---|---|
 | `test/` | The tests. Writers in `test/format_tests/`, reader routing in `test/test_chronologia_*.py` |
-| `docs/` | The documentation |
+| `docs/` | The documentation. [docs/index.md](docs/index.md) sets the reading order |
+| `docs/plots/` | The script that builds the plot in `docs/img/` |
 | `examples/` | Runnable scripts |
 
 ## Setup
@@ -49,11 +48,11 @@ The tests, the docs and the scripts:
 ```bash
 unset VIRTUAL_ENV
 uv venv .venv
-uv pip install -p .venv/bin/python --prerelease=allow -e . pytest
+uv pip install -p .venv/bin/python --prerelease=allow -e . pytest matplotlib
 ```
 
 Use [uv](https://docs.astral.sh/uv/), never pip. Build the venv inside the
-checkout.
+checkout. matplotlib is for the plot script only.
 
 ## Tests
 
@@ -72,15 +71,15 @@ Run the first line while you work. Run the second before you push.
 
 3. A writer that you add has a branch in `nice_time` in `__init__.py`. It has a branch in another `nice_*` function only when no `res/<code>/` file serves it. It has a branch in `nice_duration` only when the shared writer cannot say the language ([adding-a-language](docs/adding-a-language.md#writing-add-a-nice_-module)).
 
-   `test/test_lang_parity.py` checks the 26 languages in its last `LANGS` assignment. It skips bg, el, et, fi, he, hr, nb, nn and tr, and the four languages that write less (an, fy, id and ms).
+   `test/test_lang_parity.py` checks the 26 languages in its last `LANGS` assignment. It skips bg, bs, el, et, fi, he, hr, nb, nn and tr, and the four languages that write less (an, fy, id and ms).
 
 4. A per-language reader name such as `extract_datetime_pt` is a deprecated name that warns and carries a computed removal version ([api](docs/api.md#deprecated-reader-names)). Do not add a reader of its own to a `dates_<code>.py` module.
 
-5. Never edit `ovos_date_parser/version.py`. The workflow `.github/workflows/release_workflow.yml` bumps it.
+5. Rebuild the plot with `.venv/bin/python docs/plots/writer_coverage.py` when a
+   writer gains or loses a function ([how-it-works](docs/how-it-works.md)).
+
+6. Never edit `ovos_date_parser/version.py`. The workflow `.github/workflows/release_workflow.yml` bumps it.
 
 ## Documentation
 
-- [Index](docs/index.md)
-- [API reference](docs/api.md)
-- [Languages](docs/languages.md)
-- [Adding a language](docs/adding-a-language.md)
+The [index](docs/index.md) lists every page in reading order.

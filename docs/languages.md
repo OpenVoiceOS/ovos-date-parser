@@ -155,4 +155,4 @@ Kabyle writes a clock time with the conjunction `d` and the weekday and month na
 - `nice_relative_time` uses one shared implementation, so its phrasing is not tuned to each language.
 
 ---
-[← API reference](api.md) · [Home](index.md) · [Adding a language →](adding-a-language.md)
+[Index](index.md) · [← Language writers](writers.md) · [Calendar helpers →](helpers.md)

@@ -3,6 +3,7 @@ import json
 import os.path
 import re
 import unicodedata
+from decimal import Decimal, ROUND_HALF_UP
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Optional
@@ -33,13 +34,77 @@ def writer_lang(lang: str) -> Optional[str]:
     return closest_lang(primary_language(lang), sorted(_WRITER_LANGS))
 
 
-def _translate_word(keyword: str, lang: str) -> str:
-    p = f"{os.path.dirname(__file__)}/res/{writer_lang(lang) or lang}/date_words.json"
+@lru_cache(maxsize=None)
+def _load_words(code: str) -> dict:
+    p = f"{os.path.dirname(__file__)}/res/{code}/date_words.json"
     if not os.path.isfile(p):
-        raise NotImplementedError(f"Unsupported language: {lang} - please translate {p}")
+        raise NotImplementedError(f"Unsupported language: {code} - please translate {p}")
     with open(p) as f:
-        words = json.load(f)
-    return words[keyword]
+        return json.load(f)
+
+
+def _words(lang: str) -> dict:
+    return _load_words(writer_lang(lang) or lang)
+
+
+def _translate_word(keyword: str, lang: str) -> str:
+    return _words(lang)[keyword]
+
+
+def _operands(number) -> tuple:
+    """The whole number and the visible fraction digits of ``number`` as
+    ``pronounce_number`` speaks it, rounded half up to three places. The
+    fraction is an int, the CLDR operand f, or None when nothing is spoken
+    after the whole number: 2.2 is (2, 2), 1.05 is (1, 5) and 12.0 is (12, None)."""
+    if isinstance(number, int):
+        return abs(number), None
+    spoken = Decimal(str(abs(number))).quantize(Decimal("0.001"), ROUND_HALF_UP)
+    whole, _, fraction = f"{spoken:f}".partition(".")
+    fraction = fraction.rstrip("0")
+    return int(whole), int(fraction) if fraction else None
+
+
+def _plural_category(number, rule: dict) -> str:
+    """The plural category of ``number`` under ``rule``, else "other".
+
+    ``rule`` maps a category to a condition on the whole number
+    ("integer") and one on the visible fraction digits ("fraction"). A
+    condition lists the last digits and the last two digits that put the
+    operand in the category, as in the CLDR plural rules of hr and bs:
+    ``{"one": {"integer": {"last_digit": [1], "not_last_two": [11]}}}``.
+    A number with a spoken fraction takes the fraction condition."""
+    whole, fraction = _operands(number)
+    part, operand = ("integer", whole) if fraction is None else ("fraction", fraction)
+    for category, conditions in rule.items():
+        cond = conditions.get(part)
+        if cond and operand % 10 in cond["last_digit"] \
+                and operand % 100 not in cond["not_last_two"]:
+            return category
+    return "other"
+
+
+def _unit_word(unit: str, count, lang: str) -> str:
+    """The noun of ``unit`` for ``count``. A language whose date_words.json
+    has a "plural_rule" and "plural_forms" takes the form of the count's
+    plural category; the others take the singular for 1 and the plural
+    otherwise."""
+    words = _words(lang)
+    if "plural_rule" in words:
+        category = _plural_category(count, words["plural_rule"])
+        return words["plural_forms"][unit][category]
+    return words[unit if count == 1 else unit + "s"]
+
+
+def _agree(number_words: str, unit: str, count, lang: str) -> str:
+    """Give the last word of a spelled whole ``count`` the gender of ``unit``,
+    from the "feminine_units" and "feminine_numerals" of date_words.json. A
+    count with a fraction keeps the words ``pronounce_number`` gives."""
+    words = _words(lang)
+    if unit not in words.get("feminine_units", ()) or _operands(count)[1] is not None:
+        return number_words
+    head, _, last = number_words.rpartition(" ")
+    last = words["feminine_numerals"].get(last, last)
+    return f"{head} {last}" if head else last
 
 
 def nice_relative_time_generic(lang, when, relative_to):
@@ -66,35 +131,23 @@ def nice_relative_time_generic(lang, when, relative_to):
             return f"{nice} " + _translate_word("seconds", lang)
 
     if seconds < 90:
-        nice = pronounce_number(seconds, lang=lang)
-        if seconds == 1:
-            return f"{nice} " + _translate_word("second", lang)
-        else:
-            return f"{nice} " + _translate_word("seconds", lang)
+        nice = _agree(pronounce_number(seconds, lang=lang), "second", seconds, lang)
+        return f"{nice} " + _unit_word("second", seconds, lang)
 
     minutes = int((delta.total_seconds() + 30) // 60)  # +30 to round minutes
     if minutes < 90:
-        nice = pronounce_number(minutes, lang=lang)
-        if minutes == 1:
-            return f"{nice} " + _translate_word("minute", lang)
-        else:
-            return f"{nice} " + _translate_word("minutes", lang)
+        nice = _agree(pronounce_number(minutes, lang=lang), "minute", minutes, lang)
+        return f"{nice} " + _unit_word("minute", minutes, lang)
 
     hours = int((minutes + 30) // 60)  # +30 to round hours
     if hours < 36:
-        nice = pronounce_number(hours, lang=lang)
-        if hours == 1:
-            return f"{nice} " + _translate_word("hour", lang)
-        else:
-            return f"{nice} " + _translate_word("hours", lang)
+        nice = _agree(pronounce_number(hours, lang=lang), "hour", hours, lang)
+        return f"{nice} " + _unit_word("hour", hours, lang)
 
     # TODO: "2 weeks", "3 months", "4 years", etc
     days = int((hours + 12) // 24)  # +12 to round days
-    nice = pronounce_number(days, lang=lang)
-    if days == 1:
-        return f"{nice} " + _translate_word("day", lang)
-    else:
-        return f"{nice} " + _translate_word("days", lang)
+    nice = _agree(pronounce_number(days, lang=lang), "day", days, lang)
+    return f"{nice} " + _unit_word("day", days, lang)
 
 
 #: One of a unit takes the form that agrees with the unit's gender, not the
@@ -107,11 +160,8 @@ def nice_relative_time_generic(lang, when, relative_to):
 #: Academia Galega "hora: substantivo feminino" (gl), Речник на българския
 #: език (bg). Italian elides "una" before a vowel,
 #: "una ora -> un'ora" (Treccani, Enciclopedia dell'Italiano, "elisione").
-#: The bs row is the hr row, which is standard Bosnian: CLDR 49 bs RBNF
-#: writes the feminine one as "jedinica" and bs has no unit genders.
 _ONE_BEFORE_UNIT = {
     "bg": {"day": "един", "hour": "един", "minute": "една", "second": "една"},
-    "bs": {"day": "jedan", "hour": "jedan", "minute": "jedna", "second": "jedna"},
     "ca": {"day": "un", "hour": "una", "minute": "un", "second": "un"},
     "cs": {"day": "jeden", "hour": "jedna", "minute": "jedna", "second": "jedna"},
     "da": {"day": "en", "hour": "en", "minute": "et", "second": "et"},
@@ -120,7 +170,6 @@ _ONE_BEFORE_UNIT = {
     "es": {"day": "un", "hour": "una", "minute": "un", "second": "un"},
     "fr": {"day": "un", "hour": "une", "minute": "une", "second": "une"},
     "gl": {"day": "un", "hour": "unha", "minute": "un", "second": "un"},
-    "hr": {"day": "jedan", "hour": "jedan", "minute": "jedna", "second": "jedna"},
     "it": {"day": "un", "hour": "un'", "minute": "un", "second": "un"},
     "nb": {"minute": "ett", "second": "ett"},
     "pt": {"day": "um", "hour": "uma", "minute": "um", "second": "um"},
@@ -172,8 +221,8 @@ def nice_duration_generic(lang, duration, speech=True):
         for count, unit in ((days, "day"), (hours, "hour"),
                             (minutes, "minute"), (seconds, "second")):
             if count > 0:
-                number = _count(count, unit, lang)
-                word = _translate_word(unit if count == 1 else unit + "s", lang)
+                number = _agree(_count(count, unit, lang), unit, count, lang)
+                word = _unit_word(unit, count, lang)
                 # an elided "un'" joins its noun with no space
                 parts.append(number + word if number.endswith("'")
                              else f"{number} {word}")

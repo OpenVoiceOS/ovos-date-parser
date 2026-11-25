@@ -7,5 +7,24 @@
   "hour": "sat",
   "hours": "sata",
   "day": "dan",
-  "days": "dana"
+  "days": "dana",
+  "plural_rule": {
+    "one": {
+      "integer": {"last_digit": [1], "not_last_two": [11]},
+      "fraction": {"last_digit": [1], "not_last_two": [11]}
+    },
+    "few": {
+      "integer": {"last_digit": [2, 3, 4], "not_last_two": [12, 13, 14]},
+      "fraction": {"last_digit": [2, 3, 4], "not_last_two": [12, 13, 14]}
+    }
+  },
+  "plural_forms": {
+    "second": {"one": "sekunda", "few": "sekunde", "other": "sekundi"},
+    "minute": {"one": "minuta", "few": "minute", "other": "minuta"},
+    "hour": {"one": "sat", "few": "sata", "other": "sati"},
+    "day": {"one": "dan", "few": "dana", "other": "dana"}
+  },
+  "feminine_units": ["minute", "second"],
+  "feminine_numerals": {"jedan": "jedna", "dva": "dvije"},
+  "source": "plural_rule and plural_forms: CLDR 49 supplemental/plurals.json hr, bs (integer: v = 0 and i % 10 = 1 and i % 100 != 11; fraction: f % 10 = 1 and f % 100 != 11, and the same with 2..4 and 12..14 for few) and cldr-units-full/main/hr/units.json duration-day, -hour, -minute, -second (long). feminine_units: CLDR 49 hr duration-minute and duration-second gender feminine. feminine_numerals: jedna and dvije, the feminine forms of jedan and dva (https://en.wiktionary.org/wiki/dvije, https://en.wiktionary.org/wiki/jedan, Serbo-Croatian numerals)"
 }

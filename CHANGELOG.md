@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.41.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.6a1) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.5a3...0.41.6a1)
+
+**Closed issues:**
+
+- Croatian and Bosnian durations use one noun form per unit: "pet sata", "dva minute" [\#698](https://github.com/OpenVoiceOS/ovos-date-parser/issues/698)
+
+**Merged pull requests:**
+
+- fix: Croatian and Bosnian durations use the CLDR plural forms [\#700](https://github.com/OpenVoiceOS/ovos-date-parser/pull/700) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.5a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.5a3) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.5a2...0.41.5a3)
@@ -369,10 +381,6 @@
 ## [0.35.36a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.36a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.35a1...0.35.36a1)
-
-**Merged pull requests:**
-
-- fix\(deps\): require chronologia\>=0.31.12a1 [\#599](https://github.com/OpenVoiceOS/ovos-date-parser/pull/599) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.35a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.35a1) (2026-11-12)
 

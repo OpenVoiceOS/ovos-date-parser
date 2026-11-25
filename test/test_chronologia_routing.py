@@ -417,7 +417,7 @@ AR_TEXT = "غدا الساعة الخامسة مساء"
 @pytest.mark.parametrize("text,tag,bare", [
     (AR_TEXT, "arz", "ar"), (AR_TEXT, "ary", "ar"),
     (AR_TEXT, "ars", "ar"), (AR_TEXT, "arq", "ar"),
-    ("sabah saat 5", "azb", "az"),
+    ("sabah saat 5", "azj", "az"),
     ("tomorrow at 5pm", "en ", "en"), ("amanhã às 17h", "pt\t", "pt"),
 ])
 def test_a_macrolanguage_member_or_padded_tag_reads_as_its_routed_code(

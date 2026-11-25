@@ -3,14 +3,38 @@ import json
 import os.path
 import re
 import unicodedata
+from functools import lru_cache
 from typing import Callable, Optional
+
+from linguatag import closest_lang, standardize_lang
 
 from ovos_number_parser import pronounce_number
 
 
+#: the languages that have a writer: a ``dates_<code>`` module or a ``res`` folder
+_WRITER_LANGS = frozenset({
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
+    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
+    "kab", "ms", "nb", "nl", "nn", "oc", "pl", "pt", "ro", "ru", "sk", "sl",
+    "sv", "tr", "uk"})
+
+
+@lru_cache(maxsize=4096)
+def primary_language(lang: str) -> str:
+    """The language subtag of ``lang`` in canonical form: "PT_br" is "pt"
+    and "iw" is "he"."""
+    return standardize_lang(lang.strip()).partition("-")[0]
+
+
+@lru_cache(maxsize=4096)
+def writer_lang(lang: str) -> Optional[str]:
+    """The language of ``_WRITER_LANGS`` that writes ``lang``, or None:
+    "PT_BR" is "pt", "no" is "nb" and "fil" has none."""
+    return closest_lang(primary_language(lang), sorted(_WRITER_LANGS))
+
+
 def _translate_word(keyword: str, lang: str) -> str:
-    lang = lang.split("-")[0]
-    p = f"{os.path.dirname(__file__)}/res/{lang}/date_words.json"
+    p = f"{os.path.dirname(__file__)}/res/{writer_lang(lang) or lang}/date_words.json"
     if not os.path.isfile(p):
         raise NotImplementedError(f"Unsupported language: {lang} - please translate {p}")
     with open(p) as f:
@@ -30,6 +54,7 @@ def nice_relative_time_generic(lang, when, relative_to):
     Returns:
         str: Relative description of the given time
     """
+    lang = lang.strip()
     delta = when - relative_to
 
     seconds = delta.total_seconds()
@@ -104,7 +129,7 @@ _ONE_BEFORE_UNIT = {
 
 def _count(number, unit, lang):
     """Say ``number`` as it stands before ``unit`` in ``lang``."""
-    one = _ONE_BEFORE_UNIT.get(lang.lower().split("-")[0], {}).get(unit)
+    one = _ONE_BEFORE_UNIT.get(writer_lang(lang), {}).get(unit)
     if number == 1 and one:
         return one
     return pronounce_number(number, lang)
@@ -125,6 +150,7 @@ def nice_duration_generic(lang, duration, speech=True):
     Returns:
         str: timespan as a string
     """
+    lang = lang.strip()
     if isinstance(duration, datetime.timedelta):
         duration = duration.total_seconds()
 

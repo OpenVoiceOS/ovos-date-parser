@@ -47,7 +47,10 @@ says "dez menos um quarto". For pt-BR, only teaching sites say that
 was found, so pt-BR keeps the same form.
 """
 from datetime import datetime, timedelta
+from functools import lru_cache
 from typing import Optional
+
+from linguatag import default_region
 
 from ovos_number_parser.numbers_pt import (
     PortugueseVariant,
@@ -83,6 +86,7 @@ MONTHS_PT = {
 }
 
 
+@lru_cache(maxsize=4096)
 def portuguese_variant(lang: str) -> PortugueseVariant:
     """The spelling of the numbers for a Portuguese BCP-47 tag.
 
@@ -90,8 +94,7 @@ def portuguese_variant(lang: str) -> PortugueseVariant:
     dezasseis." Brazil (BR) takes the Brazilian forms; every other region,
     and a tag with no region, takes the European ones.
     """
-    regions = lang.lower().replace("_", "-").split("-")[1:]
-    return PortugueseVariant.BR if "br" in regions else PortugueseVariant.PT
+    return PortugueseVariant.BR if default_region(lang.strip()) == "BR" else PortugueseVariant.PT
 
 
 def nice_year_pt(dt, bc=False, variant=PortugueseVariant.PT):

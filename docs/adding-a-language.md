@@ -72,7 +72,7 @@ Write the clock first, then the date family, then the duration words.
 
 2. Write `nice_time_<code>(dt, speech=True, use_24hour=False, use_ampm=False)`. With `speech=False` it returns the digit clock.
 
-3. Import it in `ovos_date_parser/__init__.py` and add a `lang.startswith("<code>")` branch to `nice_time`. Without the branch, `nice_time` raises `NotImplementedError: Unsupported language`.
+3. Import it in `ovos_date_parser/__init__.py`, add the code to `_WRITER_LANGS` in `ovos_date_parser/common.py`, and add a `code == "<code>"` branch to `nice_time`. Without the branch, `nice_time` raises `NotImplementedError: Unsupported language`.
 
 4. Add the date family. Two routes work.
 

@@ -12,42 +12,19 @@ This page lists the languages that `extract_datetime` and `extract_duration` rea
 
 ## Language tags
 
-Reading and writing treat the tag in different ways. A reader normalizes the tag before it looks at the language. A writer lower-cases the tag and then finds its language in one of two ways, described below.
+Readers and writers read the tag with [linguatag](https://github.com/TigreGotico/linguatag). A tag reads the same in any letter case, with `_` or `-`, and with white space around it.
 
-The reader steps are, in order:
-
-1. Strip white space and lower-case the tag.
-2. Replace `_` with `-`.
-3. Standardize the language part, so `deu` becomes `de` and `iw` becomes `he`.
-4. Map an individual Arabic or Azerbaijani language to its macrolanguage, so `arb` becomes `ar` and `azj` becomes `az`.
-5. Map `no` to `nb`, the written standard Bokmål.
-
-The region and the rest of the tag stay as they are. This is the function `_reader_lang` in `ovos_date_parser/__init__.py`.
+A reader standardizes the tag, then replaces its language with the closest locale of `CHRONOLOGIA_LOCALES`. So `deu` becomes `de`, `iw` becomes `he`, an individual Arabic or Azerbaijani language such as `arb` or `azj` becomes its macrolanguage, and `no` becomes `nb`, the written standard Bokmål. The region and the rest of the tag stay as they are. This is the function `_reader_lang` in `ovos_date_parser/__init__.py`.
 
 ```python
 >>> from ovos_date_parser import _reader_lang
 >>> _reader_lang("  DEU "), _reader_lang("no"), _reader_lang("arb-XX"), _reader_lang("pt_BR")
-('de', 'nb', 'ar-xx', 'pt-br')
+('de', 'nb', 'ar-XX', 'pt-BR')
 ```
 
-A writer lower-cases the tag. Then it finds the language in one of two ways.
+A writer finds its language with `writer_lang` in `ovos_date_parser/common.py`. It picks the writer language that the language subtag of the tag is closest to, so `PT_BR` reaches Portuguese in every writer, `no` and `nob` reach Bokmål, `deu` reaches German and `arz` reaches Arabic. A language within linguatag's match distance of a writer reads as that writer: `lb` as German, `bs` as Croatian (so the month names are Croatian, not Bosnian), `mo` as Romanian and `prs` as Persian. A tag that no writer language is close to, such as `fil` or `xx`, raises `NotImplementedError`. Filipino does not reach Finnish, and South Ndebele (`nbl`) does not reach Bokmål.
 
-1. `nice_time`, `nice_year` and the per-language branches of the other `nice_*` functions test which writer code the tag starts with. A tag that starts with a writer code reaches that writer, even when the tag names another language. The Filipino tag `fil` starts with `fi`, so `nice_time` and `nice_year` answer in Finnish.
-
-2. The generic writers read the folder `res/<code>/`. They take the part of the tag before the first `-` and look for that folder by exact name. These writers are the generic date family, `nice_duration` and `nice_relative_time`. The tag `PT_BR` gives the folder `pt_br`, which does not exist.
-
-The result for each function, with a tag that starts with a writer code and a tag with an underscore:
-
-| Function | `fil` | `PT_BR` |
-|---|---|---|
-| `nice_time`, `nice_year` | Finnish | Portuguese |
-| `nice_date`, `nice_date_time` | `NotImplementedError` | Portuguese |
-| `nice_day`, `nice_weekday`, `nice_month`, `get_date_strings` | English | Portuguese |
-| `nice_duration`, `nice_relative_time` | `NotImplementedError` | `NotImplementedError` |
-
-`nice_time` raises `NotImplementedError` for a tag that starts with no writer code, such as `xx`. A writer does not map three-letter codes, so use `de` and not `deu`. Write the region with `-`, as in `pt-BR`.
-
-The tag `"no"` reaches Bokmål in `nice_time`, `nice_date`, `nice_date_time`, `nice_day`, `nice_weekday`, `nice_month` and `nice_year`. In `nice_duration` and `nice_relative_time` it raises `NotImplementedError`, so pass `nb` there.
+The Portuguese writers speak the Brazilian forms when the region of the tag is `BR`. A bare `pt` has the region `PT`.
 
 ## Languages that read
 

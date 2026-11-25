@@ -10,6 +10,8 @@ value that is out of range, or a date that does not exist, raises ValueError.
 import calendar
 from typing import Optional
 
+from ovos_date_parser.common import primary_language
+
 from ovos_date_parser.dates_it import (
     spoken_date_it, spoken_time_it, spoken_year_it
 )
@@ -29,10 +31,6 @@ class UnsupportedForm(NotImplementedError):
         self.lang = lang
         self.form = form
         self.detail = detail
-
-
-def _language(lang: str) -> str:
-    return lang.lower().replace("_", "-").split("-")[0]
 
 
 def _refuse_unmarked(lang: str, form: str, case: Optional[str] = None,
@@ -91,17 +89,17 @@ def spoken_date(lang: str, *, day: Optional[int] = None,
             ending depends on the word before it.
     """
     _check_date(day, month, year, weekday)
-    if _language(lang) == "pt":
+    if primary_language(lang) == "pt":
         if case is not None:
             raise UnsupportedForm(lang, "date", f"case {case!r}")
         if declension is not None:
             raise UnsupportedForm(lang, "date", f"declension {declension!r}")
         return spoken_date_pt(day, month, year, weekday,
                               variant=portuguese_variant(lang))
-    if _language(lang) == "it":
+    if primary_language(lang) == "it":
         _refuse_unmarked(lang, "date", case=case, declension=declension)
         return spoken_date_it(day, month, year, weekday)
-    if _language(lang) == "nl":
+    if primary_language(lang) == "nl":
         _refuse_unmarked(lang, "date", case=case, declension=declension)
         return spoken_date_nl(day, month, year, weekday)
     raise UnsupportedForm(lang, "date", "this language")
@@ -132,7 +130,7 @@ def spoken_time(lang: str, hour: int, minute: int = 0,
         raise ValueError(f"unknown style {style!r}")
     if period and clock != "12h":
         raise ValueError("a day period needs the 12h clock")
-    if _language(lang) == "pt":
+    if primary_language(lang) == "pt":
         if case is not None:
             raise UnsupportedForm(lang, "time", f"case {case!r}")
         reading = spoken_time_pt(hour, minute, second, clock=clock,
@@ -143,7 +141,7 @@ def spoken_time(lang: str, hour: int, minute: int = 0,
             raise UnsupportedForm(lang, "time", detail if second is None
                                   else detail + " with seconds")
         return reading
-    if _language(lang) == "it":
+    if primary_language(lang) == "it":
         _refuse_unmarked(lang, "time", case=case)
         reading = spoken_time_it(hour, minute, second, clock=clock,
                                  style=style, period=period)
@@ -152,7 +150,7 @@ def spoken_time(lang: str, hour: int, minute: int = 0,
             raise UnsupportedForm(lang, "time", detail if second is None
                                   else detail + " with seconds")
         return reading
-    if _language(lang) == "nl":
+    if primary_language(lang) == "nl":
         _refuse_unmarked(lang, "time", case=case)
         reading = spoken_time_nl(hour, minute, second, clock=clock,
                                  style=style, period=period)
@@ -169,7 +167,7 @@ def spoken_year(lang: str, year: int, *, ordinal: bool = False,
                 declension: Optional[str] = None) -> str:
     """The spoken form of a year (1 to 9999), as a cardinal or an ordinal."""
     _check_year(year)
-    if _language(lang) == "pt":
+    if primary_language(lang) == "pt":
         if ordinal:
             raise UnsupportedForm(lang, "year", "an ordinal year")
         if case is not None:
@@ -177,12 +175,12 @@ def spoken_year(lang: str, year: int, *, ordinal: bool = False,
         if declension is not None:
             raise UnsupportedForm(lang, "year", f"declension {declension!r}")
         return spoken_year_pt(year, variant=portuguese_variant(lang))
-    if _language(lang) == "it":
+    if primary_language(lang) == "it":
         if ordinal:
             raise UnsupportedForm(lang, "year", "an ordinal year")
         _refuse_unmarked(lang, "year", case=case, declension=declension)
         return spoken_year_it(year)
-    if _language(lang) == "nl":
+    if primary_language(lang) == "nl":
         if ordinal:
             raise UnsupportedForm(lang, "year", "an ordinal year")
         _refuse_unmarked(lang, "year", case=case, declension=declension)

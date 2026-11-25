@@ -19,7 +19,8 @@ from dateparser.search import search_dates
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
-from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
+from ovos_date_parser.common import (nice_duration_generic, nice_relative_time_generic,
+                                     primary_language, writer_lang)
 from ovos_date_parser.dates_ar import (
     nice_time_ar, nice_duration_ar,
 )
@@ -31,7 +32,7 @@ from ovos_date_parser.ranges import (
     date_to_season, season_to_date, next_season_date, last_season_date,
 )
 from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
-from ovos_spec_tools import standardize_lang
+from linguatag import closest_lang, standardize_lang
 from ovos_date_parser.version import VERSION_MAJOR
 from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
                                           load_scoped_vocabulary)
@@ -140,32 +141,21 @@ from ovos_date_parser.dates_id import nice_time_id
 from ovos_date_parser.dates_tr import nice_time_tr
 
 
-# Individual languages of the Arabic (ar) and Azerbaijani (az) macrolanguages,
-# from https://iso639-3.sil.org/code_tables/macrolanguage_mappings
-_MACROLANGUAGE = {
-    **dict.fromkeys(
-        ("aao", "abh", "abv", "acm", "acq", "acw", "acx", "acy", "adf", "aeb",
-         "aec", "afb", "ajp", "apc", "apd", "arb", "arq", "ars", "ary", "arz",
-         "auz", "avl", "ayh", "ayl", "ayn", "ayp", "pga", "shu", "ssh"), "ar"),
-    **dict.fromkeys(("azb", "azj"), "az"),
-}
-
-
+@lru_cache(maxsize=4096)
 def _reader_lang(lang: str) -> str:
     """The tag a reader answers for.
 
-    The language takes its shortest standard code ("deu" is "de", "iw" is
-    "he"), an individual Arabic or Azerbaijani language reads as its
-    macrolanguage, and "no", Norwegian in general, reads as its written
-    standard Bokmål, "nb". A tag reads the same in any case and with "_" for
-    "-", and white space around it does not count.
+    The language of the tag is the closest locale of ``CHRONOLOGIA_LOCALES``
+    where there is one: "deu" is "de", "iw" is "he", an individual Arabic or
+    Azerbaijani language reads as its macrolanguage, and "no", Norwegian in
+    general, reads as its written standard Bokmål, "nb". A tag reads the same
+    in any case and with "_" for "-", and white space around it does not
+    count.
     """
-    primary, dash, rest = lang.strip().lower().replace("_", "-").partition("-")
-    primary = standardize_lang(primary).lower() if primary else primary
-    primary = _MACROLANGUAGE.get(primary, primary)
-    if primary == "no":
-        primary = "nb"
-    return primary + dash + rest
+    tag = standardize_lang(lang.strip())
+    language, dash, rest = tag.partition("-")
+    code = closest_lang(language, sorted(CHRONOLOGIA_LOCALES))
+    return tag if code is None else code + dash + rest
 
 
 def _as_datetime(dt):
@@ -214,85 +204,85 @@ def nice_time(
         The formatted time string.
     """
     dt = _as_datetime(dt)
-    lang = lang.lower()
-    if lang.startswith("ar"):
+    code = writer_lang(lang)
+    if code == "ar":
         return nice_time_ar(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_time_ast(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_time_an(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("az"):
+    if code == "az":
         return nice_time_az(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_time_gl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_time_el(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_time_he(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_time_oc(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_time_ro(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ca"):
+    if code == "ca":
         return nice_time_ca(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("cs"):
+    if code == "cs":
         return nice_time_cs(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("sk"):
+    if code == "sk":
         return nice_time_sk(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("hr"):
+    if code == "hr":
         return nice_time_hr(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("bg"):
+    if code == "bg":
         return nice_time_bg(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("da"):
+    if code == "da":
         return nice_time_da(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("de"):
+    if code == "de":
         return nice_time_de(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("en"):
+    if code == "en":
         return nice_time_en(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_time_es(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("et"):
+    if code == "et":
         return nice_time_et(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("eu"):
+    if code == "eu":
         return nice_time_eu(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fa"):
+    if code == "fa":
         return nice_time_fa(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fi"):
+    if code == "fi":
         return nice_time_fi(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fr"):
+    if code == "fr":
         return nice_time_fr(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("hu"):
+    if code == "hu":
         return nice_time_hu(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("it"):
+    if code == "it":
         return nice_time_it(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("kab"):
+    if code == "kab":
         return nice_time_kab(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_time_fy(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("nl"):
+    if code == "nl":
         return nice_time_nl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("nn"):
+    if code == "nn":
         return nice_time_nn(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("nb") or lang.startswith("no"):
+    if code == "nb":
         return nice_time_nb(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("pl"):
+    if code == "pl":
         return nice_time_pl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("pt"):
+    if code == "pt":
         return nice_time_pt(dt, speech, use_24hour, use_ampm,
                             variant=portuguese_variant(lang))
-    if lang.startswith("ru"):
+    if code == "ru":
         return nice_time_ru(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("sv"):
+    if code == "sv":
         return nice_time_sv(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("sl"):
+    if code == "sl":
         return nice_time_sl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("uk"):
+    if code == "uk":
         return nice_time_uk(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ms"):
+    if code == "ms":
         return nice_time_ms(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("id"):
+    if code == "id":
         return nice_time_id(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("tr"):
+    if code == "tr":
         return nice_time_tr(dt, speech, use_24hour, use_ampm)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
@@ -311,8 +301,8 @@ def nice_relative_time(when, relative_to=None, lang="en-us"):
     """
     when = _as_datetime(when)
     relative_to = _as_datetime(relative_to) if relative_to is not None else now_local()
-    lang = lang.lower()
-    if lang.startswith("eu"):
+    code = writer_lang(lang)
+    if code == "eu":
         return nice_relative_time_eu(when, relative_to)
     return nice_relative_time_generic(lang, when, relative_to)
 
@@ -331,16 +321,16 @@ def nice_duration(
     Returns:
         Timespan as a string.
     """
-    lang = lang.lower()
-    if lang.startswith("ar"):
+    code = writer_lang(lang)
+    if code == "ar":
         return nice_duration_ar(duration, speech)
-    if lang.startswith("az"):
+    if code == "az":
         return nice_duration_az(duration, speech)
-    if lang.startswith("pl"):
+    if code == "pl":
         return nice_duration_pl(duration, speech)
-    if lang.startswith("ru"):
+    if code == "ru":
         return nice_duration_ru(duration, speech)
-    if lang.startswith("uk"):
+    if code == "uk":
         return nice_duration_uk(duration, speech)
     return nice_duration_generic(lang, duration, speech)
 
@@ -408,7 +398,7 @@ def extract_duration(
         A tuple containing the duration (timedelta, relativedelta or
         float depending on resolution) and the remaining text.
     """
-    code = _reader_lang(lang).split("-")[0]
+    code = primary_language(_reader_lang(lang))
     if not text or code not in CHRONOLOGIA_LOCALES:
         return None, text
     found = _chronologia_extract_duration(text, code, anchor=now_local())
@@ -556,7 +546,7 @@ def _daypart_bands(lang: str) -> frozenset:
     A locale with no rows of its own reads its parts of the day with
     chronologia's default bands, so those are its bands here too.
     """
-    code = lang.split("-")[0]
+    code = primary_language(lang)
     own = frozenset((b.start, b.end) for b in DAY_PARTS.values()
                     if b.lang == code)
     return own or frozenset((b.start, b.end) for b in DAY_PARTS.values()
@@ -765,7 +755,7 @@ def extract_datetime(
     lang = _reader_lang(lang)
     found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
                                      default_time=default_time)
-    routed = lang.split("-")[0] in CHRONOLOGIA_LOCALES
+    routed = primary_language(lang) in CHRONOLOGIA_LOCALES
     # a routed answer is chronologia's, which already read any holiday name
     # with the time of day beside it ("no Natal à noite")
     if found is not None and (routed or not holiday_overrides_engine(
@@ -898,7 +888,7 @@ def _extract_datetime_engine(
     text as written stands, because some engines use a glued comma and others
     take the words after a lone one as a new phrase.
     """
-    if lang.split("-")[0] in CHRONOLOGIA_LOCALES:
+    if primary_language(lang) in CHRONOLOGIA_LOCALES:
         return _extract_datetime_chronologia(text, lang, anchorDate,
                                              default_time)
     spaced = _separate_punctuation(text)
@@ -991,7 +981,7 @@ def _extract_datetime_fallback(
 ) -> Optional[Tuple[datetime, str]]:
     """The reading of a language chronologia does not route: dateparser, with
     a weekday reader for ja and an unspaced reader for zh beside it."""
-    if lang.split("-")[0].lower() == "ja":
+    if primary_language(lang) == "ja":
         found = _extract_weekday_ja(text, anchorDate, default_time)
         if found:
             return found
@@ -1012,7 +1002,7 @@ def _extract_datetime_fallback(
 
     try:  # assume full text is a date with no leftover
         date = dateparser.parse(text,
-                                languages=[lang.split("-")[0]],
+                                languages=[primary_language(lang)],
                                 settings=settings)
         if date:
             return date, ""
@@ -1022,7 +1012,7 @@ def _extract_datetime_fallback(
     # less accurate substring search
     try:
         dates = search_dates(text,
-                             languages=[lang.split("-")[0]],
+                             languages=[primary_language(lang)],
                              settings=settings)
         if dates:
             date_txt, date = dates[0]
@@ -1032,7 +1022,7 @@ def _extract_datetime_fallback(
 
     # zh is written without spaces, and dateparser joined the English words
     # it translated it into with no space either
-    if lang.split("-")[0].lower() == "zh":
+    if primary_language(lang) == "zh":
         try:
             found = _extract_date_zh_unspaced(text, settings, default_time)
             if found:
@@ -1351,27 +1341,19 @@ class DateTimeFormat:
         """The key ``lang`` is cached under: the full tag when a regional
         resource folder ships for it (``res/pt-br/``), else the language."""
         if lang not in self._resource_keys:
-            tag = lang.lower()
-            regional = os.path.join(self.config_path, tag, 'date_time.json')
+            tag = lang.strip()
             self._resource_keys[lang] = (
-                tag if "-" in tag and os.path.isfile(regional)
-                else tag.split("-")[0])
+                closest_lang(tag, sorted(os.listdir(self.config_path)), max_distance=0)
+                or writer_lang(tag) or lang)
         return self._resource_keys[lang]
 
     def cache(self, lang):
         lang = self._resource_key(lang)
-        # "no" is a common alias for Norwegian Bokmål (nb); the dedicated
-        # nice_time/extract_datetime/extract_duration functions already
-        # special-case it, but this generic JSON-driven engine (used by
-        # nice_year/nice_date/nice_date_time) didn't have its own resource
-        # directory for it - load Bokmål's data under the "no" key instead.
-        resource_lang = "nb" if lang == "no" else lang
-        # TODO - find closest lang code
         if lang not in self.lang_config:
-            path = self.config_path + '/' + resource_lang + '/date_time.json'
+            path = self.config_path + '/' + lang + '/date_time.json'
             if not os.path.isfile(path):
                 LOG.warning(f"could not find '{path}'")
-                return
+                return lang
             with open(path, 'r', encoding='utf8') as lang_config_file:
                 self.lang_config[lang] = json.loads(
                     lang_config_file.read())
@@ -1384,6 +1366,7 @@ class DateTimeFormat:
                         re.compile(self.lang_config[lang][x][str(i)]['match']
                                    ))
                     i = i + 1
+        return lang
 
     def _number_strings(self, number, lang):
         lang = self._resource_key(lang)
@@ -1600,42 +1583,42 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
     tag = lang
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
+    code = writer_lang(tag)
+    if code == "pt":
         return nice_date_pt(dt, now, include_weekday,
                             variant=portuguese_variant(tag))
-    if lang.startswith("es"):
+    if code == "es":
         return nice_date_es(dt, now, include_weekday)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_date_gl(dt, now, include_weekday)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_date_el(dt, now, include_weekday)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_date_he(dt, now, include_weekday)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_date_oc(dt, now, include_weekday)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_date_ro(dt, now, include_weekday)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_date_ast(dt, now, include_weekday)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_date_an(dt, now, include_weekday)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_date_fy(dt, now, include_weekday)
     date_time_format.cache(tag)
-    if lang == "eu":
+    if code == "eu":
         return date_time_format.date_format(
             dt, tag, now, include_weekday,
             formatted_year=nice_date_year_eu(dt),
             formatted_day=nice_date_day_eu(dt))
-    if lang == "pl":
+    if code == "pl":
         return date_time_format.date_format(
             dt, tag, now, include_weekday,
             formatted_year=nice_year_pl(dt, genitive=True))
-    if lang == "cs":
+    if code == "cs":
         return date_time_format.date_format(
             dt, tag, now, include_weekday, formatted_year=nice_year_cs(dt))
-    if lang == "sv":
+    if code == "sv":
         return date_time_format.date_format(
             dt, tag, now, include_weekday, formatted_year=nice_year_sv(dt))
     return date_time_format.date_format(dt, tag, now, include_weekday)
@@ -1665,44 +1648,44 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     dt = _as_datetime(dt)
     now = _as_datetime(now) if now is not None else None
     tag = lang
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
+    code = writer_lang(tag)
+    if code == "pt":
         return nice_date_time_pt(dt, now, use_24hour, use_ampm,
                                  variant=portuguese_variant(tag))
-    if lang.startswith("es"):
+    if code == "es":
         return nice_date_time_es(dt, now, use_24hour, use_ampm)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_date_time_gl(dt, now, use_24hour, use_ampm)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_date_time_el(dt, now, use_24hour, use_ampm)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_date_time_he(dt, now, use_24hour, use_ampm)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_date_time_oc(dt, now, use_24hour, use_ampm)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_date_time_ro(dt, now, use_24hour, use_ampm)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_date_time_ast(dt, now, use_24hour, use_ampm)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_date_time_an(dt, now, use_24hour, use_ampm)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_date_time_fy(dt, now, use_24hour, use_ampm)
     date_time_format.cache(tag)
-    if lang == "eu":
+    if code == "eu":
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_date_year_eu(dt),
             formatted_day=nice_date_day_eu(dt),
             formatted_time=nice_time_inessive_eu(dt, use_24hour, use_ampm))
-    if lang == "pl":
+    if code == "pl":
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_year_pl(dt, genitive=True))
-    if lang == "cs":
+    if code == "cs":
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_year_cs(dt))
-    if lang == "sv":
+    if code == "sv":
         return date_time_format.date_time_format(
             dt, tag, now, use_24hour, use_ampm,
             formatted_year=nice_year_sv(dt))
@@ -1711,32 +1694,31 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
     dt = _as_datetime(dt)
-    lang = lang.lower()
-    if lang.startswith("pt"):
+    code = writer_lang(lang)
+    if code == "pt":
         return nice_day_pt(dt, date_format, include_month)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_day_es(dt, date_format, include_month)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_day_gl(dt, date_format, include_month)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_day_el(dt, date_format, include_month)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_day_he(dt, date_format, include_month)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_day_oc(dt, date_format, include_month)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_day_ro(dt, date_format, include_month)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_day_ast(dt, date_format, include_month)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_day_an(dt, date_format, include_month)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_day_fy(dt, date_format, include_month)
     if include_month:
         # a day and a month take the month's format form (CLDR monthContext
         # "format"), the genitive in cs and pl: "21 ledna", "11 stycznia"
-        key = lang.lower().split("-")[0]
-        date_time_format.cache(key)
+        key = date_time_format.cache(lang)
         month_format = date_time_format.lang_config.get(key, {}).get(
             'month_format')
         month = (month_format[str(dt.month)] if month_format
@@ -1750,32 +1732,32 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
 
 def nice_weekday(dt, lang):
     dt = _as_datetime(dt)
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
+    code = writer_lang(lang)
+    if code == "pt":
         return nice_weekday_pt(dt)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_weekday_es(dt)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_weekday_gl(dt)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_weekday_el(dt)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_weekday_he(dt)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_weekday_oc(dt)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_weekday_ro(dt)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_weekday_ast(dt)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_weekday_an(dt)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_weekday_fy(dt)
-    date_time_format.cache(lang)
+    key = date_time_format.cache(lang)
 
-    if lang in date_time_format.lang_config.keys():
+    if key in date_time_format.lang_config.keys():
         localized_day_names = list(
-            date_time_format.lang_config[lang]['weekday'].values())
+            date_time_format.lang_config[key]['weekday'].values())
         weekday = localized_day_names[dt.weekday()]
     else:
         weekday = dt.strftime("%A")
@@ -1784,30 +1766,30 @@ def nice_weekday(dt, lang):
 
 def nice_month(dt, lang, date_format='MDY'):
     dt = _as_datetime(dt)
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
+    code = writer_lang(lang)
+    if code == "pt":
         return nice_month_pt(dt)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_month_es(dt)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_month_gl(dt)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_month_el(dt)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_month_he(dt)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_month_oc(dt)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_month_ro(dt)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_month_ast(dt)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_month_an(dt)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_month_fy(dt)
-    date_time_format.cache(lang)
-    if lang in date_time_format.lang_config.keys():
-        localized_month_names = date_time_format.lang_config[lang]['month']
+    key = date_time_format.cache(lang)
+    if key in date_time_format.lang_config.keys():
+        localized_month_names = date_time_format.lang_config[key]['month']
         month = localized_month_names[str(int(dt.strftime("%m")))]
     else:
         month = dt.strftime("%B")
@@ -1839,38 +1821,38 @@ def nice_year(dt, lang, bc=False, ad=False):
         # -299); what is spoken is the era year, so hand the formatters that.
         dt = datetime(1 - dt.year, 1, 1)
     tag = lang
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
+    code = writer_lang(tag)
+    if code == "pt":
         return nice_year_pt(dt, bc, variant=portuguese_variant(tag))
-    if lang.startswith("es"):
+    if code == "es":
         return nice_year_es(dt, bc)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_year_gl(dt, bc)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_year_el(dt, bc)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_year_he(dt, bc)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_year_oc(dt, bc)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_year_ro(dt, bc)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_year_ast(dt, bc)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_year_an(dt, bc)
-    if lang.startswith("fi"):
+    if code == "fi":
         return nice_year_fi(dt, bc)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_year_fy(dt, bc)
-    if lang.startswith("et"):
+    if code == "et":
         return nice_year_et(dt, bc)
-    if lang.startswith("eu"):
+    if code == "eu":
         return nice_year_eu(dt, bc)
-    if lang.startswith("pl"):
+    if code == "pl":
         return nice_year_pl(dt, bc)
-    if lang.startswith("cs"):
+    if code == "cs":
         return nice_year_cs(dt, bc)
-    if lang.startswith("sv"):
+    if code == "sv":
         return nice_year_sv(dt, bc)
     date_time_format.cache(tag)
     return date_time_format.year_format(dt, tag, bc, ad)
@@ -2044,7 +2026,7 @@ def _nice_span_generic(span: "DateSpan", scale: str, lang: str) -> str:
         return nice_date(start, lang)
     if scale == "month":
         month = nice_month(start, lang)
-        join = _MONTH_YEAR_JOIN.get(lang.lower().split("-")[0])
+        join = _MONTH_YEAR_JOIN.get(writer_lang(lang))
         if join:
             month = f"{month} {join}"
         return f"{month} {nice_year(start, lang, bc=start.is_bc)}"
@@ -2131,7 +2113,7 @@ def nice_span(span: "DateSpan", lang: str = "en-us") -> str:
     if not isinstance(span, DateSpan):
         raise TypeError(f"nice_span expects a DateSpan, got {type(span).__name__}")
     scale = _span_scale(span)
-    code = lang.lower().split("-")[0]
+    code = writer_lang(lang)
     if code == "en":
         return _nice_span_en(span, scale)
     if code in ("ar", "he"):
@@ -2142,7 +2124,6 @@ def nice_span(span: "DateSpan", lang: str = "en-us") -> str:
 def get_date_strings(dt, lang, date_format=None, time_format="full"):
     from ovos_config import Configuration
     date_format = date_format or Configuration().get("date_format", 'DMY')
-    lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
                         use_24hour=time_format == "full")
     monthstr = nice_month(dt, lang, date_format)

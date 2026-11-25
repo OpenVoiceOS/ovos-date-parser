@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.5a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.5a2) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.5a1...0.41.5a2)
+
+**Merged pull requests:**
+
+- test: strict xfails for the an, fy, id and ms writer gaps \(\#702\) [\#703](https://github.com/OpenVoiceOS/ovos-date-parser/pull/703) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.5a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.5a1) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.4a3...0.41.5a1)

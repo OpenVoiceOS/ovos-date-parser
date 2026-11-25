@@ -22,7 +22,7 @@ A reader standardizes the tag, then replaces its language with the closest local
 ('de', 'nb', 'ar-XX', 'pt-BR')
 ```
 
-A writer finds its language with `writer_lang` in `ovos_date_parser/common.py`. It picks the writer language that the language subtag of the tag is closest to, so `PT_BR` reaches Portuguese in every writer, `no` and `nob` reach Bokmål, `deu` reaches German and `arz` reaches Arabic. A tag that no writer language is close to, such as `fil` or `xx`, raises `NotImplementedError`. Filipino does not reach Finnish, and South Ndebele (`nbl`) does not reach Bokmål.
+A writer finds its language with `writer_lang` in `ovos_date_parser/common.py`. It picks the writer language that the language subtag of the tag is closest to, so `PT_BR` reaches Portuguese in every writer, `no` and `nob` reach Bokmål, `deu` reaches German and `arz` reaches Arabic. A language within linguatag's match distance of a writer reads as that writer: `lb` as German, `bs` as Croatian (so the month names are Croatian, not Bosnian), `mo` as Romanian and `prs` as Persian. A tag that no writer language is close to, such as `fil` or `xx`, raises `NotImplementedError`. Filipino does not reach Finnish, and South Ndebele (`nbl`) does not reach Bokmål.
 
 The Portuguese writers speak the Brazilian forms when the region of the tag is `BR`. A bare `pt` has the region `PT`.
 

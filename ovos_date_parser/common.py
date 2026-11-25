@@ -54,6 +54,7 @@ def nice_relative_time_generic(lang, when, relative_to):
     Returns:
         str: Relative description of the given time
     """
+    lang = lang.strip()
     delta = when - relative_to
 
     seconds = delta.total_seconds()
@@ -149,6 +150,7 @@ def nice_duration_generic(lang, duration, speech=True):
     Returns:
         str: timespan as a string
     """
+    lang = lang.strip()
     if isinstance(duration, datetime.timedelta):
         duration = duration.total_seconds()
 

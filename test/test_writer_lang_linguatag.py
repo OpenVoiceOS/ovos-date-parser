@@ -55,3 +55,16 @@ def test_the_resource_formatters_read_any_spelling_of_german(tag):
     assert nice_day(DT, tag) == "14 März"
     assert nice_month(DT, tag) == "März"
     assert nice_weekday(DT, tag) == "Samstag"
+
+
+@pytest.mark.parametrize("tag", [" en", "en ", " en ", "\tde"])
+def test_a_padded_tag_reaches_the_generic_writers(tag):
+    language = tag.strip()
+    assert nice_duration(3725, tag) == nice_duration(3725, language)
+    assert nice_relative_time(TWO_DAYS_LATER, NOW, tag) == \
+        nice_relative_time(TWO_DAYS_LATER, NOW, language)
+
+
+def test_a_padded_brazilian_tag_reads_brazilian_in_every_writer():
+    assert nice_time(DT, "pt-BR ") == nice_time(DT, "pt-BR")
+    assert nice_duration(976, " pt-BR") == nice_duration(976, "pt-BR")

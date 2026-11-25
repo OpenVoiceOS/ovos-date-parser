@@ -21,6 +21,9 @@ uv venv
 uv pip install --prerelease=allow ovos-date-parser
 ```
 
+Run each snippet of this page with `uv run python`, or with `.venv/bin/python`.
+Save a snippet to a file and pass the file name, or paste it into the prompt.
+
 ## Step 2: Read a date from text
 
 `extract_datetime` gives the `datetime` that a phrase names and the words that

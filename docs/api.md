@@ -143,6 +143,22 @@ chronologia reads every locale in `CHRONOLOGIA_LOCALES`. A month or a year is a 
 
 Import `DurationResolution` from `ovos_date_parser.duration`.
 
+### `convert_duration(length, resolution)`
+
+Express a `timedelta` in a `DurationResolution`. `extract_duration` calls it on the answer of chronologia. Call it to convert a length you already hold. The answer is the `timedelta` itself for `TIMEDELTA`, a `relativedelta` for the three `RELATIVEDELTA` values, and a `float` count of the unit for each `TOTAL_*` value. Another value raises `ValueError`.
+
+```python
+>>> from datetime import timedelta
+>>> from ovos_date_parser import convert_duration
+>>> from ovos_date_parser.duration import DurationResolution
+
+>>> convert_duration(timedelta(hours=2), DurationResolution.TOTAL_MINUTES)
+120.0
+
+>>> convert_duration(timedelta(days=1, seconds=30), DurationResolution.RELATIVEDELTA)
+relativedelta(days=+1, seconds=+30)
+```
+
 ### `extract_datetime_spans(text, lang, anchor_date=None, default_time=None)`
 
 Extract every date or time expression in a text together with where it sits. The answer is a list of frozen `DateTimeSpan` objects with `start`, `end`, `surface` and `value`. `start` and `end` are half-open code-point offsets, so `text[start:end] == surface` always holds. The list is sorted by `start`.

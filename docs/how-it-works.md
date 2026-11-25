@@ -30,7 +30,10 @@ Japanese weekdays and one for unspaced Chinese.
 The writing half turns values into words. This package owns it. It writes 40
 languages: each has a module `dates_<code>.py`, a folder `res/<code>/` of
 JSON data, or both. The `nice_*` functions pick the writer by language code, and
-the writers speak numbers through
+the data and the code split the number words. The shared writer for dates,
+days and years takes its number words from the `number` section of
+`res/<code>/date_time.json`. The language modules, the generic duration writer
+and the generic relative-time writer call
 [ovos-number-parser](https://github.com/OpenVoiceOS/ovos-number-parser).
 
 The top-level functions are the stable API. The modules `astrodate`,
@@ -48,8 +51,12 @@ flowchart TD
     C -- no --> DP["dateparser fallback"]
     CH --> R{"date found?"}
     DP --> R
-    R -- yes --> A["datetime and leftover text"]
-    R -- no --> H["holiday layer<br/>(chronologia holiday rules)"] --> A
+    R -- yes --> O{"locale outside the set and<br/>date from the holiday name?<br/>(holiday_overrides_engine)"}
+    O -- no --> A["datetime and leftover text"]
+    O -- yes --> H
+    R -- no --> H["holiday layer<br/>(chronologia holiday rules)"]
+    H -- "holiday found" --> A
+    H -- "no holiday" --> E["the engine answer,<br/>or None and the text"]
     DU["extract_duration"] --> C2{"locale in<br/>CHRONOLOGIA_LOCALES?"}
     C2 -- yes --> CHD["chronologia.extract_duration"] --> CV["convert_duration"]
     C2 -- no --> NONE["None and the text"]
@@ -59,19 +66,26 @@ flowchart TD
     DEP -- "DeprecationWarning" --> DU
     N["nice_time, nice_date, nice_year, ..."] --> W["writer_lang"]
     W --> M["dates_xx.py function"]
-    W --> J["res/xx/*.json data"]
+    W --> SH["shared writer<br/>(DateTimeFormat)"]
+    W --> G["generic duration and<br/>relative-time writer"]
+    SH --> J["number section of<br/>res/xx/date_time.json"]
     M --> NP["ovos-number-parser<br/>pronounce_number"]
-    J --> NP
-    NP --> S["words"]
+    G --> NP
+    J --> S["words"]
+    NP --> S
 ```
 
 Read the diagram from the box at the top of each group. A reading call goes to
 chronologia for the locales in the set. When the reader finds no date, the
-holiday layer asks chronologia for a named holiday such as "christmas". For a
-locale outside the set, the layer also replaces a date that dateparser read
-from the holiday name itself. A writing call finds the writer language with
-`writer_lang`, then calls either a function in the language module or the
-shared writer that reads `res/<code>/`.
+holiday layer asks chronologia for a named holiday such as "christmas". If it
+finds none, the answer is `None` and the text. For a locale outside the set,
+the layer also takes over when dateparser read a date from the holiday name
+itself, such as "friday" in "good friday". If the layer then finds no holiday,
+the answer of dateparser stands. A writing call finds the writer language with `writer_lang`.
+It then calls a function in the language module, the shared writer that reads
+`res/<code>/`, or the generic duration and relative-time writer. The shared
+writer says numbers with the words in the data. The other two call
+ovos-number-parser.
 
 ## Which calls pass the work to chronologia
 
@@ -94,14 +108,14 @@ for the date, the day, the weekday, the month and the year, and a few have a
 duration writer of their own. The other functions read word lists and format
 strings from `res/<code>/date_time.json` and `res/<code>/date_words.json`.
 
-![A heat map with one row per writer language and one column per nice function. Most cells are the shared writer. Aragonese, Asturian, Greek, Spanish, Western Frisian, Galician, Hebrew, Occitan, Portuguese and Romanian have their own date family. The nice_time column is the language module for all but Bosnian. Ten cells are empty for Aragonese, Western Frisian, Indonesian and Malay.](img/writer_coverage.png)
+![A heat map with one row per writer language and one column per nice function. Most cells are the shared writer. Aragonese, Asturian, Greek, Spanish, Western Frisian, Galician, Hebrew, Occitan, Portuguese and Romanian have their own date family. The nice_time column is the language module for every language, and the Bosnian cell is the Croatian module. Ten cells are empty for Aragonese, Western Frisian, Indonesian and Malay.](img/writer_coverage.png)
 
 The plot shows, for each language and function, whether the language module
 defines `nice_*_<code>`, whether the shared writer answers from `res/`, or
 whether the call raises `NotImplementedError`. Read it for the gaps. Aragonese
 and Western Frisian have no duration or relative-time writer. Indonesian and
 Malay have no date, date-time or year writer. Bosnian has no module, and its
-clock follows the Croatian writer.
+`nice_time` is the Croatian module function.
 
 The table behind the plot has one row per language. A cell says `module`,
 `shared` or `missing`. These rows show Aragonese, Bosnian and Indonesian:
@@ -109,7 +123,7 @@ The table behind the plot has one row per language. A cell says `module`,
 ```text
 language|nice_time|nice_date|nice_date_time|nice_day|nice_weekday|nice_month|nice_year|nice_duration|nice_relative_time
 an|module|module|module|module|module|module|module|missing|missing
-bs|shared|shared|shared|shared|shared|shared|shared|shared|shared
+bs|module|shared|shared|shared|shared|shared|shared|shared|shared
 id|module|missing|missing|shared|shared|shared|missing|shared|shared
 ```
 

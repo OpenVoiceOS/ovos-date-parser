@@ -18,9 +18,9 @@ directly to skip the language dispatch.
 ## The writer of each language
 
 A language has a module `dates_<code>.py`, a folder `res/<code>/` of data, or
-both. The module holds the functions that need code. The data drives the shared
-writers for everything else. Bosnian has data only, and its clock follows the
-Croatian writer.
+both. The module holds the functions that need code.
+The data drives the shared writers for everything else.
+Bosnian has data only, and its clock follows the Croatian writer.
 
 | Code | Language | Module | Data in `res/` | Functions of the module |
 |---|---|---|---|---|
@@ -85,7 +85,6 @@ pl, ru, sk and uk.
 ('half past three', '15:30', 'halb vier')
 >>> nice_year_cs(dt), nice_year_pl(dt), nice_year_pl(dt, genitive=True)
 ('dva tisíce dvacet čtyři', 'dwa tysiące dwudziesty czwarty', 'dwa tysiące dwudziestego czwartego')
-
 ```
 
 The date family has one function per output. `nice_date_<code>` takes `dt`, an
@@ -104,7 +103,6 @@ he, oc, pt and ro.
 ('5 de enero', 'viernes', 'enero')
 >>> nice_date_time_es(dt)
 'viernes, cinco de enero de dos mil veinticuatro a las tres y media'
-
 ```
 
 The year writers of cs, et, eu, fi, pl and sv take the place of the shared year
@@ -115,7 +113,6 @@ for ar, az, pl, ru and uk, because their numerals decline.
 >>> from ovos_date_parser import nice_duration_ru
 >>> nice_duration_ru(3690)
 'один час одна минута тридцать секунд'
-
 ```
 
 Basque writes dates from the shared data and adds three helpers. The functions
@@ -130,7 +127,6 @@ relative_to)` is the only relative-time writer of a single language.
 ('bosta', 'bi mila eta hogeita lauko')
 >>> nice_time_inessive_eu(dt)
 'hiru eta erdietan'
-
 ```
 
 Dutch and Western Frisian add a part-of-day writer, `nice_part_of_day_nl(dt,
@@ -141,7 +137,6 @@ such as `'s middags` in Dutch.
 >>> from ovos_date_parser import nice_part_of_day_nl
 >>> nice_part_of_day_nl(dt)
 " 's middags"
-
 ```
 
 ## The shared writers
@@ -171,7 +166,6 @@ The shared writers serve every language whose module has no function of its own.
 'nineteen eighty four'
 >>> date_time_format.year_format(datetime(44, 1, 1), "en", True)
 'forty four b.c.'
-
 ```
 
 ## The data of the shared writers
@@ -224,7 +218,6 @@ the Catalan clock register.
 'pt'
 >>> portuguese_variant("pt-BR").value, portuguese_variant("pt").value
 ('br', 'pt')
-
 ```
 
 ---

@@ -37,7 +37,6 @@ millennium follow the calendar convention: the 1990s are 1990 to 1999, and the
 ((datetime.date(2020, 1, 1), datetime.date(2029, 12, 31)), (datetime.date(2000, 1, 1), datetime.date(2099, 12, 31)), (datetime.date(2000, 1, 1), datetime.date(2999, 12, 31)))
 >>> get_week_number(d)
 1
-
 ```
 
 `get_week_range` runs from Monday to Sunday. `get_weekend_range` gives the
@@ -61,7 +60,6 @@ defaults to `Hemisphere.NORTH`, and a `ref_date` that defaults to today.
 datetime.date(2024, 6, 1)
 >>> next_season_date(Season.SPRING, d), last_season_date(Season.SPRING, d)
 (datetime.date(2024, 3, 1), datetime.date(2023, 3, 1))
-
 ```
 
 `get_date_ordinal(ordinal, ref_date=None, resolution=DateTimeResolution.DAY_OF_MONTH)`
@@ -74,7 +72,6 @@ and the scope, such as `DAY_OF_MONTH` or `WEEK_OF_MONTH`.
 datetime.date(2024, 1, 3)
 >>> get_date_ordinal(3, d, DateTimeResolution.WEEK_OF_MONTH)
 datetime.date(2024, 1, 15)
-
 ```
 
 ## Era phrases
@@ -102,7 +99,6 @@ True
 None
 >>> extract_era_date("44 a.c.", load_era_patterns("pt")) == extract_era_date_en("44 BC")
 True
-
 ```
 
 The year of 44 BC is the astronomical year -43, because astronomical numbering
@@ -127,7 +123,6 @@ English binding, and `SCOPED_VOCAB_EN` is its vocabulary.
 (datetime.date(2023, 6, 1), '', <DateTimeResolution.MONTH: 12>)
 >>> print(extract_scoped_date_en("hello", ref_date=d))
 None
-
 ```
 
 The `.voc` files that these loaders read are in `ovos_date_parser/locale/<code>/`
@@ -169,7 +164,6 @@ documents them. The modules `ovos_date_parser.astrodate`, `calendars`, `cycles`,
 2024-02-29T00:00:00
 >>> is_leap_year(2024), BEFORE_PRESENT_EPOCH
 (True, datetime.date(1950, 1, 1))
-
 ```
 
 ---

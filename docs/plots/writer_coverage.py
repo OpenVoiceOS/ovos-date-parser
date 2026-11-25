@@ -6,7 +6,8 @@ Run from the repository root:
 
 It needs matplotlib (`uv pip install matplotlib`). The script calls each
 `nice_*` function for each of the writer languages and records the result:
-a function `nice_*_<code>` in the language module `dates_<code>.py`, the shared
+a function `nice_*_<code>` in the language module `dates_<code>.py` (for Bosnian
+`nice_time`, the Croatian module `dates_hr.py`), the shared
 writer that reads `res/<code>/*.json`, or `NotImplementedError`. It writes
 docs/img/writer_coverage.png. With --table it prints the table and writes no
 image. The table says `module`, `shared` or `missing` in each cell.
@@ -55,9 +56,10 @@ def state(name, call, code):
         call(code)
     except NotImplementedError:
         return MISSING
-    module = importlib.import_module(f"ovos_date_parser.dates_{code}") \
-        if (Path(p.__file__).parent / f"dates_{code}.py").exists() else None
-    return OWN if module is not None and hasattr(module, f"{name}_{code}") else SHARED
+    owner = "hr" if name == "nice_time" and code == "bs" else code
+    module = importlib.import_module(f"ovos_date_parser.dates_{owner}") \
+        if (Path(p.__file__).parent / f"dates_{owner}.py").exists() else None
+    return OWN if module is not None and hasattr(module, f"{name}_{owner}") else SHARED
 
 
 def main():

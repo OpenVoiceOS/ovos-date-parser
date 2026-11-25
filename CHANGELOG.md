@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.4a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.4a3) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.4a2...0.41.4a3)
+
+**Merged pull requests:**
+
+- refactor: read language tags through linguatag [\#692](https://github.com/OpenVoiceOS/ovos-date-parser/pull/692) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.4a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.4a2) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.4a1...0.41.4a2)

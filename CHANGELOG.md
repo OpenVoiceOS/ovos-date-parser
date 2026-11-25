@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.4a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.4a2) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.4a1...0.41.4a2)
+
+**Merged pull requests:**
+
+- test: align the chronologia-gap rows with chronologia 0.43.13a5 [\#693](https://github.com/OpenVoiceOS/ovos-date-parser/pull/693) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.4a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.4a1) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.3a1...0.41.4a1)
@@ -337,10 +345,6 @@
 ## [0.35.35a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.35a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.35.34a2...0.35.35a1)
-
-**Merged pull requests:**
-
-- fix\(it\): say the years 3001 to 9099 in words, and drop the overlapping rules [\#588](https://github.com/OpenVoiceOS/ovos-date-parser/pull/588) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.35.34a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.35.34a2) (2026-11-12)
 

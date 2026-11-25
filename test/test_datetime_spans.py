@@ -299,6 +299,12 @@ class TestSpansPT(SpanAssertions):
     def test_text_without_a_date(self):
         self.assertDates("olá como estás", "pt", [])
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason="chronologia 0.43.5a1 (d07ba057, #1185) reads the fragment "
+               "'a duas horas e trinta' as no length, so the scan splits the "
+               "compound: "
+               "https://github.com/TigreGotico/chronologia/issues/1399")
     def test_compound_duration_is_one_span(self):
         self.assertDurations("daqui a duas horas e trinta minutos", "pt",
                              [("a duas horas e trinta minutos",

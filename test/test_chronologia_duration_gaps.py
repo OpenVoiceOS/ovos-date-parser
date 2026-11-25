@@ -45,10 +45,6 @@ ROWS = [
     gap(1203, "es", "1 milenio", calendar(years=1000)),
     gap(1203, "es", "5 milenios", calendar(years=5000)),
     # a suffix on the unit noun
-    gap(1017, "eu", "hamar minutuko tenporizadorea", timedelta(minutes=10),
-        "tenporizadorea"),
-    gap(1020, "hu", "állíts be egy időzítőt tíz percre",
-        timedelta(minutes=10), "állíts be egy időzítőt"),
     gap(1211, "sv", "starta en 9 minuters timer", timedelta(minutes=9),
         "starta en timer"),
     # a unit the locale does not know
@@ -88,6 +84,22 @@ def now(monkeypatch):
 @pytest.mark.parametrize("lang,text,duration,remainder", ROWS)
 def test_a_length_chronologia_does_not_read_yet(lang, text, duration,
                                                 remainder):
+    assert extract_duration(text, lang) == (duration, remainder)
+
+
+SUFFIXED_ROWS = [
+    # "hamar" is ten and "-ko" joins the length to the noun after it
+    ("eu", "hamar minutuko tenporizadorea", timedelta(minutes=10),
+     "tenporizadorea"),
+    # "tíz" is ten and the sublative "-re" marks the length
+    ("hu", "állíts be egy időzítőt tíz percre", timedelta(minutes=10),
+     "állíts be egy időzítőt"),
+]
+
+
+@pytest.mark.parametrize("lang,text,duration,remainder", SUFFIXED_ROWS)
+def test_a_length_with_a_suffix_on_the_unit_noun(lang, text, duration,
+                                                 remainder):
     assert extract_duration(text, lang) == (duration, remainder)
 
 

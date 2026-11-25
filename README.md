@@ -5,7 +5,7 @@ covers: what the package does, how to install it, a first example, and where the
 source: ovos_date_parser/__init__.py (extract_datetime, extract_duration, nice_time, nice_duration, CHRONOLOGIA_LOCALES); pyproject.toml
 generated: no
 verify: diff <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' README.md | sed '1d;$d' | .venv/bin/python -I -) <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/s/^print(.*)  *# //p' README.md)
-see: docs/index.md, docs/api.md, docs/languages.md
+see: docs/index.md, docs/getting-started.md, docs/how-it-works.md, docs/api.md, docs/writers.md, docs/languages.md, docs/helpers.md
 -->
 
 This library turns date, time and duration phrases into `datetime` and
@@ -47,17 +47,21 @@ print(nice_time(datetime(2024, 1, 5, 15, 30), "en"))   # half past three
 print(nice_duration(3690, "en"))                       # one hour one minute thirty seconds
 ```
 
-`anchorDate` is the "now" that relative phrases resolve against. Pass a fixed
+`anchorDate` is the reference time that relative phrases resolve against. Pass a fixed
 value for repeatable results.
 
 ## Who does what
 
 Reading is the job of chronologia. The function `extract_datetime` normalizes the language tag and calls chronologia for every locale it reads. The function `extract_duration` calls chronologia for the same locales. [docs/languages.md](docs/languages.md) lists each locale.
 
-This package adds the `datetime` shape of the answer, the leftover text, named holidays, the `resolution` and `replace_token` options of `extract_duration`, and the span scans `extract_datetime_spans` and `extract_duration_spans`.
+This package adds the `datetime` shape of the answer, the leftover text, named holidays, the `resolution` and `replace_token` options of `extract_duration`, and the span scans `extract_datetime_spans` and `extract_duration_spans`. The names `extract_datetime_<code>` and `extract_duration_<code>` are deprecated shims over the two reading functions. The modules `astrodate`, `calendars`, `cycles`, `eras`, `regnal` and `roman` re-export chronologia names.
 
 Writing is the job of this package. The `nice_*` functions and the `spoken_*`
 functions say a time, a date, a year or a duration in the words of a language.
+The package writes 40 languages, Bosnian among them, and the top-level
+functions are the stable API. [How it works](docs/how-it-works.md) shows the
+path of a call, and [Language writers](docs/writers.md) names the writer of each
+language.
 
 A language that chronologia does not read, such as Japanese or Chinese, goes to
 [dateparser](https://dateparser.readthedocs.io). That fallback reads absolute
@@ -71,9 +75,13 @@ dates well and conversational phrases poorly.
 
 [docs/index.md](docs/index.md) lists every page. The main ones:
 
-- [API reference](docs/api.md): every public function, with real output
-- [Languages](docs/languages.md): which languages read, which write, and how
+- [Getting started](docs/getting-started.md): install to a first result in five steps
 - [Adding a language](docs/adding-a-language.md): the path for reading and the path for writing
+- [How it works](docs/how-it-works.md): which calls pass to chronologia and which code writes each language
+- [API reference](docs/api.md): every public function, with real output
+- [Language writers](docs/writers.md): the functions and data of each of the 40 writers
+- [Languages](docs/languages.md): which languages read, which write, and how
+- [Calendar helpers](docs/helpers.md): ranges, seasons and era scanners
 
 Runnable scripts are in [`examples/`](examples/). Run one with
 `python examples/ner_temporal.py`.

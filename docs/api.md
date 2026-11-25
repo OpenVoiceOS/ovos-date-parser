@@ -35,7 +35,7 @@ from ovos_date_parser import (
 )
 ```
 
-Nothing here needs a running OVOS stack. The package is pure Python plus a few small parsing dependencies.
+Nothing here needs a running OVOS stack. The package is pure Python plus a few small parsing dependencies. [How it works](how-it-works.md) shows the path of each call. The functions of single languages are in [writers.md](writers.md), and the range, era and scoped-date helpers are in [helpers.md](helpers.md).
 
 ## Parsing (text to structured value)
 
@@ -90,6 +90,8 @@ These functions are the holiday layer on its own, for a caller that wants a holi
 
 `holidays.holiday_surfaces(lang)` returns the table of chronologia with the holiday names that the language speaks, mapped to its language-neutral keys. A language that chronologia has no holiday data for gets an empty map, and not a guess at English.
 
+`holidays.holiday_overrides_engine(text, lang, engine_date, engine_remainder="", anchorDate=None)` answers `True` when a language engine took its date from the holiday phrase itself. A holiday name such as "good friday" holds the weekday word "friday", and an engine can read that word as the coming Friday. `extract_datetime` asks this function for a locale outside `CHRONOLOGIA_LOCALES`, and a `True` answer sends the text to the holiday layer. The function answers `False` for a text with a date that the holiday name does not explain, such as "good friday and next friday". It costs a second engine call for a text that names a holiday, and nothing for a text that names none.
+
 ```python
 >>> from datetime import datetime
 >>> from ovos_date_parser.holidays import extract_holiday_date, holiday_surfaces
@@ -140,6 +142,22 @@ chronologia reads every locale in `CHRONOLOGIA_LOCALES`. A month or a year is a 
 ```
 
 Import `DurationResolution` from `ovos_date_parser.duration`.
+
+### `convert_duration(length, resolution)`
+
+Express a `timedelta` in a `DurationResolution`. `extract_duration` calls it on the answer of chronologia. Call it to convert a length you already hold. The answer is the `timedelta` itself for `TIMEDELTA`, a `relativedelta` for the three `RELATIVEDELTA` values, and a `float` count of the unit for each `TOTAL_*` value. Another value raises `ValueError`.
+
+```python
+>>> from datetime import timedelta
+>>> from ovos_date_parser import convert_duration
+>>> from ovos_date_parser.duration import DurationResolution
+
+>>> convert_duration(timedelta(hours=2), DurationResolution.TOTAL_MINUTES)
+120.0
+
+>>> convert_duration(timedelta(days=1, seconds=30), DurationResolution.RELATIVEDELTA)
+relativedelta(days=+1, seconds=+30)
+```
 
 ### `extract_datetime_spans(text, lang, anchor_date=None, default_time=None)`
 
@@ -428,4 +446,4 @@ The `spoken_time`, `spoken_date` and `spoken_year` functions in `ovos_date_parse
 - `spoken_year(lang, year, *, ordinal=False, case=None, declension=None)`: the year is from 1 to 9999.
 
 ---
-[← README](../README.md) · [Home](index.md) · [Languages →](languages.md)
+[Index](index.md) · [← How it works](how-it-works.md) · [Language writers →](writers.md)

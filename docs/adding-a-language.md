@@ -95,11 +95,11 @@ Test files sit in `test/`. Writers go in `test/format_tests/test_format_<code>.p
 - `nice_duration` and `nice_relative_time`
 - a `NotImplementedError` check for every form the language does not write
 
-Take every expected string from a source and not from the output of the code. Never pin an unverified output as gold. A reader test belongs in chronologia. Here, only the routing test `test/test_chronologia_routing.py` runs over `CHRONOLOGIA_LOCALES`, and it picks up the new code by itself.
+Take every expected string from a source and not from the output of the code. Never pin an unverified output as gold. A reader test belongs in chronologia. Here, only the routing test `test/test_chronologia_routing.py` runs over `CHRONOLOGIA_LOCALES`, and it picks up the code of your language by itself.
 
 Add the language code to `LANGS` in `test/test_lang_parity.py` when it writes every function.
 
 Then update the language lists in [languages.md](languages.md).
 
 ---
-[← Languages](languages.md) · [Home](index.md)
+[Index](index.md) · [← Getting started](getting-started.md) · [How it works →](how-it-works.md)

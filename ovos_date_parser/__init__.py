@@ -178,6 +178,27 @@ def _as_datetime(dt):
     return dt
 
 
+_NICE_TIME = {
+    "ar": nice_time_ar, "ast": nice_time_ast, "an": nice_time_an,
+    "az": nice_time_az, "gl": nice_time_gl, "el": nice_time_el,
+    "he": nice_time_he, "oc": nice_time_oc, "ro": nice_time_ro,
+    "cs": nice_time_cs, "da": nice_time_da, "de": nice_time_de,
+    "en": nice_time_en, "es": nice_time_es, "et": nice_time_et,
+    "eu": nice_time_eu, "fa": nice_time_fa, "fi": nice_time_fi,
+    "fr": nice_time_fr, "hu": nice_time_hu, "it": nice_time_it,
+    "kab": nice_time_kab, "fy": nice_time_fy, "nl": nice_time_nl,
+    "nn": nice_time_nn, "nb": nice_time_nb, "pl": nice_time_pl,
+    "ru": nice_time_ru, "sv": nice_time_sv, "sl": nice_time_sl,
+    "uk": nice_time_uk, "ms": nice_time_ms, "id": nice_time_id,
+    "tr": nice_time_tr,
+}
+#: writers that take the ``variant`` argument of ``nice_time``
+_NICE_TIME_VARIANT = {
+    "bg": nice_time_bg, "bs": nice_time_hr, "ca": nice_time_ca,
+    "hr": nice_time_hr, "sk": nice_time_sk,
+}
+
+
 def nice_time(
         dt: datetime,
         lang: str,
@@ -205,85 +226,14 @@ def nice_time(
     """
     dt = _as_datetime(dt)
     code = writer_lang(lang)
-    if code == "ar":
-        return nice_time_ar(dt, speech, use_24hour, use_ampm)
-    if code == "ast":
-        return nice_time_ast(dt, speech, use_24hour, use_ampm)
-    if code == "an":
-        return nice_time_an(dt, speech, use_24hour, use_ampm)
-    if code == "az":
-        return nice_time_az(dt, speech, use_24hour, use_ampm)
-    if code == "gl":
-        return nice_time_gl(dt, speech, use_24hour, use_ampm)
-    if code == "el":
-        return nice_time_el(dt, speech, use_24hour, use_ampm)
-    if code == "he":
-        return nice_time_he(dt, speech, use_24hour, use_ampm)
-    if code == "oc":
-        return nice_time_oc(dt, speech, use_24hour, use_ampm)
-    if code == "ro":
-        return nice_time_ro(dt, speech, use_24hour, use_ampm)
-    if code == "ca":
-        return nice_time_ca(dt, speech, use_24hour, use_ampm, variant=variant)
-    if code == "cs":
-        return nice_time_cs(dt, speech, use_24hour, use_ampm)
-    if code == "sk":
-        return nice_time_sk(dt, speech, use_24hour, use_ampm, variant=variant)
-    if code in ("hr", "bs"):
-        return nice_time_hr(dt, speech, use_24hour, use_ampm, variant=variant)
-    if code == "bg":
-        return nice_time_bg(dt, speech, use_24hour, use_ampm, variant=variant)
-    if code == "da":
-        return nice_time_da(dt, speech, use_24hour, use_ampm)
-    if code == "de":
-        return nice_time_de(dt, speech, use_24hour, use_ampm)
-    if code == "en":
-        return nice_time_en(dt, speech, use_24hour, use_ampm)
-    if code == "es":
-        return nice_time_es(dt, speech, use_24hour, use_ampm)
-    if code == "et":
-        return nice_time_et(dt, speech, use_24hour, use_ampm)
-    if code == "eu":
-        return nice_time_eu(dt, speech, use_24hour, use_ampm)
-    if code == "fa":
-        return nice_time_fa(dt, speech, use_24hour, use_ampm)
-    if code == "fi":
-        return nice_time_fi(dt, speech, use_24hour, use_ampm)
-    if code == "fr":
-        return nice_time_fr(dt, speech, use_24hour, use_ampm)
-    if code == "hu":
-        return nice_time_hu(dt, speech, use_24hour, use_ampm)
-    if code == "it":
-        return nice_time_it(dt, speech, use_24hour, use_ampm)
-    if code == "kab":
-        return nice_time_kab(dt, speech, use_24hour, use_ampm)
-    if code == "fy":
-        return nice_time_fy(dt, speech, use_24hour, use_ampm)
-    if code == "nl":
-        return nice_time_nl(dt, speech, use_24hour, use_ampm)
-    if code == "nn":
-        return nice_time_nn(dt, speech, use_24hour, use_ampm)
-    if code == "nb":
-        return nice_time_nb(dt, speech, use_24hour, use_ampm)
-    if code == "pl":
-        return nice_time_pl(dt, speech, use_24hour, use_ampm)
+    if code in _NICE_TIME:
+        return _NICE_TIME[code](dt, speech, use_24hour, use_ampm)
+    if code in _NICE_TIME_VARIANT:
+        return _NICE_TIME_VARIANT[code](dt, speech, use_24hour, use_ampm,
+                                        variant=variant)
     if code == "pt":
         return nice_time_pt(dt, speech, use_24hour, use_ampm,
                             variant=portuguese_variant(lang))
-    if code == "ru":
-        return nice_time_ru(dt, speech, use_24hour, use_ampm)
-    if code == "sv":
-        return nice_time_sv(dt, speech, use_24hour, use_ampm)
-    if code == "sl":
-        return nice_time_sl(dt, speech, use_24hour, use_ampm)
-    if code == "uk":
-        return nice_time_uk(dt, speech, use_24hour, use_ampm)
-    if code == "ms":
-        return nice_time_ms(dt, speech, use_24hour, use_ampm)
-    if code == "id":
-        return nice_time_id(dt, speech, use_24hour, use_ampm)
-    if code == "tr":
-        return nice_time_tr(dt, speech, use_24hour, use_ampm)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
 
@@ -307,6 +257,11 @@ def nice_relative_time(when, relative_to=None, lang="en-us"):
     return nice_relative_time_generic(lang, when, relative_to)
 
 
+_NICE_DURATION = {"ar": nice_duration_ar, "az": nice_duration_az,
+                  "pl": nice_duration_pl, "ru": nice_duration_ru,
+                  "uk": nice_duration_uk}
+
+
 def nice_duration(
         duration: Union[int, float], lang: str, speech: bool = True
 ) -> str:
@@ -321,17 +276,9 @@ def nice_duration(
     Returns:
         Timespan as a string.
     """
-    code = writer_lang(lang)
-    if code == "ar":
-        return nice_duration_ar(duration, speech)
-    if code == "az":
-        return nice_duration_az(duration, speech)
-    if code == "pl":
-        return nice_duration_pl(duration, speech)
-    if code == "ru":
-        return nice_duration_ru(duration, speech)
-    if code == "uk":
-        return nice_duration_uk(duration, speech)
+    writer = _NICE_DURATION.get(writer_lang(lang))
+    if writer:
+        return writer(duration, speech)
     return nice_duration_generic(lang, duration, speech)
 
 
@@ -1006,7 +953,7 @@ def _extract_datetime_fallback(
                                 settings=settings)
         if date:
             return date, ""
-    except Exception as e:
+    except Exception:
         pass
 
     # less accurate substring search
@@ -1561,6 +1508,46 @@ class DateTimeFormat:
 date_time_format = DateTimeFormat(os.path.join(os.path.dirname(__file__), 'res'))
 
 
+#: writers of ``nice_date``, ``nice_date_time``, ``nice_day``, ``nice_weekday``,
+#: ``nice_month`` and ``nice_year`` that a dates_<code> module owns, by language;
+#: any other language is written from its ``res`` folder
+_NICE_DATE = {
+    "es": nice_date_es, "gl": nice_date_gl, "el": nice_date_el,
+    "he": nice_date_he, "oc": nice_date_oc, "ro": nice_date_ro,
+    "ast": nice_date_ast, "an": nice_date_an, "fy": nice_date_fy,
+}
+_NICE_DATE_TIME = {
+    "es": nice_date_time_es, "gl": nice_date_time_gl, "el": nice_date_time_el,
+    "he": nice_date_time_he, "oc": nice_date_time_oc, "ro": nice_date_time_ro,
+    "ast": nice_date_time_ast, "an": nice_date_time_an,
+    "fy": nice_date_time_fy,
+}
+_NICE_DAY = {
+    "pt": nice_day_pt, "es": nice_day_es, "gl": nice_day_gl, "el": nice_day_el,
+    "he": nice_day_he, "oc": nice_day_oc, "ro": nice_day_ro,
+    "ast": nice_day_ast, "an": nice_day_an, "fy": nice_day_fy,
+}
+_NICE_WEEKDAY = {
+    "pt": nice_weekday_pt, "es": nice_weekday_es, "gl": nice_weekday_gl,
+    "el": nice_weekday_el, "he": nice_weekday_he, "oc": nice_weekday_oc,
+    "ro": nice_weekday_ro, "ast": nice_weekday_ast, "an": nice_weekday_an,
+    "fy": nice_weekday_fy,
+}
+_NICE_MONTH = {
+    "pt": nice_month_pt, "es": nice_month_es, "gl": nice_month_gl,
+    "el": nice_month_el, "he": nice_month_he, "oc": nice_month_oc,
+    "ro": nice_month_ro, "ast": nice_month_ast, "an": nice_month_an,
+    "fy": nice_month_fy,
+}
+_NICE_YEAR = {
+    "es": nice_year_es, "gl": nice_year_gl, "el": nice_year_el,
+    "he": nice_year_he, "oc": nice_year_oc, "ro": nice_year_ro,
+    "ast": nice_year_ast, "an": nice_year_an, "fy": nice_year_fy,
+    "fi": nice_year_fi, "et": nice_year_et, "eu": nice_year_eu,
+    "pl": nice_year_pl, "cs": nice_year_cs, "sv": nice_year_sv,
+}
+
+
 def nice_date(dt, lang, now=None, include_weekday=True):
     """
     Format a datetime to a pronounceable date
@@ -1587,24 +1574,8 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     if code == "pt":
         return nice_date_pt(dt, now, include_weekday,
                             variant=portuguese_variant(tag))
-    if code == "es":
-        return nice_date_es(dt, now, include_weekday)
-    if code == "gl":
-        return nice_date_gl(dt, now, include_weekday)
-    if code == "el":
-        return nice_date_el(dt, now, include_weekday)
-    if code == "he":
-        return nice_date_he(dt, now, include_weekday)
-    if code == "oc":
-        return nice_date_oc(dt, now, include_weekday)
-    if code == "ro":
-        return nice_date_ro(dt, now, include_weekday)
-    if code == "ast":
-        return nice_date_ast(dt, now, include_weekday)
-    if code == "an":
-        return nice_date_an(dt, now, include_weekday)
-    if code == "fy":
-        return nice_date_fy(dt, now, include_weekday)
+    if code in _NICE_DATE:
+        return _NICE_DATE[code](dt, now, include_weekday)
     date_time_format.cache(tag)
     if code == "eu":
         return date_time_format.date_format(
@@ -1652,24 +1623,8 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
     if code == "pt":
         return nice_date_time_pt(dt, now, use_24hour, use_ampm,
                                  variant=portuguese_variant(tag))
-    if code == "es":
-        return nice_date_time_es(dt, now, use_24hour, use_ampm)
-    if code == "gl":
-        return nice_date_time_gl(dt, now, use_24hour, use_ampm)
-    if code == "el":
-        return nice_date_time_el(dt, now, use_24hour, use_ampm)
-    if code == "he":
-        return nice_date_time_he(dt, now, use_24hour, use_ampm)
-    if code == "oc":
-        return nice_date_time_oc(dt, now, use_24hour, use_ampm)
-    if code == "ro":
-        return nice_date_time_ro(dt, now, use_24hour, use_ampm)
-    if code == "ast":
-        return nice_date_time_ast(dt, now, use_24hour, use_ampm)
-    if code == "an":
-        return nice_date_time_an(dt, now, use_24hour, use_ampm)
-    if code == "fy":
-        return nice_date_time_fy(dt, now, use_24hour, use_ampm)
+    if code in _NICE_DATE_TIME:
+        return _NICE_DATE_TIME[code](dt, now, use_24hour, use_ampm)
     date_time_format.cache(tag)
     if code == "eu":
         return date_time_format.date_time_format(
@@ -1695,26 +1650,8 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
 def nice_day(dt, lang, date_format='DMY', include_month=True):
     dt = _as_datetime(dt)
     code = writer_lang(lang)
-    if code == "pt":
-        return nice_day_pt(dt, date_format, include_month)
-    if code == "es":
-        return nice_day_es(dt, date_format, include_month)
-    if code == "gl":
-        return nice_day_gl(dt, date_format, include_month)
-    if code == "el":
-        return nice_day_el(dt, date_format, include_month)
-    if code == "he":
-        return nice_day_he(dt, date_format, include_month)
-    if code == "oc":
-        return nice_day_oc(dt, date_format, include_month)
-    if code == "ro":
-        return nice_day_ro(dt, date_format, include_month)
-    if code == "ast":
-        return nice_day_ast(dt, date_format, include_month)
-    if code == "an":
-        return nice_day_an(dt, date_format, include_month)
-    if code == "fy":
-        return nice_day_fy(dt, date_format, include_month)
+    if code in _NICE_DAY:
+        return _NICE_DAY[code](dt, date_format, include_month)
     if include_month:
         # a day and a month take the month's format form (CLDR monthContext
         # "format"), the genitive in cs and pl: "21 ledna", "11 stycznia"
@@ -1733,26 +1670,8 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
 def nice_weekday(dt, lang):
     dt = _as_datetime(dt)
     code = writer_lang(lang)
-    if code == "pt":
-        return nice_weekday_pt(dt)
-    if code == "es":
-        return nice_weekday_es(dt)
-    if code == "gl":
-        return nice_weekday_gl(dt)
-    if code == "el":
-        return nice_weekday_el(dt)
-    if code == "he":
-        return nice_weekday_he(dt)
-    if code == "oc":
-        return nice_weekday_oc(dt)
-    if code == "ro":
-        return nice_weekday_ro(dt)
-    if code == "ast":
-        return nice_weekday_ast(dt)
-    if code == "an":
-        return nice_weekday_an(dt)
-    if code == "fy":
-        return nice_weekday_fy(dt)
+    if code in _NICE_WEEKDAY:
+        return _NICE_WEEKDAY[code](dt)
     key = date_time_format.cache(lang)
 
     if key in date_time_format.lang_config.keys():
@@ -1767,26 +1686,8 @@ def nice_weekday(dt, lang):
 def nice_month(dt, lang, date_format='MDY'):
     dt = _as_datetime(dt)
     code = writer_lang(lang)
-    if code == "pt":
-        return nice_month_pt(dt)
-    if code == "es":
-        return nice_month_es(dt)
-    if code == "gl":
-        return nice_month_gl(dt)
-    if code == "el":
-        return nice_month_el(dt)
-    if code == "he":
-        return nice_month_he(dt)
-    if code == "oc":
-        return nice_month_oc(dt)
-    if code == "ro":
-        return nice_month_ro(dt)
-    if code == "ast":
-        return nice_month_ast(dt)
-    if code == "an":
-        return nice_month_an(dt)
-    if code == "fy":
-        return nice_month_fy(dt)
+    if code in _NICE_MONTH:
+        return _NICE_MONTH[code](dt)
     key = date_time_format.cache(lang)
     if key in date_time_format.lang_config.keys():
         localized_month_names = date_time_format.lang_config[key]['month']
@@ -1824,36 +1725,8 @@ def nice_year(dt, lang, bc=False, ad=False):
     code = writer_lang(tag)
     if code == "pt":
         return nice_year_pt(dt, bc, variant=portuguese_variant(tag))
-    if code == "es":
-        return nice_year_es(dt, bc)
-    if code == "gl":
-        return nice_year_gl(dt, bc)
-    if code == "el":
-        return nice_year_el(dt, bc)
-    if code == "he":
-        return nice_year_he(dt, bc)
-    if code == "oc":
-        return nice_year_oc(dt, bc)
-    if code == "ro":
-        return nice_year_ro(dt, bc)
-    if code == "ast":
-        return nice_year_ast(dt, bc)
-    if code == "an":
-        return nice_year_an(dt, bc)
-    if code == "fi":
-        return nice_year_fi(dt, bc)
-    if code == "fy":
-        return nice_year_fy(dt, bc)
-    if code == "et":
-        return nice_year_et(dt, bc)
-    if code == "eu":
-        return nice_year_eu(dt, bc)
-    if code == "pl":
-        return nice_year_pl(dt, bc)
-    if code == "cs":
-        return nice_year_cs(dt, bc)
-    if code == "sv":
-        return nice_year_sv(dt, bc)
+    if code in _NICE_YEAR:
+        return _NICE_YEAR[code](dt, bc)
     date_time_format.cache(tag)
     return date_time_format.year_format(dt, tag, bc, ad)
 

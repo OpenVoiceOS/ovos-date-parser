@@ -146,8 +146,6 @@ class TestNamedPartDecidesAmPm(unittest.TestCase):
     def test_this_morning_bare_hour(self):
         self.assertEqual(_dt("vanochtend om 9"), datetime(2026, 10, 17, 9))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1002")
     def test_this_morning_part_after_hour(self):
         self.assertEqual(_dt("om 9 uur vanochtend"), datetime(2026, 10, 17, 9))
 
@@ -332,8 +330,6 @@ class TestPartOfDayStaysInItsClause(unittest.TestCase):
         self.assertEqual(_dt("goedemiddag, zet een wekker om 3"),
                          datetime(2026, 10, 17, 15))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/1002")
     def test_part_of_day_after_the_hour(self):
         self.assertEqual(_dt("zet een wekker om 8 uur vanochtend"),
                          datetime(2026, 10, 17, 8))

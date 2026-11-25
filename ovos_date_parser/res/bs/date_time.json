@@ -28,7 +28,7 @@
     "yesterday": "jučer"
   },
   "date_time_format": {
-    "date_time": "{formatted_date}, {formatted_time}"
+    "date_time": "{formatted_date} u {formatted_time}"
   },
   "weekday": {
     "0": "ponedjeljak",

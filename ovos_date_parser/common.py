@@ -107,6 +107,8 @@ def nice_relative_time_generic(lang, when, relative_to):
 #: Academia Galega "hora: substantivo feminino" (gl), Речник на българския
 #: език (bg). Italian elides "una" before a vowel,
 #: "una ora -> un'ora" (Treccani, Enciclopedia dell'Italiano, "elisione").
+#: The bs row is the hr row, which is standard Bosnian: CLDR 49 bs RBNF
+#: writes the feminine one as "jedinica" and bs has no unit genders.
 _ONE_BEFORE_UNIT = {
     "bg": {"day": "един", "hour": "един", "minute": "една", "second": "една"},
     "bs": {"day": "jedan", "hour": "jedan", "minute": "jedna", "second": "jedna"},

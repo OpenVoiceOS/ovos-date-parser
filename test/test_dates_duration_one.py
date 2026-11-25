@@ -23,6 +23,7 @@ ONE_EACH = 86400 + 3600 + 60 + 1
 
 EXPECTED = {
     "bg": "един ден един час една минута една секунда",
+    "bs": "jedan dan jedan sat jedna minuta jedna sekunda",
     "ca": "un dia una hora un minut un segon",
     "cs": "jeden den jedna hodina jedna minuta jedna sekunda",
     "da": "en dag en time et minut et sekund",

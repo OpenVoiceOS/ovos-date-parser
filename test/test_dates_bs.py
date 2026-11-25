@@ -84,9 +84,9 @@ class TestBosnianNames(unittest.TestCase):
         self.assertEqual(nice_day(THURSDAY, "bs", date_format="MDY"),
                          "Mart 05")
 
-    def test_nice_date_time_starts_with_the_date(self):
+    def test_nice_date_time_joins_with_u(self):
         spoken = nice_date_time(datetime(2026, 3, 5, 12, 0), "bs")
-        self.assertEqual(spoken, "četvrtak, peti mart 2026, podne")
+        self.assertEqual(spoken, "četvrtak, peti mart 2026 u podne")
 
     def test_bc_year_marker(self):
         self.assertEqual(nice_year(datetime(44, 3, 15), "bs", bc=True),

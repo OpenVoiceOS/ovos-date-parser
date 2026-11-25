@@ -49,6 +49,10 @@ from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from typing import Dict, FrozenSet, List, NamedTuple, Optional, Set, Tuple
 
+from linguatag import default_region
+
+from ovos_date_parser.common import primary_language
+
 #: The constructions chronologia resolves a named holiday with, enumerated
 #: from the ``constructions`` tables of every packaged ``locale/*/lang.json``
 #: (three of the 54 construction names across all locales name a holiday;
@@ -100,24 +104,6 @@ _FOLDED: Dict[str, Dict[str, str]] = {}
 _HOLIDAY_PHRASES: Dict[str, FrozenSet[str]] = {}
 
 
-def _base_lang(lang: str) -> str:
-    """The language subtag of a BCP-47 code, lowercased ("pt-PT" -> "pt")."""
-    return re.split(r"[-_]", lang)[0].lower()
-
-
-def _jurisdiction(lang: str) -> Optional[str]:
-    """The ISO country of a BCP-47 code, uppercased ("pt-PT" -> "PT").
-
-    chronologia scopes a construction that depends on a country by
-    jurisdiction, so the locale's own country is passed on when the code
-    carries one. A bare language code names no country and scopes nothing.
-    """
-    for part in re.split(r"[-_]", lang)[1:]:
-        if len(part) == 2 and part.isalpha():
-            return part.upper()
-    return None
-
-
 def holiday_surfaces(lang: str) -> Dict[str, str]:
     """Every well-known holiday surface ``lang`` speaks, to chronologia's key.
 
@@ -126,7 +112,7 @@ def holiday_surfaces(lang: str) -> Dict[str, str]:
     not the extraction gate: the extraction grammar of a locale reads
     phrasings this table does not list, such as the bare English "new year".
     """
-    base = _base_lang(lang)
+    base = primary_language(lang)
     if base not in _SURFACES:
         try:
             from chronologia.civil_holidays import well_known_surfaces
@@ -169,7 +155,7 @@ def _holiday_phrases(lang: str) -> FrozenSet[str]:
     possessive and the plural the full name carries. The looseness costs
     nothing in precision here, because the trace behind this door decides.
     """
-    base = _base_lang(lang)
+    base = primary_language(lang)
     if base not in _HOLIDAY_PHRASES:
         surfaces: Set[str] = set(_holiday_surface_forms(base))
         phrases: Set[str] = set()
@@ -207,7 +193,7 @@ def _names_a_holiday(text: str, lang: str) -> bool:
 
 def _spec(lang: str):
     """chronologia's language spec for ``lang``, loaded once per language."""
-    base = _base_lang(lang)
+    base = primary_language(lang)
     spec = _SPECS.get(base)
     if spec is None:
         with _SPEC_LOCK:
@@ -233,7 +219,7 @@ def _folded_surfaces(lang: str) -> Dict[str, str]:
     to chronologia in place of the written one, and an offset that moved
     would make the extent point at the wrong characters.
     """
-    base = _base_lang(lang)
+    base = primary_language(lang)
     if base not in _FOLDED:
         out: Dict[str, str] = {}
         for surface in _holiday_surface_forms(base):
@@ -434,9 +420,9 @@ def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
     first, last = extent
     try:
         from chronologia import extract_timespan
-        result = extract_timespan(written[first:last], lang=_base_lang(lang),
+        result = extract_timespan(written[first:last], lang=primary_language(lang),
                                   anchor=anchor,
-                                  jurisdiction=_jurisdiction(lang))
+                                  jurisdiction=default_region(lang))
     except Exception:
         return None
     if result is None:
@@ -453,9 +439,9 @@ def _holiday_alone(text: str, written: str, lang: str, anchor: datetime,
         # chronologia can win a clock_time match and still leave its words in
         # the remainder ("easter at 25:00"); only a clock it consumed counts.
         try:
-            whole = extract_timespan(written, lang=_base_lang(lang),
+            whole = extract_timespan(written, lang=primary_language(lang),
                                      anchor=anchor,
-                                     jurisdiction=_jurisdiction(lang))
+                                     jurisdiction=default_region(lang))
         except Exception:
             whole = None
         moment = whole.span.start_datetime if whole is not None else None
@@ -520,9 +506,9 @@ def _offset_answer(text: str, written: str, lang: str, anchor: datetime,
     try:
         from chronologia import explain, extract_timespan
         spec = _spec(lang)
-        result = extract_timespan(written, lang=_base_lang(lang),
+        result = extract_timespan(written, lang=primary_language(lang),
                                   anchor=anchor,
-                                  jurisdiction=_jurisdiction(lang))
+                                  jurisdiction=default_region(lang))
         if result is None or result.span.start_datetime is None:
             return None
         trace = explain(written, spec, anchor)

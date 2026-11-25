@@ -115,8 +115,6 @@ class TestThisDayPart(unittest.TestCase):
         # the middle of the nl morning band, 06:00 to 12:00 (ruling 10)
         self.assertEqual(_dt("vanmorgen", EVENING), datetime(2026, 10, 17, 9))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_this_afternoon_from_evening(self):
         self.assertEqual(_dt("vanmiddag", EVENING), datetime(2026, 10, 17, 15))
 
@@ -125,8 +123,6 @@ class TestThisDayPart(unittest.TestCase):
         # (ruling 10a)
         self.assertEqual(_dt("vanavond", EVENING), datetime(2026, 10, 17, 21))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_this_afternoon(self):
         self.assertEqual(_dt("vanmiddag"), datetime(2026, 10, 17, 15))
 
@@ -201,8 +197,6 @@ class TestNamedPartDecidesAmPm(unittest.TestCase):
     def test_tomorrow_evening_uur(self):
         self.assertEqual(_dt("morgenavond om 9 uur"), datetime(2026, 10, 18, 21))
 
-    @pytest.mark.xfail(strict=True,
-                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_this_afternoon_hour(self):
         self.assertEqual(_dt("vanmiddag om 3 uur", LATE),
                          datetime(2026, 10, 17, 15))

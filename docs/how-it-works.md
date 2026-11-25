@@ -32,7 +32,7 @@ languages: each has a module `dates_<code>.py`, a folder `res/<code>/` of
 JSON data, or both. The `nice_*` functions pick the writer by language code, and
 the data and the code split the number words. The shared writer for dates,
 days and years takes its number words from the `number` section of
-`res/<code>/date_time.json`. The language modules, the generic duration writer
+`res/<code>/date_time.json`. Most language modules, the generic duration writer
 and the generic relative-time writer call
 [ovos-number-parser](https://github.com/OpenVoiceOS/ovos-number-parser).
 
@@ -84,8 +84,8 @@ itself, such as "friday" in "good friday". If the layer then finds no holiday,
 the answer of dateparser stands. A writing call finds the writer language with `writer_lang`.
 It then calls a function in the language module, the shared writer that reads
 `res/<code>/`, or the generic duration and relative-time writer. The shared
-writer says numbers with the words in the data. The other two call
-ovos-number-parser.
+writer says numbers with the words in the data. The generic writer and most
+language modules call ovos-number-parser.
 
 ## Which calls pass the work to chronologia
 

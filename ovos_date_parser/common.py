@@ -4,6 +4,7 @@ import os.path
 import re
 import unicodedata
 from functools import lru_cache
+from pathlib import Path
 from typing import Callable, Optional
 
 from linguatag import closest_lang, standardize_lang
@@ -12,11 +13,10 @@ from ovos_number_parser import pronounce_number
 
 
 #: the languages that have a writer: a ``dates_<code>`` module or a ``res`` folder
-_WRITER_LANGS = frozenset({
-    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
-    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
-    "kab", "ms", "nb", "nl", "nn", "oc", "pl", "pt", "ro", "ru", "sk", "sl",
-    "sv", "tr", "uk"})
+_PACKAGE = Path(__file__).parent
+_WRITER_LANGS = frozenset(
+    {path.stem.removeprefix("dates_") for path in _PACKAGE.glob("dates_*.py")}
+    | {path.parent.name for path in (_PACKAGE / "res").glob("*/date_time.json")})
 
 
 @lru_cache(maxsize=4096)
@@ -109,6 +109,7 @@ def nice_relative_time_generic(lang, when, relative_to):
 #: "una ora -> un'ora" (Treccani, Enciclopedia dell'Italiano, "elisione").
 _ONE_BEFORE_UNIT = {
     "bg": {"day": "един", "hour": "един", "minute": "една", "second": "една"},
+    "bs": {"day": "jedan", "hour": "jedan", "minute": "jedna", "second": "jedna"},
     "ca": {"day": "un", "hour": "una", "minute": "un", "second": "un"},
     "cs": {"day": "jeden", "hour": "jedna", "minute": "jedna", "second": "jedna"},
     "da": {"day": "en", "hour": "en", "minute": "et", "second": "et"},

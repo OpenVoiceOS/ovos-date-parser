@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.5a3](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.5a3) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.5a2...0.41.5a3)
+
+**Merged pull requests:**
+
+- docs: getting started, call path, writers, helpers and writer-coverage plot [\#701](https://github.com/OpenVoiceOS/ovos-date-parser/pull/701) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.5a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.5a2) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.5a1...0.41.5a2)
@@ -231,10 +239,6 @@
 ## [0.36.1a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.1a1) (2026-11-15)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.36.0a1...0.36.1a1)
-
-**Merged pull requests:**
-
-- fix\(chronologia\): a bare length is no date; no text, no date; default day bands [\#598](https://github.com/OpenVoiceOS/ovos-date-parser/pull/598) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.36.0a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.36.0a1) (2026-11-13)
 

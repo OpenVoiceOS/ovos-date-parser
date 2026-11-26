@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.6a2](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.6a2) (2026-11-26)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.6a1...0.41.6a2)
+
+**Merged pull requests:**
+
+- test: es "a las 9, esta noche" reads 21:00 with chronologia 0.43.19a1 [\#709](https://github.com/OpenVoiceOS/ovos-date-parser/pull/709) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.41.6a1](https://github.com/OpenVoiceOS/ovos-date-parser/tree/0.41.6a1) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-date-parser/compare/0.41.5a3...0.41.6a1)

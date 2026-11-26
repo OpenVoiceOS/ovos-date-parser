@@ -2,10 +2,11 @@
 import unittest
 from datetime import datetime, timedelta
 
+import pytest
+
 from ovos_date_parser import (extract_datetime, extract_duration, nice_time,
                               nice_duration, nice_weekday, nice_month,
                               nice_year, nice_date)
-from ovos_date_parser.dates_fi import extract_duration_fi
 
 # Wednesday 10 January 2024, 12:00
 ANCHOR = datetime(2024, 1, 10, 12, 0)
@@ -86,8 +87,9 @@ class TestExtractDatetimeFi(unittest.TestCase):
     def test_clock(self):
         dt, _ = extract_datetime("kello 15:30", "fi", ANCHOR)
         self.assertEqual((dt.hour, dt.minute), (15, 30))
+        # a lone hour takes its next reading after the 12:00 anchor (ruling 17)
         dt, _ = extract_datetime("kello 9", "fi", ANCHOR)
-        self.assertEqual((dt.hour, dt.minute), (9, 0))
+        self.assertEqual((dt.hour, dt.minute), (21, 0))
         dt, _ = extract_datetime("15.30", "fi", ANCHOR)
         self.assertEqual((dt.hour, dt.minute), (15, 30))
 
@@ -110,35 +112,38 @@ class TestExtractDatetimeFi(unittest.TestCase):
 
 
 class TestClockIdiomsFi(unittest.TestCase):
+    """A lone spoken hour takes the next twelve-hour reading after the 12:00
+    anchor (ruling 17), so half past one is 13:30."""
+
     def _hm(self, text):
         res = extract_datetime(text, "fi", ANCHOR)
         self.assertIsNotNone(res, text)
         return res[0].hour, res[0].minute
 
     def test_half_hour_is_before_named_hour(self):
-        # the classic trap: "puoli kaksi" is 1:30, NOT 2:30
-        self.assertEqual(self._hm("puoli kaksi"), (1, 30))
-        self.assertEqual(self._hm("puoli kolme"), (2, 30))
+        # the classic trap: "puoli kaksi" is half past one, NOT half past two
+        self.assertEqual(self._hm("puoli kaksi"), (13, 30))
+        self.assertEqual(self._hm("puoli kolme"), (14, 30))
 
     def test_half_hour_wraps_at_one(self):
         # "puoli yksi" is half an hour before one o'clock -> 12:30
         self.assertEqual(self._hm("puoli yksi"), (12, 30))
 
     def test_half_hour_with_kello(self):
-        self.assertEqual(self._hm("kello puoli kaksi"), (1, 30))
+        self.assertEqual(self._hm("kello puoli kaksi"), (13, 30))
 
     def test_quarter_past(self):
-        self.assertEqual(self._hm("varttia yli kaksi"), (2, 15))
+        self.assertEqual(self._hm("varttia yli kaksi"), (14, 15))
 
     def test_quarter_to(self):
-        self.assertEqual(self._hm("varttia vaille kaksi"), (1, 45))
+        self.assertEqual(self._hm("varttia vaille kaksi"), (13, 45))
 
     def test_minutes_past(self):
-        self.assertEqual(self._hm("kymmenen yli kaksi"), (2, 10))
-        self.assertEqual(self._hm("viisitoista yli kolme"), (3, 15))
+        self.assertEqual(self._hm("kymmenen yli kaksi"), (14, 10))
+        self.assertEqual(self._hm("viisitoista yli kolme"), (15, 15))
 
     def test_minutes_to(self):
-        self.assertEqual(self._hm("kymmentä vaille kaksi"), (1, 50))
+        self.assertEqual(self._hm("kymmentä vaille kaksi"), (13, 50))
 
     def test_duration_puoli_not_read_as_clock(self):
         # "puoli tuntia" is a duration, not a half-clock -> no datetime
@@ -181,11 +186,9 @@ class TestExtractDatetimeAdversarialFi(unittest.TestCase):
         res = extract_datetime("kello 25:99", "fi", ANCHOR)
         self.assertIsNone(res)
 
-    def test_out_of_range_ordinal_day_ignored(self):
-        # "45. tammikuuta" -> impossible day, falls back to day 1 of month
-        res = extract_datetime("45. tammikuuta", "fi", ANCHOR)
-        self.assertIsNotNone(res)
-        self.assertEqual(res[0].month, 1)
+    def test_out_of_range_ordinal_day_is_no_date(self):
+        # January has 31 days, so "45. tammikuuta" names no day
+        self.assertIsNone(extract_datetime("45. tammikuuta", "fi", ANCHOR))
 
     def test_garbage_tokens(self):
         self.assertIsNone(extract_datetime("xyzzy qwerty 12345abc", "fi",
@@ -194,7 +197,7 @@ class TestExtractDatetimeAdversarialFi(unittest.TestCase):
 
 class TestExtractDurationAdversarialFi(unittest.TestCase):
     def test_empty(self):
-        self.assertIsNone(extract_duration("", "fi"))
+        self.assertEqual(extract_duration("", "fi"), (None, ""))
 
     def test_no_duration(self):
         dur, rem = extract_duration("ei mitään tässä", "fi")
@@ -207,10 +210,6 @@ class TestExtractDurationAdversarialFi(unittest.TestCase):
     def test_number_without_unit(self):
         dur, _ = extract_duration("viisi", "fi")
         self.assertIsNone(dur)
-
-    def test_direct_function_matches_dispatch(self):
-        self.assertEqual(extract_duration_fi("kaksi tuntia")[0],
-                         timedelta(hours=2))
 
 
 class TestRealSentencesFi(unittest.TestCase):
@@ -225,13 +224,8 @@ class TestRealSentencesFi(unittest.TestCase):
     # (sentence, expected (Y, M, D, h, m), expected leftover)
     CASES = [
         # idiomatic clock embedded in a request
-        ("Herätä minut varttia yli seitsemän",
-         (2024, 1, 10, 7, 15), "herätä minut"),
-        ("tavataan puoli kolme", (2024, 1, 10, 2, 30), "tavataan"),
+        # with a day word the spoken hour stays (ruling 17)
         ("nähdään huomenna puoli kaksi", (2024, 1, 11, 1, 30), "nähdään"),
-        ("herätys varttia vaille kahdeksan",
-         (2024, 1, 10, 7, 45), "herätys"),
-        ("soita kymmentä vaille viisi", (2024, 1, 10, 4, 50), "soita"),
         # relative time offsets with the genitive numeral, as really spoken
         ("muistuta minua puolentoista tunnin päästä",
          (2024, 1, 10, 13, 30), "muistuta minua"),
@@ -240,9 +234,10 @@ class TestRealSentencesFi(unittest.TestCase):
          (2024, 1, 10, 12, 5), "muistutus"),
         ("herää puolen tunnin päästä", (2024, 1, 10, 12, 30), "herää"),
         # relative day/week offsets, genitive numeral + genitive unit
+        # a counted offset keeps the anchor clock (class 1)
         ("soita minulle kolmen päivän kuluttua",
-         (2024, 1, 13, 0, 0), "soita minulle"),
-        ("kokous kahden viikon kuluttua", (2024, 1, 24, 0, 0), "kokous"),
+         (2024, 1, 13, 12, 0), "soita minulle"),
+        ("kokous kahden viikon kuluttua", (2024, 1, 24, 12, 0), "kokous"),
         # weekdays, essive, with ensi/viime
         ("tapaaminen on ensi maanantaina kello 15:30",
          (2024, 1, 15, 15, 30), "tapaaminen on"),
@@ -255,7 +250,6 @@ class TestRealSentencesFi(unittest.TestCase):
         ("lähden 15. tammikuuta", (2024, 1, 15, 0, 0), "lähden"),
         ("juhla on tammikuun 20", (2024, 1, 20, 0, 0), "juhla on"),
         # plain clock in a sentence, with trailing punctuation
-        ("herätys kello 7.", (2024, 1, 10, 7, 0), "herätys"),
         ("juna lähtee 15:30", (2024, 1, 10, 15, 30), "juna lähtee"),
     ]
 
@@ -321,3 +315,20 @@ class TestDurationRoundTripFi(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# A lone spoken hour takes the next twelve-hour reading after the anchor
+# (ruling 17): at noon on 10 January 2024, "varttia yli seitsemän" (07:15)
+# is 19:15.
+@pytest.mark.parametrize("text,expected,leftover", [
+    ("Herätä minut varttia yli seitsemän", (2024, 1, 10, 19, 15),
+     "Herätä minut"),
+    ("tavataan puoli kolme", (2024, 1, 10, 14, 30), "tavataan"),
+    ("herätys varttia vaille kahdeksan", (2024, 1, 10, 19, 45), "herätys"),
+    ("soita kymmentä vaille viisi", (2024, 1, 10, 16, 50), "soita"),
+    ("herätys kello 7.", (2024, 1, 10, 19, 0), "herätys"),
+])
+def test_lone_hour_in_a_sentence(text, expected, leftover):
+    res = extract_datetime(text, "fi", ANCHOR)
+    got = (res[0].year, res[0].month, res[0].day, res[0].hour, res[0].minute)
+    assert (got, res[1]) == (expected, leftover)

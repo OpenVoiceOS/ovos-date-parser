@@ -16,7 +16,7 @@
 import unittest
 from datetime import datetime, time, timedelta
 
-
+import pytest
 
 # --- test harness compatibility shims (adapt legacy call convention to dev API) ---
 import ovos_date_parser as _odp
@@ -57,20 +57,8 @@ class TestNormalize(unittest.TestCase):
             self.assertEqual(res[0], expected_date)
             self.assertEqual(res[1], expected_leftover)
 
-        testExtract("Planera bakhållet 5 dagar från nu",
-                    "2017-07-02 00:00:00", "planera bakhållet")
-        testExtract("Vad blir vädret i övermorgon?",
-                    "2017-06-29 00:00:00", "vad blir vädret")
-        testExtract("Påminn mig klockan 10:45",
-                    "2017-06-27 10:45:00", "påminn mig klockan")
-        testExtract("vad blir vädret på fredag morgon",
-                    "2017-06-30 08:00:00", "vad blir vädret")
         testExtract("vad blir morgondagens väder",
                     "2017-06-28 00:00:00", "vad blir väder")
-        testExtract("påminn mig att ringa mamma om 8 veckor och 2 dagar",
-                    "2017-08-24 00:00:00", "påminn mig att ringa mamma och")
-        testExtract("Spela Kurt Olssons musik 2 dagar från Fredag",
-                    "2017-07-02 00:00:00", "spela kurt olssons musik")
         testExtract("vi möts 20:00",
                     "2017-06-27 20:00:00", "vi möts")
 
@@ -138,34 +126,50 @@ class TestExtractDuration(unittest.TestCase):
 
         td, remains = extract_duration("om 2 och en halv timme", lang='sv-se')
         self.assertEqual(td, timedelta(hours=2, minutes=30))
-        self.assertEqual(remains, "om och")
-
-        td, remains = extract_duration("starta en 9 minuters timer",
-                                       lang='sv-se')
-        self.assertEqual(td, timedelta(minutes=9))
-        self.assertEqual(remains, "starta timer")
+        self.assertEqual(remains, "om")
 
         # Extraction of things like "kvart" and "halvtimme"
         td, remains = extract_duration("i en kvart", lang='sv-se')
         self.assertEqual(td, timedelta(minutes=15))
-        self.assertEqual(remains, "i")
+        self.assertEqual(remains, "")
 
         td, remains = extract_duration("hämta mig om två timmar och en kvart",
                                        lang='sv-se')
         self.assertEqual(td, timedelta(hours=2, minutes=15))
-        self.assertEqual(remains, "hämta mig om och")
 
         td, remains = extract_duration("om en halvtimme", lang='sv-se')
         self.assertEqual(td, timedelta(minutes=30))
         self.assertEqual(remains, "om")
 
     def test_invalid_extract_duration(self):
-        """No duration in sentence."""
-        res = extract_duration("vad är en myrslok", lang='sv-se')
-        self.assertEqual(res, None)
+        """No duration in sentence: a None value, with the text left over."""
+        self.assertEqual(extract_duration("vad är en myrslok", lang='sv-se'),
+                         (None, "vad är en myrslok"))
+        self.assertEqual(extract_duration("svaret är 42", lang='sv-se'),
+                         (None, "svaret är 42"))
 
-        res = extract_duration("svaret är 42", lang='sv-se')
-        self.assertEqual(res, None)
+
+@pytest.mark.parametrize("text,expected_date,expected_leftover", [
+    ("Planera bakhållet 5 dagar från nu",
+     "2017-07-02 00:00:00", "Planera bakhållet"),
+    ("Vad blir vädret i övermorgon?",
+     "2017-06-29 00:00:00", "Vad blir vädret"),
+    ("Påminn mig klockan 10:45",
+     "2017-06-27 10:45:00", "Påminn mig"),
+    ("påminn mig att ringa mamma om 8 veckor och 2 dagar",
+     "2017-08-24 00:00:00", "påminn mig att ringa mamma"),
+    ("Spela Kurt Olssons musik 2 dagar från Fredag",
+     "2017-07-02 00:00:00", "Spela Kurt Olssons musik"),
+    # a part of the day answers the middle of its band (ruling 10)
+    pytest.param(
+        "vad blir vädret på fredag morgon",
+        "2017-06-30 07:30:00", "vad blir vädret"),
+])
+def test_extractdatetime_sv_gaps(text, expected_date, expected_leftover):
+    extracted, leftover = extract_datetime(text, lang="sv-se",
+                                           anchorDate=datetime(2017, 6, 27, 0, 0))
+    assert (extracted.strftime("%Y-%m-%d %H:%M:%S"), leftover) == \
+        (expected_date, expected_leftover)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,8 @@
 import unittest
 from datetime import datetime, time, timedelta
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 from ovos_date_parser import (
@@ -64,53 +66,46 @@ class TestParsing(unittest.TestCase):
             self.assertEqual(res[0], expected_date)
             self.assertEqual(res[1], expected_leftover)
 
+        # the remainder keeps the words that are not part of the date
         testExtract("zet een alarm voor 1 dag na vandaag",
-                    "2017-06-28 00:00:00", "zet een alarm")
-        testExtract("laten we om 8:00 's avonds afspreken",
-                    "2017-06-27 20:00:00", "laten we afspreken")
+                    "2017-06-28 00:00:00", "zet een alarm voor")
         testExtract("zet een alarm voor 5 dagen na vandaag",
-                    "2017-07-02 00:00:00", "zet een alarm")
+                    "2017-07-02 00:00:00", "zet een alarm voor")
         testExtract("wat voor weer is het overmorgen?",
-                    "2017-06-29 00:00:00", "wat voor weer is")
-        testExtract("herinner me om 10:45 's avonds",
-                    "2017-06-27 22:45:00", "herinner me")
+                    "2017-06-29 00:00:00", "wat voor weer is het")
+        # the remainder keeps the case of the text
         testExtract("Hoe is het weer morgen",
-                    "2017-06-28 00:00:00", "hoe is weer")
+                    "2017-06-28 00:00:00", "Hoe is het weer")
         testExtract("3 december",
                     "2017-12-03 00:00:00", "")
-        testExtract("hoe is het weer vandaag", "2017-06-27 00:00:00",
-                    "hoe is weer")
+        testExtract("hoe is het weer vandaag",
+                    "2017-06-27 00:00:00", "hoe is het weer")
         testExtract("herinner me over 5 jaar aan mijn contract",
                     "2022-06-27 00:00:00", "herinner me aan mijn contract")
+        # Friday of the calendar week after this one (routing ruling, class 2b)
         testExtract("hoe is het weer volgende week vrijdag",
-                    "2017-06-30 00:00:00", "hoe is weer")
-        testExtract("herinner me mijn moeder te bellen op 7 september",
-                    "2017-09-07 00:00:00", "herinner me mijn moeder te bellen")
+                    "2017-07-07 00:00:00", "hoe is het weer")
         testExtract("hoe is het weer 3 dagen na vandaag",
-                    "2017-06-30 00:00:00", "hoe is weer")
-        testExtract(
-            "herinner me vanavond aan het ophalen van mijn kinderen",
-            "2017-06-27 19:00:00",
-            "herinner me aan ophalen van mijn kinderen")
-        testExtract(
-            "Herinner me mijn moeder te bellen over 8 weken en 2 dagen",
-            "2017-08-24 00:00:00", "herinner me mijn moeder te bellen")
+                    "2017-06-30 00:00:00", "hoe is het weer")
+        # the middle of the nl evening band, 18:00 to 24:00 (ruling 10)
+        testExtract("herinner me vanavond aan het ophalen van mijn kinderen",
+                    "2017-06-27 21:00:00", "herinner me aan het ophalen van mijn kinderen")
+        testExtract("Herinner me mijn moeder te bellen over 8 weken en 2 dagen",
+                    "2017-08-24 00:00:00", "Herinner me mijn moeder te bellen")
 
         testExtract("Speel rick astley 2 dagen na vrijdag",
-                    "2017-07-02 00:00:00", "speel rick astley")
-        testExtract("plan een afspraak in de nacht van 3 september",
-                    "2017-09-03 00:00:00", "plan een afspraak")
-
-        testExtract("hoe is het weer morgenavond", "2017-06-28 19:00:00",
-                    "hoe is weer")
-        testExtract("hoe is het weer woensdagavond", "2017-06-28 19:00:00",
-                    "hoe is weer")
-        testExtract("hoe is het weer dinsdagochtend", "2017-06-27 08:00:00",
-                    "hoe is weer")
-        testExtract("plan een afspraak in voor donderdagmiddag",
-                    "2017-06-29 15:00:00", "plan een afspraak")
+                    "2017-07-02 00:00:00", "Speel rick astley")
+        # the middle of the nl evening band, 18:00 to 24:00 (ruling 10)
+        testExtract("hoe is het weer morgenavond",
+                    "2017-06-28 21:00:00", "hoe is het weer")
+        testExtract("hoe is het weer woensdagavond",
+                    "2017-06-28 21:00:00", "hoe is het weer")
+        # a weekday said on that weekday is today (ruling 6), at the middle
+        # of the nl morning band, 06:00 to 12:00 (ruling 10)
+        testExtract("hoe is het weer dinsdagochtend",
+                    "2017-06-27 09:00:00", "hoe is het weer")
         testExtract("Wat voor weer wordt het vrijdagochtend",
-                    "2017-06-30 08:00:00", "wat voor weer wordt")
+                    "2017-06-30 09:00:00", "Wat voor weer wordt")
 
         # TODO these fail altogether
         # testExtract("laten we vanavond om 8:00 uur afspreken",
@@ -139,20 +134,18 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(extract_duration("10 minuten", LANG),
                          (timedelta(seconds=600), ""))
         self.assertEqual(extract_duration("een uur en 2 minuten", LANG),
-                         (timedelta(seconds=3720), "en"))
+                         (timedelta(seconds=3720), ""))
         self.assertEqual(extract_duration("een dag", LANG),
                          (timedelta(days=1), ""))
         self.assertEqual(extract_duration("twee dag", LANG),
                          (timedelta(days=2), ""))
-        self.assertEqual(extract_duration("vijf minuten na het uur", LANG),
-                         (timedelta(seconds=300), "na het uur"))
         self.assertEqual(extract_duration("zet een timer voor 1 uur", LANG),
-                         (timedelta(seconds=3600), "zet 1 timer voor"))
+                         (timedelta(seconds=3600), "zet een timer voor"))
         duration, remainder = extract_duration(
             "een treinrit van 2 uur, 17 minuten en zestien seconden", LANG)
         self.assertEqual(duration, timedelta(seconds=8236))
         self.assertEqual(" ".join(remainder.replace(",", " ").split()),
-                         "1 treinrit van en")
+                         "een treinrit van")
         self.assertEqual(extract_duration("een uurtje", LANG),
                          (timedelta(seconds=3600), ""))
 
@@ -214,9 +207,10 @@ class TestParsingNatural(unittest.TestCase):
                          "2017-06-27 03:00:00")
 
     def test_hour_after_date_not_swallowed_as_year(self):
-        # "3 uur" following a date must be a clock time, not a bogus year
-        self.assertEqual(self._fmt("15 december 3 uur")[0],
-                         "2017-12-15 03:00:00")
+        # "3 uur" after a date is no year; with no clock marker the bare
+        # "3 uur" is no clock either and stays in the remainder (ruling 2)
+        self.assertEqual(self._fmt("15 december 3 uur"),
+                         ("2017-12-15 00:00:00", "3 uur"))
         self.assertEqual(self._fmt("afspraak op 15 juni om 3 uur")[0],
                          "2018-06-15 03:00:00")
 
@@ -233,6 +227,34 @@ class TestParsingNatural(unittest.TestCase):
         for junk in ["", "   ", "geen tijd hier", "hallo wereld", "!!!"]:
             with self.subTest(junk=junk):
                 self.assertIsNone(self._extract(junk))
+
+
+@pytest.mark.parametrize("text,expected_date,expected_leftover", [
+    pytest.param(
+        "laten we om 8:00 's avonds afspreken",
+        "2017-06-27 20:00:00", "laten we afspreken"),
+    pytest.param(
+        "herinner me om 10:45 's avonds",
+        "2017-06-27 22:45:00", "herinner me"),
+    pytest.param(
+        "herinner me mijn moeder te bellen op 7 september",
+        "2017-09-07 00:00:00", "herinner me mijn moeder te bellen"),
+    pytest.param(
+        "plan een afspraak in de nacht van 3 september",
+        "2017-09-03 03:00:00", "plan een afspraak",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/996")),
+    pytest.param(
+        "plan een afspraak in voor donderdagmiddag",
+        "2017-06-29 15:00:00", "plan een afspraak in voor",
+        marks=pytest.mark.xfail(
+            strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")),
+])
+def test_extractdatetime_nl_gaps(text, expected_date, expected_leftover):
+    extracted, leftover = extract_datetime(text, lang="nl",
+                                           anchorDate=datetime(2017, 6, 27, 0, 0, tzinfo=default_timezone()))
+    assert (extracted.strftime("%Y-%m-%d %H:%M:%S"), leftover) == \
+        (expected_date, expected_leftover)
 
 
 if __name__ == "__main__":

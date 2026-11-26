@@ -1,19 +1,28 @@
 import json
 import os
 import re
+import warnings
 from collections import namedtuple
-from datetime import datetime, timedelta, time
-from typing import Optional, Tuple, Union
+from dataclasses import dataclass
+from datetime import datetime, timedelta, time, tzinfo
+from difflib import SequenceMatcher
+from functools import lru_cache
+from importlib import import_module
+from typing import Callable, List, Optional, Tuple, Union
+from zoneinfo import ZoneInfo
 
 import dateparser # fallback parser
+from dateutil.relativedelta import relativedelta
+from dateparser.conf import settings as dateparser_settings
+from dateparser.languages.loader import default_loader
 from dateparser.search import search_dates
-from ovos_config import Configuration
 from ovos_utils.log import LOG
 from ovos_utils.time import now_local
 
-from ovos_date_parser.common import nice_duration_generic, nice_relative_time_generic
+from ovos_date_parser.common import (nice_duration_generic, nice_relative_time_generic,
+                                     primary_language, writer_lang)
 from ovos_date_parser.dates_ar import (
-    extract_datetime_ar, extract_duration_ar, nice_time_ar, nice_duration_ar,
+    nice_time_ar, nice_duration_ar,
 )
 from ovos_date_parser.ranges import (
     Hemisphere, Season, DateTimeResolution, BEFORE_PRESENT_EPOCH,
@@ -22,127 +31,151 @@ from ovos_date_parser.ranges import (
     get_season_range, get_week_number, get_date_ordinal,
     date_to_season, season_to_date, next_season_date, last_season_date,
 )
+from ovos_date_parser.eras_scan import extract_era_date, load_era_patterns
+from linguatag import closest_lang, standardize_lang
+from ovos_date_parser.version import VERSION_MAJOR
+from ovos_date_parser.scoped_scan import (ScopedVocabulary, extract_scoped_date,
+                                          load_scoped_vocabulary)
+from ovos_date_parser.scoped_en import extract_scoped_date_en
+from ovos_date_parser.holidays import (_as_zoneinfo, _holiday_answer,
+                                       extract_holiday_date,
+                                       extract_holiday_span,
+                                       holiday_overrides_engine,
+                                       holiday_surfaces)
+from ovos_date_parser.eras_en import extract_era_date_en
+from ovos_date_parser.eras_pt import extract_era_date_pt
+from ovos_date_parser.eras_es import extract_era_date_es
+from ovos_date_parser.eras_fr import extract_era_date_fr
+from ovos_date_parser.eras_de import extract_era_date_de
+from ovos_date_parser.eras_it import extract_era_date_it
+from ovos_date_parser.astrodate import (AstroDate, DateSpan, civil_add,
+                                        resolve_wall_clock)
+from ovos_date_parser.eras import (
+    Era, EraCounting, ERAS, astro_year_range, is_leap_year,
+    julian_day_to_date, resolve_bp, resolve_era,
+)
+# Newer reckoning-core surface, re-exported so downstream code can reach the
+# timeline, named-period and radiocarbon-calibration facilities alongside the
+# established date-parsing API.
+from chronologia import TIMELINES, PERIODS, calibrate_c14, DAY_PARTS
+from chronologia import extract_candidates as _chronologia_candidates
+from chronologia import extract_timespans as _chronologia_timespans
+from chronologia import extract_duration as _chronologia_extract_duration
 from ovos_date_parser.duration import (
-    DurationResolution, DurationLexicon, DURATION_LEXICONS, extract_duration_generic
+    DurationResolution, convert_duration
 )
 from ovos_date_parser.dates_ast import (
-    extract_duration_ast, extract_datetime_ast, nice_year_ast, nice_weekday_ast, nice_month_ast,
-    nice_day_ast, nice_date_time_ast, nice_date_ast, nice_time_ast
+    nice_year_ast, nice_weekday_ast, nice_month_ast,
+    nice_day_ast, nice_date_time_ast, nice_date_ast, nice_time_ast,
 )
 from ovos_date_parser.dates_an import (
     nice_year_an, nice_weekday_an, nice_month_an, nice_day_an, nice_date_an,
-    nice_time_an, nice_date_time_an, extract_datetime_an, extract_duration_an
+    nice_time_an, nice_date_time_an,
 )
 from ovos_date_parser.dates_fy import (
     nice_year_fy, nice_weekday_fy, nice_month_fy, nice_day_fy,
     nice_date_time_fy, nice_date_fy, nice_time_fy, nice_part_of_day_fy,
-    extract_datetime_fy, extract_duration_fy
 )
-from ovos_date_parser.dates_az import (
-    extract_datetime_az, extract_duration_az, nice_duration_az, nice_time_az,
-)
-from ovos_date_parser.dates_ca import (
-    TimeVariantCA, extract_datetime_ca, nice_time_ca, extract_duration_ca
-)
-from ovos_date_parser.dates_cs import (
-    extract_duration_cs, extract_datetime_cs, nice_time_cs
-)
-from ovos_date_parser.dates_sk import (
-    extract_duration_sk, extract_datetime_sk, nice_time_sk
-)
-from ovos_date_parser.dates_hr import (
-    extract_duration_hr, extract_datetime_hr, nice_time_hr
-)
-from ovos_date_parser.dates_bg import (
-    extract_duration_bg, extract_datetime_bg, nice_time_bg
-)
-from ovos_date_parser.dates_da import (
-    extract_datetime_da, extract_duration_da, nice_time_da,
-)
-from ovos_date_parser.dates_de import (
-    extract_datetime_de, extract_duration_de, nice_time_de,
-)
-from ovos_date_parser.dates_nb import (
-    extract_datetime_nb, extract_duration_nb, nice_time_nb,
-)
-from ovos_date_parser.dates_nn import (
-    extract_datetime_nn, extract_duration_nn, nice_time_nn,
-)
-from ovos_date_parser.dates_en import (
-    extract_datetime_en, extract_duration_en, nice_time_en
-)
+from ovos_date_parser.dates_az import nice_duration_az, nice_time_az
+from ovos_date_parser.dates_ca import TimeVariantCA, nice_time_ca
+from ovos_date_parser.dates_cs import nice_time_cs, nice_year_cs
+from ovos_date_parser.dates_sk import nice_time_sk
+from ovos_date_parser.dates_hr import nice_time_hr
+from ovos_date_parser.dates_bg import nice_time_bg
+from ovos_date_parser.dates_da import nice_time_da
+from ovos_date_parser.dates_de import nice_time_de
+from ovos_date_parser.dates_nb import nice_time_nb
+from ovos_date_parser.dates_nn import nice_time_nn
+from ovos_date_parser.dates_en import nice_time_en
 from ovos_date_parser.dates_es import (
-    extract_datetime_es, extract_duration_es, nice_time_es, nice_date_time_es, nice_date_es,
-    nice_weekday_es, nice_day_es, nice_year_es, nice_month_es
+    nice_time_es, nice_date_time_es, nice_date_es, nice_weekday_es,
+    nice_day_es, nice_year_es, nice_month_es,
 )
 from ovos_date_parser.dates_eu import (
-    extract_datetime_eu, nice_time_eu, nice_relative_time_eu, extract_duration_eu,
+    nice_time_eu, nice_relative_time_eu, nice_year_eu, nice_date_year_eu,
+    nice_date_day_eu, nice_time_inessive_eu,
 )
-from ovos_date_parser.dates_et import (
-    extract_datetime_et, extract_duration_et, nice_time_et, nice_year_et,
-)
-from ovos_date_parser.dates_fa import (
-    extract_datetime_fa, nice_time_fa, extract_duration_fa,
-)
-from ovos_date_parser.dates_fi import (
-    extract_datetime_fi, extract_duration_fi, nice_time_fi, nice_year_fi,
-)
-from ovos_date_parser.dates_fr import (
-    extract_duration_fr,
-    extract_datetime_fr, nice_time_fr
-)
+from ovos_date_parser.dates_et import nice_time_et, nice_year_et
+from ovos_date_parser.dates_fa import nice_time_fa
+from ovos_date_parser.dates_fi import nice_time_fi, nice_year_fi
+from ovos_date_parser.dates_fr import nice_time_fr
 from ovos_date_parser.dates_gl import (
-    extract_duration_gl, extract_datetime_gl, nice_year_gl, nice_weekday_gl, nice_month_gl,
-    nice_day_gl, nice_date_time_gl, nice_date_gl, nice_time_gl
+    nice_year_gl, nice_weekday_gl, nice_month_gl, nice_day_gl,
+    nice_date_time_gl, nice_date_gl, nice_time_gl,
 )
 from ovos_date_parser.dates_el import (
-    extract_duration_el, extract_datetime_el, nice_year_el, nice_weekday_el, nice_month_el,
-    nice_day_el, nice_date_time_el, nice_date_el, nice_time_el
+    nice_year_el, nice_weekday_el, nice_month_el, nice_day_el,
+    nice_date_time_el, nice_date_el, nice_time_el,
 )
 from ovos_date_parser.dates_he import (
-    extract_duration_he, extract_datetime_he, nice_year_he, nice_weekday_he, nice_month_he,
-    nice_day_he, nice_date_time_he, nice_date_he, nice_time_he
+    nice_year_he, nice_weekday_he, nice_month_he, nice_day_he,
+    nice_date_time_he, nice_date_he, nice_time_he,
 )
 from ovos_date_parser.dates_ro import (
-    extract_duration_ro, extract_datetime_ro, nice_year_ro, nice_weekday_ro, nice_month_ro,
-    nice_day_ro, nice_date_time_ro, nice_date_ro, nice_time_ro
+    nice_year_ro, nice_weekday_ro, nice_month_ro, nice_day_ro,
+    nice_date_time_ro, nice_date_ro, nice_time_ro,
 )
 from ovos_date_parser.dates_oc import (
-    extract_datetime_oc, nice_year_oc, nice_weekday_oc, nice_month_oc,
-    nice_day_oc, nice_date_time_oc, nice_date_oc, nice_time_oc
+    nice_year_oc, nice_weekday_oc, nice_month_oc, nice_day_oc,
+    nice_date_time_oc, nice_date_oc, nice_time_oc,
 )
-from ovos_date_parser.dates_hu import nice_time_hu, extract_duration_hu, extract_datetime_hu
-from ovos_date_parser.dates_kab import (
-    extract_datetime_kab, extract_duration_kab, nice_time_kab,
-)
-from ovos_date_parser.dates_it import (
-    extract_datetime_it, nice_time_it, extract_duration_it
-)
-from ovos_date_parser.dates_nl import (
-    extract_datetime_nl, nice_part_of_day_nl, extract_duration_nl, nice_time_nl
-)
+from ovos_date_parser.dates_hu import nice_time_hu
+from ovos_date_parser.dates_kab import nice_time_kab
+from ovos_date_parser.dates_it import nice_time_it
+from ovos_date_parser.dates_nl import nice_part_of_day_nl, nice_time_nl
 from ovos_date_parser.dates_pl import (
-    extract_datetime_pl, extract_duration_pl, nice_time_pl, nice_duration_pl
+    nice_time_pl, nice_duration_pl, nice_year_pl,
 )
 from ovos_date_parser.dates_pt import (
-    extract_datetime_pt, extract_duration_pt, nice_time_pt, nice_date_pt, nice_year_pt, nice_date_time_pt,
-    nice_month_pt, nice_weekday_pt, nice_day_pt
+    nice_time_pt, nice_date_pt, nice_year_pt, nice_date_time_pt, nice_month_pt,
+    nice_weekday_pt, nice_day_pt, portuguese_variant,
 )
-from ovos_date_parser.dates_ru import (
-    extract_datetime_ru, extract_duration_ru, nice_time_ru, nice_duration_ru
-)
-from ovos_date_parser.dates_sl import (
-    nice_time_sl, extract_duration_sl, extract_datetime_sl
-)
+from ovos_date_parser.dates_ru import nice_time_ru, nice_duration_ru
+from ovos_date_parser.dates_sl import nice_time_sl
 from ovos_date_parser.dates_sv import (
-    extract_datetime_sv, extract_duration_sv, nice_time_sv
+    nice_time_sv, nice_year_sv,
 )
-from ovos_date_parser.dates_uk import (
-    extract_datetime_uk, extract_duration_uk, nice_time_uk, nice_duration_uk
-)
-from ovos_date_parser.dates_ms import nice_time_ms, extract_datetime_ms
-from ovos_date_parser.dates_id import nice_time_id, extract_datetime_id
-from ovos_date_parser.dates_tr import nice_time_tr, extract_datetime_tr
+from ovos_date_parser.dates_uk import nice_time_uk, nice_duration_uk
+from ovos_date_parser.dates_ms import nice_time_ms
+from ovos_date_parser.dates_id import nice_time_id
+from ovos_date_parser.dates_tr import nice_time_tr
+
+
+@lru_cache(maxsize=4096)
+def _reader_lang(lang: str) -> str:
+    """The tag a reader answers for.
+
+    The language of the tag is the closest locale of ``CHRONOLOGIA_LOCALES``
+    where there is one: "deu" is "de", "iw" is "he", an individual Arabic or
+    Azerbaijani language reads as its macrolanguage, and "no", Norwegian in
+    general, reads as its written standard Bokmål, "nb". A tag reads the same
+    in any case and with "_" for "-", and white space around it does not
+    count.
+    """
+    tag = standardize_lang(lang.strip())
+    language, dash, rest = tag.partition("-")
+    code = closest_lang(language, sorted(CHRONOLOGIA_LOCALES))
+    return tag if code is None else code + dash + rest
+
+
+def _as_datetime(dt):
+    """Coerce an :class:`AstroDate` to a real ``datetime`` when it fits one.
+
+    The legacy ``nice_*`` formatters were written against ``datetime`` and lean
+    on clock-and-locale ``strftime`` directives (``%I``, ``%A``, ``%B``) that
+    the unbounded :class:`~chronologia.AstroDate` deliberately refuses. Any
+    ``AstroDate`` inside the proleptic-Gregorian ``datetime`` range is
+    byte-identical to its ``.datetime()`` projection, so we hand that through
+    transparently. A ``datetime`` (or anything already outside AstroDate) is
+    returned untouched; an out-of-range ``AstroDate`` (a BC or far-future point
+    a ``datetime`` cannot hold) is left as-is so year-only formatters that only
+    need ``%Y`` still work and clock formatters fail loudly instead of lying.
+    """
+    if isinstance(dt, datetime):
+        return dt
+    if isinstance(dt, AstroDate) and dt.in_datetime_range:
+        return dt.datetime()
+    return dt
 
 
 def nice_time(
@@ -170,83 +203,86 @@ def nice_time(
     Returns:
         The formatted time string.
     """
-    if lang.startswith("ar"):
+    dt = _as_datetime(dt)
+    code = writer_lang(lang)
+    if code == "ar":
         return nice_time_ar(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_time_ast(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_time_an(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("az"):
+    if code == "az":
         return nice_time_az(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_time_gl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_time_el(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_time_he(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_time_oc(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_time_ro(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ca"):
+    if code == "ca":
         return nice_time_ca(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("cs"):
+    if code == "cs":
         return nice_time_cs(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("sk"):
+    if code == "sk":
         return nice_time_sk(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("hr"):
+    if code in ("hr", "bs"):
         return nice_time_hr(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("bg"):
+    if code == "bg":
         return nice_time_bg(dt, speech, use_24hour, use_ampm, variant=variant)
-    if lang.startswith("da"):
+    if code == "da":
         return nice_time_da(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("de"):
+    if code == "de":
         return nice_time_de(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("en"):
+    if code == "en":
         return nice_time_en(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_time_es(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("et"):
+    if code == "et":
         return nice_time_et(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("eu"):
+    if code == "eu":
         return nice_time_eu(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fa"):
+    if code == "fa":
         return nice_time_fa(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fi"):
+    if code == "fi":
         return nice_time_fi(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fr"):
+    if code == "fr":
         return nice_time_fr(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("hu"):
+    if code == "hu":
         return nice_time_hu(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("it"):
+    if code == "it":
         return nice_time_it(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("kab"):
+    if code == "kab":
         return nice_time_kab(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_time_fy(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("nl"):
+    if code == "nl":
         return nice_time_nl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("nn"):
+    if code == "nn":
         return nice_time_nn(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("nb") or lang.startswith("no"):
+    if code == "nb":
         return nice_time_nb(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("pl"):
+    if code == "pl":
         return nice_time_pl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("pt"):
-        return nice_time_pt(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ru"):
+    if code == "pt":
+        return nice_time_pt(dt, speech, use_24hour, use_ampm,
+                            variant=portuguese_variant(lang))
+    if code == "ru":
         return nice_time_ru(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("sv"):
+    if code == "sv":
         return nice_time_sv(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("sl"):
+    if code == "sl":
         return nice_time_sl(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("uk"):
+    if code == "uk":
         return nice_time_uk(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("ms"):
+    if code == "ms":
         return nice_time_ms(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("id"):
+    if code == "id":
         return nice_time_id(dt, speech, use_24hour, use_ampm)
-    if lang.startswith("tr"):
+    if code == "tr":
         return nice_time_tr(dt, speech, use_24hour, use_ampm)
     raise NotImplementedError(f"Unsupported language: {lang}")
 
@@ -263,8 +299,10 @@ def nice_relative_time(when, relative_to=None, lang="en-us"):
     Returns:
         str: Relative description of the given time
     """
-    relative_to = relative_to or now_local()
-    if lang.startswith("eu"):
+    when = _as_datetime(when)
+    relative_to = _as_datetime(relative_to) if relative_to is not None else now_local()
+    code = writer_lang(lang)
+    if code == "eu":
         return nice_relative_time_eu(when, relative_to)
     return nice_relative_time_generic(lang, when, relative_to)
 
@@ -283,61 +321,393 @@ def nice_duration(
     Returns:
         Timespan as a string.
     """
-    if lang.startswith("ar"):
+    code = writer_lang(lang)
+    if code == "ar":
         return nice_duration_ar(duration, speech)
-    if lang.startswith("az"):
+    if code == "az":
         return nice_duration_az(duration, speech)
-    if lang.startswith("pl"):
+    if code == "pl":
         return nice_duration_pl(duration, speech)
-    if lang.startswith("ru"):
+    if code == "ru":
         return nice_duration_ru(duration, speech)
-    if lang.startswith("uk"):
+    if code == "uk":
         return nice_duration_uk(duration, speech)
     return nice_duration_generic(lang, duration, speech)
+
+
+_WORD_EDGE = re.compile(r"^[\W_]+|[\W_]+$")
+
+
+def _word_keys(words: List[str]) -> List[str]:
+    """The words without surrounding punctuation or case, to compare them."""
+    return [_WORD_EDGE.sub("", word).lower() for word in words]
+
+
+def _mark_consumed(text: str, remainder: str, token: str) -> str:
+    """The text with ``token`` where the words the remainder lost were written.
+
+    chronologia's remainder has no sentence punctuation, so the words are
+    compared without it and the text's own words, with their punctuation,
+    are kept.
+    """
+    text_words = text.split()
+    at = [i for i, word in enumerate(text_words) if _WORD_EDGE.sub("", word)]
+    words = [text_words[i] for i in at]
+    kept = [word for word in remainder.split() if _WORD_EDGE.sub("", word)]
+    marked = []
+    for op, i1, i2, j1, j2 in SequenceMatcher(
+            None, _word_keys(words), _word_keys(kept),
+            autojunk=False).get_opcodes():
+        # a word of punctuation alone stays with the word before it
+        end = at[i2] if i2 < len(at) else len(text_words)
+        if op == "equal":
+            marked.extend(text_words[0 if i1 == 0 else at[i1]:end])
+        else:
+            if i1 == 0:
+                marked.extend(text_words[:at[0]])
+            marked.append(token)
+            marked.extend(kept[j1:j2])
+            if i2 > i1:
+                marked.extend(text_words[at[i2 - 1] + 1:end])
+    return " ".join(marked)
 
 
 def extract_duration(
         text: str, lang: str, *,
         resolution: DurationResolution = DurationResolution.TIMEDELTA,
         replace_token: str = ""
-) -> Tuple[Optional[timedelta], str]:
+) -> Tuple[Optional[Union[timedelta, relativedelta, float]], str]:
     """
     Convert a phrase into a duration and return the remainder text.
+
+    The locales in ``CHRONOLOGIA_LOCALES`` are read by chronologia, which
+    counts a month or a year on the calendar from the day of the call. Any other locale
+    answers ``(None, text)``.
 
     Args:
         text: String containing a duration.
         lang: A BCP-47 language code.
-        resolution: Format to return the duration in — timedelta
-            (default), calendar-accurate relativedelta, or a total in a
-            single unit. Only supported for languages on the shared
-            duration engine.
+        resolution: Format to return the duration in: timedelta (default),
+            relativedelta, or a total in a single unit. The answer is
+            chronologia's timedelta converted, so a month or a year counts
+            as the days it has from the day of the call.
         replace_token: String each consumed duration is replaced with in
-            the remainder, marking where it was found. Only supported
-            for languages on the shared duration engine.
+            the remainder, marking where it was found.
 
     Returns:
         A tuple containing the duration (timedelta, relativedelta or
         float depending on resolution) and the remaining text.
     """
-    code = lang.split("-")[0].lower()
-    if code in DURATION_LEXICONS:
-        return extract_duration_generic(text, DURATION_LEXICONS[code],
-                                        resolution, replace_token)
-    if resolution != DurationResolution.TIMEDELTA or replace_token:
-        raise NotImplementedError(
-            f"resolution/replace_token not supported for language: {lang}")
-    if lang.startswith("ar"):
-        return extract_duration_ar(text)
-    if lang.startswith("ast"):
-        return extract_duration_ast(text)
-    if lang.startswith("kab"):
-        return extract_duration_kab(text)
-    if lang.startswith("fa"):
-        return extract_duration_fa(text)
-    if lang.startswith("sv"):
-        return extract_duration_sv(text)
-    # no native extractor for this language, report no duration found
-    return None, text
+    code = primary_language(_reader_lang(lang))
+    if not text or code not in CHRONOLOGIA_LOCALES:
+        return None, text
+    found = _chronologia_extract_duration(text, code, anchor=now_local())
+    if found is None:
+        return None, text
+    length, remainder = found
+    if replace_token:
+        remainder = _mark_consumed(text, remainder, replace_token)
+    return convert_duration(length, resolution), remainder
+
+
+def _search_dates_word_by_word(text: str, language: str, settings: dict
+                               ) -> Optional[Tuple[int, int, datetime]]:
+    """Search again with a space between the words of an unspaced language.
+
+    For a language dateparser marks ``no_word_spacing`` (zh, ja),
+    ``Locale.translate_search`` joins the English words it translates a
+    chunk into with no space either. 明天星期几 is read as 明天 + 星期 + 几,
+    and 明天星期 becomes "in 1 dayweek", which the English parser cannot
+    read, so nothing is found. A space between the words dateparser itself
+    splits the text into survives the translation, the same chunk becomes
+    "in 1 day week", and 明天 is read.
+
+    Only zh calls it. In ja the spaced search reads 時 as "hour", so
+    明日の午後3時に会議 would come back three hours past the anchor's
+    clock instead of None.
+
+    Args:
+        text: The text to search, as written.
+        language: The dateparser language code, such as ``"zh"``.
+        settings: The dateparser settings the fallback searched with.
+
+    Returns:
+        ``(start, end, date)`` for the first date found, where
+        ``text[start:end]`` is the date text as written, or None when the
+        language is spaced, the split does not cover the text, or nothing
+        is found.
+    """
+    try:
+        locale = default_loader.get_locale(language)
+        if "no_word_spacing" not in locale.info:
+            return None
+        words = locale._word_split(text, settings=dateparser_settings)
+    except Exception:  # private dateparser API, absent or changed
+        return None
+    if "".join(words) != text:
+        return None
+
+    spaced = ""
+    origin = []  # the index in ``text`` of each character of ``spaced``
+    position = 0
+    for word in words:
+        if word.isspace():  # a space already written takes no other
+            position += len(word)
+            continue
+        if spaced:
+            spaced += " "
+            origin.append(None)
+        spaced += word
+        origin.extend(range(position, position + len(word)))
+        position += len(word)
+    if spaced == text:
+        return None
+
+    dates = search_dates(spaced, languages=[language], settings=settings)
+    if not dates:
+        return None
+    date_txt, date = dates[0]
+    start = spaced.find(date_txt)
+    if start < 0:
+        return None
+    covered = [i for i in origin[start:start + len(date_txt)] if i is not None]
+    if not covered:
+        return None
+    return covered[0], covered[-1] + 1, date
+
+
+# A clock, or a part of the day, in zh. The spaced search reads none of them:
+# 明天下午三点 would come back as tomorrow at the anchor's clock.
+_ZH_CLOCK = re.compile(r"[点點时時分秒钟鐘]|上午|下午|中午|早上|早晨|晚上|凌晨"
+                       r"|傍晚|夜里|夜裡|半夜|午夜|今晚|明晚|昨晚|明早")
+
+
+def _extract_date_zh_unspaced(text: str, settings: dict,
+                              default_time: Optional[time] = None
+                              ) -> Optional[Tuple[datetime, str]]:
+    """Read a zh date the fallback missed because of dateparser's join.
+
+    The last step of the dateparser fallback for zh, reached only when the
+    other two found nothing. It reads a date only, so a text that holds a
+    clock or a part of the day is left alone and stays None: the spaced
+    search would drop the hour and answer with the anchor's.
+
+    Args:
+        text: The zh text, as written.
+        settings: The dateparser settings the fallback searched with.
+        default_time: The time to give the date, since the text has none.
+
+    Returns:
+        The date and the text with only that date's span taken out, or None.
+    """
+    if _ZH_CLOCK.search(text):
+        return None
+    found = _search_dates_word_by_word(text, "zh", settings)
+    if found is None:
+        return None
+    start, end, date = found
+    if default_time is not None:
+        date = date.replace(hour=default_time.hour,
+                            minute=default_time.minute,
+                            second=default_time.second,
+                            microsecond=default_time.microsecond)
+    return date, text[:start] + text[end:]
+
+
+#: Locales whose ``extract_datetime`` is answered by chronologia: every
+#: locale chronologia reads. Any other locale is read by dateparser, with a
+#: weekday reader for ja and an unspaced reader for zh beside it, because
+#: chronologia does not read them.
+#:
+#: A reading that chronologia gets wrong is a chronologia defect, and the
+#: test that pins it is marked with the chronologia issue that tracks it.
+CHRONOLOGIA_LOCALES = frozenset({
+    "an", "ar", "ast", "az", "be", "bg", "ca", "cs", "cy", "da", "de", "el",
+    "en", "eo", "es", "et", "eu", "fa", "fi", "fil", "fr", "fy", "ga", "gl",
+    "ha", "he", "hi", "hr", "hu", "hy", "id", "is", "it", "ka", "kab", "ko",
+    "lt", "lv", "mk", "ms", "mt", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
+    "ro", "ru", "sk", "sl", "sq", "sr", "sv", "sw", "ta", "th", "tr", "uk",
+    "vi",
+})
+
+#: A span this narrow names an instant rather than a stretch: "at 9am
+#: tomorrow" is a named day composed with a clock, and the clock is what the
+#: speaker meant.
+_EXACT = timedelta(minutes=1)
+
+#: A stretch this wide covers whole days, so it names a date.
+_DAY = timedelta(days=1)
+
+
+@lru_cache(maxsize=None)
+def _daypart_bands(lang: str) -> frozenset:
+    """The (start, end) times of the locale's parts of the day.
+
+    A locale with no rows of its own reads its parts of the day with
+    chronologia's default bands, so those are its bands here too.
+    """
+    code = primary_language(lang)
+    own = frozenset((b.start, b.end) for b in DAY_PARTS.values()
+                    if b.lang == code)
+    return own or frozenset((b.start, b.end) for b in DAY_PARTS.values()
+                            if b.lang is None)
+
+
+def _is_daypart(span, lang: str) -> bool:
+    """True when the span is exactly one of the locale's parts of the day.
+
+    Width alone cannot answer this. An offset is narrow too -- "in two hours"
+    is an hour wide, being an hour-grained answer -- and taking the middle of
+    one would answer half an hour late. Only a span whose edges are a declared
+    band is a part of the day.
+    """
+    return (span.start.time(), span.end.time()) in _daypart_bands(lang)
+
+
+def _instant(span, lang: str, default_time: Optional[time],
+             anchor: datetime) -> Optional[datetime]:
+    """The instant that best answers a span, or None if it cannot be one.
+
+    chronologia answers a stretch of time because that is what a phrase
+    names. This signature answers an instant, so one has to be chosen.
+
+    An exact time is its own answer. A part of the day is a stretch the
+    speaker did not narrow, so ``default_time`` decides within it when the
+    caller supplied one that lands inside, and otherwise the middle of the
+    band answers -- the expected time when nothing narrows it further. The
+    middle is whatever the locale's own boundaries make it: French ``matin``
+    opens at 04:00, so its opening edge would answer "ce matin" with four in
+    the morning, which no speaker means. Everything else starts when it
+    starts. A band that crosses midnight is cut at midnight before its middle
+    is taken, so the night is the night of the day it opens on: Wiktionary
+    "tonight" is "During the night following the current day; during the
+    evening of today", and the CLDR day periods for English start night1 at
+    21:00 and morning1 at 00:00. With the default 21:00-06:00 band, "tonight"
+    at a 13:04 anchor is 22:30 that day, not 01:30 the next. An hour said
+    inside the band ("at 3 at night") is an exact time and keeps its own
+    reading. Any band that holds the anchor answers the anchor once its
+    middle has passed, so the middle is never a time already gone: "tonight"
+    said at 23:30 is 23:30, and cs "dnes večer" said at 21:00, inside the
+    18:00-22:00 evening, is 21:00. A ``default_time`` that lands inside the
+    band still answers, even when it has passed. The cut holds in every
+    locale, because it follows from what "tonight" names, not from the
+    English clock: CLDR gives hr a night of 21:00-04:00 and cs and sk one of
+    22:00-04:00, so hr "noću" at 13:04 is 22:30.
+
+    ``default_time`` supplies the time of day only where the phrase
+    left it unsaid: a day or wider that opens at midnight names a date, while
+    a counted offset has already fixed a moment and keeps the anchor's clock.
+    "in two hours" is 15:04 at a 13:04 anchor, and "in three days" is three
+    days later at 13:04, so a default must not overwrite either.
+
+    A span outside the range ``datetime`` can hold has no instant. chronologia
+    reads "44 bc" and "66 million years ago" correctly and this signature
+    cannot carry either, so the answer is None rather than an exception --
+    :func:`extract_timespan` is the way to reach them.
+
+    chronologia answers in the anchor's wall clock and drops its zone, so the
+    instant takes the anchor's zone. A pytz anchor carries the offset of its
+    own date, so the instant takes the IANA zone it names: Christmas asked
+    from a Copenhagen anchor in October is +01:00, not October's +02:00.
+    """
+    zone = _as_zoneinfo(anchor.tzinfo)
+    start = span.start
+    if span.end - start <= _EXACT:
+        return _fits_datetime(start, zone)
+    if _is_daypart(span, lang):
+        if default_time is not None:
+            candidate = start.replace(hour=default_time.hour,
+                                      minute=default_time.minute,
+                                      second=default_time.second)
+            if span.contains(candidate):
+                return _fits_datetime(candidate, zone)
+        since_midnight = start - start.replace(hour=0, minute=0, second=0,
+                                               microsecond=0)
+        width = min(span.end - start, _DAY - since_midnight)
+        middle = start + width / 2
+        now = start.replace(year=anchor.year, month=anchor.month,
+                            day=anchor.day, hour=anchor.hour,
+                            minute=anchor.minute, second=anchor.second,
+                            microsecond=anchor.microsecond)
+        if middle < now < start + width:
+            return _fits_datetime(now, zone)
+        return _fits_datetime(middle, zone)
+    if (span.end - start >= _DAY and start.time() == time(0, 0)
+            and default_time is not None):
+        # A stretch of whole days that opens at midnight names a date, and
+        # the time of day is not part of what was said, so ``default_time``
+        # supplies it. A counted offset opens at the anchor's clock instead.
+        return _fits_datetime(
+            start.replace(hour=default_time.hour,
+                          minute=default_time.minute,
+                          second=default_time.second), zone)
+    return _fits_datetime(start, zone)
+
+
+def _fits_datetime(point, zone: Optional[tzinfo]) -> Optional[datetime]:
+    """An ``AstroDate`` as a ``datetime`` in ``zone``, or None when the
+    year cannot fit."""
+    try:
+        return datetime(point.year, point.month, point.day, point.hour,
+                        point.minute, point.second, point.microsecond,
+                        tzinfo=zone)
+    except ValueError:
+        return None
+
+
+def _extract_datetime_chronologia(
+        text: str, lang: str, anchorDate: Optional[datetime],
+        default_time: Optional[time]) -> Optional[Tuple[datetime, str]]:
+    """Answer through chronologia, which owns the extraction for this locale.
+
+    :func:`extract_timespan` rather than the candidate list, because it is the
+    gated reading. An impossible date leaves a candidate behind -- "31 travanj
+    2020" offers April with the 31 stranded -- and answering that would be a
+    date the speaker did not give.
+
+    With no anchor, "now" is :func:`now_local`, the configured zone's wall
+    clock, as on every other locale.
+
+    A bare length ("2 hodiny 30 minut") names no point in time, so
+    chronologia declines it and so does this signature. A counted offset
+    with a direction word ("za 2 hodiny") names one.
+    """
+    anchor = anchorDate or now_local()
+    found = extract_timespan(text, lang, anchor)
+    if found is None:
+        return None
+    found = _range_endpoint(found, text, lang, anchor)
+    return _routed(found, lang, default_time, anchor)
+
+
+def _range_endpoint(found, text: str, lang: str, anchor: datetime):
+    """A range that opens at the anchor ("until easter") answers the date it
+    reaches, with its opening words left in the remainder."""
+    if (found.span.end - found.span.start <= _EXACT
+            or found.span.start != AstroDate.from_datetime(
+                anchor.replace(tzinfo=None))):
+        return found
+    mentions = _chronologia_timespans(text, lang, anchor)
+    for candidate in _chronologia_candidates(text, lang, anchor, limit=10):
+        span = candidate.span
+        if span.start <= found.span.start or found.span.end not in (
+                span.end, span.start):
+            continue
+        date = next((m for m in mentions if m.span == span), None)
+        opening = (set(candidate.remainder.lower().split())
+                   - set(found.remainder.lower().split()))
+        if (date is not None and date.char_span is not None
+                and opening <= set(text[:date.char_span[0]].lower().split())):
+            return found._replace(span=span, remainder=candidate.remainder)
+    return found
+
+
+def _routed(found, lang: str, default_time: Optional[time],
+            anchor: datetime):
+    moment = _instant(found.span, lang, default_time, anchor)
+    if moment is None:
+        return None
+    return [moment, found.remainder]
 
 
 def extract_datetime(
@@ -358,89 +728,270 @@ def extract_datetime(
     Returns:
         A tuple with the extracted date as datetime and the leftover string,
         or None if no date or time related text is found.
+
+    A named holiday is a date this library's per-language engines carry no
+    vocabulary for: "christmas", "noel" and "proxima pascoa" are rules in
+    :mod:`chronologia`, not calendar constructions. When the language engine
+    reads no date, :func:`ovos_date_parser.holidays.extract_holiday_span`
+    asks chronologia, and its answer is taken only when chronologia says a
+    holiday construction is what matched. An utterance the engine already
+    reads keeps the engine's answer, with one exception: a holiday whose own
+    name is written with calendar vocabulary ("good friday", "palm sunday")
+    is read by the engine as that weekday, so when the engine answers the
+    holiday phrase on its own with the same date it gave the whole text
+    (:func:`~ovos_date_parser.holidays.holiday_overrides_engine`) the holiday
+    layer answers instead. A time of day, an ordinal or any other word beside
+    the holiday name does not stop this, because it does not move the date.
+    A date the engine read from a calendar word the phrase does not cover is
+    a different date, and stays the engine's. A locale routed to chronologia
+    keeps chronologia's answer, which reads the holiday name itself together
+    with a time of day beside it.
+
+    No text (None or "") is no date, on every locale. A tag reads the same
+    in any case and with "_" for "-" ("EN-US", "pt_br").
     """
-    if lang.startswith("an"):
-        return extract_datetime_an(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ar"):
-        return extract_datetime_ar(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ast"):
-        return extract_datetime_ast(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("az"):
-        return extract_datetime_az(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ca"):
-        return extract_datetime_ca(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("cs"):
-        return extract_datetime_cs(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("sk"):
-        return extract_datetime_sk(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("hr"):
-        return extract_datetime_hr(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("bg"):
-        return extract_datetime_bg(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("da"):
-        return extract_datetime_da(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("de"):
-        return extract_datetime_de(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("en"):
-        return extract_datetime_en(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("es"):
-        return extract_datetime_es(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("et"):
-        return extract_datetime_et(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("eu"):
-        return extract_datetime_eu(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fa"):
-        return extract_datetime_fa(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fi"):
-        return extract_datetime_fi(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fr"):
-        return extract_datetime_fr(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("fy"):
-        return extract_datetime_fy(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("gl"):
-        return extract_datetime_gl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("el"):
-        return extract_datetime_el(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("he"):
-        return extract_datetime_he(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("oc"):
-        return extract_datetime_oc(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ro"):
-        return extract_datetime_ro(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("hu"):
-        return extract_datetime_hu(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("it"):
-        return extract_datetime_it(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("kab"):
-        return extract_datetime_kab(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("nl"):
-        return extract_datetime_nl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("nn"):
-        return extract_datetime_nn(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("nb") or lang.startswith("no"):
-        return extract_datetime_nb(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("pl"):
-        return extract_datetime_pl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("pt"):
-        return extract_datetime_pt(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("ru"):
-        return extract_datetime_ru(text, anchor_date=anchorDate, default_time=default_time)
-    if lang.startswith("sl"):
-        return extract_datetime_sl(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("sv"):
-        return extract_datetime_sv(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("uk"):
-        return extract_datetime_uk(text, anchor_date=anchorDate, default_time=default_time)
-    if lang.startswith("ms"):
-        return extract_datetime_ms(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("id"):
-        return extract_datetime_id(text, anchorDate=anchorDate, default_time=default_time)
-    if lang.startswith("tr"):
-        return extract_datetime_tr(text, anchorDate=anchorDate, default_time=default_time)
+    if not text:
+        return None
+    lang = _reader_lang(lang)
+    found = _extract_datetime_engine(text, lang, anchorDate=anchorDate,
+                                     default_time=default_time)
+    routed = primary_language(lang) in CHRONOLOGIA_LOCALES
+    # a routed answer is chronologia's, which already read any holiday name
+    # with the time of day beside it ("no Natal à noite")
+    if found is not None and (routed or not holiday_overrides_engine(
+            text, lang, found[0], found[1], anchorDate=anchorDate)):
+        return found
+    holiday = _holiday_answer(text, lang, anchorDate)
+    if holiday is None:
+        # one return for both ways of arriving here: the engine read nothing
+        # and ``found`` is None, which is the old contract, or the override
+        # sent an engine answer to a holiday layer that then declined, and
+        # the engine's answer stands.
+        return found
+    moment, remainder, clock_read = holiday
+    if default_time is not None and not clock_read:
+        moment = moment.replace(hour=default_time.hour,
+                                minute=default_time.minute,
+                                second=default_time.second,
+                                microsecond=default_time.microsecond)
+    return moment, remainder
+
+
+# A weekday named with the word that places it: 次の金曜日, 来週の金曜日.
+# dateparser's ja dictionary has no 次 or 今度, so 次の金曜日 is read as a bare
+# 金曜日, which it places in the past; and it joins 来週 + 金曜日 into
+# "in 1 weekfriday", which it cannot read.
+# 再来週 and 先々週 come before 来週 and 先週 so the longer word wins: in
+# 再来週の金曜日 a search for 来週 alone would start inside 再来週 and land a
+# week early.
+_JA_WEEKDAY = re.compile(
+    r"(?P<week>次の|今度の|再来週の?|先々週の?|来週の?|今週の?|先週の?)"
+    r"(?P<day>[月火水木金土日])曜日?")
+_JA_WEEKDAYS = "月火水木金土日"  # Monday first, as datetime.weekday() counts
+_JA_WEEK_OFFSET = {"再来週": 2, "来週": 1, "今週": 0, "先週": -1, "先々週": -2}
+# A clock, or a part of the day. The date is read without it, so a text that
+# holds one is left to the fallback rather than answered at midnight.
+# A numeric clock (13:00, or full-width １３：００) counts as one too.
+_JA_CLOCK = re.compile(
+    r"[時分秒]|午前|午後|正午|朝|昼|夕方|晩|夜|[0-9０-９]{1,2}[:：][0-9０-９]{2}")
+
+
+def _extract_weekday_ja(text: str, anchorDate: Optional[datetime] = None,
+                        default_time: Optional[time] = None
+                        ) -> Optional[Tuple[datetime, str]]:
+    """Read a ja weekday named with 次の, 今度の, 再来週, 来週, 今週, 先週 or 先々週.
+
+    次の and 今度の are the first such weekday after the anchor's date, so on
+    a Friday 次の金曜日 is a week away. 来週, 今週 and 先週 are the weekday
+    in the week after, the same as, or before the anchor's, with weeks
+    starting on Monday (ISO 8601).
+
+    Args:
+        text: The ja text, as written.
+        anchorDate: The date to count from; now when None.
+        default_time: The time to give the date; midnight when None.
+
+    Returns:
+        The date and the text without the phrase read, or None when the
+        text names no such weekday or holds a clock. The date is
+        timezone-aware and counted in the configured timezone, like every
+        other ja answer: those come from the fallback, which reads a naive
+        anchor as wall time in that timezone and moves an aware one into
+        it before counting days.
+    """
+    match = _JA_WEEKDAY.search(text)
+    if match is None or _JA_CLOCK.search(text):
+        return None
+    from ovos_config import Configuration
+    tz = ZoneInfo(Configuration()["location"]["timezone"]["code"])
+    anchor = anchorDate or now_local()
+    if anchor.tzinfo is None:
+        anchor = anchor.replace(tzinfo=tz)
+    else:
+        anchor = anchor.astimezone(tz)
+    weekday = _JA_WEEKDAYS.index(match.group("day"))
+    week = match.group("week").rstrip("の")
+    if week in _JA_WEEK_OFFSET:
+        days = weekday - anchor.weekday() + 7 * _JA_WEEK_OFFSET[week]
+    else:  # 次 and 今度: the first one after today
+        days = (weekday - anchor.weekday() - 1) % 7 + 1
+    moment = default_time or time(0, 0)
+    found = (anchor + timedelta(days=days)).replace(
+        hour=moment.hour, minute=moment.minute, second=moment.second,
+        microsecond=moment.microsecond)
+    return found, text[:match.start()] + text[match.end():]
+
+
+_EDGE_PUNCTUATION = re.compile(
+    r"([(\[{\"\u201c\u00ab]*)(.*?)([.,;:!?)\]}\"\u201d\u00bb]*)", re.S)
+
+
+def _separate_punctuation(text: str) -> str:
+    """Put a space between each word and the punctuation written against it.
+
+    The per-language engines split on whitespace, so "8," and "(monday"
+    reach them as one word that matches no clock or weekday. Punctuation
+    inside a word ("8.30", "8:30", "25/12", "o'clock") stays where it is. A
+    closing dot stays too, unless it ends the text or follows a word longer
+    than four letters: it may belong to "a.m.", "dez." or "3. Dezember".
+    """
+    def spaced(match: re.Match) -> str:
+        lead, core, trail = _EDGE_PUNCTUATION.fullmatch(match.group()).groups()
+        if not core:
+            return match.group()
+        sentence_end = match.end() == len(text) or (
+            core.isalpha() and len(core) > 4)
+        if trail.startswith(".") and ("." in core or not sentence_end):
+            core, trail = core + ".", trail[1:]
+        return " ".join(part for part in (lead, core, trail) if part)
+
+    return re.sub(r"\S+", spaced, text)
+
+
+def _extract_datetime_engine(
+        text: str,
+        lang: str,
+        anchorDate: Optional[datetime] = None,
+        default_time: Optional[time] = None,
+) -> Optional[Tuple[datetime, str]]:
+    """The per-language extractors, and the dateparser fallback behind them.
+
+    Split out of :func:`extract_datetime` so the holiday layer has a place to
+    stand behind every language at once, instead of a branch in each.
+
+    A text with punctuation written against a word is read twice, as written
+    and with the punctuation separated ("a las 8, por favor" as "a las 8 ,
+    por favor"). The separated reading replaces a reading as written only
+    where that one finds nothing, or finds the same date without a time of
+    day and the separated reading leaves no more words over. It must also
+    agree with the reading of the words before the first mark. Elsewhere the
+    text as written stands, because some engines use a glued comma and others
+    take the words after a lone one as a new phrase.
+    """
+    if primary_language(lang) in CHRONOLOGIA_LOCALES:
+        return _extract_datetime_chronologia(text, lang, anchorDate,
+                                             default_time)
+    spaced = _separate_punctuation(text)
+    if spaced == text:
+        return _extract_datetime_fallback(text, lang, anchorDate, default_time)
+    if anchorDate is None:
+        anchorDate = now_local()
+    found = _extract_datetime_fallback(text, lang, anchorDate, default_time)
+    separated = _extract_datetime_fallback(spaced, lang, anchorDate,
+                                         default_time)
+    if separated is None:
+        return found
+    words = [word for word in separated[1].split() if _is_word(word)]
+    if found is not None and not (
+            _adds_clock(found[0], separated[0])
+            and len(words) <= len(found[1].split())):
+        return found
+    if separated[0].time() != time(0) and not _holds_clock(
+            spaced, separated[1]):
+        return found
+    # The engines read a lone "," as a word that ends a phrase, which the
+    # words before the first mark confirm or deny.
+    clause = _first_clause(spaced)
+    if clause != spaced:
+        lead = _extract_datetime_fallback(clause, lang, anchorDate,
+                                        default_time)
+        if lead is not None and lead[0] != separated[0]:
+            return found
+    return [separated[0], " ".join(words)]
+
+
+# A clock written as one token: hours and minutes. A bare "8h" is also a
+# duration, so it is not one.
+_CLOCK_FORMAT = re.compile(r"\d{1,2}h\d{2}|\d{1,2}:\d{2}")
+
+
+def _consumed(words: List[str], leftover: str) -> set:
+    """Positions of ``words`` that a reading took out of its leftover text."""
+    kept = set()
+    last = -1
+    for token in leftover.split():
+        token = _bare(token)
+        for index in range(last + 1, len(words)):
+            if _bare(words[index]) == token:
+                kept.add(index)
+                last = index
+                break
+    return set(range(len(words))) - kept
+
+
+def _bare(token: str) -> str:
+    return "".join(char for char in token.lower() if char.isalnum())
+
+
+def _holds_clock(spaced: str, leftover: str) -> bool:
+    """True when the reading took up a token written as hours and minutes
+    ("8h30", "8:30"). A lone number is not one, nor are labels such as "4B"
+    and "2.3"."""
+    words = [word for word in spaced.split() if _is_word(word)]
+    return any(_CLOCK_FORMAT.fullmatch(words[position].lower())
+               for position in _consumed(words, leftover))
+
+
+def _adds_clock(written: datetime, separated: datetime) -> bool:
+    """True when ``separated`` is ``written`` with a time of day added."""
+    return (written.time() == time(0) and separated.time() != time(0)
+            and written.date() == separated.date())
+
+
+def _is_word(token: str) -> bool:
+    return any(char.isalnum() for char in token)
+
+
+def _first_clause(spaced: str) -> str:
+    """The words before the first punctuation mark that follows a word."""
+    clause: List[str] = []
+    for token in spaced.split():
+        if _is_word(token):
+            clause.append(token)
+        elif clause:
+            break
+    return " ".join(clause)
+
+
+def _extract_datetime_fallback(
+        text: str,
+        lang: str,
+        anchorDate: Optional[datetime],
+        default_time: Optional[time],
+) -> Optional[Tuple[datetime, str]]:
+    """The reading of a language chronologia does not route: dateparser, with
+    a weekday reader for ja and an unspaced reader for zh beside it."""
+    if primary_language(lang) == "ja":
+        found = _extract_weekday_ja(text, anchorDate, default_time)
+        if found:
+            return found
 
     # fallback parser
     LOG.warning(f"{lang} is not implemented! attempting to use fallback date parser")
 
+    # ovos-config creates its config folder on import, so it loads here and
+    # not when the package is imported.
+    from ovos_config import Configuration
     tzstr = Configuration()["location"]["timezone"]["code"]
     fmt = Configuration().get("date_format", 'DMY')
     settings = {'RELATIVE_BASE': anchorDate or now_local(),
@@ -451,7 +1002,7 @@ def extract_datetime(
 
     try:  # assume full text is a date with no leftover
         date = dateparser.parse(text,
-                                languages=[lang.split("-")[0]],
+                                languages=[primary_language(lang)],
                                 settings=settings)
         if date:
             return date, ""
@@ -461,7 +1012,7 @@ def extract_datetime(
     # less accurate substring search
     try:
         dates = search_dates(text,
-                             languages=[lang.split("-")[0]],
+                             languages=[primary_language(lang)],
                              settings=settings)
         if dates:
             date_txt, date = dates[0]
@@ -469,8 +1020,306 @@ def extract_datetime(
     except:
         pass
 
+    # zh is written without spaces, and dateparser joined the English words
+    # it translated it into with no space either
+    if primary_language(lang) == "zh":
+        try:
+            found = _extract_date_zh_unspaced(text, settings, default_time)
+            if found:
+                return found
+        except Exception:
+            pass
+
     # fallback found nothing, report no date/time found
     return None
+
+
+@dataclass(frozen=True)
+class DateTimeSpan:
+    """A date or time expression, together with where it was written.
+
+    ``start`` and ``end`` are half-open code-point offsets into the utterance
+    the span was extracted from, so ``utterance[start:end] == surface`` holds.
+    """
+    start: int
+    end: int
+    surface: str
+    value: datetime
+
+
+@dataclass(frozen=True)
+class DurationSpan:
+    """A length of time, together with where it was written.
+
+    Offsets follow the same convention as :class:`DateTimeSpan`.
+    """
+    start: int
+    end: int
+    surface: str
+    value: timedelta
+
+
+#: characters that punctuate a word without belonging to it; a leading or
+#: trailing run of these is not part of an expression's surface
+_SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
+
+#: longest expression the window search considers, in words; long enough for
+#: spoken phrases such as "the day after tomorrow at half past seven in the
+#: evening", and the knob that decides how much the scan costs
+_MAX_SPAN_WORDS = 20
+
+#: how many words the extractor may make nothing of - reading no value, or
+#: leaving them behind - before a window is abandoned: an expression that has
+#: not started or not resumed by then is over. Words it keeps reading do not
+#: count, however long they leave the value unchanged, as in the persian
+#: "یک ساعت و پنجاه و هفت و نیم دقیقه" where only the last word moves it
+_MAX_SPAN_DRIFT = 10
+
+#: an expression's reading, as the extractors report it: the value and the
+#: words they did not consume
+Reading = Tuple[Optional[object], Tuple[str, ...]]
+
+
+def _word_spans(text: str) -> List[Tuple[int, int]]:
+    """Offsets of the whitespace separated words, stripped of edge punctuation."""
+    spans = []
+    for match in re.finditer(r"\S+", text):
+        start, end = match.span()
+        while start < end and text[end - 1] in _SPAN_PUNCTUATION:
+            # a full stop after digits is an ordinal marker in several
+            # languages ("15. juni"), not punctuation around the word
+            if text[end - 1] == "." and text[start:end - 1].isdigit():
+                break
+            end -= 1
+        while start < end and text[start] in _SPAN_PUNCTUATION:
+            start += 1
+        if start < end:
+            spans.append((start, end))
+    return spans
+
+
+def _joined(text: str, words: List[Tuple[int, int]], first: int, last: int) -> bool:
+    """Whether two neighbouring words can belong to the same expression.
+
+    Punctuation between them is no boundary on its own: the apostrophe in the
+    dutch "3 uur 's middags" and the commas in "2 hours, 30 minutes, and 10
+    seconds" sit inside one expression, and the extractor reads the slice
+    whole. What decides is whether it consumes the words, not the character
+    between them.
+    """
+    gap = text[words[first][1]:words[last][0]].strip()
+    return not gap or all(char in _SPAN_PUNCTUATION for char in gap)
+
+
+def _read_expression(text: str, words: List[Tuple[int, int]], index: int,
+                     read: Callable[[str], Reading], additive: bool):
+    """The longest window from ``index`` that reads as a single expression.
+
+    A window is one expression when the extractor consumed all of it, or when
+    a single word it left behind bridges two halves that need each other, as
+    in the swedish "om 8 veckor och 2 dagar" and the portuguese "duas horas e
+    trinta minutos". A bridge is told from a boundary by what follows it: in
+    "monday to friday" the reading of "to friday" is the reading of the whole,
+    so "to" ends monday's span rather than bridging it.
+    """
+    start = words[index][0]
+    found = None
+    shorter = None
+    lost = None
+    core = index
+    for cursor in range(index, min(index + _MAX_SPAN_WORDS, len(words))):
+        if cursor > index and not _joined(text, words, cursor - 1, cursor):
+            break
+        end = words[cursor][1]
+        value, leftover = read(text[start:end])
+        if value is None:
+            if found is not None and lost is None:
+                lost = cursor
+        elif value != shorter:
+            bridged = len(leftover) == 1 and all(
+                read(text[words[inner][0]:end])[0] != value
+                for inner in range(core + 1, cursor + 1))
+            if (not leftover or bridged) and (
+                    lost is None or not additive or
+                    _reads_as_one(text, words, lost, cursor, value, read)):
+                found = (cursor, value, len(leftover))
+        if value is not None and not leftover:
+            core = cursor
+        if cursor - core >= _MAX_SPAN_DRIFT:
+            break
+        shorter = value
+    return found
+
+
+def _reads_as_one(text: str, words: List[Tuple[int, int]], lost: int,
+                  cursor: int, value: object, read: Callable[[str], Reading]) -> bool:
+    """Whether nothing inside a window reads as an expression of its own.
+
+    Asked where the extractor lost the thread inside the window - it read an
+    expression, then nothing for a longer window, then a value again for a
+    longer one still, which is what a run-on of two expressions looks like.
+    "in ten minutes and again in half an hour" reads as ten and a half hours,
+    a length nobody said, so such a window counts as one expression only when
+    every reading starting where the thread was lost agrees with the whole.
+    """
+    end = words[cursor][1]
+    return all(read(text[words[inner][0]:end])[0] in (None, value)
+               for inner in range(lost, cursor + 1))
+
+
+def _widen_expression(text: str, words: List[Tuple[int, int]], first: int,
+                      last: int, value: object, slack: int,
+                      read: Callable[[str], Reading], floor: int) -> Tuple[int, int]:
+    """Pull in the neighbouring words the extractor also consumes.
+
+    The window search finds the value; it does not find the whole expression,
+    because a word that does not move the value never joins by that test.
+    Widening recovers those words - "next", "this", "at", "pm" - by growing
+    outward while the value stays put and the added words are consumed, which
+    is what keeps "from" and "to" out: they survive in the leftover. A word
+    that carries nothing on its own is stepped over rather than stopping the
+    widening, so "da" joins on the way to "manhã".
+    """
+    probe = first
+    while probe > floor and probe > last - _MAX_SPAN_WORDS + 1 and \
+            _joined(text, words, probe - 1, probe):
+        probe -= 1
+        grown, leftover = read(text[words[probe][0]:words[last][1]])
+        if grown == value and len(leftover) <= slack:
+            first = probe
+    probe = last
+    while probe + 1 < min(len(words), first + _MAX_SPAN_WORDS) and \
+            _joined(text, words, probe, probe + 1):
+        probe += 1
+        grown, leftover = read(text[words[first][0]:words[probe][1]])
+        if grown == value and len(leftover) <= slack:
+            last = probe
+    return first, last
+
+
+def _core_expression(text: str, words: List[Tuple[int, int]], first: int,
+                     last: int, value: object,
+                     read: Callable[[str], Reading]) -> int:
+    """Where the expression starts once its framing words are dropped.
+
+    "at 5 pm" reads as "5 pm" and "from monday" as "monday": the leading words
+    frame the expression without carrying it. The last word that can be
+    dropped while the value holds and the extractor still consumes everything
+    marks the core.
+    """
+    while first < last:
+        grown, leftover = read(text[words[first + 1][0]:words[last][1]])
+        if grown != value or leftover:
+            break
+        first += 1
+    return first
+
+
+def _expression_spans(text: str, read: Callable[[str], Reading],
+                      additive: bool = False) -> List[Tuple[int, int, object]]:
+    """Find the expressions ``read`` recognises, as ``(start, end, value)``.
+
+    Words are grown into an expression from each starting word in turn, the
+    window is widened over the words around it, and the search resumes after
+    it, so two expressions in one utterance never merge into a value nobody
+    said. An expression whose framing words can be dropped without changing
+    the reading is reported twice, as the written phrase and as its core, so
+    a consumer holding either text finds it. The window handed to ``read`` is
+    always the raw slice ``text[start:end]``, and windows are bounded in
+    length, so the scan stays linear in the length of the text.
+    """
+    words = _word_spans(text)
+    spans = []
+    index = floor = 0
+    while index < len(words):
+        found = _read_expression(text, words, index, read, additive)
+        if found is None:
+            index += 1
+            continue
+        last, value, slack = found
+        first, last = _widen_expression(text, words, index, last, value, slack,
+                                        read, floor)
+        end = words[last][1]
+        core = _core_expression(text, words, first, last, value, read)
+        spans.append((words[first][0], end, value))
+        if core != first:
+            spans.append((words[core][0], end, value))
+        index = floor = last + 1
+    return spans
+
+
+def extract_datetime_spans(
+        text: str,
+        lang: str,
+        anchor_date: Optional[datetime] = None,
+        default_time: Optional[time] = None,
+) -> List[DateTimeSpan]:
+    """Extract every date or time expression in a text with its offsets.
+
+    Each span covers a whole expression, so "next friday at 5 pm" is one and
+    "from monday to friday" is two. An expression written with framing words
+    also comes back as its core, so "next friday" is reported both whole and
+    as "friday", with the same value. Spans come back sorted by ``start``.
+
+    Args:
+        text: the utterance to scan.
+        lang: the BCP-47 code for the language to use.
+        anchor_date: the "now" relative expressions resolve against, the wall
+            clock by default. Passed to the extractor as given; a value that
+            comes back without a zone is read in the anchor's zone, or in the
+            local one when the anchor carries none.
+        default_time: time to use for expressions that name no time of day.
+
+    Returns:
+        The expressions found, in the order they are written.
+    """
+    if not isinstance(text, str):
+        return []
+    zone = anchor_date.tzinfo if anchor_date else None
+
+    def read(fragment: str) -> Reading:
+        found = extract_datetime(fragment, lang, anchorDate=anchor_date,
+                                 default_time=default_time)
+        if not found or found[0] is None:
+            return None, ()
+        value, leftover = found
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=zone) if zone else value.astimezone()
+        return value, tuple(leftover.split())
+
+    return [DateTimeSpan(start, end, text[start:end], value)
+            for start, end, value in _expression_spans(text, read)]
+
+
+def extract_duration_spans(text: str, lang: str) -> List[DurationSpan]:
+    """Extract every duration in a text with its offsets.
+
+    Each span covers a whole duration, so "in two hours and thirty minutes"
+    is one span, reported both whole and as its core when the two differ.
+    Spans come back sorted by ``start``.
+
+    Args:
+        text: the utterance to scan.
+        lang: the BCP-47 code for the language to use.
+
+    Returns:
+        The durations found, in the order they are written.
+    """
+    if not isinstance(text, str):
+        return []
+
+    def read(fragment: str) -> Reading:
+        value, leftover = extract_duration(fragment, lang)
+        return value, tuple(leftover.split())
+
+    return [DurationSpan(start, end, text[start:end], value)
+            for start, end, value in _expression_spans(text, read, additive=True)]
+
+
+#: Span-native natural-language extraction (text -> DateSpan) is owned by
+#: the reckoning core. ``extract_timespan`` and ``explain`` are re-exported
+#: here unchanged so the parser keeps its public surface.
+from chronologia import extract_timespan, explain
 
 
 NUMBER_TUPLE = namedtuple(
@@ -486,21 +1335,25 @@ class DateTimeFormat:
     def __init__(self, config_path):
         self.lang_config = {}
         self.config_path = config_path
+        self._resource_keys = {}
+
+    def _resource_key(self, lang):
+        """The key ``lang`` is cached under: the full tag when a regional
+        resource folder ships for it (``res/pt-br/``), else the language."""
+        if lang not in self._resource_keys:
+            tag = lang.strip()
+            self._resource_keys[lang] = (
+                closest_lang(tag, sorted(os.listdir(self.config_path)), max_distance=0)
+                or writer_lang(tag) or lang)
+        return self._resource_keys[lang]
 
     def cache(self, lang):
-        lang = lang.split("-")[0]
-        # "no" is a common alias for Norwegian Bokmål (nb); the dedicated
-        # nice_time/extract_datetime/extract_duration functions already
-        # special-case it, but this generic JSON-driven engine (used by
-        # nice_year/nice_date/nice_date_time) didn't have its own resource
-        # directory for it - load Bokmål's data under the "no" key instead.
-        resource_lang = "nb" if lang == "no" else lang
-        # TODO - find closest lang code
+        lang = self._resource_key(lang)
         if lang not in self.lang_config:
-            path = self.config_path + '/' + resource_lang + '/date_time.json'
+            path = self.config_path + '/' + lang + '/date_time.json'
             if not os.path.isfile(path):
                 LOG.warning(f"could not find '{path}'")
-                return
+                return lang
             with open(path, 'r', encoding='utf8') as lang_config_file:
                 self.lang_config[lang] = json.loads(
                     lang_config_file.read())
@@ -513,9 +1366,10 @@ class DateTimeFormat:
                         re.compile(self.lang_config[lang][x][str(i)]['match']
                                    ))
                     i = i + 1
+        return lang
 
     def _number_strings(self, number, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         x = (self.lang_config[lang]['number'].get(str(number % 10)) or
              str(number % 10))
         xx = (self.lang_config[lang]['number'].get(str(number % 100)) or
@@ -552,7 +1406,7 @@ class DateTimeFormat:
             x_in_x000, x0_in_x000, x_in_0x00)
 
     def _format_string(self, number, format_section, lang):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
         s = self.lang_config[lang][format_section]['default']
         i = 1
         while self.lang_config[lang][format_section].get(str(i)):
@@ -603,7 +1457,8 @@ class DateTimeFormat:
                         formatted_hundreds=formatted_hundreds,
                         number=str(number % 10000))
 
-    def date_format(self, dt, lang, now, include_weekday=True):
+    def date_format(self, dt, lang, now, include_weekday=True,
+                    formatted_year=None, formatted_day=None):
         """
         Format a datetime object as a localized date string according to language-specific templates.
         
@@ -612,12 +1467,18 @@ class DateTimeFormat:
             lang (str): Language code for localization.
             now (datetime): Reference date for relative formatting (e.g., today, tomorrow).
             include_weekday (bool): If True, includes the weekday name in the output.
+            formatted_year (str, optional): The year as the language's own
+                speller writes it, used instead of the ``year_format`` resource.
+            formatted_day (str, optional): The day as the language's own
+                speller writes it, used instead of the ``date`` resource.
         
         Returns:
             str: The formatted date string, localized and optionally including the weekday.
         """
         format_str = 'date_full'
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
+        if lang not in self.lang_config:
+            raise NotImplementedError(f"Unsupported language: {lang}")
         if now:
             if dt.year == now.year:
                 format_str = 'date_full_no_year'
@@ -634,27 +1495,38 @@ class DateTimeFormat:
                 format_str = 'yesterday'
 
         unformatted = self.lang_config[lang]['date_format'][format_str]
+        # a date takes the month's format form (CLDR monthContext "format"),
+        # the genitive in Polish; "month" keeps the stand-alone form
+        months = self.lang_config[lang].get('month_format',
+                                            self.lang_config[lang]['month'])
         args = dict(
-                month=self.lang_config[lang]['month'][str(dt.month)],
-                day=self.lang_config[lang]['date'][str(dt.day)],
-                formatted_year=self.year_format(dt, lang, False)
+                month=months[str(dt.month)],
+                day=formatted_day or self.lang_config[lang]['date'][str(dt.day)],
+                formatted_year=formatted_year or self.year_format(dt, lang, False)
         )
         if include_weekday:
             args["weekday"] = self.lang_config[lang]['weekday'][str(dt.weekday())]
         else:
-            unformatted = re.sub(r"{weekday}\s*,?\s*", "", unformatted).strip(", ")
+            unformatted = re.sub(r"{weekday}\s*[,،]?\s*", "", unformatted).strip(", ،")
         return unformatted.format(**args)
 
-    def date_time_format(self, dt, lang, now, use_24hour, use_ampm):
-        lang = lang.split("-")[0]
-        date_str = self.date_format(dt, lang, now)
-        time_str = nice_time(dt, lang, use_24hour=use_24hour,
-                             use_ampm=use_ampm)
+    def date_time_format(self, dt, lang, now, use_24hour, use_ampm,
+                         formatted_year=None, formatted_day=None,
+                         formatted_time=None):
+        lang = self._resource_key(lang)
+        date_str = self.date_format(dt, lang, now,
+                                    formatted_year=formatted_year,
+                                    formatted_day=formatted_day)
+        time_str = formatted_time or nice_time(dt, lang,
+                                               use_24hour=use_24hour,
+                                               use_ampm=use_ampm)
         return self.lang_config[lang]['date_time_format']['date_time'].format(
             formatted_date=date_str, formatted_time=time_str)
 
     def year_format(self, dt, lang, bc, ad=False):
-        lang = lang.split("-")[0]
+        lang = self._resource_key(lang)
+        if lang not in self.lang_config:
+            raise NotImplementedError(f"Unsupported language: {lang}")
         number_tuple = self._number_strings(dt.year, lang)
         formatted_bc = (
             self.lang_config[lang]['year_format']['bc'] if bc else '')
@@ -708,29 +1580,48 @@ def nice_date(dt, lang, now=None, include_weekday=True):
     Returns:
         (str): The formatted date string
     """
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
-        return nice_date_pt(dt, now, include_weekday)
-    if lang.startswith("es"):
+    dt = _as_datetime(dt)
+    now = _as_datetime(now) if now is not None else None
+    tag = lang
+    code = writer_lang(tag)
+    if code == "pt":
+        return nice_date_pt(dt, now, include_weekday,
+                            variant=portuguese_variant(tag))
+    if code == "es":
         return nice_date_es(dt, now, include_weekday)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_date_gl(dt, now, include_weekday)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_date_el(dt, now, include_weekday)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_date_he(dt, now, include_weekday)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_date_oc(dt, now, include_weekday)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_date_ro(dt, now, include_weekday)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_date_ast(dt, now, include_weekday)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_date_an(dt, now, include_weekday)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_date_fy(dt, now, include_weekday)
-    date_time_format.cache(lang)
-    return date_time_format.date_format(dt, lang, now, include_weekday)
+    date_time_format.cache(tag)
+    if code == "eu":
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday,
+            formatted_year=nice_date_year_eu(dt),
+            formatted_day=nice_date_day_eu(dt))
+    if code == "pl":
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday,
+            formatted_year=nice_year_pl(dt, genitive=True))
+    if code == "cs":
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday, formatted_year=nice_year_cs(dt))
+    if code == "sv":
+        return date_time_format.date_format(
+            dt, tag, now, include_weekday, formatted_year=nice_year_sv(dt))
+    return date_time_format.date_format(dt, tag, now, include_weekday)
 
 
 def nice_date_time(dt, lang, now=None, use_24hour=False,
@@ -754,54 +1645,84 @@ def nice_date_time(dt, lang, now=None, use_24hour=False,
         Returns:
             (str): The formatted date time string
     """
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
-        return nice_date_time_pt(dt, now, use_24hour, use_ampm)
-    if lang.startswith("es"):
+    dt = _as_datetime(dt)
+    now = _as_datetime(now) if now is not None else None
+    tag = lang
+    code = writer_lang(tag)
+    if code == "pt":
+        return nice_date_time_pt(dt, now, use_24hour, use_ampm,
+                                 variant=portuguese_variant(tag))
+    if code == "es":
         return nice_date_time_es(dt, now, use_24hour, use_ampm)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_date_time_gl(dt, now, use_24hour, use_ampm)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_date_time_el(dt, now, use_24hour, use_ampm)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_date_time_he(dt, now, use_24hour, use_ampm)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_date_time_oc(dt, now, use_24hour, use_ampm)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_date_time_ro(dt, now, use_24hour, use_ampm)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_date_time_ast(dt, now, use_24hour, use_ampm)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_date_time_an(dt, now, use_24hour, use_ampm)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_date_time_fy(dt, now, use_24hour, use_ampm)
-    date_time_format.cache(lang)
-    return date_time_format.date_time_format(dt, lang, now, use_24hour, use_ampm)
+    date_time_format.cache(tag)
+    if code == "eu":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_date_year_eu(dt),
+            formatted_day=nice_date_day_eu(dt),
+            formatted_time=nice_time_inessive_eu(dt, use_24hour, use_ampm))
+    if code == "pl":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_year_pl(dt, genitive=True))
+    if code == "cs":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_year_cs(dt))
+    if code == "sv":
+        return date_time_format.date_time_format(
+            dt, tag, now, use_24hour, use_ampm,
+            formatted_year=nice_year_sv(dt))
+    return date_time_format.date_time_format(dt, tag, now, use_24hour, use_ampm)
 
 
 def nice_day(dt, lang, date_format='DMY', include_month=True):
-    if lang.startswith("pt"):
+    dt = _as_datetime(dt)
+    code = writer_lang(lang)
+    if code == "pt":
         return nice_day_pt(dt, date_format, include_month)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_day_es(dt, date_format, include_month)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_day_gl(dt, date_format, include_month)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_day_el(dt, date_format, include_month)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_day_he(dt, date_format, include_month)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_day_oc(dt, date_format, include_month)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_day_ro(dt, date_format, include_month)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_day_ast(dt, date_format, include_month)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_day_an(dt, date_format, include_month)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_day_fy(dt, date_format, include_month)
     if include_month:
-        month = nice_month(dt, lang, date_format)
+        # a day and a month take the month's format form (CLDR monthContext
+        # "format"), the genitive in cs and pl: "21 ledna", "11 stycznia"
+        key = date_time_format.cache(lang)
+        month_format = date_time_format.lang_config.get(key, {}).get(
+            'month_format')
+        month = (month_format[str(dt.month)] if month_format
+                 else nice_month(dt, lang, date_format))
         if date_format == 'MDY':
             return "{} {}".format(month, dt.strftime("%d"))
         else:
@@ -810,32 +1731,33 @@ def nice_day(dt, lang, date_format='DMY', include_month=True):
 
 
 def nice_weekday(dt, lang):
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
+    dt = _as_datetime(dt)
+    code = writer_lang(lang)
+    if code == "pt":
         return nice_weekday_pt(dt)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_weekday_es(dt)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_weekday_gl(dt)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_weekday_el(dt)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_weekday_he(dt)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_weekday_oc(dt)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_weekday_ro(dt)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_weekday_ast(dt)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_weekday_an(dt)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_weekday_fy(dt)
-    date_time_format.cache(lang)
+    key = date_time_format.cache(lang)
 
-    if lang in date_time_format.lang_config.keys():
+    if key in date_time_format.lang_config.keys():
         localized_day_names = list(
-            date_time_format.lang_config[lang]['weekday'].values())
+            date_time_format.lang_config[key]['weekday'].values())
         weekday = localized_day_names[dt.weekday()]
     else:
         weekday = dt.strftime("%A")
@@ -843,30 +1765,31 @@ def nice_weekday(dt, lang):
 
 
 def nice_month(dt, lang, date_format='MDY'):
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
+    dt = _as_datetime(dt)
+    code = writer_lang(lang)
+    if code == "pt":
         return nice_month_pt(dt)
-    if lang.startswith("es"):
+    if code == "es":
         return nice_month_es(dt)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_month_gl(dt)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_month_el(dt)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_month_he(dt)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_month_oc(dt)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_month_ro(dt)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_month_ast(dt)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_month_an(dt)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_month_fy(dt)
-    date_time_format.cache(lang)
-    if lang in date_time_format.lang_config.keys():
-        localized_month_names = date_time_format.lang_config[lang]['month']
+    key = date_time_format.cache(lang)
+    if key in date_time_format.lang_config.keys():
+        localized_month_names = date_time_format.lang_config[key]['month']
         month = localized_month_names[str(int(dt.strftime("%m")))]
     else:
         month = dt.strftime("%B")
@@ -892,38 +1815,315 @@ def nice_year(dt, lang, bc=False, ad=False):
         Returns:
             (str): The formatted year string
     """
-    lang = lang.lower().split("-")[0]
-    if lang.startswith("pt"):
-        return nice_year_pt(dt, bc)
-    if lang.startswith("es"):
+    dt = _as_datetime(dt)
+    if bc and dt.year <= 0:
+        # AstroDate counts years astronomically (1 BC is year 0, 300 BC is
+        # -299); what is spoken is the era year, so hand the formatters that.
+        dt = datetime(1 - dt.year, 1, 1)
+    tag = lang
+    code = writer_lang(tag)
+    if code == "pt":
+        return nice_year_pt(dt, bc, variant=portuguese_variant(tag))
+    if code == "es":
         return nice_year_es(dt, bc)
-    if lang.startswith("gl"):
+    if code == "gl":
         return nice_year_gl(dt, bc)
-    if lang.startswith("el"):
+    if code == "el":
         return nice_year_el(dt, bc)
-    if lang.startswith("he"):
+    if code == "he":
         return nice_year_he(dt, bc)
-    if lang.startswith("oc"):
+    if code == "oc":
         return nice_year_oc(dt, bc)
-    if lang.startswith("ro"):
+    if code == "ro":
         return nice_year_ro(dt, bc)
-    if lang.startswith("ast"):
+    if code == "ast":
         return nice_year_ast(dt, bc)
-    if lang.startswith("an"):
+    if code == "an":
         return nice_year_an(dt, bc)
-    if lang.startswith("fi"):
+    if code == "fi":
         return nice_year_fi(dt, bc)
-    if lang.startswith("fy"):
+    if code == "fy":
         return nice_year_fy(dt, bc)
-    if lang.startswith("et"):
+    if code == "et":
         return nice_year_et(dt, bc)
-    date_time_format.cache(lang)
-    return date_time_format.year_format(dt, lang, bc, ad)
+    if code == "eu":
+        return nice_year_eu(dt, bc)
+    if code == "pl":
+        return nice_year_pl(dt, bc)
+    if code == "cs":
+        return nice_year_cs(dt, bc)
+    if code == "sv":
+        return nice_year_sv(dt, bc)
+    date_time_format.cache(tag)
+    return date_time_format.year_format(dt, tag, bc, ad)
+
+
+#: English month names, indexed 1..12. The unbounded :class:`AstroDate`
+#: refuses locale ``strftime`` directives (``%B``), and a span may sit in a
+#: year no ``datetime`` can hold, so span labels read the month straight off
+#: the integer field instead of formatting a projected ``datetime``.
+_EN_MONTHS = [None, "January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"]
+
+
+#: Gregorian-Arabic month names, indexed 1..12, matching chronologia's
+#: ``ar`` ``month_N.voc`` first entries (the forms its extractor's
+#: ``calendar_date`` construction reads in "DAY MONTH YEAR" / "MONTH YEAR").
+_AR_MONTHS = [None, "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+              "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+#: Hebrew month names, indexed 1..12, matching chronologia's ``he``
+#: ``month_N.voc``. In a full date the month takes a ``ב`` ("in") prefix
+#: ("15 בינואר 2020"); in a month-year it stands bare ("ינואר 2020") -- both
+#: forms are listed in the extractor's vocab, so day-scale labels prepend ``ב``.
+_HE_MONTHS = [None, "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+              "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
+
+#: Decade words keyed by the tens digit (2 -> "twenties"), from the ``ar``/``he``
+#: ``decade_word_N0.voc``. chronologia's ``decade_ref`` resolves a bare decade
+#: word into the **20th century** (e.g. "الثמانينات"/"שנות השמונים" -> 1980s),
+#: so only 1900s decades round-trip; other centuries and the 1900s/1910s (no
+#: word) have no native construction and fall through to the best-effort path.
+_SEMITIC_DECADE_WORD = {
+    "ar": {2: "العشرينات", 3: "الثلاثينات", 4: "الأربعينات", 5: "الخمسينات",
+           6: "الستينات", 7: "السبعينات", 8: "الثمانينات", 9: "التسعينات"},
+    "he": {2: "שנות העשרים", 3: "שנות השלושים", 4: "שנות הארבעים",
+           5: "שנות החמישים", 6: "שנות השישים", 7: "שנות השבעים",
+           8: "שנות השמונים", 9: "שנות התשעים"},
+}
+
+#: BC era marker each extractor's ``era_bc`` ("NUM bc") construction reads.
+#: ``ar`` folds "ق.م" and "ق م" alike; ``he`` uses the gershayim (U+05F4) form
+#: "לפנה״ס" the ``he`` era corpus asserts.
+_SEMITIC_BC_MARKER = {"ar": "ق.م", "he": "לפנה״ס"}
+
+
+def _ordinal(n: int) -> str:
+    """English ordinal for a positive integer: 1 -> '1st', 22 -> '22nd'."""
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def _span_scale(span: "DateSpan") -> str:
+    """Classify a span into the coarsest calendar unit its width represents.
+
+    The width *is* the precision: a one-day span is a day, a ~30-day span a
+    month, a ~3652-day span a decade, and so on (see chronologia's
+    ``DateSpan.resolution``). Sub-day widths split off as ``"time"`` so an
+    instant formats as a clock reading rather than a bare date.
+    """
+    name = span.resolution.name
+    if name == "DAY":
+        # resolution collapses everything <= 1 day to DAY; separate a
+        # clock-precision instant from a whole calendar day by real width.
+        width = span.width
+        seconds = getattr(width, "total_seconds", lambda: 0.0)()
+        return "day" if seconds >= 43200 else "time"
+    if name in ("WEEK", "WEEK_OF_MONTH", "WEEK_OF_YEAR"):
+        return "week"
+    if name.startswith("MONTH"):
+        return "month"
+    if name.startswith("YEAR"):
+        return "year"
+    if name.startswith("DECADE"):
+        return "decade"
+    if name.startswith("CENTURY"):
+        return "century"
+    if name.startswith("MILLENNIUM"):
+        return "millennium"
+    return "era"
+
+
+def _nice_span_en(span: "DateSpan", scale: str) -> str:
+    """English span label, chosen to round-trip through ``extract_timespan``.
+
+    A label from a day up is the canonical written form the chronologia English
+    extractor re-parses to the same span, so
+    ``extract_timespan(nice_span(span, "en"), "en")`` recovers ``span`` for
+    years from 1000 AD onward and from 32 BC back. Nearer the era boundary the
+    year numeral is ambiguous -- a one- or two-digit year reads as a
+    day-of-month and a bare three-digit year does not read as a year at all --
+    and a sub-day span reads as a spoken date and time. Those are labelled but
+    not round-trip gated.
+    """
+    start = span.start
+    bc = start.is_bc
+    year = start.bc_year if bc else start.year
+    if scale == "time":
+        return nice_date_time(start, "en")
+    if scale in ("day", "week"):
+        day = f"{_EN_MONTHS[start.month]} {_ordinal(start.day)}, {year}"
+        if bc:
+            day = f"{day} BC"
+        # A week is named by the day it opens on; extraction snaps "the week
+        # of <date>" back to the week containing that day.
+        return f"the week of {day}" if scale == "week" else day
+    if scale == "month":
+        month = f"{_EN_MONTHS[start.month]} {year}"
+        return f"{month} BC" if bc else month
+    if scale == "year":
+        return f"{start.bc_year} BC" if bc else str(start.year)
+    if scale == "decade":
+        if bc:
+            decade = (start.bc_year // 10) * 10
+            return f"the {decade}s BC"
+        return f"the {(start.year // 10) * 10}s"
+    if scale == "century":
+        if bc:
+            n = (start.bc_year + 99) // 100
+            return f"the {_ordinal(n)} century BC"
+        return f"the {_ordinal(start.year // 100 + 1)} century"
+    if scale == "millennium":
+        if bc:
+            n = (start.bc_year + 999) // 1000
+            return f"the {_ordinal(n)} millennium BC"
+        return f"the {_ordinal(start.year // 1000 + 1)} millennium"
+    # era / geological scale: no compact spoken construct, name it by its
+    # opening year. Not round-trip gated.
+    return f"{start.bc_year} BC" if bc else str(start.year)
+
+
+def _bc_day_label(start: "AstroDate", lang: str) -> str:
+    """Day label for a BC point, naming the era year rather than the astronomical one.
+
+    ``nice_date`` speaks whatever year the point carries, and a BC point carries
+    an astronomical year (300 BC is -299), so a plain call reads "-299" into the
+    sentence. The year-wide label already asks ``nice_year`` for the era form;
+    this substitutes that form into the day label so both widths name the same
+    year in the same words.
+    """
+    label = nice_date(start, lang)
+    astronomical = nice_year(start, lang)
+    if astronomical not in label:
+        raise NotImplementedError(
+            f"nice_span cannot place a BC era year in a '{lang}' day label")
+    return label.replace(astronomical, nice_year(start, lang, bc=True))
+
+
+#: The word between the month and the year in a month-year label, from the
+#: CLDR yMMMM pattern: pt, es and gl "MMMM 'de' y", ast "LLLL 'de' y".
+_MONTH_YEAR_JOIN = {"ast": "de", "es": "de", "gl": "de", "pt": "de"}
+
+
+def _nice_span_generic(span: "DateSpan", scale: str, lang: str) -> str:
+    """Span label built from the locale's own ``nice_*`` formatters.
+
+    The day, week, month and year widths read out of the language's own word
+    tables, so the label is written in that language. The coarse widths --
+    decade, century, millennium and era -- have no localised construction
+    outside English, and an English numeral idiom dropped into another
+    language's sentence is worse than nothing, so those widths are refused.
+    """
+    start = span.start
+    if scale == "time":
+        return nice_date_time(start, lang)
+    if scale in ("day", "week"):
+        if start.is_bc:
+            return _bc_day_label(start, lang)
+        return nice_date(start, lang)
+    if scale == "month":
+        month = nice_month(start, lang)
+        join = _MONTH_YEAR_JOIN.get(writer_lang(lang))
+        if join:
+            month = f"{month} {join}"
+        return f"{month} {nice_year(start, lang, bc=start.is_bc)}"
+    if scale == "year":
+        return nice_year(start, lang, bc=start.is_bc)
+    raise NotImplementedError(f"nice_span has no {scale} label for '{lang}'")
+
+
+def _nice_span_semitic(span: "DateSpan", scale: str, code: str) -> str:
+    """Native-script span label for Arabic (``ar``) and Hebrew (``he``).
+
+    Emits the exact native calendar phrasing chronologia's ``ar``/``he``
+    extractors re-parse, so ``extract_timespan(nice_span(span, code), code)``
+    recovers the span for every width those scanners construct: day
+    ("21 يوليو 2026" / "20 ביולי 1969"), month ("يوليو 2026" / "יולי 2026"),
+    year ("2026"), year-BC ("300 ق.م" / "300 לפנה״ס") and 20th-century decades
+    ("الثمانينات" / "שנות השמונים"). Western digits are used throughout -- the
+    numeral form both extractors' corpora assert. The remaining widths (week,
+    century, millennium, BC decade/century/millennium, non-1900s decades) have
+    no native construction in these locales and fall through to the best-effort
+    label, which is not round-trip gated.
+    """
+    start = span.start
+    bc = start.is_bc
+    year = start.bc_year if bc else start.year
+    months = _AR_MONTHS if code == "ar" else _HE_MONTHS
+    if scale == "day":
+        month = months[start.month]
+        if code == "he":
+            month = f"ב{month}"
+        # Logical token order (day month year) is what the RTL extractor reads;
+        # no bidi controls are needed -- the round-trip gate proves it parses.
+        day = f"{start.day} {month} {year}"
+        # BC day has no native construction; label it but leave it ungated.
+        return f"{day} {_SEMITIC_BC_MARKER[code]}" if bc else day
+    if scale == "month":
+        month = f"{months[start.month]} {year}"
+        return f"{month} {_SEMITIC_BC_MARKER[code]}" if bc else month
+    if scale == "year":
+        if bc:
+            return f"{start.bc_year} {_SEMITIC_BC_MARKER[code]}"
+        return str(start.year)
+    if scale == "decade" and not bc and start.year // 100 == 19:
+        # The bare decade word is century-relative: chronologia resolves it
+        # into the 20th century, so it can only name a 1900s decade. Any other
+        # century falls through and is refused rather than named wrongly.
+        word = _SEMITIC_DECADE_WORD[code].get((start.year // 10) % 10)
+        if word is not None:
+            return word
+    # No native construction for this width: best-effort, not round-trip gated.
+    return _nice_span_generic(span, scale, code)
+
+
+def nice_span(span: "DateSpan", lang: str = "en-us") -> str:
+    """Format a :class:`~chronologia.DateSpan` at the granularity it carries.
+
+    A span's *width* is its precision, so the label is chosen from the width
+    rather than from a fixed template: a one-day span reads as a date
+    ("July 21st, 2026"), a month-wide span as a month ("July 2026"), a
+    year-wide span as a year ("2026"), a decade as "the 1980s", a century as
+    "the 19th century", and so on symmetrically down to BC eras, which are
+    named by their era year ("300 BC") rather than the astronomical one.
+
+    This is the inverse of :func:`extract_timespan`. In English a label from a
+    day up re-parses to the same span for years from 1000 AD onward and from
+    32 BC back; nearer the era boundary the year numeral is ambiguous with a
+    day-of-month, and a sub-day span reads as a spoken date and time, which
+    extraction cannot take back.
+
+    Args:
+        span: The half-open ``[start, end)`` interval to describe.
+        lang: A BCP-47 language code.
+
+    Returns:
+        A human-readable label for the span.
+
+    Raises:
+        NotImplementedError: The language has no label for this width. Outside
+            English the decade, century, millennium and era widths have no
+            localised construction (Arabic and Hebrew label 20th-century
+            decades natively), and a width is refused rather than answered in
+            another language.
+    """
+    if not isinstance(span, DateSpan):
+        raise TypeError(f"nice_span expects a DateSpan, got {type(span).__name__}")
+    scale = _span_scale(span)
+    code = writer_lang(lang)
+    if code == "en":
+        return _nice_span_en(span, scale)
+    if code in ("ar", "he"):
+        return _nice_span_semitic(span, scale, code)
+    return _nice_span_generic(span, scale, lang)
 
 
 def get_date_strings(dt, lang, date_format=None, time_format="full"):
+    from ovos_config import Configuration
     date_format = date_format or Configuration().get("date_format", 'DMY')
-    lang = lang.lower().split("-")[0]
     timestr = nice_time(dt, lang, speech=False,
                         use_24hour=time_format == "full")
     monthstr = nice_month(dt, lang, date_format)
@@ -946,3 +2146,60 @@ def get_date_strings(dt, lang, date_format=None, time_format="full"):
         'year_string': yearstr,
         "weekday_string": weekdaystr
     }
+
+
+#: Tables the package re-exports from the modules that build them on first use.
+_LAZY_TABLES = {"SCOPED_VOCAB_EN": "scoped_en",
+                **{f"ERA_PATTERNS_{code.upper()}": f"eras_{code}"
+                   for code in ("en", "pt", "es", "fr", "de", "it")}}
+
+
+#: The languages whose own ``extract_datetime_<lang>`` and
+#: ``extract_duration_<lang>`` readers this module once exported. The names
+#: still answer, through :func:`extract_datetime` and :func:`extract_duration`,
+#: until the next major release.
+_DATETIME_READER_LANGS = frozenset({
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
+    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
+    "kab", "ms", "nb", "nl", "nn", "oc", "pl", "pt", "ro", "ru", "sk", "sl",
+    "sv", "tr", "uk",
+})
+_DURATION_READER_LANGS = frozenset({
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
+    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "it", "kab",
+    "nb", "nl", "nn", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "uk",
+})
+_READER_REMOVAL_VERSION = f"{VERSION_MAJOR + 1}.0.0"
+
+
+def _deprecated_reader(name: str):
+    """The reader a removed ``extract_datetime_<lang>`` or
+    ``extract_duration_<lang>`` name stands for, or None for any other name."""
+    kind, _, lang = name.removeprefix("extract_").partition("_")
+    if kind == "datetime" and lang in _DATETIME_READER_LANGS:
+        def reader(text, anchorDate=None, default_time=None):
+            return extract_datetime(text, lang, anchorDate=anchorDate,
+                                    default_time=default_time)
+        public = "extract_datetime"
+    elif kind == "duration" and lang in _DURATION_READER_LANGS:
+        def reader(text, resolution=DurationResolution.TIMEDELTA,
+                   replace_token=""):
+            return extract_duration(text, lang, resolution=resolution,
+                                    replace_token=replace_token)
+        public = "extract_duration"
+    else:
+        return None
+    warnings.warn(f"{name} is deprecated and is removed in "
+                  f"{_READER_REMOVAL_VERSION}; use {public}(text, {lang!r})",
+                  DeprecationWarning, stacklevel=3)
+    reader.__name__ = reader.__qualname__ = name
+    return reader
+
+
+def __getattr__(name):
+    if name in _LAZY_TABLES:
+        return getattr(import_module(f"ovos_date_parser.{_LAZY_TABLES[name]}"), name)
+    reader = _deprecated_reader(name)
+    if reader is not None:
+        return reader
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

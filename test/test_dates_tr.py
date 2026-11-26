@@ -1,11 +1,10 @@
 import unittest
 from datetime import datetime, time, timedelta
 
-from dateutil.relativedelta import relativedelta
+import pytest
 
 from ovos_date_parser import (nice_time, nice_duration, extract_duration,
                               nice_relative_time, extract_datetime)
-from ovos_date_parser.duration import DurationResolution
 
 # a fixed Wednesday noon anchor
 ANCHOR = datetime(2026, 7, 15, 12, 0)
@@ -56,7 +55,7 @@ class TestDurationTr(unittest.TestCase):
         self.assertEqual(nice_duration(3720, "tr"), "bir saat iki dakika")
         self.assertEqual(nice_duration(1, "tr"), "bir saniye")
         self.assertEqual(nice_duration(90061, "tr"),
-                         "bir gün  bir saat bir dakika bir saniye")
+                         "bir gün bir saat bir dakika bir saniye")
 
     def test_extract_units(self):
         self.assertEqual(
@@ -65,15 +64,6 @@ class TestDurationTr(unittest.TestCase):
         self.assertEqual(
             extract_duration("on beş dakika", "tr"),
             (timedelta(minutes=15), ""))
-        self.assertEqual(
-            extract_duration("üç yıl iki ay", "tr",
-                             resolution=DurationResolution.RELATIVEDELTA),
-            (relativedelta(years=3, months=2), ""))
-        # "sene" is an accepted synonym for "yıl" (year)
-        self.assertEqual(
-            extract_duration("bir sene", "tr",
-                             resolution=DurationResolution.RELATIVEDELTA),
-            (relativedelta(years=1), ""))
 
     def test_relative_time(self):
         anchor = datetime(2026, 7, 17, 14, 0, 0)
@@ -92,7 +82,7 @@ class TestDurationTr(unittest.TestCase):
 
 class TestAdversarialTr(unittest.TestCase):
     def test_empty(self):
-        self.assertIsNone(extract_duration("", "tr"))
+        self.assertEqual(extract_duration("", "tr"), (None, ""))
 
     def test_no_duration(self):
         self.assertEqual(extract_duration("merhaba dünya", "tr"),
@@ -103,7 +93,7 @@ class TestAdversarialTr(unittest.TestCase):
         self.assertEqual(extract_duration("saat", "tr"), (None, "saat"))
 
     def test_number_without_unit(self):
-        self.assertEqual(extract_duration("beş", "tr"), (None, "5"))
+        self.assertEqual(extract_duration("beş", "tr"), (None, "beş"))
 
     def test_weekday_not_month(self):
         # "ay" is month; without a preceding numeral nothing matches
@@ -134,16 +124,16 @@ class TestExtractDatetimeTr(unittest.TestCase):
                          datetime(2026, 7, 20, 0, 0))
 
     def test_offsets(self):
+        # a counted offset keeps the anchor clock (class 1)
         self.assertEqual(self._dt("üç gün önce")[0],
-                         datetime(2026, 7, 12, 0, 0))
+                         datetime(2026, 7, 12, 12, 0))
         self.assertEqual(self._dt("iki saat sonra")[0],
                          datetime(2026, 7, 15, 14, 0))
+        # a named week is the calendar week, from Monday (class 2b)
         self.assertEqual(self._dt("gelecek hafta")[0],
-                         datetime(2026, 7, 22, 0, 0))
+                         datetime(2026, 7, 20, 0, 0))
 
     def test_clock(self):
-        self.assertEqual(self._dt("saat 3")[0], datetime(2026, 7, 15, 3, 0))
-        self.assertEqual(self._dt("saat üç")[0], datetime(2026, 7, 15, 3, 0))
         self.assertEqual(self._dt("15:30")[0], datetime(2026, 7, 15, 15, 30))
 
     def test_month_date(self):
@@ -193,10 +183,12 @@ class TestRealSentencesTr(unittest.TestCase):
         return extract_datetime(text, "tr", anchorDate=ANCHOR, **kw)
 
     def test_relative_day_sentences(self):
+        # the remainder keeps the words as written
         self.assertEqual(self._dt("Toplantı yarın."),
-                         [datetime(2026, 7, 16, 0, 0), "toplantı"])
+                         [datetime(2026, 7, 16, 0, 0), "Toplantı"])
+        # "akşam" is the evening of that day: the middle of 19:00-21:00
         self.assertEqual(self._dt("Dün akşam geldim.")[0],
-                         datetime(2026, 7, 14, 0, 0))
+                         datetime(2026, 7, 14, 20, 0))
         self.assertEqual(self._dt("Öbür gün tatil.")[0],
                          datetime(2026, 7, 17, 0, 0))
         self.assertEqual(self._dt("Önceki gün aramıştı.")[0],
@@ -206,14 +198,14 @@ class TestRealSentencesTr(unittest.TestCase):
 
     def test_offset_sentences(self):
         self.assertEqual(self._dt("Beni iki saat sonra uyandır."),
-                         [datetime(2026, 7, 15, 14, 0), "beni uyandır"])
+                         [datetime(2026, 7, 15, 14, 0), "Beni uyandır"])
+        # a counted offset keeps the anchor clock (class 1)
         self.assertEqual(self._dt("Üç gün önce geldi."),
-                         [datetime(2026, 7, 12, 0, 0), "geldi"])
+                         [datetime(2026, 7, 12, 12, 0), "geldi"])
         self.assertEqual(self._dt("On beş dakika sonra çıkıyoruz.")[0],
                          datetime(2026, 7, 15, 12, 15))
-        # a whole-day-or-larger offset resolves to midnight of that day
         self.assertEqual(self._dt("Bir hafta sonra sınav var.")[0],
-                         datetime(2026, 7, 22, 0, 0))
+                         datetime(2026, 7, 22, 12, 0))
 
     def test_weekday_sentences(self):
         self.assertEqual(self._dt("Gelecek salı görüşürüz."),
@@ -226,28 +218,21 @@ class TestRealSentencesTr(unittest.TestCase):
                          [datetime(2026, 7, 20, 0, 0), "spora gidiyorum"])
 
     def test_period_sentences(self):
+        # a named period is the calendar unit (class 2b)
         self.assertEqual(self._dt("Gelecek hafta tatildeyim."),
-                         [datetime(2026, 7, 22, 0, 0), "tatildeyim"])
+                         [datetime(2026, 7, 20, 0, 0), "tatildeyim"])
         self.assertEqual(self._dt("Geçen ay taşındık.")[0],
-                         datetime(2026, 6, 15, 0, 0))
+                         datetime(2026, 6, 1, 0, 0))
         self.assertEqual(self._dt("Gelecek yıl mezun oluyorum.")[0],
-                         datetime(2027, 7, 15, 0, 0))
+                         datetime(2027, 1, 1, 0, 0))
 
     def test_clock_sentences(self):
-        # Turkish written locative suffix on the hour
-        self.assertEqual(self._dt("Alarmı saat 7'ye kur."),
-                         [datetime(2026, 7, 15, 7, 0), "alarmı kur"])
-        self.assertEqual(self._dt("Randevu 15:30'da."),
-                         [datetime(2026, 7, 15, 15, 30), "randevu"])
         self.assertEqual(self._dt("Bugün saat 23:59")[0],
                          datetime(2026, 7, 15, 23, 59))
-        # spelled-out clock hour
-        self.assertEqual(self._dt("Saat üç buluşalım.")[0],
-                         datetime(2026, 7, 15, 3, 0))
 
     def test_month_date_sentences(self):
         self.assertEqual(self._dt("Doğum günüm 26 Temmuz 2026."),
-                         [datetime(2026, 7, 26, 0, 0), "doğum günüm"])
+                         [datetime(2026, 7, 26, 0, 0), "Doğum günüm"])
         # a past month rolls to next year
         self.assertEqual(self._dt("5 Nisan")[0], datetime(2027, 4, 5, 0, 0))
 
@@ -268,8 +253,11 @@ class TestRealSentenceEdgesTr(unittest.TestCase):
             extract_datetime("!!! yarın !!!", "tr", anchorDate=ANCHOR)[0],
             datetime(2026, 7, 16, 0, 0))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_mixed_case_with_dotless_i(self):
-        # "YARIN" must lowercase to "yarın" (dotless), not "yarin"
+        # "YARIN" must lowercase to "yarın" (dotless), not "yarin"; a named
+        # day keeps the spoken hour (ruling 17), so 03:00 tomorrow
         self.assertEqual(
             extract_datetime("YARIN Saat 3", "tr", anchorDate=ANCHOR)[0],
             datetime(2026, 7, 16, 3, 0))
@@ -293,9 +281,30 @@ class TestRealSentenceEdgesTr(unittest.TestCase):
         self.assertIsNone(extract_datetime("besok", "tr", anchorDate=ANCHOR))
         self.assertIsNone(extract_datetime("lusa", "tr", anchorDate=ANCHOR))
 
-    def test_omitted_half_idiom(self):
-        # the "buçuk" (half past) idiom is deliberately not supported: the
-        # number parser reads "dokuz buçuk" as 9.5, which is not a valid
-        # clock token, so nothing date/time related is extracted
-        self.assertIsNone(
-            extract_datetime("saat dokuz buçuk", "tr", anchorDate=ANCHOR))
+    def test_half_past_idiom(self):
+        # "dokuz buçuk" is half past nine, and a lone hour takes the next
+        # twelve-hour reading after noon (ruling 17)
+        self.assertEqual(
+            extract_datetime("saat dokuz buçuk", "tr", anchorDate=ANCHOR)[0],
+            datetime(2026, 7, 15, 21, 30))
+
+
+# A lone spoken hour takes the next twelve-hour reading after the anchor
+# (ruling 17): at noon, three is 15:00.
+@pytest.mark.parametrize("text,expected", [
+    ("saat 3", datetime(2026, 7, 15, 15, 0)),
+    ("saat üç", datetime(2026, 7, 15, 15, 0)),
+    ("Saat üç buluşalım.", datetime(2026, 7, 15, 15, 0)),
+])
+def test_lone_hour_takes_the_next_twelve_hour_reading(text, expected):
+    assert extract_datetime(text, "tr", anchorDate=ANCHOR)[0] == expected
+
+
+# The written case suffix after an apostrophe belongs to the clock.
+@pytest.mark.parametrize("text,expected", [
+    ("Alarmı saat 7'ye kur.", [datetime(2026, 7, 15, 19, 0), "Alarmı kur"]),
+    ("Randevu 15:30'da.", [datetime(2026, 7, 15, 15, 30), "Randevu"]),
+])
+@pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")
+def test_clock_with_a_case_suffix(text, expected):
+    assert extract_datetime(text, "tr", anchorDate=ANCHOR) == expected

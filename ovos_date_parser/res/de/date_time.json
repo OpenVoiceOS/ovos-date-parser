@@ -1,24 +1,25 @@
 {
   "decade_format": {
-    "1": {"match": "^\\d$", "format": "{x}"},
-    "2": {"match": "^1\\d$", "format": "{xx}"},
-    "3": {"match": "^\\d0$", "format": "{x0}"},
-    "4": {"match": "^[2-9]\\d$", "format": "{x} und {x0}"},
+    "1": {"match": "^1$", "format": "eins"},
+    "2": {"match": "^\\d$", "format": "{x}"},
+    "3": {"match": "^1\\d$", "format": "{xx}"},
+    "4": {"match": "^\\d0$", "format": "{x0}"},
+    "5": {"match": "^[2-9]\\d$", "format": "{x}und{x0}"},
     "default": "{number}"
   },
     "hundreds_format": {
     "1": {"match": "^1\\d{2}$", "format": "hundert"},
-    "2": {"match": "^\\d{3}$", "format": "{x_in_x00} hundert"},
+    "2": {"match": "^\\d{3}$", "format": "{x_in_x00}hundert"},
     "default": "{number}"
   },
     "thousand_format": {
     "1": {"match": "^10\\d\\d$", "format": "tausend"},
-    "2": {"match": "^\\d0\\d{2}$", "format": "{x_in_x000} tausend"},
-    "3": {"match": "^1\\d00$", "format": "{xx_in_xx00} hundert"},
-    "4": {"match": "^\\d{2}00$", "format": "{x_in_x000} tausend {x_in_x00} hundert"},
-    "5": {"match": "^\\d0\\d\\d$", "format": "{x_in_x000} tausend"},
+    "2": {"match": "^\\d0\\d{2}$", "format": "{x_in_x000}tausend"},
+    "3": {"match": "^1\\d00$", "format": "{xx_in_xx00}hundert"},
+    "4": {"match": "^\\d{2}00$", "format": "{x_in_x000}tausend{x_in_x00}hundert"},
+    "5": {"match": "^\\d0\\d\\d$", "format": "{x_in_x000}tausend"},
     "6": {"match": "^1\\d{3}$", "format": "{xx_in_xx00}"},
-    "7": {"match": "^\\d{4}$", "format": "{x_in_x000} tausend {x_in_x00} hundert"},
+    "7": {"match": "^\\d{4}$", "format": "{x_in_x000}tausend{x_in_x00}hundert"},
     "default": "{number}"
   },
   "year_format": {
@@ -26,13 +27,13 @@
     "2": {"match": "^\\d{1}?$", "format": "{formatted_decade} {bc}"},
     "3": {"match": "^\\d{2}?$", "format": "{formatted_decade} {bc}"},
     "4": {"match": "^\\d00$", "format": "{formatted_hundreds} {bc}"},
-    "5": {"match": "^\\d{3}$", "format": "{formatted_hundreds} {formatted_decade} {bc}"},
+    "5": {"match": "^\\d{3}$", "format": "{formatted_hundreds}{formatted_decade} {bc}"},
     "6": {"match": "^\\d{2}00$", "format": "{formatted_thousand} {bc}"},
-    "7": {"match": "^\\d00\\d$", "format": "{formatted_thousand} {formatted_decade} {bc}"},
-    "8": {"match": "^\\d{2}0\\d$", "format": "{formatted_thousand} hundert {formatted_decade} {bc}"},
-    "9": {"match": "^1[2-9]\\d{2}$", "format": "{formatted_thousand} hundert {formatted_decade} {bc}"},
-    "10": {"match": "^1\\d{3}$", "format": "{formatted_thousand} {formatted_decade} {bc}"},
-    "11": {"match": "^\\d{4}$", "format": "{formatted_thousand} {formatted_decade} {bc}"},
+    "7": {"match": "^\\d00\\d$", "format": "{formatted_thousand}{formatted_decade} {bc}"},
+    "8": {"match": "^1[1-9]0\\d$", "format": "{formatted_thousand}hundert{formatted_decade} {bc}"},
+    "9": {"match": "^1[1-9]\\d{2}$", "format": "{formatted_thousand}hundert{formatted_decade} {bc}"},
+    "10": {"match": "^1\\d{3}$", "format": "{formatted_thousand}{formatted_decade} {bc}"},
+    "11": {"match": "^\\d{4}$", "format": "{formatted_thousand}{formatted_decade} {bc}"},
     "default": "{year} {bc}",
     "bc": "v.d.Z."
   },

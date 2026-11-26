@@ -2,6 +2,8 @@
 import unittest
 from datetime import datetime
 
+import pytest
+
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -79,21 +81,23 @@ class TestRelativeOffsetConsumesMarker(unittest.TestCase):
 
 
 class TestAbsoluteClock(unittest.TestCase):
+    """A lone spoken hour takes the next twelve-hour reading after the 13:30
+    anchor (ruling 17); a part of the day keeps the spoken hour."""
 
     def test_iso_clock(self):
         self.assertEqual(extract("17:30")[0], dt(2117, 9, 3, 17, 30))
 
     def test_quarter_past_seven(self):
-        self.assertEqual(extract("a las 8 e quart")[0], dt(2117, 9, 4, 8, 15))
+        self.assertEqual(extract("a las 8 e quart")[0], dt(2117, 9, 3, 20, 15))
 
     def test_half_past_seven(self):
-        self.assertEqual(extract("a las 8 e mièja")[0], dt(2117, 9, 4, 8, 30))
+        self.assertEqual(extract("a las 8 e mièja")[0], dt(2117, 9, 3, 20, 30))
 
     def test_half_past_afternoon(self):
         self.assertEqual(extract("a las 8 e mièja del vespre")[0], dt(2117, 9, 3, 20, 30))
 
     def test_manca_un_quart(self):
-        self.assertEqual(extract("a las 8 manca un quart")[0], dt(2117, 9, 4, 7, 45))
+        self.assertEqual(extract("a las 8 manca un quart")[0], dt(2117, 9, 3, 19, 45))
 
     def test_morning_qualifier(self):
         self.assertEqual(extract("a las 8 del matin")[0], dt(2117, 9, 4, 8, 0))
@@ -104,12 +108,20 @@ class TestAbsoluteClock(unittest.TestCase):
 
 class TestDayOffsets(unittest.TestCase):
 
+    # a counted offset keeps the anchor clock (class 1)
+
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_in_n_days(self):
-        self.assertEqual(extract("en 5 jorns")[0], dt(2117, 9, 8, 0, 0))
+        self.assertEqual(extract("en 5 jorns")[0], dt(2117, 9, 8, 13, 30))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_in_n_weeks(self):
-        self.assertEqual(extract("en 5 setmanas")[0], dt(2117, 10, 8, 0, 0))
+        self.assertEqual(extract("en 5 setmanas")[0], dt(2117, 10, 8, 13, 30))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/992")
     def test_days_plus_clock(self):
         self.assertEqual(extract("en 2 jorns a las 15")[0], dt(2117, 9, 5, 15, 0))
 

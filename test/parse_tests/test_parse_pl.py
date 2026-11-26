@@ -89,7 +89,8 @@ class TestExtractDatetimePolishRelative(unittest.TestCase):
         self.assertEqual(self._extract('przedwczoraj')[0].day, 25)
 
     def test_part_of_day_applies_hour(self):
-        self.assertEqual(self._extract('jutro rano')[0].hour, 8)
+        # the middle of the 06:00-12:00 morning band
+        self.assertEqual(self._extract('jutro rano')[0].hour, 9)
         self.assertEqual(self._extract('jutro wieczorem')[0].hour, 19)
         self.assertEqual(self._extract('dzisiaj po południu')[0].hour, 15)
 

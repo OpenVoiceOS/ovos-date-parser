@@ -67,10 +67,11 @@ class TestRelativeOffsetKeepsAnchorTime(unittest.TestCase):
 
 
 class TestRelativeDayOffset(unittest.TestCase):
-    """Day-level relative offsets resolve to midnight of the target day."""
+    """A counted day offset keeps the anchor's clock (class 1); a day word
+    names the whole day."""
 
     def test_five_days(self):
-        self.assertEqual(extract("d'aquí a 5 dies")[0], dt(2117, 9, 8))
+        self.assertEqual(extract("d'aquí a 5 dies")[0], dt(2117, 9, 8, 13, 30))
 
     def test_tomorrow(self):
         self.assertEqual(extract("demà")[0], dt(2117, 9, 4))
@@ -92,7 +93,8 @@ class TestAbsoluteClockTimes(unittest.TestCase):
         self.assertEqual(extract("a les 23:30")[0], dt(2117, 9, 3, 23, 30))
 
     def test_colon_midnight(self):
-        self.assertEqual(extract("a les 00:00")[0], dt(2117, 9, 3, 0, 0))
+        # class 3: 00:00 has passed at 13:30, so the next one is tomorrow
+        self.assertEqual(extract("a les 00:00")[0], dt(2117, 9, 4, 0, 0))
 
     def test_morning_rolls_to_next_day(self):
         # 08:00 already passed relative to the 13:30 anchor -> next day

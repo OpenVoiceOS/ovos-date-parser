@@ -79,13 +79,15 @@ class TestExtractDatetimeHu(unittest.TestCase):
         self.assertDate("délután 3 órakor", "2017-06-27 15:00:00")
 
     def test_next_week(self):
-        self.assertDate("jövő héten", "2017-07-04 00:00:00")
+        # the calendar week after the anchor's, from Monday (class 2b)
+        self.assertDate("jövő héten", "2017-07-03 00:00:00")
 
     def test_last_week(self):
-        self.assertDate("múlt héten", "2017-06-20 00:00:00")
+        self.assertDate("múlt héten", "2017-06-19 00:00:00")
 
     def test_tomorrow_morning(self):
-        self.assertDate("holnap reggel", "2017-06-28 08:00:00")
+        # the middle of the 06:00-12:00 morning band
+        self.assertDate("holnap reggel", "2017-06-28 09:00:00")
 
     def test_leftover(self):
         result = self.extract("állíts be egy emlékeztetőt holnap")

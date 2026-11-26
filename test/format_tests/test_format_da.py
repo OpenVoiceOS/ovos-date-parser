@@ -49,13 +49,14 @@ class TestNiceDateFormat_da(unittest.TestCase):
         self.assertEqual(nice_time(noon, lang="da", speech=False,
                                    use_24hour=True), "12:00")
 
-        # morning (AM) period, quarter-hour intervals, use_ampm=True
-        for minute, spoken_minute in ((0, ""), (15, "femten"),
-                                      (30, "tredive"),
-                                      (45, "femogfyrre")):
+        # morning (AM) period, quarter-hour intervals, use_ampm=True.
+        # :15/:30/:45 are spoken idiomatically in Danish, not as two
+        # digits ("kvart over otte", "halv ni", "kvart i ni" for 8:xx)
+        for minute, expected_prefix in ((0, "otte"), (15, "kvart over otte"),
+                                        (30, "halv ni"),
+                                        (45, "kvart i ni")):
             dt = datetime.datetime(2017, 1, 31, 8, minute, 0)
-            expected = "otte" + (f" {spoken_minute}" if spoken_minute else "")
-            expected += " om morgenen"
+            expected = expected_prefix + " om morgenen"
             self.assertEqual(nice_time(dt, lang="da", use_ampm=True),
                              expected)
 
@@ -74,13 +75,13 @@ class TestNiceDateFormat_da(unittest.TestCase):
         self.assertEqual(
             nice_time(datetime.datetime(2017, 1, 31, 2, 30), lang="da",
                       use_ampm=True),
-            "to tredive om natten")
+            "halv tre om natten")
         self.assertEqual(
             nice_time(datetime.datetime(2017, 1, 31, 23, 45), lang="da",
                       use_ampm=True),
             # Danish 11 is "elleve"; "elve" is not a standard spelling and
             # was corrected in the number parser
-            "elleve femogfyrre om natten")
+            "kvart i tolv om natten")
     def test_nice_date_ordinal_days_da(self):
         # issue #4/#9 follow-up (flagged by review on #257): the
         # day-of-month ordinal table is separate from the year/hundreds
@@ -239,9 +240,9 @@ class TestNiceDateFormat_da(unittest.TestCase):
                          "nul nul to")
 
         dt = datetime.datetime(2017, 1, 31, 12, 15, 9, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, lang="da-dk"), "tolv femten")
+        self.assertEqual(nice_time(dt, lang="da-dk"), "kvart over tolv")
         self.assertEqual(nice_time(dt, lang="da-dk", use_ampm=True),
-                         "tolv femten om eftermiddagen")
+                         "kvart over tolv om eftermiddagen")
         self.assertEqual(nice_time(dt, lang="da-dk", speech=False),
                          "12:15")
         self.assertEqual(nice_time(dt, lang="da-dk", speech=False,
@@ -291,7 +292,7 @@ class TestNiceDateFormat_da(unittest.TestCase):
                          "et femogtredive")
 
         dt = datetime.datetime(2017, 1, 31, 1, 45, 00, tzinfo=default_timezone())
-        self.assertEqual(nice_time(dt, lang="da-dk"), "et femogfyrre")
+        self.assertEqual(nice_time(dt, lang="da-dk"), "kvart i to")
 
         dt = datetime.datetime(2017, 1, 31, 4, 50, 00, tzinfo=default_timezone())
         self.assertEqual(nice_time(dt, lang="da-dk"), "fire halvtreds")
@@ -301,7 +302,38 @@ class TestNiceDateFormat_da(unittest.TestCase):
 
         dt = datetime.datetime(2017, 1, 31, 5, 30, 00, tzinfo=default_timezone())
         self.assertEqual(nice_time(dt, lang="da-dk", use_ampm=True),
-                         "fem tredive om morgenen")
+                         "halv seks om morgenen")
+
+    def test_nice_time_da_idiomatic_quarter_half_hours(self):
+        # ":15"/":30"/":45" are spoken idiomatically in Danish - "kvart
+        # over X" (quarter past X), "halv X+1" (half towards the NEXT
+        # hour, not "half past X"), "kvart i X+1" (quarter to X+1) -
+        # not as two separate digits. Only applies in 12-hour speech
+        # mode; 24-hour mode still reads the raw digits.
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 3, 15), lang="da-dk"),
+            "kvart over tre")
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 3, 30), lang="da-dk"),
+            "halv fire")
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 3, 45), lang="da-dk"),
+            "kvart i fire")
+        # hour-of-day wraps correctly through noon/midnight
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 0, 15), lang="da-dk"),
+            "kvart over tolv")
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 11, 45), lang="da-dk"),
+            "kvart i tolv")
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 12, 45), lang="da-dk"),
+            "kvart i et")
+        # 24-hour mode is unaffected - still raw digits
+        self.assertEqual(
+            nice_time(datetime.datetime(2017, 1, 31, 15, 30), lang="da-dk",
+                      use_24hour=True),
+            "femten tredive")
 
 
 if __name__ == "__main__":

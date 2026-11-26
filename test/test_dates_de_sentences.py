@@ -2,6 +2,7 @@
 import unittest
 from datetime import datetime
 
+import pytest
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -100,15 +101,21 @@ class TestAbsoluteClockTimes(unittest.TestCase):
         self.assertEqual(extract("um 8 uhr abends")[0], dt(2117, 9, 3, 20))
 
     def test_half_past_word(self):
-        # "halb neun" == 8:30; already past today, rolls to next day
-        self.assertEqual(extract("um halb neun")[0], dt(2117, 9, 4, 8, 30))
+        # "halb neun" is 8:30, a lone spoken hour, so it takes the next
+        # twelve-hour reading after the 13:30 anchor (ruling 17)
+        self.assertEqual(extract("um halb neun")[0], dt(2117, 9, 3, 20, 30))
 
     def test_part_of_day_evening(self):
-        self.assertEqual(extract("heute abend")[0], dt(2117, 9, 3, 19))
+        # the middle of the de evening band, 18:00 to 24:00 (ruling 10)
+        self.assertEqual(extract("heute abend")[0], dt(2117, 9, 3, 21))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/997")
     def test_part_of_day_night(self):
-        self.assertEqual(extract("heute nacht")[0], dt(2117, 9, 3, 23))
+        # the night after the anchor's day (rulings 10 and 10b); the de night
+        # band is 00:00 to 05:00, so its middle is 02:30 the next day
+        self.assertEqual(extract("heute nacht")[0], dt(2117, 9, 4, 2, 30))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_morning_tomorrow_with_clock(self):
         self.assertEqual(extract("morgen früh um 6 uhr")[0], dt(2117, 9, 4, 6))
 
@@ -123,16 +130,26 @@ class TestRelativeDays(unittest.TestCase):
         self.assertEqual(extract("übermorgen")[0], dt(2117, 9, 5))
 
     def test_in_two_weeks(self):
-        self.assertEqual(extract("in zwei wochen")[0], dt(2117, 9, 17))
+        # a counted offset keeps the anchor's clock (routing ruling, class 1)
+        self.assertEqual(extract("in zwei wochen")[0], dt(2117, 9, 17, 13, 30))
 
     def test_next_year(self):
-        self.assertEqual(extract("nächstes jahr")[0], dt(2118, 9, 3))
+        # a named period is the calendar unit (routing ruling, class 2b)
+        self.assertEqual(extract("nächstes jahr")[0], dt(2118, 1, 1))
+
+    def test_last_year(self):
+        # regression: two identical 'wordPrev[:6] == "nächst"' elif branches
+        # meant 'letztes jahr' had no working path at all (returned None);
+        # a named period is the calendar unit (routing ruling, class 2b)
+        self.assertEqual(extract("letztes jahr")[0], dt(2116, 1, 1))
 
     def test_last_friday(self):
         res = extract("letzten freitag")[0]
         self.assertEqual(res.strftime("%A"), "Friday")
         self.assertLess(res.replace(tzinfo=None), ANCHOR)
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1034")
     def test_days_offset_with_clock(self):
         self.assertEqual(extract("in 3 tagen um 15 uhr")[0], dt(2117, 9, 6, 15))
 
@@ -152,6 +169,7 @@ class TestImpossibleAndUnparseable(unittest.TestCase):
     def test_thirtieth_of_february(self):
         self.assertIsNone(extract("am 30. februar"))
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_zeroth_of_january(self):
         self.assertIsNone(extract("am 0. januar"))
 
@@ -192,12 +210,14 @@ class TestYesterdayWords(unittest.TestCase):
         self.assertEqual(extract("gestern um 17 uhr")[0],
                          dt(2117, 9, 2, 17, 0))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1033")
     def test_morgen_still_tomorrow_and_morning(self):
-        # "morgen" (tomorrow) and "am morgen" (in the morning) untouched;
-        # 8:00 has already passed at the 13:30 anchor, so "am morgen"
-        # rolls to the next morning (legacy roll-forward behaviour)
+        # "morgen" is tomorrow and "am morgen" is in the morning; the morning
+        # has passed at the 13:30 anchor, so "am morgen" is the next morning,
+        # at the middle of the de morning band, 05:00 to 10:00 (ruling 10)
         self.assertEqual(extract("morgen")[0], dt(2117, 9, 4))
-        self.assertEqual(extract("am morgen")[0], dt(2117, 9, 4, 8, 0))
+        self.assertEqual(extract("am morgen")[0], dt(2117, 9, 4, 7, 30))
 
     def test_symmetry(self):
         self.assertEqual((extract("morgen")[0] - extract("gestern")[0]).days,

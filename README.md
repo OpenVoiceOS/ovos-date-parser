@@ -1,257 +1,95 @@
 # ovos-date-parser
 
-Multilingual parsing, extraction and formatting of human date, time and duration
-expressions — a two-way bridge between machine timestamps and the way people
-actually speak and write about time.
+<!-- agent-hint
+covers: what the package does, how to install it, a first example, and where the docs are
+source: ovos_date_parser/__init__.py (extract_datetime, extract_duration, nice_time, nice_duration, CHRONOLOGIA_LOCALES); pyproject.toml
+generated: no
+verify: diff <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' README.md | sed '1d;$d' | .venv/bin/python -I -) <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/s/^print(.*)  *# //p' README.md)
+see: docs/index.md, docs/getting-started.md, docs/how-it-works.md, docs/api.md, docs/writers.md, docs/languages.md, docs/helpers.md
+-->
 
-- **Text → datetime**: pull a `datetime` out of "next friday at 3pm" or
-  "amanhã às 15h30", and keep the leftover words.
-- **Text → duration**: turn "two hours and thirty minutes" into a `timedelta`.
-- **datetime → speech**: render `2024-01-05 15:30` as "January fifth twenty
-  twenty four at half past three".
-- **Dozens of languages**, resolved by BCP-47 code, with an automatic
-  [dateparser](https://dateparser.readthedocs.io) fallback for the rest.
+This library turns date, time and duration phrases into `datetime` and
+`timedelta` values, and turns those values back into words. It reads 61
+languages through [chronologia](https://github.com/TigreGotico/chronologia)
+and writes 40 languages with its own `nice_*` formatters.
 
-It powers date/time understanding in [OpenVoiceOS](https://openvoiceos.org), but
-it is a **plain Python library with no voice-assistant dependency at runtime** —
-equally useful in an NER pipeline, a TTS front-end, an ASR post-processor, or a
-scheduling/calendar/logging tool.
+The library is a plain Python package. It needs no voice assistant at runtime.
+[OpenVoiceOS](https://openvoiceos.org) uses it, and so can an NER pipeline, a
+TTS front end, an ASR post-processor or a scheduler.
 
-## Installation
+## Install
 
 ```bash
-pip install ovos-date-parser
-# or
-uv pip install ovos-date-parser
+uv pip install --prerelease=allow ovos-date-parser
 ```
 
-## 30-second quickstart
+## Getting started
+
+Reading a phrase gives a `datetime` and the words left over. Writing a value
+gives words that a speech engine can say.
 
 ```python
 from datetime import datetime
 from ovos_date_parser import extract_datetime, extract_duration, nice_time, nice_duration
 
-# 1. text -> datetime (+ the words left over)
+# text to datetime, plus the leftover words
 when, leftover = extract_datetime("lets meet next friday at 8am", "en",
                                   anchorDate=datetime(2024, 1, 5))
 print(when)      # 2024-01-12 08:00:00
-print(leftover)  # 'lets meet'
+print(leftover)  # lets meet
 
-# 2. text -> timedelta
+# text to timedelta
 delta, leftover = extract_duration("set a timer for 5 minutes", "en")
 print(delta)     # 0:05:00
 
-# 3. datetime -> speakable words
-print(nice_time(datetime(2024, 1, 5, 15, 30), "en"))   # 'half past three'
-print(nice_duration(3690, "en"))                       # 'one hour one minute thirty seconds'
+# datetime to speakable words
+print(nice_time(datetime(2024, 1, 5, 15, 30), "en"))   # half past three
+print(nice_duration(3690, "en"))                       # one hour one minute thirty seconds
 ```
 
-Every snippet above and in [`examples/`](examples/) runs with nothing installed
-but this package.
+`anchorDate` is the reference time that relative phrases resolve against. Pass a fixed
+value for repeatable results.
 
-## Use it outside OVOS
+## Who does what
 
-The same handful of functions solve everyday text/speech problems that have
-nothing to do with voice assistants.
+Reading is the job of chronologia. The function `extract_datetime` normalizes the language tag and calls chronologia for every locale it reads. The function `extract_duration` calls chronologia for the same locales. [docs/languages.md](docs/languages.md) lists each locale.
 
-### Temporal entity extraction (NER)
+This package adds the `datetime` shape of the answer, the leftover text, named holidays, the `resolution` and `replace_token` options of `extract_duration`, and the span scans `extract_datetime_spans` and `extract_duration_spans`. The names `extract_datetime_<code>` and `extract_duration_<code>` are deprecated shims over the two reading functions. The modules `astrodate`, `calendars`, `cycles`, `eras`, `regnal` and `roman` re-export chronologia names.
 
-Tag dates, times and durations in free text and keep the non-temporal
-remainder — useful for log mining, ticket triage or note-taking apps.
+Writing is the job of this package. The `nice_*` functions and the `spoken_*`
+functions say a time, a date, a year or a duration in the words of a language.
+The package writes 40 languages, Bosnian among them, and the top-level
+functions are the stable API. [How it works](docs/how-it-works.md) shows the
+path of a call, and [Language writers](docs/writers.md) names the writer of each
+language.
 
-```python
-from datetime import datetime
-from ovos_date_parser import extract_datetime
+A language that chronologia does not read, such as Japanese or Chinese, goes to
+[dateparser](https://dateparser.readthedocs.io). That fallback reads absolute
+dates well and conversational phrases poorly.
 
-text = "call the supplier next monday at 2pm about the delayed order"
-when, rest = extract_datetime(text, "en", anchorDate=datetime(2024, 1, 5))
-# when -> 2024-01-08 14:00 ; rest -> 'call supplier delayed order'
-```
+## Languages
 
-`anchorDate` is the "now" that relative phrases resolve against — pass a fixed
-value for reproducible extraction, or `datetime.now()` live. See
-[`examples/ner_temporal.py`](examples/ner_temporal.py).
-
-### TTS normalization
-
-Speech engines mangle raw digits. Normalize a timestamp to words *before*
-synthesis:
-
-```python
-from datetime import datetime
-from ovos_date_parser import nice_date, nice_time
-
-dt = datetime(2024, 1, 5, 15, 30)
-spoken = f"{nice_date(dt, 'en')} at {nice_time(dt, 'en')}"
-# 'friday, january fifth, twenty twenty four at half past three'
-```
-
-See [`examples/tts_normalization.py`](examples/tts_normalization.py).
-
-### ASR post-processing
-
-Speech-to-text emits words; downstream logic needs structure. Convert a
-transcript into a real datetime and an action payload:
-
-```python
-from datetime import datetime
-from ovos_date_parser import extract_datetime
-
-utterance = "remind me next tuesday at nine thirty to water the plants"
-when, action = extract_datetime(utterance, "en", anchorDate=datetime(2024, 1, 5))
-# when -> 2024-01-09 09:30 ; action -> 'remind me to water plants'
-```
-
-See [`examples/asr_postproc.py`](examples/asr_postproc.py).
-
-### In an OVOS skill vs. standalone
-
-The library behaves identically in both settings; only who calls it changes.
-
-```python
-# In an OVOS skill: language and anchor come from the session
-when, _ = extract_datetime(utterance, self.lang)
-
-# Standalone scheduler / calendar / cron generator: you supply them
-when, _ = extract_datetime(user_text, "en", anchorDate=datetime.now())
-```
-
-## Core API
-
-| Function | Direction | Purpose |
-|----------|-----------|---------|
-| `extract_datetime(text, lang, anchorDate=None, default_time=None)` | text → datetime | Date/time from a phrase + leftover text |
-| `extract_duration(text, lang, *, resolution=..., replace_token="")` | text → duration | `timedelta`/`relativedelta`/float + leftover text |
-| `nice_time(dt, lang, speech=True, use_24hour=False, use_ampm=False, variant=None)` | datetime → text | Speakable or digit clock time |
-| `nice_date(dt, lang, now=None, include_weekday=True)` | datetime → text | Speakable date, shortened against `now` |
-| `nice_date_time(dt, lang, now=None, use_24hour=False, use_ampm=False)` | datetime → text | Date and time combined |
-| `nice_day` / `nice_weekday` / `nice_month` / `nice_year` | datetime → text | Individual date components |
-| `nice_duration(duration, lang, speech=True)` | seconds/timedelta → text | Speakable timespan |
-| `nice_relative_time(when, relative_to=None, lang="en-us")` | datetime → text | Short "N minutes/days" phrase |
-| `get_date_strings(dt, lang, date_format=None, time_format="full")` | datetime → dict | Display strings for GUI clients |
-
-Full signatures, return shapes and examples: [docs/api.md](docs/api.md).
-
-Dialects resolve by prefix — `"pt-BR"`, `"pt-PT"` and `"pt"` all reach the
-Portuguese implementation. Unsupported languages raise `NotImplementedError`,
-except `extract_datetime`, which first tries the `dateparser` fallback.
-
-## Language support
-
-Twenty-plus languages have dedicated, idiomatic implementations. Extraction for
-any other language falls back to `dateparser`; formatting falls back to a
-generic word-table.
-
-- ✅ dedicated implementation
-- 🚧 partial / generic (language-agnostic helper or external library)
-- ❌ not available (raises `NotImplementedError`)
-
-**Parsing**
-
-| Language | `extract_datetime` | `extract_duration` |
-|----------|:---:|:---:|
-| ar Arabic       | ✅ | ✅ |
-| ast Asturian    | ✅ | ✅ |
-| az Azerbaijani  | ✅ | ✅ |
-| ca Catalan      | ✅ | ✅ |
-| cs Czech        | ✅ | ✅ |
-| da Danish       | ✅ | ✅ |
-| de German       | ✅ | ✅ |
-| en English      | ✅ | ✅ |
-| es Spanish      | ✅ | ✅ |
-| eu Basque       | ✅ | ✅ |
-| fa Persian      | ✅ | ✅ |
-| fr French       | ✅ | ✅ |
-| gl Galician     | 🚧 | ✅ |
-| hu Hungarian    | 🚧 | ✅ |
-| it Italian      | ✅ | ✅ |
-| kab Kabyle      | ✅ | ✅ |
-| nb Norwegian Bokmål | ✅ | ✅ |
-| nl Dutch        | ✅ | ✅ |
-| nn Norwegian Nynorsk | ✅ | ✅ |
-| oc Occitan      | ✅ | ✅ |
-| pl Polish       | ✅ | ✅ |
-| pt Portuguese   | ✅ | ✅ |
-| ro Romanian     | ✅ | ✅ |
-| ru Russian      | ✅ | ✅ |
-| sl Slovenian    | ✅ | ✅ |
-| sv Swedish      | ✅ | ✅ |
-| uk Ukrainian    | ✅ | ✅ |
-
-> Any language not listed uses the `dateparser` fallback for `extract_datetime`
-> (good at absolute dates, weak at conversational relative phrases). The
-> languages on the shared duration engine (all of the above except ar, ast, fa,
-> kab, sv) also support the `resolution` and `replace_token` options of
-> `extract_duration` — see [docs/api.md](docs/api.md).
-
-**Formatting**
-
-| Language | `nice_date` family | `nice_time` | `nice_duration` | `nice_relative_time` |
-|----------|:---:|:---:|:---:|:---:|
-| ar Arabic       | 🚧 | ✅ | ✅ | 🚧 |
-| ast Asturian    | ✅ | ✅ | ✅ | 🚧 |
-| az Azerbaijani  | ✅ | ✅ | ✅ | 🚧 |
-| ca Catalan      | ✅ | ✅ | ✅ | 🚧 |
-| cs Czech        | ✅ | ✅ | ✅ | 🚧 |
-| da Danish       | ✅ | ✅ | ✅ | 🚧 |
-| de German       | ✅ | ✅ | ✅ | 🚧 |
-| en English      | ✅ | ✅ | ✅ | 🚧 |
-| es Spanish      | ✅ | ✅ | ✅ | 🚧 |
-| eu Basque       | ✅ | ✅ | ✅ | ✅ |
-| fa Persian      | ✅ | ✅ | ✅ | 🚧 |
-| fr French       | ✅ | ✅ | ✅ | 🚧 |
-| gl Galician     | ✅ | ✅ | ✅ | 🚧 |
-| hu Hungarian    | ✅ | ✅ | ✅ | 🚧 |
-| it Italian      | ✅ | ✅ | ✅ | 🚧 |
-| kab Kabyle      | 🚧 | ✅ | ✅ | 🚧 |
-| nb Norwegian Bokmål | ✅ | ✅ | ✅ | 🚧 |
-| nl Dutch        | ✅ | ✅ | ✅ | 🚧 |
-| nn Norwegian Nynorsk | ✅ | ✅ | ✅ | 🚧 |
-| oc Occitan      | ✅ | ✅ | ✅ | 🚧 |
-| pl Polish       | ✅ | ✅ | ✅ | 🚧 |
-| pt Portuguese   | ✅ | ✅ | ✅ | 🚧 |
-| ro Romanian     | ✅ | ✅ | ✅ | 🚧 |
-| ru Russian      | ✅ | ✅ | ✅ | 🚧 |
-| sl Slovenian    | ✅ | ❌ | ✅ | 🚧 |
-| sv Swedish      | ✅ | ✅ | ✅ | 🚧 |
-| uk Ukrainian    | ✅ | ✅ | ✅ | 🚧 |
-
-> `nice_relative_time` uses a shared implementation for every language except
-> Basque, which has a dedicated one; the shared version is functional but not
-> idiomatically tuned per language.
-
-Per-language quirks (Catalan bell-tower time, Occitan quarter idioms, Romanian
-"fără un sfert", Kabyle calendar names, Portuguese `15h30` style, ...) are
-documented in [docs/languages.md](docs/languages.md).
-
-## Examples
-
-Runnable, dependency-free scripts in [`examples/`](examples/):
-
-| Script | Shows |
-|--------|-------|
-| [`ner_temporal.py`](examples/ner_temporal.py) | Extract date/time/duration entities from free text |
-| [`tts_normalization.py`](examples/tts_normalization.py) | Render timestamps to speakable words before synthesis |
-| [`asr_postproc.py`](examples/asr_postproc.py) | Turn spoken transcripts into structured datetimes |
-| [`multilingual.py`](examples/multilingual.py) | Parse-then-render round trip across many languages |
-| [`extract.py`](examples/extract.py) | Minimal extraction reference |
-| [`format.py`](examples/format.py) | Minimal formatting reference |
-
-```bash
-python examples/ner_temporal.py
-```
+`extract_datetime` reads the 61 locales in `CHRONOLOGIA_LOCALES`. The `nice_*` formatters write 40 languages, and chronologia reads every one of them except Bosnian, which reads as Croatian. [docs/languages.md](docs/languages.md) lists both sets. A tag in any case, with `_` or `-`, reaches the same reader: `"EN-US"`, `"pt_br"` and `"deu"` all work for reading.
 
 ## Documentation
 
-- [API reference](docs/api.md) — every public function and its parameters
-- [Language notes](docs/languages.md) — per-language behaviour and known gaps
-- [Adding a language](docs/adding-a-language.md) — implementation guide
+[docs/index.md](docs/index.md) lists every page. The main ones:
+
+- [Getting started](docs/getting-started.md): install to a first result in five steps
+- [Adding a language](docs/adding-a-language.md): the path for reading and the path for writing
+- [How it works](docs/how-it-works.md): which calls pass to chronologia and which code writes each language
+- [API reference](docs/api.md): every public function, with real output
+- [Language writers](docs/writers.md): the functions and data of each of the 40 writers
+- [Languages](docs/languages.md): which languages read, which write, and how
+- [Calendar helpers](docs/helpers.md): ranges, seasons and era scanners
+
+Runnable scripts are in [`examples/`](examples/). Run one with
+`python examples/ner_temporal.py`.
 
 ## Related projects
 
-- [ovos-number-parser](https://github.com/OpenVoiceOS/ovos-number-parser) — numbers
-- [ovos-lang-parser](https://github.com/OVOSHatchery/ovos-lang-parser) — languages
-- [ovos-color-parser](https://github.com/OVOSHatchery/ovos-color-parser) — colors
+- [chronologia](https://github.com/TigreGotico/chronologia): reads dates, times and durations
+- [ovos-number-parser](https://github.com/OpenVoiceOS/ovos-number-parser): numbers
 
 ## License
 

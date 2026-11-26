@@ -32,23 +32,24 @@ def dt(y, mo, d, h=0, mi=0, s=0):
 
 
 class TestPeriodOffsetPlurals(unittest.TestCase):
+    # a counted offset keeps the anchor's clock (routing ruling, class 1)
     def test_month_singular(self):
-        self.assertEqual(extract("over 1 maand")[0], dt(2017, 7, 27))
+        self.assertEqual(extract("over 1 maand")[0], dt(2017, 7, 27, 13, 4))
 
     def test_month_plural(self):
-        self.assertEqual(extract("ik zie je over 2 maanden")[0], dt(2017, 8, 27))
+        self.assertEqual(extract("ik zie je over 2 maanden")[0], dt(2017, 8, 27, 13, 4))
 
     def test_year_singular(self):
-        self.assertEqual(extract("over 1 jaar")[0], dt(2018, 6, 27))
+        self.assertEqual(extract("over 1 jaar")[0], dt(2018, 6, 27, 13, 4))
 
     def test_year_plural(self):
-        self.assertEqual(extract("we spreken af over 2 jaren")[0], dt(2019, 6, 27))
+        self.assertEqual(extract("we spreken af over 2 jaren")[0], dt(2019, 6, 27, 13, 4))
 
     def test_week_plural_already_worked(self):
-        self.assertEqual(extract("over 2 weken")[0], dt(2017, 7, 11))
+        self.assertEqual(extract("over 2 weken")[0], dt(2017, 7, 11, 13, 4))
 
     def test_day_plural_already_worked(self):
-        self.assertEqual(extract("over 2 dagen")[0], dt(2017, 6, 29))
+        self.assertEqual(extract("over 2 dagen")[0], dt(2017, 6, 29, 13, 4))
 
     def test_adversarial_maanden_as_substring_does_not_match(self):
         # "maandenlang" is a different word (adjective "months-long"); the

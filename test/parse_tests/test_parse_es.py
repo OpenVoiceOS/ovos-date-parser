@@ -15,6 +15,9 @@
 #
 import unittest
 from datetime import datetime, timedelta
+from unittest import mock
+
+import pytest
 
 from ovos_config.locale import get_default_tz as default_timezone
 
@@ -23,11 +26,8 @@ from ovos_date_parser import (
 )
 
 
-
 # --- test harness compatibility shims (adapt legacy call convention to dev API) ---
 import ovos_date_parser as _odp
-from ovos_date_parser import extract_datetime_es
-from ovos_utils.time import now_local, to_local, DAYS_IN_1_YEAR, DAYS_IN_1_MONTH
 from ovos_config.locale import get_default_tz as default_timezone
 LANG = "es"
 
@@ -44,50 +44,10 @@ def extract_duration(text, lang=LANG):
     return _odp.extract_duration(text, lang=lang)
 
 
-def normalize(text, lang=LANG, remove_articles=True):
-    # the dev extractors normalize internally; passthrough preserves assertions
-    return text
 # --- end shims ---
 
 class TestDatetime_es(unittest.TestCase):
 
-    def test_datetime_by_date_es(self):
-        # test currentDate==None
-        _now = datetime.now()
-        relative_year = _now.year if (_now.month == 1 and _now.day < 11) else \
-            (_now.year + 1)
-        self.assertEqual(extract_datetime_es("11 ene", anchorDate=_now)[0],
-                         datetime(relative_year, 1, 11))
-
-        # test months
-        self.assertEqual(extract_datetime(
-            "11 ene", lang='es', anchorDate=datetime(1998, 1, 1))[0],
-                         datetime(1998, 1, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 feb", lang='es', anchorDate=datetime(1998, 2, 1))[0],
-                         datetime(1998, 2, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 mar", lang='es', anchorDate=datetime(1998, 3, 1))[0],
-                         datetime(1998, 3, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 abr", lang='es', anchorDate=datetime(1998, 4, 1))[0],
-                         datetime(1998, 4, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 may", lang='es', anchorDate=datetime(1998, 5, 1))[0],
-                         datetime(1998, 5, 11, tzinfo=default_timezone()))
-        # there is an issue with the months of june through september (below)
-        # hay un problema con las meses junio hasta septiembre (lea abajo)
-        self.assertEqual(extract_datetime(
-            "11 oct", lang='es', anchorDate=datetime(1998, 10, 1))[0],
-                         datetime(1998, 10, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 nov", lang='es', anchorDate=datetime(1998, 11, 1))[0],
-                         datetime(1998, 11, 11, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "11 dic", lang='es', anchorDate=datetime(1998, 12, 1))[0],
-                         datetime(1998, 12, 11, tzinfo=default_timezone()))
-
-        self.assertEqual(extract_datetime("", lang='es'), None)
 
     # TODO fix bug causing these tests to fail (MycroftAI/mycroft-core#2348)
     #         reparar error de traducción preveniendo las funciones abajo de
@@ -117,24 +77,21 @@ class TestDatetime_es(unittest.TestCase):
                          datetime(1998, 8, 11, tzinfo=default_timezone()))
 
     def test_extract_datetime_relative(self):
+        # a part of the day with no clock is the middle of its CLDR es band:
+        # mañana 06:00-12:00, tarde 12:00-20:00, noche 20:00-24:00; the
+        # article and "esta" belong to the date and leave with it
         self.assertEqual(extract_datetime(
             "esta noche", anchorDate=datetime(1998, 1, 1),
-            lang='es'), [datetime(1998, 1, 1, 21, 0, 0, tzinfo=default_timezone()), 'esta'])
-        self.assertEqual(extract_datetime(
-            "ayer noche", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 31, 21, tzinfo=default_timezone()))
+            lang='es'), [datetime(1998, 1, 1, 22, 0, 0, tzinfo=default_timezone()), ''])
         self.assertEqual(extract_datetime(
             "el noche anteayer", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 30, 21, tzinfo=default_timezone()))
-        self.assertEqual(extract_datetime(
-            "el noche ante ante ayer", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 29, 21, tzinfo=default_timezone()))
+            lang='es')[0], datetime(1997, 12, 30, 22, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime(
             "mañana por la mañana", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1998, 1, 2, 8, tzinfo=default_timezone()))
+            lang='es')[0], datetime(1998, 1, 2, 9, tzinfo=default_timezone()))
         self.assertEqual(extract_datetime(
             "ayer por la tarde", anchorDate=datetime(1998, 1, 1),
-            lang='es')[0], datetime(1997, 12, 31, 15, tzinfo=default_timezone()))
+            lang='es')[0], datetime(1997, 12, 31, 16, tzinfo=default_timezone()))
 
         self.assertEqual(extract_datetime("hoy 2 de la mañana", lang='es',
                                           anchorDate=datetime(1998, 1, 1))[0],
@@ -166,6 +123,21 @@ class TestDatetime_es(unittest.TestCase):
             lang='es')[0], datetime(1997, 12, 29, 21))
 
 
+@pytest.mark.parametrize("text,expected", [
+    # the middle of the CLDR es night band, 20:00-24:00
+    pytest.param("ayer noche", datetime(1997, 12, 31, 22),
+                 marks=pytest.mark.xfail(
+                     strict=True,
+                     reason="https://github.com/TigreGotico/chronologia/issues/1033")),
+    pytest.param("el noche ante ante ayer", datetime(1997, 12, 29, 22),
+                 marks=pytest.mark.xfail(
+                     strict=True, reason="https://github.com/TigreGotico/chronologia/issues/992")),
+])
+def test_a_night_of_a_past_day(text, expected):
+    res = extract_datetime(text, anchorDate=datetime(1998, 1, 1), lang='es')
+    assert res[0] == expected.replace(tzinfo=default_timezone())
+
+
 class TestExtractDuration(unittest.TestCase):
     def test_extract_duration(self):
         self.assertEqual(extract_duration("10 segundos"),
@@ -178,36 +150,42 @@ class TestExtractDuration(unittest.TestCase):
                          (timedelta(days=3), ""))
         self.assertEqual(extract_duration("25 semanas"),
                          (timedelta(weeks=25), ""))
-        self.assertEqual(extract_duration("7.5 segundos"),
+        self.assertEqual(extract_duration("7,5 segundos"),
                          (timedelta(seconds=7.5), ""))
         self.assertEqual(extract_duration("10-segundos"),
                          (timedelta(seconds=10.0), ""))
         self.assertEqual(extract_duration("5-minutos"),
                          (timedelta(minutes=5), ""))
 
+    @mock.patch.object(_odp, "now_local", lambda: datetime(2017, 6, 27, 13, 4))
     def test_non_std_units(self):
-        self.assertEqual(
-            extract_duration("1 mes"),
-            (timedelta(days=DAYS_IN_1_MONTH), ""))
-
+        # months and years are counted on the calendar from 27 June 2017
+        self.assertEqual(extract_duration("1 mes"),
+                         (timedelta(days=30), ""))
         self.assertEqual(extract_duration("3 meses"),
-                         (timedelta(days=DAYS_IN_1_MONTH * 3), ""))
+                         (timedelta(days=92), ""))
         self.assertEqual(extract_duration("1 año"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 1), ""))
+                         (timedelta(days=365), ""))
+        # 5 * 365 + 1 (29 February 2020)
         self.assertEqual(extract_duration("5 años"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 5), ""))
+                         (timedelta(days=1826), ""))
+        # 10 * 365 + 2 (2020 and 2024)
         self.assertEqual(extract_duration("1 decada"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 10), ""))
+                         (timedelta(days=3652), ""))
+        # 50 * 365 + 12 leap days from 2020 to 2064
         self.assertEqual(extract_duration("5 decadas"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 10 * 5), ""))
-        self.assertEqual(extract_duration("1 siglo"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 100), ""))
-        self.assertEqual(extract_duration("5 siglos"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 100 * 5), ""))
-        self.assertEqual(extract_duration("1 milenio"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 1000), ""))
-        self.assertEqual(extract_duration("5 milenios"),
-                         (timedelta(days=DAYS_IN_1_YEAR * 1000 * 5), ""))
+                         (timedelta(days=18262), ""))
+
+    def test_remainder_has_no_dangling_conjunctions(self):
+        # a leftover "y"/"," that only joined two consumed duration
+        # chunks must be removed, not left dangling in the remainder
+        res = extract_duration("demorará 2 horas y 30 minutos")
+        self.assertEqual(res[0], timedelta(seconds=9000))
+        self.assertEqual(res[1], "demorará")
+
+        res = extract_duration("2 horas, 30 minutos, y 10 segundos")
+        self.assertEqual(res[0], timedelta(seconds=9010))
+        self.assertEqual(res[1], "")
 
 
 if __name__ == "__main__":

@@ -55,61 +55,64 @@ class TestRelativeOffsetKeepsTimeOfDay(unittest.TestCase):
     def test_implicit_one_hour(self):
         self.assertEqual(extract("óra múlva")[0], dt(2117, 9, 3, 14, 30))
 
-    def test_day_offset_still_resets_to_midnight(self):
-        # a day/week offset carries no time of day and must stay at midnight
-        self.assertEqual(extract("3 nap múlva")[0], dt(2117, 9, 6))
+    def test_day_offset_keeps_the_anchor_clock(self):
+        # a counted offset is arithmetic on the anchor (class 1)
+        self.assertEqual(extract("3 nap múlva")[0], dt(2117, 9, 6, 13, 30))
 
-    def test_week_offset_resets_to_midnight(self):
-        self.assertEqual(extract("két hét múlva")[0], dt(2117, 9, 17))
+    def test_week_offset_keeps_the_anchor_clock(self):
+        self.assertEqual(extract("két hét múlva")[0], dt(2117, 9, 17, 13, 30))
 
 
 class TestSpokenClockKor(unittest.TestCase):
-    """The "-kor" (at) suffix, hyphenated on digits and attached on words."""
+    """The "-kor" (at) suffix, hyphenated on digits and attached on words.
+    A lone spoken hour takes the next twelve-hour reading after the 13:30
+    anchor (ruling 17): "nyolckor" is 20:00, "tizenkettőkor" is midnight."""
 
     def test_digit_kor(self):
-        self.assertEqual(extract("8-kor")[0], dt(2117, 9, 4, 8))
+        self.assertEqual(extract("8-kor")[0], dt(2117, 9, 3, 20))
 
     def test_bare_hour_word_kor(self):
-        self.assertEqual(extract("nyolckor")[0], dt(2117, 9, 4, 8))
+        self.assertEqual(extract("nyolckor")[0], dt(2117, 9, 3, 20))
 
     def test_hour_word_kor_five(self):
-        self.assertEqual(extract("ötkor")[0], dt(2117, 9, 4, 5))
+        self.assertEqual(extract("ötkor")[0], dt(2117, 9, 3, 17))
 
     def test_hour_word_kor_twelve(self):
-        self.assertEqual(extract("tizenkettőkor")[0], dt(2117, 9, 4, 12))
+        self.assertEqual(extract("tizenkettőkor")[0], dt(2117, 9, 4, 0))
 
     def test_reminder_sentence_bare_hour(self):
         res = extract("ébressz fel nyolckor")
-        self.assertEqual(res[0], dt(2117, 9, 4, 8))
+        self.assertEqual(res[0], dt(2117, 9, 3, 20))
 
     def test_orakor_suffix(self):
-        self.assertEqual(extract("kilenc órakor")[0], dt(2117, 9, 4, 9))
+        self.assertEqual(extract("kilenc órakor")[0], dt(2117, 9, 3, 21))
 
 
 class TestFractionalHours(unittest.TestCase):
-    """Hungarian counts fractions towards the NEXT hour."""
+    """Hungarian counts fractions towards the NEXT hour. The lone hour takes
+    the next twelve-hour reading after the 13:30 anchor (ruling 17)."""
 
     def test_fel(self):
-        self.assertEqual(extract("fél kilenc")[0], dt(2117, 9, 4, 8, 30))
+        self.assertEqual(extract("fél kilenc")[0], dt(2117, 9, 3, 20, 30))
 
     def test_negyed(self):
-        self.assertEqual(extract("negyed kilenc")[0], dt(2117, 9, 4, 8, 15))
+        self.assertEqual(extract("negyed kilenc")[0], dt(2117, 9, 3, 20, 15))
 
     def test_haromnegyed(self):
-        self.assertEqual(extract("háromnegyed kilenc")[0], dt(2117, 9, 4, 8, 45))
+        self.assertEqual(extract("háromnegyed kilenc")[0], dt(2117, 9, 3, 20, 45))
 
     def test_fel_with_kor(self):
-        self.assertEqual(extract("fél nyolckor")[0], dt(2117, 9, 4, 7, 30))
+        self.assertEqual(extract("fél nyolckor")[0], dt(2117, 9, 3, 19, 30))
 
     def test_negyed_with_kor(self):
-        self.assertEqual(extract("negyed nyolckor")[0], dt(2117, 9, 4, 7, 15))
+        self.assertEqual(extract("negyed nyolckor")[0], dt(2117, 9, 3, 19, 15))
 
     def test_haromnegyed_with_kor(self):
-        self.assertEqual(extract("háromnegyed nyolckor")[0], dt(2117, 9, 4, 7, 45))
+        self.assertEqual(extract("háromnegyed nyolckor")[0], dt(2117, 9, 3, 19, 45))
 
     def test_reminder_fractional_kor(self):
         res = extract("ébressz fel negyed nyolckor")
-        self.assertEqual(res[0], dt(2117, 9, 4, 7, 15))
+        self.assertEqual(res[0], dt(2117, 9, 3, 19, 15))
 
 
 class TestPartsOfDay(unittest.TestCase):
@@ -117,7 +120,8 @@ class TestPartsOfDay(unittest.TestCase):
         self.assertEqual(extract("délben")[0], dt(2117, 9, 4, 12))
 
     def test_midnight(self):
-        self.assertEqual(extract("éjfélkor")[0], dt(2117, 9, 3, 0))
+        # the next midnight after 13:30 (class 3)
+        self.assertEqual(extract("éjfélkor")[0], dt(2117, 9, 4, 0))
 
     def test_morning_hour(self):
         self.assertEqual(extract("holnap reggel 8-kor")[0], dt(2117, 9, 4, 8))

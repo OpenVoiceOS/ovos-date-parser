@@ -8,7 +8,7 @@ description = "OpenVoiceOS's multilingual date and time parsing and formatting l
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "JarbasAI", email = "jarbasai@mailfence.com" },
 ]
@@ -17,11 +17,42 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Text Processing :: Linguistic",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-dynamic = ["version", "dependencies"]
+dependencies = [
+    "python-dateutil>=2.6",
+    "quebra_frases>=0.3.7",
+    "ovos-number-parser>=0.31.4a9,<1.0.0",
+    "dateparser",
+    "ovos-config>=0.0.12",
+    # now_local, DAYS_IN_1_YEAR and LOG; releases before 0.0.33a6 have no ovos_utils.time
+    "ovos-utils>=0.1.0",
+    "ovos-spec-tools>=1.5.0a1",
+    "linguatag>=0.4.2a4",
+    # reckoning core library (AstroDate, calendars, eras, cycles). The floor
+    # is the alpha that refuses a holiday name after an indefinite article,
+    # which "have a good friday" relies on, and reads a weekday of next or
+    # last week, which the Czech, Croatian and Slovak routing relies on, and
+    # names the Basque and Persian holidays extract_holiday_date reads, and
+    # consumes the Russian and Ukrainian preposition before a named day ("на
+    # завтра", "в следующую пятницу"), which the ru and uk routing relies on.
+    # 0.32.0a1 is the first with the ``anchor`` argument of extract_duration,
+    # which counts a month or a year on the calendar, and 0.32.1a1 reads the
+    # article of a holiday ("o natal") as part of it. 0.32.7a1 reads the
+    # Portuguese date forms the Portuguese routing relies on, reads ru and uk
+    # "tonight" as the coming night and uk "об 11" as a clock, and 0.32.8a1
+    # gives a lone spoken hour its next twelve-hour reading (ruling 17: "об
+    # 11" said at 13:04 is 23:00). 0.32.9a1 reads a bare hour before a
+    # counted noun as a count (ruling 22: nl "om 3 redenen" is no time).
+    # 0.41.0a2 is the alpha whose values the strict xfails, the duration rows
+    # and the holiday clock tests pin.
+    # 0.42.25a1 reads de "auf" before "<hour> Uhr" as part of the clock, which
+    # the "setze den timer auf zwölf uhr nachts" rows pin.
+    "chronologia>=0.43.19a1",
+]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/OpenVoiceOS/ovos-date-parser"
@@ -32,8 +63,7 @@ Issues = "https://github.com/OpenVoiceOS/ovos-date-parser/issues"
 packages = ["ovos_date_parser"]
 
 [tool.setuptools.package-data]
-ovos_date_parser = ["res/*.json", "res/*/*.json"]
+ovos_date_parser = ["res/*.json", "res/*/*.json", "locale/*/*.voc"]
 
 [tool.setuptools.dynamic]
 version = { attr = "ovos_date_parser.version.__version__" }
-dependencies = { file = ["requirements.txt"] }

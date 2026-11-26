@@ -14,6 +14,11 @@ from typing import Optional, Tuple, Union
 from dateutil.relativedelta import relativedelta
 from ovos_utils.time import now_local
 
+# ``DateTimeResolution`` now lives in the reckoning core; re-export it so the
+# single enum identity is shared across the parser, the engine and the eras
+# arithmetic (the chronologia enum is a superset, adding deep-time tiers).
+from chronologia.resolution import DateTimeResolution
+
 
 class Hemisphere(Enum):
     NORTH = 0
@@ -26,57 +31,6 @@ class Season(Enum):
     FALL = 2
     WINTER = 3
     AUTUMN = 2
-
-
-class DateTimeResolution(Enum):
-    """Granularity for :func:`get_date_ordinal`.
-
-    ``UNIT`` counts from the start of the calendar (ordinal 1 = year 1);
-    ``UNIT_OF_SCOPE`` counts inside the scope containing the reference
-    date; ``BEFORE_PRESENT_UNIT`` counts backwards from the before-present
-    reference epoch (January 1st 1950).
-    """
-    DAY = 0
-    DAY_OF_MONTH = 1
-    DAY_OF_YEAR = 2
-    DAY_OF_DECADE = 3
-    DAY_OF_CENTURY = 4
-    DAY_OF_MILLENNIUM = 5
-
-    WEEK = 6
-    WEEK_OF_MONTH = 7
-    WEEK_OF_YEAR = 8
-    WEEK_OF_DECADE = 9
-    WEEK_OF_CENTURY = 10
-    WEEK_OF_MILLENNIUM = 11
-
-    MONTH = 12
-    MONTH_OF_YEAR = 13
-    MONTH_OF_DECADE = 14
-    MONTH_OF_CENTURY = 15
-    MONTH_OF_MILLENNIUM = 16
-
-    YEAR = 17
-    YEAR_OF_DECADE = 18
-    YEAR_OF_CENTURY = 19
-    YEAR_OF_MILLENNIUM = 20
-
-    DECADE = 21
-    DECADE_OF_CENTURY = 22
-    DECADE_OF_MILLENNIUM = 23
-
-    CENTURY = 24
-    CENTURY_OF_MILLENNIUM = 25
-
-    MILLENNIUM = 26
-
-    BEFORE_PRESENT_DAY = 27
-    BEFORE_PRESENT_WEEK = 28
-    BEFORE_PRESENT_MONTH = 29
-    BEFORE_PRESENT_YEAR = 30
-    BEFORE_PRESENT_DECADE = 31
-    BEFORE_PRESENT_CENTURY = 32
-    BEFORE_PRESENT_MILLENNIUM = 33
 
 
 # before-present reference epoch (as in radiocarbon dating)
@@ -255,6 +209,10 @@ def get_date_ordinal(ordinal: int, ref_date: Optional[date] = None,
                      resolution: DateTimeResolution =
                      DateTimeResolution.DAY_OF_MONTH) -> date:
     """Resolve "the Nth {unit} of {scope}" into a date.
+
+    BEFORE_PRESENT_* resolutions may land before year 1, which
+    ``datetime.date`` cannot hold; those return an
+    :class:`~ovos_date_parser.eras.AstroDate` instead (never raise).
 
     Args:
         ordinal: 1-based ordinal; -1 selects the last unit in the scope.
@@ -450,34 +408,52 @@ def get_date_ordinal(ordinal: int, ref_date: Optional[date] = None,
             return date(day=1, month=1, year=1)
         return date(year=(ordinal - 1) * 1000, day=1, month=1)
 
-    if resolution == DateTimeResolution.BEFORE_PRESENT_DAY:
+    if resolution.name.startswith("BEFORE_PRESENT_"):
         if ordinal < 0:
-            raise OverflowError("Can not represent dates BC")
-        return BEFORE_PRESENT_EPOCH - relativedelta(days=ordinal)
-    if resolution == DateTimeResolution.BEFORE_PRESENT_WEEK:
-        if ordinal < 0:
-            raise OverflowError("Can not represent dates BC")
-        _week = BEFORE_PRESENT_EPOCH - relativedelta(weeks=ordinal)
-        return get_week_range(_week)[1]
-    if resolution == DateTimeResolution.BEFORE_PRESENT_MONTH:
-        if ordinal < 0:
-            raise OverflowError("Can not represent dates BC")
-        return BEFORE_PRESENT_EPOCH - relativedelta(months=ordinal)
-    if resolution == DateTimeResolution.BEFORE_PRESENT_YEAR:
-        if ordinal < 0:
-            raise OverflowError("Can not represent dates BC")
-        return BEFORE_PRESENT_EPOCH - relativedelta(years=ordinal)
-    if resolution == DateTimeResolution.BEFORE_PRESENT_DECADE:
-        if ordinal < 0:
-            raise OverflowError("Can not represent dates BC")
-        return BEFORE_PRESENT_EPOCH - relativedelta(years=10 * ordinal)
-    if resolution == DateTimeResolution.BEFORE_PRESENT_CENTURY:
-        if ordinal < 0:
-            raise OverflowError("Can not represent dates BC")
-        return BEFORE_PRESENT_EPOCH - relativedelta(years=100 * ordinal)
-    if resolution == DateTimeResolution.BEFORE_PRESENT_MILLENNIUM:
-        if ordinal < 0:
-            raise OverflowError("Can not represent dates BC")
-        return BEFORE_PRESENT_EPOCH - relativedelta(years=1000 * ordinal)
+            raise OverflowError("negative Before Present counts are not a "
+                                "date before present")
+        return _before_present(ordinal, resolution)
 
     raise ValueError(f"Invalid DateTimeResolution: {resolution}")
+
+
+#: Julian day number on which BEFORE_PRESENT_EPOCH (1950-01-01) begins;
+#: fixed origin for exact day arithmetic at any depth
+_JD_BP_EPOCH = 2433283
+
+
+def _before_present(ordinal, resolution):
+    """Resolve "N {unit}s before present" (present = 1950, the radiocarbon
+    convention).  Results the datetime range can hold are plain ``date``
+    (unchanged behaviour); anything before year 1 is an ``AstroDate``
+    instead of the previous ``OverflowError``.
+
+    Day/week counts use Julian-day arithmetic so they stay exact at any
+    depth; month/year counts are integer month/year arithmetic anchored at
+    the epoch, matching what ``relativedelta`` produced in range.
+    """
+    # imported here: eras depends on this module for DateTimeResolution
+    from chronologia.eras import AstroDate, julian_day_to_date
+
+    if resolution == DateTimeResolution.BEFORE_PRESENT_DAY:
+        return julian_day_to_date(_JD_BP_EPOCH - ordinal)
+    if resolution == DateTimeResolution.BEFORE_PRESENT_WEEK:
+        _day = julian_day_to_date(_JD_BP_EPOCH - 7 * ordinal)
+        if isinstance(_day, AstroDate):
+            return _day
+        return get_week_range(_day)[1]
+    if resolution == DateTimeResolution.BEFORE_PRESENT_MONTH:
+        _months = (BEFORE_PRESENT_EPOCH.year * 12) - ordinal
+        _year, _month = _months // 12, _months % 12 + 1
+        if _year < 1:
+            return AstroDate(_year, _month, 1)
+        return date(year=_year, month=_month, day=1)
+
+    _span = {DateTimeResolution.BEFORE_PRESENT_YEAR: 1,
+             DateTimeResolution.BEFORE_PRESENT_DECADE: 10,
+             DateTimeResolution.BEFORE_PRESENT_CENTURY: 100,
+             DateTimeResolution.BEFORE_PRESENT_MILLENNIUM: 1000}[resolution]
+    _year = BEFORE_PRESENT_EPOCH.year - _span * ordinal
+    if _year < 1:
+        return AstroDate(_year, 1, 1)
+    return date(year=_year, month=1, day=1)

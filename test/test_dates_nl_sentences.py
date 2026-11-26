@@ -7,6 +7,7 @@ instead of reporting nothing.
 import unittest
 from datetime import datetime
 
+import pytest
 from ovos_config.locale import get_default_tz as default_timezone
 
 import ovos_date_parser as _odp
@@ -54,7 +55,9 @@ class TestNaturalPhrasing(unittest.TestCase):
         self.assertEqual(extract("morgen om 10 uur")[0], dt(1998, 1, 2, 10))
 
     def test_next_week(self):
-        self.assertEqual(extract("volgende week")[0], dt(1998, 1, 8))
+        # a named period is the calendar unit, and the nl week starts on
+        # Monday (routing ruling, class 2b)
+        self.assertEqual(extract("volgende week")[0], dt(1998, 1, 5))
 
     def test_next_year(self):
         self.assertEqual(extract("volgend jaar")[0], dt(1999, 1, 1))
@@ -69,11 +72,17 @@ class TestNaturalPhrasing(unittest.TestCase):
 class TestMalformedInputReturnsNone(unittest.TestCase):
     """Impossible input must report nothing, never raise."""
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1035")
     def test_hour_24_clock(self):
         self.assertIsNone(extract("2400"))
 
+    @pytest.mark.xfail(strict=True,
+                       reason="https://github.com/TigreGotico/chronologia/issues/1032")
     def test_hour_24_colon(self):
-        self.assertIsNone(extract("24:00"))
+        # 24:00 is the end of the day, the same instant as 00:00 of the next
+        # day (ISO 8601, "24:00" as the end of a calendar day)
+        self.assertEqual(extract("24:00")[0], dt(1998, 1, 2))
 
     def test_hour_25(self):
         self.assertIsNone(extract("25:30"))

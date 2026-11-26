@@ -37,9 +37,7 @@ _INSIDE_DEFECTS = {
     "lembra-me no dia 3 dez. obrigado": "https://github.com/TigreGotico/chronologia/issues/992",
     "erinnere mich um 8.30 uhr danke": "https://github.com/TigreGotico/chronologia/issues/1032",
 }
-_EXACT_DEFECTS = {
-    "a las 9, esta noche": "https://github.com/TigreGotico/chronologia/issues/1001",
-}
+_EXACT_DEFECTS = {}
 
 
 class TestPunctuationAfterExpression(unittest.TestCase):

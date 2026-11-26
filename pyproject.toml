@@ -50,7 +50,7 @@ dependencies = [
     # and the holiday clock tests pin.
     # 0.42.25a1 reads de "auf" before "<hour> Uhr" as part of the clock, which
     # the "setze den timer auf zwölf uhr nachts" rows pin.
-    "chronologia>=0.43.13a6",
+    "chronologia>=0.43.19a1",
 ]
 dynamic = ["version"]
 

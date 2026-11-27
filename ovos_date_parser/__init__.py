@@ -54,9 +54,6 @@ from ovos_date_parser.eras import (
     Era, EraCounting, ERAS, astro_year_range, is_leap_year,
     julian_day_to_date, resolve_bp, resolve_era,
 )
-# Newer reckoning-core surface, re-exported so downstream code can reach the
-# timeline, named-period and radiocarbon-calibration facilities alongside the
-# established date-parsing API.
 from chronologia import TIMELINES, PERIODS, calibrate_c14, DAY_PARTS
 from chronologia import extract_candidates as _chronologia_candidates
 from chronologia import extract_timespans as _chronologia_timespans
@@ -159,18 +156,10 @@ def _reader_lang(lang: str) -> str:
 
 
 def _as_datetime(dt):
-    """Coerce an :class:`AstroDate` to a real ``datetime`` when it fits one.
-
-    The legacy ``nice_*`` formatters were written against ``datetime`` and lean
-    on clock-and-locale ``strftime`` directives (``%I``, ``%A``, ``%B``) that
-    the unbounded :class:`~chronologia.AstroDate` deliberately refuses. Any
-    ``AstroDate`` inside the proleptic-Gregorian ``datetime`` range is
-    byte-identical to its ``.datetime()`` projection, so we hand that through
-    transparently. A ``datetime`` (or anything already outside AstroDate) is
-    returned untouched; an out-of-range ``AstroDate`` (a BC or far-future point
-    a ``datetime`` cannot hold) is left as-is so year-only formatters that only
-    need ``%Y`` still work and clock formatters fail loudly instead of lying.
-    """
+    """``dt`` as a ``datetime`` when it is an :class:`AstroDate` in the range
+    of one, because the ``nice_*`` writers use ``strftime`` directives that
+    AstroDate refuses. Any other value, including an AstroDate outside the
+    range, is returned as it is."""
     if isinstance(dt, datetime):
         return dt
     if isinstance(dt, AstroDate) and dt.in_datetime_range:
@@ -1316,9 +1305,6 @@ def extract_duration_spans(text: str, lang: str) -> List[DurationSpan]:
             for start, end, value in _expression_spans(text, read, additive=True)]
 
 
-#: Span-native natural-language extraction (text -> DateSpan) is owned by
-#: the reckoning core. ``extract_timespan`` and ``explain`` are re-exported
-#: here unchanged so the parser keeps its public surface.
 from chronologia import extract_timespan, explain
 
 
@@ -1547,10 +1533,8 @@ class DateTimeFormat:
                           formatted_decade=formatted_decade,
                           formatted_thousand=formatted_thousand,
                           bc=formatted_bc)).strip()
-        # explicit AD/CE marker, mutually exclusive with bc.
-        # only applied for locales that define an "ad" suffix in their
-        # year_format resource (e.g. "e.Kr." in Danish); a no-op elsewhere
-        # so existing languages/callers are unaffected.
+        # an AD/CE marker: only for locales whose year_format has an "ad"
+        # suffix ("e.Kr." in Danish), and never together with bc
         if ad and not bc:
             formatted_ad = self.lang_config[lang]['year_format'].get('ad', '')
             if formatted_ad:

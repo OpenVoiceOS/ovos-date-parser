@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from ovos_number_parser.numbers_uk import pronounce_number_uk, _NUM_STRING_UK
+from ovos_number_parser.numbers_uk import pronounce_number_uk
 
 # hours
 HOURS_UK = {
@@ -192,18 +192,6 @@ def nice_duration_uk(duration, speech=True):
 def pronounce_hour_uk(num):
     if num in HOURS_UK.keys():
         return HOURS_UK[num] + ' година'
-
-
-def pronounce_mins_uk(num):
-    if num in _NUM_STRING_UK.keys():
-        if num == 1:
-            return 'одна хвилина'
-        if num == 2:
-            return 'дві хвилини'
-        if num in [10, 20, 30, 40, 50, 60]:
-            _NUM_STRING_UK[num] + 'хвилин'
-        else:
-            return
 
 
 def pronounce_hour_genitive_uk(num):

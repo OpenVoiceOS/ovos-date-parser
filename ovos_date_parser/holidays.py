@@ -930,7 +930,7 @@ def _in_anchor_zone(moment: datetime, anchor: datetime) -> datetime:
         return moment
     zone = _as_zoneinfo(tz)
     try:
-        from chronologia import resolve_wall_clock
+        from chronologia import AstroDate, resolve_wall_clock
         for minutes in range(moment.hour * 60 + moment.minute,
                              moment.hour * 60 + moment.minute + 4 * 60, 30):
             resolved = resolve_wall_clock(moment.year, moment.month,
@@ -938,7 +938,7 @@ def _in_anchor_zone(moment: datetime, anchor: datetime) -> datetime:
                                           minutes % 60, zone)
             if isinstance(resolved, tuple):  # a fold: the earlier instant
                 resolved = resolved[0]
-            if hasattr(resolved, "datetime"):  # not NeverExisted (a gap)
+            if isinstance(resolved, AstroDate):  # not NeverExisted (a gap)
                 when = resolved.datetime()
                 if when is not None:
                     return when.replace(second=moment.second,

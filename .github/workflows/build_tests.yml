@@ -19,3 +19,9 @@ jobs:
       # this line to be measured at all. The directory is green and
       # takes about half a minute.
       test_path: "test"
+
+  docs_check:
+    uses: OpenVoiceOS/gh-automations/.github/workflows/docs-check.yml@dev
+    with:
+      docs_standard: true
+    secrets: inherit
